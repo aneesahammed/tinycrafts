@@ -2884,6 +2884,467 @@
         line-height: 1.45;
       }
 
+      /* The old inline chat settings panel is now permanently hidden.
+         Its inputs remain in the DOM as the source of truth for AI config —
+         the new global settings drawer mirrors values into them. */
+      #chatSettings {
+        display: none !important;
+      }
+
+      /* ---------- Global Settings Drawer ---------- */
+      .gs-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 14, 20, 0);
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+        z-index: 9998;
+        pointer-events: none;
+        transition:
+          background-color 220ms ease,
+          backdrop-filter 220ms ease;
+      }
+      .gs-overlay.is-open {
+        background: rgba(10, 14, 20, 0.32);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        pointer-events: auto;
+      }
+      :root[data-theme="dark"] .gs-overlay.is-open {
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .gs-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(440px, 100vw);
+        background: var(--bg-canvas);
+        border-left: 1px solid var(--border-soft);
+        box-shadow: -24px 0 48px -24px rgba(0, 0, 0, 0.24);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        font-family: var(--font-sans);
+        color: var(--fg-default);
+        transform: translateX(100%);
+        transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .gs-drawer.is-open {
+        transform: translateX(0);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .gs-drawer,
+        .gs-overlay {
+          transition: none;
+        }
+      }
+
+      .gs-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 20px 16px;
+        border-bottom: 1px solid var(--border-soft);
+        flex-shrink: 0;
+      }
+      .gs-header-title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--fg-default);
+        margin: 0;
+        flex: 1;
+      }
+      .gs-close {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--fg-muted);
+        transition:
+          background-color 140ms ease,
+          color 140ms ease,
+          border-color 140ms ease;
+      }
+      .gs-close:hover {
+        background: var(--border-soft);
+        color: var(--fg-default);
+      }
+      .gs-close:focus-visible {
+        outline: none;
+        border-color: var(--accent-fg);
+      }
+
+      .gs-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .gs-section-label {
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--fg-subtle);
+        margin: 0 0 10px;
+      }
+
+      /* Status chip */
+      .gs-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--border-soft);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--fg-muted);
+        align-self: flex-start;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease;
+      }
+      .gs-status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--fg-subtle);
+        box-shadow: 0 0 0 0 rgba(86, 171, 100, 0);
+        transition:
+          background-color 160ms ease,
+          box-shadow 160ms ease;
+      }
+      .gs-status.is-ready {
+        background: rgba(86, 171, 100, 0.14);
+        color: rgb(46, 120, 60);
+      }
+      .gs-status.is-ready .gs-status-dot {
+        background: rgb(86, 171, 100);
+        box-shadow: 0 0 0 3px rgba(86, 171, 100, 0.18);
+      }
+      :root[data-theme="dark"] .gs-status.is-ready {
+        color: rgb(140, 210, 150);
+      }
+      .gs-status-text-mono {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: inherit;
+        opacity: 0.85;
+      }
+
+      /* Segmented control */
+      .gs-segmented {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        padding: 4px;
+        background: var(--border-soft);
+        border-radius: 10px;
+        position: relative;
+      }
+      .gs-seg-btn {
+        appearance: none;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--fg-muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition:
+          background-color 180ms ease,
+          color 180ms ease,
+          box-shadow 180ms ease;
+      }
+      .gs-seg-btn:hover {
+        color: var(--fg-default);
+      }
+      .gs-seg-btn[aria-pressed="true"] {
+        background: var(--bg-canvas);
+        color: var(--fg-default);
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.06),
+          0 1px 4px rgba(0, 0, 0, 0.04);
+      }
+      :root[data-theme="dark"] .gs-seg-btn[aria-pressed="true"] {
+        background: rgba(255, 255, 255, 0.06);
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.4),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+      .gs-seg-btn:focus-visible {
+        outline: none;
+        border-color: var(--accent-fg);
+      }
+      .gs-seg-icon {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+
+      /* Provider config cards */
+      .gs-card {
+        border: 1px solid var(--border-soft);
+        border-radius: 12px;
+        padding: 16px;
+        background: var(--bg-canvas);
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        opacity: 0;
+        transform: translateY(4px);
+        animation: gs-card-in 260ms ease forwards;
+      }
+      @keyframes gs-card-in {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .gs-card[hidden] {
+        display: none;
+      }
+
+      .gs-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .gs-field-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--fg-subtle);
+      }
+      .gs-input-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .gs-input {
+        flex: 1;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: var(--fg-default);
+        background: var(--bg-canvas);
+        font-family: var(--font-mono);
+        transition:
+          border-color 140ms ease,
+          box-shadow 140ms ease;
+      }
+      .gs-input:focus {
+        outline: none;
+        border-color: var(--accent-fg);
+        box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.16);
+      }
+      .gs-input.has-reveal {
+        padding-right: 40px;
+      }
+      .gs-reveal-btn {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--fg-subtle);
+        transition:
+          color 140ms ease,
+          background-color 140ms ease;
+      }
+      .gs-reveal-btn:hover {
+        color: var(--fg-default);
+        background: var(--border-soft);
+      }
+      .gs-reveal-btn:focus-visible {
+        outline: none;
+        border-color: var(--accent-fg);
+      }
+
+      .gs-field-hint {
+        font-size: 11px;
+        color: var(--fg-subtle);
+        line-height: 1.45;
+        margin: 0;
+      }
+      .gs-field-hint a {
+        color: var(--accent-fg);
+        text-decoration: none;
+      }
+      .gs-field-hint a:hover {
+        text-decoration: underline;
+      }
+
+      .gs-actions-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .gs-test-btn {
+        appearance: none;
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        padding: 8px 14px;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--fg-default);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition:
+          border-color 140ms ease,
+          background-color 140ms ease,
+          color 140ms ease;
+      }
+      .gs-test-btn:hover:not(:disabled) {
+        border-color: var(--accent-fg);
+        color: var(--accent-fg);
+      }
+      .gs-test-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .gs-test-result {
+        font-size: 11.5px;
+        color: var(--fg-muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .gs-test-result.is-ok {
+        color: rgb(46, 120, 60);
+      }
+      .gs-test-result.is-err {
+        color: rgb(190, 70, 70);
+      }
+      :root[data-theme="dark"] .gs-test-result.is-ok {
+        color: rgb(140, 210, 150);
+      }
+      :root[data-theme="dark"] .gs-test-result.is-err {
+        color: rgb(240, 140, 140);
+      }
+
+      /* Card header: context subtitle + activation affordance */
+      .gs-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: -2px 0 2px;
+      }
+      .gs-card-sub {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 11.5px;
+        color: var(--fg-subtle);
+        margin: 0;
+        line-height: 1.4;
+      }
+      .gs-in-use-badge,
+      .gs-activate-btn {
+        flex-shrink: 0;
+      }
+      .gs-activate-btn {
+        appearance: none;
+        background: transparent;
+        border: 1px solid var(--border-default);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--fg-muted);
+        cursor: pointer;
+        transition:
+          border-color 160ms ease,
+          color 160ms ease,
+          background-color 160ms ease,
+          opacity 160ms ease;
+      }
+      .gs-activate-btn:hover:not(:disabled) {
+        border-color: var(--accent-fg);
+        color: var(--accent-fg);
+      }
+      .gs-activate-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        border-color: var(--border-soft);
+        color: var(--fg-muted);
+      }
+      .gs-activate-btn:focus-visible {
+        outline: none;
+        border-color: var(--accent-fg);
+        box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.16);
+      }
+      .gs-in-use-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(86, 171, 100, 0.14);
+        color: rgb(46, 120, 60);
+        font-size: 11.5px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+      }
+      .gs-in-use-badge::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgb(86, 171, 100);
+        box-shadow: 0 0 0 3px rgba(86, 171, 100, 0.18);
+      }
+      :root[data-theme="dark"] .gs-in-use-badge {
+        color: rgb(140, 210, 150);
+      }
+      [hidden].gs-in-use-badge,
+      [hidden].gs-activate-btn {
+        display: none;
+      }
+
+      .gs-foot {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border-soft);
+        font-size: 11px;
+        color: var(--fg-subtle);
+        line-height: 1.5;
+        flex-shrink: 0;
+      }
+
       .doc-highlight {
         color: inherit;
         cursor: pointer;
@@ -3449,6 +3910,34 @@
             </div>
           </div>
         </div>
+
+        <button
+          id="globalSettingsBtn"
+          type="button"
+          class="btn btn-icon"
+          title="Settings"
+          aria-label="Open settings"
+          aria-haspopup="dialog"
+          aria-controls="globalSettingsDrawer"
+          aria-expanded="false"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            />
+          </svg>
+        </button>
 
         <button
           id="themeToggleBtn"
@@ -14543,6 +15032,675 @@ Return JSON only.`;
       </div>
     </div>
 
+    <!-- Global Settings Drawer -->
+    <div
+      id="globalSettingsOverlay"
+      class="gs-overlay"
+      aria-hidden="true"
+    ></div>
+    <aside
+      id="globalSettingsDrawer"
+      class="gs-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="globalSettingsTitle"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <header class="gs-header">
+        <h2 id="globalSettingsTitle" class="gs-header-title">Settings</h2>
+        <button
+          type="button"
+          id="globalSettingsCloseBtn"
+          class="gs-close"
+          aria-label="Close settings"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </header>
+
+      <div class="gs-body">
+        <section aria-labelledby="gsAiProviderLabel">
+          <p id="gsAiProviderLabel" class="gs-section-label">AI Provider</p>
+
+          <div
+            id="gsStatusChip"
+            class="gs-status"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="gs-status-dot" aria-hidden="true"></span>
+            <span id="gsStatusText">Not configured</span>
+          </div>
+
+          <div
+            class="gs-segmented"
+            role="tablist"
+            aria-label="AI provider"
+            style="margin-top: 12px;"
+          >
+            <button
+              type="button"
+              class="gs-seg-btn"
+              id="gsSegOllama"
+              role="tab"
+              aria-pressed="true"
+              aria-controls="gsCardOllama"
+              data-provider="ollama"
+            >
+              <svg class="gs-seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="12" rx="2" />
+                <line x1="8" y1="20" x2="16" y2="20" />
+                <line x1="12" y1="16" x2="12" y2="20" />
+              </svg>
+              Ollama
+            </button>
+            <button
+              type="button"
+              class="gs-seg-btn"
+              id="gsSegGroq"
+              role="tab"
+              aria-pressed="false"
+              aria-controls="gsCardGroq"
+              data-provider="groq"
+            >
+              <svg class="gs-seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+              Groq
+            </button>
+          </div>
+
+          <!-- Ollama card -->
+          <div
+            id="gsCardOllama"
+            class="gs-card"
+            role="tabpanel"
+            aria-labelledby="gsSegOllama"
+            style="margin-top: 14px;"
+          >
+            <div class="gs-card-head">
+              <p class="gs-card-sub">Runs on your machine — your document never leaves it.</p>
+              <span
+                id="gsOllamaInUse"
+                class="gs-in-use-badge"
+                hidden
+              >In use</span>
+              <button
+                type="button"
+                id="gsActivateOllama"
+                class="gs-activate-btn"
+              >Use Ollama</button>
+            </div>
+            <div class="gs-field">
+              <label class="gs-field-label" for="gsOllamaEndpoint">
+                Endpoint
+              </label>
+              <div class="gs-input-wrap">
+                <input
+                  id="gsOllamaEndpoint"
+                  class="gs-input"
+                  type="text"
+                  placeholder="http://localhost:11434"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+              <p class="gs-field-hint">
+                Must be a loopback address. Ollama runs on your machine —
+                your document never leaves it.
+              </p>
+            </div>
+
+            <div class="gs-field">
+              <label class="gs-field-label" for="gsOllamaModel">
+                Model
+              </label>
+              <div class="gs-input-wrap">
+                <input
+                  id="gsOllamaModel"
+                  class="gs-input"
+                  type="text"
+                  placeholder="gemma4:26b"
+                  autocomplete="off"
+                  spellcheck="false"
+                  list="gsOllamaModelList"
+                />
+              </div>
+              <datalist id="gsOllamaModelList">
+                <option value="gemma4:26b"></option>
+                <option value="llama3.1:8b"></option>
+                <option value="llama3.1:70b"></option>
+                <option value="qwen2.5:14b"></option>
+                <option value="qwen2.5:32b"></option>
+                <option value="mistral:7b"></option>
+                <option value="phi3.5:3.8b"></option>
+              </datalist>
+              <p class="gs-field-hint">
+                Any model you've pulled with <code>ollama pull</code>.
+              </p>
+            </div>
+
+            <div class="gs-actions-row">
+              <button type="button" id="gsTestOllama" class="gs-test-btn">
+                Test connection
+              </button>
+              <span id="gsTestOllamaResult" class="gs-test-result"></span>
+            </div>
+          </div>
+
+          <!-- Groq card -->
+          <div
+            id="gsCardGroq"
+            class="gs-card"
+            role="tabpanel"
+            aria-labelledby="gsSegGroq"
+            hidden
+            style="margin-top: 14px;"
+          >
+            <div class="gs-card-head">
+              <p class="gs-card-sub">Hosted by Groq — fast cloud inference.</p>
+              <span
+                id="gsGroqInUse"
+                class="gs-in-use-badge"
+                hidden
+              >In use</span>
+              <button
+                type="button"
+                id="gsActivateGroq"
+                class="gs-activate-btn"
+              >Use Groq</button>
+            </div>
+            <div class="gs-field">
+              <label class="gs-field-label" for="gsGroqApiKey">
+                API Key
+              </label>
+              <div class="gs-input-wrap">
+                <input
+                  id="gsGroqApiKey"
+                  class="gs-input has-reveal"
+                  type="password"
+                  placeholder="gsk_..."
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  id="gsGroqRevealBtn"
+                  class="gs-reveal-btn"
+                  aria-label="Show API key"
+                  aria-pressed="false"
+                >
+                  <svg id="gsRevealIconShow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg id="gsRevealIconHide" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 4.22-5.19M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.86 19.86 0 0 1-3.17 4.19M9.53 9.53a3 3 0 1 0 4.24 4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                </button>
+              </div>
+              <p class="gs-field-hint">
+                Encrypted at rest with AES-GCM and stored only in this
+                browser. Get a key at
+                <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">console.groq.com/keys</a>.
+              </p>
+            </div>
+
+            <div class="gs-field">
+              <label class="gs-field-label" for="gsGroqModel">
+                Model
+              </label>
+              <div class="gs-input-wrap">
+                <input
+                  id="gsGroqModel"
+                  class="gs-input"
+                  type="text"
+                  placeholder="qwen/qwen3-32b"
+                  autocomplete="off"
+                  spellcheck="false"
+                  list="gsGroqModelList"
+                />
+              </div>
+              <datalist id="gsGroqModelList">
+                <option value="qwen/qwen3-32b"></option>
+                <option value="llama-3.3-70b-versatile"></option>
+                <option value="llama-3.1-8b-instant"></option>
+                <option value="llama-3.1-70b-versatile"></option>
+                <option value="mixtral-8x7b-32768"></option>
+                <option value="gemma2-9b-it"></option>
+                <option value="deepseek-r1-distill-llama-70b"></option>
+              </datalist>
+              <p class="gs-field-hint">
+                Pick a curated model or type any Groq-hosted model id.
+              </p>
+            </div>
+
+            <div class="gs-actions-row">
+              <button type="button" id="gsTestGroq" class="gs-test-btn">
+                Test connection
+              </button>
+              <span id="gsTestGroqResult" class="gs-test-result"></span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="gs-foot">
+        Changes save automatically. AI config is shared across chat,
+        mindmap, ontology and summary.
+      </footer>
+    </aside>
+
+    <script>
+      /* ============================================================
+       Global Settings Drawer — AI provider config, unified across
+       chat, mindmap, ontology and summary features.
+       ============================================================ */
+      (function () {
+        "use strict";
+
+        const drawer = document.getElementById("globalSettingsDrawer");
+        const overlay = document.getElementById("globalSettingsOverlay");
+        const openBtn = document.getElementById("globalSettingsBtn");
+        const closeBtn = document.getElementById("globalSettingsCloseBtn");
+
+        const statusChip = document.getElementById("gsStatusChip");
+        const statusText = document.getElementById("gsStatusText");
+
+        const segOllama = document.getElementById("gsSegOllama");
+        const segGroq = document.getElementById("gsSegGroq");
+        const cardOllama = document.getElementById("gsCardOllama");
+        const cardGroq = document.getElementById("gsCardGroq");
+
+        const gsOllamaEndpoint = document.getElementById("gsOllamaEndpoint");
+        const gsOllamaModel = document.getElementById("gsOllamaModel");
+        const gsGroqApiKey = document.getElementById("gsGroqApiKey");
+        const gsGroqModel = document.getElementById("gsGroqModel");
+
+        const activateOllamaBtn = document.getElementById("gsActivateOllama");
+        const activateGroqBtn = document.getElementById("gsActivateGroq");
+        const inUseOllamaBadge = document.getElementById("gsOllamaInUse");
+        const inUseGroqBadge = document.getElementById("gsGroqInUse");
+
+        // The drawer tracks two separate concepts: which provider card
+        // is currently being VIEWED (purely a navigation state inside
+        // the drawer) and which provider is ACTIVE (the real app
+        // config, read from the legacy hidden input). Keeping them
+        // separate lets a user peek at Groq's settings without
+        // inadvertently switching their active AI.
+        let viewedProvider = "ollama";
+
+        const revealBtn = document.getElementById("gsGroqRevealBtn");
+        const revealIconShow = document.getElementById("gsRevealIconShow");
+        const revealIconHide = document.getElementById("gsRevealIconHide");
+
+        const testOllamaBtn = document.getElementById("gsTestOllama");
+        const testOllamaResult = document.getElementById("gsTestOllamaResult");
+        const testGroqBtn = document.getElementById("gsTestGroq");
+        const testGroqResult = document.getElementById("gsTestGroqResult");
+
+        // Legacy inline panel inputs — the existing chat/mindmap/ontology
+        // code reads from these. The drawer mirrors values both ways so
+        // we don't have to touch any downstream call sites.
+        const legacyProvider = document.getElementById("llmProvider");
+        const legacyEndpoint = document.getElementById("ollamaEndpoint");
+        const legacyOllamaModel = document.getElementById("ollamaModel");
+        const legacyGroqKey = document.getElementById("groqApiKey");
+        const legacyGroqModel = document.getElementById("groqModel");
+
+        if (!drawer || !openBtn || !legacyProvider) return;
+
+        let lastFocused = null;
+        let returnFocusEl = null;
+
+        function currentProvider() {
+          return legacyProvider.value === "groq" ? "groq" : "ollama";
+        }
+
+        function fireLegacyInput(el) {
+          // The existing chat IIFE listens for 'change' + 'input' on the
+          // legacy inputs to persist LLM settings. Dispatching these
+          // events lets the mirror update re-run its save pipeline.
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        function pullFromLegacy() {
+          gsOllamaEndpoint.value = legacyEndpoint.value || "";
+          gsOllamaModel.value = legacyOllamaModel.value || "";
+          gsGroqApiKey.value = legacyGroqKey.value || "";
+          gsGroqModel.value = legacyGroqModel.value || "";
+          // When the drawer opens, default the viewed card to the
+          // provider that's actually active so the user lands on
+          // what they're using right now.
+          viewedProvider = currentProvider();
+          renderAll();
+        }
+
+        function pushProvider(provider) {
+          if (legacyProvider.value !== provider) {
+            legacyProvider.value = provider;
+            fireLegacyInput(legacyProvider);
+          }
+        }
+
+        function pushField(legacyEl, value) {
+          if (legacyEl.value !== value) {
+            legacyEl.value = value;
+            fireLegacyInput(legacyEl);
+          }
+        }
+
+        function isProviderReady(provider) {
+          if (provider === "groq") {
+            return Boolean(
+              gsGroqApiKey.value.trim() && gsGroqModel.value.trim(),
+            );
+          }
+          return Boolean(
+            gsOllamaEndpoint.value.trim() && gsOllamaModel.value.trim(),
+          );
+        }
+
+        function updateSegmented() {
+          const isGroq = viewedProvider === "groq";
+          segOllama.setAttribute("aria-pressed", String(!isGroq));
+          segGroq.setAttribute("aria-pressed", String(isGroq));
+          cardOllama.hidden = isGroq;
+          cardGroq.hidden = !isGroq;
+          // Restart the card intro animation so the swap feels deliberate.
+          const activeCard = isGroq ? cardGroq : cardOllama;
+          activeCard.style.animation = "none";
+          // eslint-disable-next-line no-unused-expressions
+          activeCard.offsetHeight;
+          activeCard.style.animation = "";
+        }
+
+        function updateActivationUI() {
+          // Show the "In use" badge on whichever card is the active
+          // provider, and the "Use X" button on the other. Both
+          // controls live in the same slot so they never coexist.
+          const active = currentProvider();
+          const ollamaActive = active === "ollama";
+          inUseOllamaBadge.hidden = !ollamaActive;
+          activateOllamaBtn.hidden = ollamaActive;
+          inUseGroqBadge.hidden = ollamaActive;
+          activateGroqBtn.hidden = !ollamaActive;
+          // Disable activate buttons until the target provider has
+          // the minimum config it needs to actually run.
+          activateOllamaBtn.disabled = !isProviderReady("ollama");
+          activateGroqBtn.disabled = !isProviderReady("groq");
+          activateOllamaBtn.title = activateOllamaBtn.disabled
+            ? "Add endpoint and model first"
+            : "Switch the app to Ollama";
+          activateGroqBtn.title = activateGroqBtn.disabled
+            ? "Add an API key first"
+            : "Switch the app to Groq";
+        }
+
+        function updateStatus() {
+          // The chip ALWAYS describes the active provider, regardless
+          // of which card is currently being viewed. That's the whole
+          // point of separating viewed from active: the chip is the
+          // single source of truth for "what is this app using?".
+          const active = currentProvider();
+          const ready = isProviderReady(active);
+          let label;
+          if (active === "groq") {
+            label = ready ? "Groq is ready" : "Groq needs an API key";
+          } else {
+            label = ready
+              ? "Ollama is ready"
+              : "Ollama needs endpoint and model";
+          }
+          statusChip.classList.toggle("is-ready", ready);
+          statusText.textContent = label;
+        }
+
+        function renderAll() {
+          updateSegmented();
+          updateActivationUI();
+          updateStatus();
+        }
+
+        // ---- Segmented control: navigation only, no commit ----
+        function viewProvider(provider) {
+          viewedProvider = provider;
+          renderAll();
+        }
+        segOllama.addEventListener("click", function () {
+          viewProvider("ollama");
+        });
+        segGroq.addEventListener("click", function () {
+          viewProvider("groq");
+        });
+
+        // ---- Activation: the only thing that flips the active provider ----
+        function activateProvider(provider) {
+          if (!isProviderReady(provider)) return;
+          pushProvider(provider);
+          viewedProvider = provider;
+          renderAll();
+        }
+        activateOllamaBtn.addEventListener("click", function () {
+          activateProvider("ollama");
+        });
+        activateGroqBtn.addEventListener("click", function () {
+          activateProvider("groq");
+        });
+
+        // ---- Field mirroring ----
+        function bindMirror(drawerEl, legacyEl) {
+          drawerEl.addEventListener("input", function () {
+            pushField(legacyEl, drawerEl.value);
+            renderAll();
+          });
+          // If something else in the app edits the legacy input, reflect it
+          // back into the drawer on next open.
+          legacyEl.addEventListener("input", function () {
+            if (drawerEl.value !== legacyEl.value) {
+              drawerEl.value = legacyEl.value;
+              renderAll();
+            }
+          });
+        }
+        bindMirror(gsOllamaEndpoint, legacyEndpoint);
+        bindMirror(gsOllamaModel, legacyOllamaModel);
+        bindMirror(gsGroqApiKey, legacyGroqKey);
+        bindMirror(gsGroqModel, legacyGroqModel);
+
+        // ---- Reveal toggle for API key ----
+        revealBtn.addEventListener("click", function () {
+          const showing = gsGroqApiKey.type === "text";
+          gsGroqApiKey.type = showing ? "password" : "text";
+          revealBtn.setAttribute("aria-pressed", String(!showing));
+          revealBtn.setAttribute(
+            "aria-label",
+            showing ? "Show API key" : "Hide API key",
+          );
+          revealIconShow.style.display = showing ? "" : "none";
+          revealIconHide.style.display = showing ? "none" : "";
+        });
+
+        // ---- Test connection ----
+        function setTestResult(el, state, text) {
+          el.classList.remove("is-ok", "is-err");
+          if (state) el.classList.add(state);
+          el.textContent = text;
+        }
+
+        testOllamaBtn.addEventListener("click", async function () {
+          const endpoint = gsOllamaEndpoint.value.trim();
+          if (!endpoint) {
+            setTestResult(testOllamaResult, "is-err", "Enter an endpoint first");
+            return;
+          }
+          testOllamaBtn.disabled = true;
+          setTestResult(testOllamaResult, null, "Testing…");
+          try {
+            const base = endpoint.replace(/\/+$/, "");
+            const res = await fetch(base + "/api/tags", { method: "GET" });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            setTestResult(testOllamaResult, "is-ok", "✓ Reachable");
+          } catch (err) {
+            setTestResult(
+              testOllamaResult,
+              "is-err",
+              "✗ " + (err && err.message ? err.message : "Unreachable"),
+            );
+          } finally {
+            testOllamaBtn.disabled = false;
+          }
+        });
+
+        testGroqBtn.addEventListener("click", async function () {
+          const key = gsGroqApiKey.value.trim();
+          const model = gsGroqModel.value.trim() || "llama-3.1-8b-instant";
+          if (!key) {
+            setTestResult(testGroqResult, "is-err", "Enter an API key first");
+            return;
+          }
+          testGroqBtn.disabled = true;
+          setTestResult(testGroqResult, null, "Testing…");
+          try {
+            const res = await fetch(
+              "https://api.groq.com/openai/v1/chat/completions",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + key,
+                },
+                body: JSON.stringify({
+                  model: model,
+                  messages: [{ role: "user", content: "ping" }],
+                  max_tokens: 1,
+                }),
+              },
+            );
+            if (res.status === 401) {
+              setTestResult(testGroqResult, "is-err", "✗ Invalid API key");
+            } else if (!res.ok) {
+              const body = await res.text().catch(function () {
+                return "";
+              });
+              setTestResult(
+                testGroqResult,
+                "is-err",
+                "✗ HTTP " + res.status + (body ? " — check model id" : ""),
+              );
+            } else {
+              setTestResult(testGroqResult, "is-ok", "✓ Key + model valid");
+            }
+          } catch (err) {
+            setTestResult(
+              testGroqResult,
+              "is-err",
+              "✗ " + (err && err.message ? err.message : "Network error"),
+            );
+          } finally {
+            testGroqBtn.disabled = false;
+          }
+        });
+
+        // ---- Open / close ----
+        function getFocusableInside(root) {
+          return Array.prototype.slice
+            .call(
+              root.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+              ),
+            )
+            .filter(function (el) {
+              return !el.hidden && el.offsetParent !== null;
+            });
+        }
+
+        function openDrawer(opts) {
+          const options = opts || {};
+          returnFocusEl = options.returnFocusTo || openBtn;
+          lastFocused =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
+          pullFromLegacy();
+          drawer.classList.add("is-open");
+          overlay.classList.add("is-open");
+          drawer.setAttribute("aria-hidden", "false");
+          overlay.setAttribute("aria-hidden", "false");
+          openBtn.setAttribute("aria-expanded", "true");
+          // Clear any stale test results from the last session.
+          setTestResult(testOllamaResult, null, "");
+          setTestResult(testGroqResult, null, "");
+          // Focus the first meaningful control (the active segment).
+          window.requestAnimationFrame(function () {
+            const first =
+              currentProvider() === "groq" ? segGroq : segOllama;
+            first.focus();
+          });
+        }
+
+        function closeDrawer() {
+          drawer.classList.remove("is-open");
+          overlay.classList.remove("is-open");
+          drawer.setAttribute("aria-hidden", "true");
+          overlay.setAttribute("aria-hidden", "true");
+          openBtn.setAttribute("aria-expanded", "false");
+          const target = returnFocusEl || lastFocused || openBtn;
+          if (target && typeof target.focus === "function") target.focus();
+        }
+
+        openBtn.addEventListener("click", function () {
+          openDrawer({ returnFocusTo: openBtn });
+        });
+        closeBtn.addEventListener("click", closeDrawer);
+        overlay.addEventListener("click", closeDrawer);
+
+        // ESC + focus trap
+        drawer.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            closeDrawer();
+            return;
+          }
+          if (e.key !== "Tab") return;
+          const focusables = getFocusableInside(drawer);
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        });
+
+        // Expose for the chat panel's legacy settings button.
+        window.__openGlobalSettings = openDrawer;
+
+        // Initial hydration so status chip reflects saved state even
+        // before the drawer has ever been opened.
+        pullFromLegacy();
+      })();
+    </script>
+
     <script>
       /* ============================================================
      Document Q&A — RAG with Ollama or Groq
@@ -14994,7 +16152,11 @@ Return JSON only.`;
           hideChatPanel();
         });
         settingsBtn.addEventListener("click", function () {
-          setSettingsOpen(settingsDiv.hidden);
+          // Old inline panel is retired. The chat gear now opens the
+          // global settings drawer, scrolled to the AI Provider section.
+          if (typeof window.__openGlobalSettings === "function") {
+            window.__openGlobalSettings({ returnFocusTo: settingsBtn });
+          }
         });
         panel.addEventListener("keydown", function (e) {
           if (e.key !== "Tab" || panel.hidden) return;
@@ -15837,6 +16999,274 @@ Return JSON only.`;
             }
           }
         });
+      })();
+    </script>
+
+    <script>
+      /* ============================================================
+       Secure Groq API key storage (WebCrypto + IndexedDB)
+
+       Strategy: the Groq key is encrypted with a non-extractable
+       AES-GCM CryptoKey stored inside IndexedDB. IDB can hold a
+       CryptoKey handle directly without ever exposing its raw bytes,
+       so even with disk access an attacker cannot recover the
+       encryption key. The encrypted Groq key lives in the same DB.
+
+       Plaintext never touches localStorage after first migration.
+       The existing chat module still reads `groqApiKey` from its
+       legacy hidden input — this script injects the decrypted value
+       on load and scrubs any plaintext that other code writes.
+
+       Threat model: protects the key at-rest from casual disk
+       inspection, backup leaks, and shoulder-surfing via devtools
+       Application tab. It does NOT protect against active XSS on
+       this origin — any script that can call crypto.subtle.decrypt
+       can decrypt the key. For that level of protection, proxy
+       Groq calls through a server-side endpoint.
+       ============================================================ */
+      (function () {
+        "use strict";
+
+        const LLM_KEY = "md-viewer-llm";
+        const DB_NAME = "md-viewer-secrets";
+        const DB_VERSION = 1;
+        const STORE = "secrets";
+        const KEY_ID = "aes-key";
+        const SECRET_ID = "groq-api-key";
+
+        const supported =
+          typeof indexedDB !== "undefined" &&
+          typeof crypto !== "undefined" &&
+          crypto.subtle &&
+          typeof TextEncoder !== "undefined";
+
+        if (!supported) {
+          console.warn(
+            "[secure-store] WebCrypto/IndexedDB unavailable — " +
+              "Groq key stays in localStorage plaintext.",
+          );
+          return;
+        }
+
+        // ---- IndexedDB helpers ----
+        let dbPromise = null;
+        function openDb() {
+          if (dbPromise) return dbPromise;
+          dbPromise = new Promise(function (resolve, reject) {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = function () {
+              const db = req.result;
+              if (!db.objectStoreNames.contains(STORE)) {
+                db.createObjectStore(STORE, { keyPath: "id" });
+              }
+            };
+            req.onsuccess = function () {
+              resolve(req.result);
+            };
+            req.onerror = function () {
+              reject(req.error);
+            };
+          });
+          return dbPromise;
+        }
+
+        function idbGet(id) {
+          return openDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(STORE, "readonly");
+              const req = tx.objectStore(STORE).get(id);
+              req.onsuccess = function () {
+                resolve(req.result || null);
+              };
+              req.onerror = function () {
+                reject(req.error);
+              };
+            });
+          });
+        }
+
+        function idbPut(value) {
+          return openDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(STORE, "readwrite");
+              tx.objectStore(STORE).put(value);
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        function idbDelete(id) {
+          return openDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(STORE, "readwrite");
+              tx.objectStore(STORE).delete(id);
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        // ---- AES-GCM key management ----
+        async function getOrCreateAesKey() {
+          const existing = await idbGet(KEY_ID);
+          if (existing && existing.key) return existing.key;
+          const key = await crypto.subtle.generateKey(
+            { name: "AES-GCM", length: 256 },
+            // extractable=false — the raw bytes cannot be read back,
+            // even by our own code. Only encrypt/decrypt ops work.
+            false,
+            ["encrypt", "decrypt"],
+          );
+          await idbPut({ id: KEY_ID, key: key });
+          return key;
+        }
+
+        async function encryptString(plaintext) {
+          const key = await getOrCreateAesKey();
+          const iv = crypto.getRandomValues(new Uint8Array(12));
+          const bytes = new TextEncoder().encode(plaintext);
+          const cipher = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            bytes,
+          );
+          return { iv: iv, ct: new Uint8Array(cipher) };
+        }
+
+        async function decryptPayload(payload) {
+          const key = await getOrCreateAesKey();
+          const plain = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: payload.iv },
+            key,
+            payload.ct,
+          );
+          return new TextDecoder().decode(plain);
+        }
+
+        async function saveGroqKey(plaintext) {
+          if (!plaintext) {
+            await idbDelete(SECRET_ID);
+            return;
+          }
+          const payload = await encryptString(plaintext);
+          await idbPut({ id: SECRET_ID, iv: payload.iv, ct: payload.ct });
+        }
+
+        async function loadGroqKey() {
+          const row = await idbGet(SECRET_ID);
+          if (!row || !row.iv || !row.ct) return null;
+          try {
+            return await decryptPayload({ iv: row.iv, ct: row.ct });
+          } catch (err) {
+            console.warn("[secure-store] decrypt failed:", err);
+            return null;
+          }
+        }
+
+        // ---- localStorage plaintext scrubbing ----
+        function stripPlaintextFromLocalStorage() {
+          try {
+            const raw = localStorage.getItem(LLM_KEY);
+            if (!raw) return;
+            const obj = JSON.parse(raw);
+            if (!obj || typeof obj !== "object") return;
+            if (!obj.groqApiKey) return;
+            obj.groqApiKey = "";
+            localStorage.setItem(LLM_KEY, JSON.stringify(obj));
+          } catch (_err) {
+            /* ignore — corrupt JSON is the chat module's problem */
+          }
+        }
+
+        function extractPlaintextFromLocalStorage() {
+          try {
+            const raw = localStorage.getItem(LLM_KEY);
+            if (!raw) return "";
+            const obj = JSON.parse(raw);
+            return obj && obj.groqApiKey ? String(obj.groqApiKey) : "";
+          } catch (_err) {
+            return "";
+          }
+        }
+
+        // ---- Migration ----
+        // If this is the first page load after the secure-store
+        // feature ships, the chat IIFE has just re-written a JSON
+        // blob containing the plaintext key. Encrypt and scrub.
+        function migrateIfNeeded() {
+          const plaintext = extractPlaintextFromLocalStorage();
+          if (!plaintext) return Promise.resolve();
+          return saveGroqKey(plaintext)
+            .then(function () {
+              stripPlaintextFromLocalStorage();
+              console.info(
+                "[secure-store] migrated Groq key to encrypted storage.",
+              );
+            })
+            .catch(function (err) {
+              console.warn("[secure-store] migration failed:", err);
+            });
+        }
+
+        // ---- Hydration ----
+        // Load the encrypted key and inject it into the legacy
+        // hidden input. Fire input+change so the drawer mirrors it
+        // and the chat module refreshes its "configured" state.
+        function hydrateInput() {
+          const input = document.getElementById("groqApiKey");
+          if (!input) return Promise.resolve();
+          return loadGroqKey().then(function (plaintext) {
+            if (!plaintext) return;
+            if (input.value === plaintext) return;
+            input.value = plaintext;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+            // The change event will have made chat IIFE write the
+            // plaintext back into localStorage — scrub it again.
+            stripPlaintextFromLocalStorage();
+          });
+        }
+
+        // ---- Forward-save interception ----
+        // When the user edits the Groq key (via the drawer, which
+        // mirrors into the legacy input), the chat IIFE's change
+        // listener runs first and writes plaintext to localStorage.
+        // Our change listener runs right after and:
+        //   1. Strips plaintext from localStorage immediately
+        //   2. Encrypts the new value into IndexedDB
+        function attachForwardSaveGuard() {
+          const input = document.getElementById("groqApiKey");
+          if (!input) return;
+          input.addEventListener("change", function () {
+            const value = input.value.trim();
+            stripPlaintextFromLocalStorage();
+            saveGroqKey(value).catch(function (err) {
+              console.warn("[secure-store] save failed:", err);
+            });
+          });
+        }
+
+        // ---- Boot ----
+        // Ordering: the chat IIFE has already run (this script
+        // follows it in document order), so `groqApiKey` input is
+        // already populated with whatever was in localStorage.
+        // Kick off migration + hydration in parallel, then attach
+        // the save guard for future edits.
+        attachForwardSaveGuard();
+        migrateIfNeeded()
+          .then(hydrateInput)
+          .catch(function (err) {
+            console.warn("[secure-store] boot failed:", err);
+          });
       })();
     </script>
 
