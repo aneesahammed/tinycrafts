@@ -20,7 +20,7 @@ A comprehensive developer reference covering every common markdown element — u
 
 ## Text Formatting
 
-Regular paragraph text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Inline styles: **bold**, *italic*, ***bold-italic***, ~~strikethrough~~, `inline code`, and <kbd>Ctrl</kbd>+<kbd>C</kbd> keyboard hints.
+Regular paragraph text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Inline styles: **bold**, _italic_, **_bold-italic_**, ~~strikethrough~~, `inline code`, and <kbd>Ctrl</kbd>+<kbd>C</kbd> keyboard hints.
 
 Superscript via HTML: x<sup>2</sup> + y<sup>2</sup> = r<sup>2</sup>
 Subscript via HTML: H<sub>2</sub>O is water.
@@ -111,7 +111,7 @@ echo "Done."
 
 ### Image
 
-![Placeholder diagram](https://via.placeholder.com/720x280?text=Architecture+Diagram)
+![Placeholder diagram](https://picsum.photos/720/280)
 
 ---
 
@@ -168,28 +168,28 @@ echo "Done."
 
 ### HTTP Status Codes
 
-| Code  | Name                  | When to Use                              |
-| ----- | --------------------- | ---------------------------------------- |
-| `200` | OK                    | Successful GET / PUT                     |
-| `201` | Created               | Successful POST that creates a resource  |
-| `204` | No Content            | Successful DELETE                        |
-| `400` | Bad Request           | Validation failure                       |
-| `401` | Unauthorized          | Missing or invalid credentials           |
-| `403` | Forbidden             | Valid credentials, insufficient scope    |
-| `404` | Not Found             | Resource does not exist                  |
-| `409` | Conflict              | Duplicate key or state conflict          |
-| `429` | Too Many Requests     | Rate limit exceeded                      |
-| `500` | Internal Server Error | Unhandled exception                      |
+| Code  | Name                  | When to Use                             |
+| ----- | --------------------- | --------------------------------------- |
+| `200` | OK                    | Successful GET / PUT                    |
+| `201` | Created               | Successful POST that creates a resource |
+| `204` | No Content            | Successful DELETE                       |
+| `400` | Bad Request           | Validation failure                      |
+| `401` | Unauthorized          | Missing or invalid credentials          |
+| `403` | Forbidden             | Valid credentials, insufficient scope   |
+| `404` | Not Found             | Resource does not exist                 |
+| `409` | Conflict              | Duplicate key or state conflict         |
+| `429` | Too Many Requests     | Rate limit exceeded                     |
+| `500` | Internal Server Error | Unhandled exception                     |
 
 ### Environment Matrix
 
-| Variable          | Dev               | Staging                 | Production              |
-| ----------------- | ----------------- | ----------------------- | ----------------------- |
-| `DATABASE_URL`    | `localhost:5432`  | `staging-db.internal`   | `prod-db.internal`      |
-| `REDIS_URL`       | `localhost:6379`  | `staging-cache.internal`| `prod-cache.internal`   |
-| `LOG_LEVEL`       | `debug`           | `info`                  | `warn`                  |
-| `RATE_LIMIT_RPS`  | `1000`            | `200`                   | `100`                   |
-| `FEATURE_FLAGS`   | `all`             | `beta`                  | `stable`                |
+| Variable         | Dev              | Staging                  | Production            |
+| ---------------- | ---------------- | ------------------------ | --------------------- |
+| `DATABASE_URL`   | `localhost:5432` | `staging-db.internal`    | `prod-db.internal`    |
+| `REDIS_URL`      | `localhost:6379` | `staging-cache.internal` | `prod-cache.internal` |
+| `LOG_LEVEL`      | `debug`          | `info`                   | `warn`                |
+| `RATE_LIMIT_RPS` | `1000`           | `200`                    | `100`                 |
+| `FEATURE_FLAGS`  | `all`            | `beta`                   | `stable`              |
 
 ---
 
@@ -450,4 +450,4 @@ Literal asterisks: \*not bold\*, literal backticks: \`not code\`, literal pipes 
 
 ---
 
-*Generated as a rendering test fixture for [markdown-viewer](../markdown-viewer.html).*
+_Generated as a rendering test fixture for [markdown-viewer](../markdown-viewer.html)._

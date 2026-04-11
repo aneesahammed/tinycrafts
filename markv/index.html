@@ -873,7 +873,6 @@
         margin: 1.5em 0;
         padding: 0.95em 1.1em 1em;
         color: var(--fg-default);
-        font-style: normal;
         background: color-mix(in srgb, var(--alert-accent) 7%, var(--bg-raised));
         border: 1px solid color-mix(in srgb, var(--alert-accent) 18%, var(--border-soft));
         border-left: 4px solid color-mix(in srgb, var(--alert-accent) 62%, transparent);
@@ -908,7 +907,6 @@
         margin: 0 0 0.55em;
         font-family: var(--font-sans);
         font-size: 0.9rem;
-        font-style: normal;
         font-weight: 700;
         line-height: 1.25;
         color: color-mix(in srgb, var(--alert-accent) 74%, var(--fg-default));
@@ -922,7 +920,6 @@
       .markdown-body .markdown-alert-content,
       .chat-msg.markdown-rendered .markdown-alert-content {
         color: var(--fg-default);
-        font-style: normal;
       }
       .markdown-body .markdown-alert-content > :first-child,
       .chat-msg.markdown-rendered .markdown-alert-content > :first-child {
@@ -932,11 +929,6 @@
       .chat-msg.markdown-rendered .markdown-alert-content > :last-child {
         margin-bottom: 0;
       }
-      .markdown-body .markdown-alert-content p,
-      .chat-msg.markdown-rendered .markdown-alert-content p {
-        font-style: normal;
-      }
-
       /* Inline code — slight tint so it sits in the prose without shouting */
       .markdown-body code,
       .markdown-body tt {
@@ -1429,9 +1421,6 @@
       /* Task lists */
       .markdown-body ul > li.task-list-item {
         list-style: none;
-      }
-      .markdown-body ul > li.task-list-item::marker {
-        content: "";
       }
       .markdown-body .task-list-item-checkbox {
         display: inline-flex;
@@ -8123,11 +8112,18 @@ Paste markdown on the left, open a local file, or drag one into the page.
           },
         };
         const MARKDOWN_ALERT_KINDS = Object.keys(MARKDOWN_ALERTS);
+        const MARKDOWN_ALERT_KIND_GROUP = MARKDOWN_ALERT_KINDS.map(function (
+          kind,
+        ) {
+          return kind.toUpperCase();
+        }).join("|");
+        const MARKDOWN_ALERT_START_PATTERN = new RegExp(
+          "^ {0,3}>[ \\t]?\\[!(" + MARKDOWN_ALERT_KIND_GROUP + ")\\]",
+          "im",
+        );
         const MARKDOWN_ALERT_MARKER_PATTERN = new RegExp(
           "^ {0,3}>[ \\t]?\\[!((?:" +
-            MARKDOWN_ALERT_KINDS.map(function (kind) {
-              return kind.toUpperCase();
-            }).join("|") +
+            MARKDOWN_ALERT_KIND_GROUP +
             "))\\][ \\t]*(.*)$",
           "i",
         );
@@ -8139,9 +8135,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
               name: "markdown-alert",
               level: "block",
               start: function (src) {
-                const match = src.match(
-                  /^ {0,3}>[ \t]?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/im,
-                );
+                const match = src.match(MARKDOWN_ALERT_START_PATTERN);
                 return match ? match.index : undefined;
               },
               tokenizer: function (src) {
@@ -8273,17 +8267,18 @@ Paste markdown on the left, open a local file, or drag one into the page.
             : "<li>" + text + "</li>\n";
         };
 
+        // Task markers are intentionally static glyphs. The preview is read-only,
+        // so we avoid interactive form controls and expose only status semantics.
         renderer.checkbox = function (checked) {
           return (
             '<span class="task-list-item-checkbox' +
             (checked ? " is-checked" : "") +
-            '" aria-hidden="true">' +
+            '" role="img" aria-label="' +
+            (checked ? "Checked" : "Not checked") +
+            '">' +
             (checked
-              ? '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.75 8.25L6.5 11L12.25 5.25" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+              ? '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3.75 8.25L6.5 11L12.25 5.25" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
               : "") +
-            "</span>" +
-            '<span class="visually-hidden">' +
-            (checked ? "Completed: " : "Not completed: ") +
             "</span>"
           );
         };
