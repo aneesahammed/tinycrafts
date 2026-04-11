@@ -120,6 +120,8 @@
         --mm-node-border-hover: var(--accent-fg);
         --mm-node-shadow: 0 2px 14px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
         --mm-node-shadow-hover: 0 6px 28px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
+        --mm-node-filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.05)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.04));
+        --mm-node-filter-hover: drop-shadow(0 6px 28px rgba(0, 0, 0, 0.08)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.06));
         --mm-node-bg-selected: color-mix(in srgb, var(--accent-fg) 6%, transparent);
         --mm-edge-stroke: var(--fg-muted);
         --mm-edge-opacity-primary: 0.32;
@@ -187,6 +189,8 @@
         /* ── Mindmap dark overrides ─────────────────────────────── */
         --mm-node-shadow: 0 2px 18px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
         --mm-node-shadow-hover: 0 6px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+        --mm-node-filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.35)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
+        --mm-node-filter-hover: drop-shadow(0 6px 32px rgba(0, 0, 0, 0.45)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
         --mm-edge-opacity-primary: 0.38;
         --mm-edge-opacity-secondary: 0.26;
         --mm-edge-opacity-tertiary: 0.16;
@@ -1689,13 +1693,13 @@
         fill: var(--mm-node-bg);
         stroke: var(--mm-node-border);
         stroke-width: 1;
-        filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.05));
+        filter: var(--mm-node-filter);
         transition: stroke 180ms, filter 220ms;
       }
 
       .mm-node:hover .mm-node-card {
         stroke: var(--mm-node-border-hover);
-        filter: drop-shadow(0 6px 28px rgba(0, 0, 0, 0.09));
+        filter: var(--mm-node-filter-hover);
       }
 
       .mm-node.is-selected .mm-node-card {
@@ -1887,6 +1891,7 @@
         border: 1px solid var(--border-default);
         border-radius: 8px;
         cursor: pointer;
+        transition: color 150ms, border-color 150ms, background 150ms;
       }
 
       .mm-state-retry:hover {
