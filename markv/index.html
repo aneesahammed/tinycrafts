@@ -1707,6 +1707,12 @@
         stroke: var(--mm-node-border-hover);
       }
 
+      .mm-node:focus-visible .mm-node-card {
+        stroke: var(--accent-fg);
+        stroke-width: 2;
+        outline: none;
+      }
+
       .mm-node-typebar {
         /* color set inline per node type via CSS var */
       }
@@ -1930,6 +1936,21 @@
         .mindmap-legend {
           padding: 0 20px 12px;
           gap: 8px 14px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .mindmap-viewer-header {
+          padding: 20px 20px 14px;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 14px;
+        }
+        .mindmap-viewer-actions {
+          flex-wrap: wrap;
+        }
+        .mindmap-viewer-btn span {
+          display: none;
         }
       }
 
@@ -2495,6 +2516,9 @@
       body.chat-open #main,
       body.chat-open .toolbar {
         margin-right: 360px;
+      }
+      body.mindmap-open {
+        overflow: hidden;
       }
       @media (max-width: 600px) {
         body.chat-open #main,
@@ -12243,6 +12267,11 @@ Return JSON only.`;
           writeStorage(window.localStorage, THEME_KEY, next);
           swapHljsTheme();
           schedulePreviewRerender();
+          // If the mindmap viewer is open, re-render so semantic colors refresh.
+          const mmViewer = document.getElementById("mindmapViewer");
+          if (mmViewer && mmViewer.getAttribute("aria-hidden") === "false" && mindmapState.laid) {
+            renderMindmap(mindmapState.laid);
+          }
         });
 
         // ---------- Mode toggle (preview <-> edit) ----------
