@@ -3642,6 +3642,129 @@ Drop a .md file anywhere on the page, or open one with the Open button."
       </div>
 
       <div
+        id="mindmapViewer"
+        class="mindmap-viewer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mindmapViewerTitle"
+        aria-describedby="mindmapViewerHelp"
+        aria-hidden="true"
+        hidden
+      >
+        <div class="mindmap-viewer-shell">
+          <div class="mindmap-viewer-header">
+            <div class="mindmap-viewer-title-wrap">
+              <h2 id="mindmapViewerTitle" class="mindmap-viewer-title">
+                Concept Mindmap
+              </h2>
+              <p id="mindmapViewerHelp" class="mindmap-viewer-help">
+                Click any concept to jump to its section. Drag to pan, scroll to zoom.
+              </p>
+            </div>
+            <div class="mindmap-viewer-actions" aria-label="Mindmap viewer actions">
+              <button
+                id="mindmapZoomOutBtn"
+                type="button"
+                class="mindmap-viewer-btn"
+                title="Zoom out"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+                <span>Out</span>
+              </button>
+              <span id="mindmapZoomLabel" class="mindmap-viewer-zoom-label">100%</span>
+              <button
+                id="mindmapZoomInBtn"
+                type="button"
+                class="mindmap-viewer-btn"
+                title="Zoom in"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+                <span>In</span>
+              </button>
+              <button
+                id="mindmapFitBtn"
+                type="button"
+                class="mindmap-viewer-btn"
+                title="Fit to view"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15 3h6v6"></path>
+                  <path d="M9 21H3v-6"></path>
+                  <path d="M21 3l-7 7"></path>
+                  <path d="M3 21l7-7"></path>
+                </svg>
+                <span>Fit</span>
+              </button>
+              <button
+                id="mindmapRegenerateBtn"
+                type="button"
+                class="mindmap-viewer-btn"
+                title="Regenerate from current document"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+                  <polyline points="21 4 21 10 15 10"></polyline>
+                </svg>
+                <span>Regenerate</span>
+              </button>
+              <button
+                id="mindmapCloseBtn"
+                type="button"
+                class="mindmap-viewer-btn"
+                title="Close (Esc)"
+                aria-label="Close mindmap viewer"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div id="mindmapLegend" class="mindmap-legend" aria-label="Concept type legend"></div>
+
+          <div id="mindmapStage" class="mindmap-viewer-stage">
+            <svg id="mindmapSvg" class="mindmap-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mindmapViewerTitle" aria-describedby="mindmapSrList">
+              <g id="mindmapSvgRoot" class="mindmap-svg-root">
+                <g id="mindmapEdges"></g>
+                <g id="mindmapNodes"></g>
+              </g>
+            </svg>
+
+            <div id="mindmapSrList" class="mindmap-sr-only" aria-live="polite"></div>
+
+            <div id="mindmapTooltip" class="mm-tooltip" role="tooltip">
+              <span class="mm-tooltip-type"></span>
+              <span class="mm-tooltip-label"></span>
+              <span class="mm-tooltip-summary"></span>
+            </div>
+
+            <div id="mindmapLoading" class="mm-state-wrap is-hidden">
+              <div class="mm-spinner" aria-hidden="true"></div>
+              <p class="mm-state-label">Extracting concepts…</p>
+            </div>
+
+            <div id="mindmapError" class="mm-state-wrap is-hidden">
+              <p class="mm-state-label" id="mindmapErrorMessage">Something went wrong.</p>
+              <button id="mindmapRetryBtn" type="button" class="mm-state-retry">
+                Try again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
         id="selectionBubble"
         class="selection-bubble hidden"
         role="toolbar"
