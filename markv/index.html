@@ -6896,6 +6896,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           katexPromise: null,
           previewRenderGeneration: 0,
           themeMermaidRenderTimer: null,
+          editorSelection: 0,
           mermaidViewerOpen: false,
           mermaidViewerScale: 1,
           mermaidViewerBaseWidth: 1,
@@ -8098,6 +8099,160 @@ Paste markdown on the left, open a local file, or drag one into the page.
           return resolved.toString();
         }
 
+        function clampNumber(value, min, max) {
+          return Math.min(max, Math.max(min, value));
+        }
+
+        function createIdentityMappedDocument(text) {
+          var value = String(text || "");
+          return {
+            text: value,
+            segments: [
+              {
+                outStart: 0,
+                outEnd: value.length,
+                srcStart: 0,
+                srcEnd: value.length,
+              },
+            ],
+          };
+        }
+
+        function createMappedBuilder() {
+          return {
+            parts: [],
+            segments: [],
+            outLength: 0,
+          };
+        }
+
+        function appendMappedText(builder, text, srcStart, srcEnd) {
+          if (!text) return;
+          builder.parts.push(text);
+          builder.segments.push({
+            outStart: builder.outLength,
+            outEnd: builder.outLength + text.length,
+            srcStart: srcStart,
+            srcEnd: srcEnd,
+          });
+          builder.outLength += text.length;
+        }
+
+        function finishMappedDocument(builder) {
+          return {
+            text: builder.parts.join(""),
+            segments: builder.segments,
+          };
+        }
+
+        function findMappedSegmentIndex(segments, offset) {
+          var low = 0;
+          var high = segments.length - 1;
+
+          while (low <= high) {
+            var mid = Math.floor((low + high) / 2);
+            var segment = segments[mid];
+
+            if (offset < segment.outStart) {
+              high = mid - 1;
+            } else if (offset > segment.outEnd) {
+              low = mid + 1;
+            } else {
+              return mid;
+            }
+          }
+
+          return clampNumber(low, 0, Math.max(0, segments.length - 1));
+        }
+
+        function mapSegmentOffsetToSource(segment, outOffset) {
+          if (!segment) return 0;
+          if (segment.outEnd <= segment.outStart || segment.srcEnd <= segment.srcStart) {
+            return segment.srcStart;
+          }
+
+          var clampedOffset = clampNumber(
+            outOffset,
+            segment.outStart,
+            segment.outEnd,
+          );
+          var fraction =
+            (clampedOffset - segment.outStart) /
+            Math.max(1, segment.outEnd - segment.outStart);
+
+          return Math.round(
+            segment.srcStart + fraction * (segment.srcEnd - segment.srcStart),
+          );
+        }
+
+        function mapDocumentOffsetToSource(doc, offset) {
+          var segments = doc && doc.segments ? doc.segments : [];
+          if (!segments.length) return 0;
+          var maxOffset = segments[segments.length - 1].outEnd;
+          var clampedOffset = clampNumber(offset, 0, maxOffset);
+          return mapSegmentOffsetToSource(
+            segments[findMappedSegmentIndex(segments, clampedOffset)],
+            clampedOffset,
+          );
+        }
+
+        function mapDocumentRangeToSource(doc, start, end) {
+          return {
+            start: mapDocumentOffsetToSource(doc, start),
+            end: mapDocumentOffsetToSource(doc, end),
+          };
+        }
+
+        function appendDocumentSlice(builder, doc, start, end) {
+          if (!doc || end <= start) return;
+
+          var segments = doc.segments || [];
+          if (!segments.length) return;
+
+          var index = findMappedSegmentIndex(segments, start);
+          while (index < segments.length) {
+            var segment = segments[index];
+            var sliceStart = Math.max(start, segment.outStart);
+            var sliceEnd = Math.min(end, segment.outEnd);
+
+            if (sliceEnd > sliceStart) {
+              appendMappedText(
+                builder,
+                doc.text.slice(sliceStart, sliceEnd),
+                mapSegmentOffsetToSource(segment, sliceStart),
+                mapSegmentOffsetToSource(segment, sliceEnd),
+              );
+            }
+
+            if (segment.outEnd >= end) break;
+            index += 1;
+          }
+        }
+
+        function getSourceAttrString(node) {
+          if (!node || typeof node.__sourceStart !== "number") return "";
+          var end =
+            typeof node.__sourceEnd === "number"
+              ? node.__sourceEnd
+              : node.__sourceStart;
+          return (
+            ' data-source-start="' +
+            node.__sourceStart +
+            '" data-source-end="' +
+            end +
+            '"'
+          );
+        }
+
+        function injectSourceAttrs(html, node) {
+          var attrs = getSourceAttrString(node);
+          if (!attrs) return html;
+          return String(html || "").replace(
+            /^<([a-z][a-z0-9:-]*)(?=[\s>])/i,
+            "<$1" + attrs,
+          );
+        }
+
         const renderer = new marked.Renderer();
         const MARKDOWN_ALERTS = {
           note: {
@@ -8144,6 +8299,163 @@ Paste markdown on the left, open a local file, or drag one into the page.
         );
         const MARKDOWN_ALERT_BLOCK_PATTERN = /^(?: {0,3}>[^\n]*(?:\n|$))+/;
 
+        function renderAnchoredHeadingToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          var parser = this.parser;
+          return injectSourceAttrs(
+            parser.renderer.heading(
+              parser.parseInline(token.tokens || []),
+              token.depth,
+              unescape(
+                parser.parseInline(token.tokens || [], parser.textRenderer),
+              ),
+              parser.slugger,
+            ),
+            token,
+          );
+        }
+
+        function renderAnchoredCodeToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          return injectSourceAttrs(
+            this.parser.renderer.code(token.text, token.lang, token.escaped),
+            token,
+          );
+        }
+
+        function renderAnchoredHrToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          return injectSourceAttrs(this.parser.renderer.hr(), token);
+        }
+
+        function renderAnchoredTableToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          var parser = this.parser;
+          var header = "";
+          var body = "";
+          var cell = "";
+          var row = "";
+          var j = 0;
+          var k = 0;
+
+          for (j = 0; j < token.header.length; j += 1) {
+            cell += parser.renderer.tablecell(
+              parser.parseInline(token.header[j].tokens),
+              {
+                header: true,
+                align: token.align[j],
+              },
+            );
+          }
+          header += parser.renderer.tablerow(cell);
+
+          for (j = 0; j < token.rows.length; j += 1) {
+            row = token.rows[j];
+            cell = "";
+            for (k = 0; k < row.length; k += 1) {
+              cell += parser.renderer.tablecell(
+                parser.parseInline(row[k].tokens),
+                {
+                  header: false,
+                  align: token.align[k],
+                },
+              );
+            }
+            body += parser.renderer.tablerow(cell);
+          }
+
+          return injectSourceAttrs(
+            parser.renderer.table(header, body),
+            token,
+          );
+        }
+
+        function renderAnchoredBlockquoteToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          return injectSourceAttrs(
+            this.parser.renderer.blockquote(this.parser.parse(token.tokens || [])),
+            token,
+          );
+        }
+
+        function renderAnchoredHtmlToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          return injectSourceAttrs(this.parser.renderer.html(token.text), token);
+        }
+
+        function renderAnchoredParagraphToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          return injectSourceAttrs(
+            this.parser.renderer.paragraph(this.parser.parseInline(token.tokens || [])),
+            token,
+          );
+        }
+
+        function renderAnchoredTextToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          var parser = this.parser;
+          var body = token.tokens
+            ? parser.parseInline(token.tokens)
+            : token.text;
+          return injectSourceAttrs(parser.renderer.paragraph(body), token);
+        }
+
+        function renderAnchoredListToken(token) {
+          if (!token || typeof token.__sourceStart !== "number") return false;
+          var parser = this.parser;
+          var ordered = token.ordered;
+          var start = token.start;
+          var loose = token.loose;
+          var body = "";
+
+          for (var j = 0; j < token.items.length; j += 1) {
+            var item = token.items[j];
+            var checked = item.checked;
+            var task = item.task;
+            var itemBody = "";
+
+            if (item.task) {
+              var checkbox = parser.renderer.checkbox(checked);
+
+              if (loose) {
+                if (
+                  item.tokens.length > 0 &&
+                  item.tokens[0].type === "paragraph"
+                ) {
+                  item.tokens[0].text = checkbox + " " + item.tokens[0].text;
+
+                  if (
+                    item.tokens[0].tokens &&
+                    item.tokens[0].tokens.length > 0 &&
+                    item.tokens[0].tokens[0].type === "text"
+                  ) {
+                    item.tokens[0].tokens[0].text =
+                      checkbox + " " + item.tokens[0].tokens[0].text;
+                  }
+                } else {
+                  item.tokens.unshift({
+                    type: "text",
+                    text: checkbox,
+                  });
+                }
+              } else {
+                itemBody += checkbox;
+              }
+            }
+
+            itemBody += parser.parse(item.tokens, loose);
+            body += injectSourceAttrs(
+              parser.renderer.listitem(itemBody, task, checked),
+              item,
+            );
+          }
+
+          return injectSourceAttrs(
+            parser.renderer.list(body, ordered, start),
+            token,
+          );
+        }
+
         marked.use({
           extensions: [
             {
@@ -8188,7 +8500,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
                 return (
                   '<aside class="markdown-alert" data-alert-kind="' +
                   token.kind +
-                  '">' +
+                  '"' +
+                  getSourceAttrString(token) +
+                  ">" +
                   '<p class="markdown-alert-title">' +
                   config.icon +
                   "<span>" +
@@ -8199,6 +8513,42 @@ Paste markdown on the left, open a local file, or drag one into the page.
                   "</div></aside>\n"
                 );
               },
+            },
+            {
+              name: "heading",
+              renderer: renderAnchoredHeadingToken,
+            },
+            {
+              name: "code",
+              renderer: renderAnchoredCodeToken,
+            },
+            {
+              name: "hr",
+              renderer: renderAnchoredHrToken,
+            },
+            {
+              name: "table",
+              renderer: renderAnchoredTableToken,
+            },
+            {
+              name: "blockquote",
+              renderer: renderAnchoredBlockquoteToken,
+            },
+            {
+              name: "list",
+              renderer: renderAnchoredListToken,
+            },
+            {
+              name: "html",
+              renderer: renderAnchoredHtmlToken,
+            },
+            {
+              name: "paragraph",
+              renderer: renderAnchoredParagraphToken,
+            },
+            {
+              name: "text",
+              renderer: renderAnchoredTextToken,
             },
           ],
         });
@@ -8939,84 +9289,223 @@ Paste markdown on the left, open a local file, or drag one into the page.
         }
 
         // ── Markdown pre-processing (math + footnotes) ──────────
-        function preprocessMath(markdown) {
-          // Replace $$...$$ blocks with placeholder divs.
-          // Handles both "$$" on its own line and inline "$$...$$".
-          return markdown.replace(
-            /\$\$([\s\S]+?)\$\$/g,
-            function (_match, latex) {
-              var encoded = latex
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;");
-              return (
-                '<div class="katex-display-block" data-katex-display="' +
+        function preprocessMath(doc) {
+          // Replace $$...$$ blocks with placeholder divs while preserving
+          // a mapping back to the original markdown offsets.
+          var source = doc.text;
+          var match;
+          var lastIndex = 0;
+          var builder = createMappedBuilder();
+          var re = /\$\$([\s\S]+?)\$\$/g;
+          var changed = false;
+
+          while ((match = re.exec(source)) !== null) {
+            changed = true;
+            appendDocumentSlice(builder, doc, lastIndex, match.index);
+
+            var encoded = match[1]
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;");
+            var range = mapDocumentRangeToSource(
+              doc,
+              match.index,
+              match.index + match[0].length,
+            );
+
+            appendMappedText(
+              builder,
+              '<div class="katex-display-block" data-katex-display="' +
                 encoded +
-                '"></div>'
-              );
-            },
-          );
+                '"></div>',
+              range.start,
+              range.end,
+            );
+            lastIndex = match.index + match[0].length;
+          }
+
+          if (!changed) return doc;
+
+          appendDocumentSlice(builder, doc, lastIndex, source.length);
+          return finishMappedDocument(builder);
         }
 
-        function preprocessFootnotes(markdown) {
-          // Collect footnote definitions: [^id]: text...
+        function preprocessFootnotes(doc) {
+          // Collect footnote definitions, replace inline references, and keep a
+          // source map so preview blocks can still point back to the editor.
+          var source = doc.text;
+          var definitionRegex = /^\[\^([^\]]+)\]:\s+([\s\S]*?)(?=\n\[\^|\n\n(?!\s)|$)/gm;
+          var definitionMatch;
           var definitions = {};
-          var cleaned = markdown.replace(
-            /^\[\^([^\]]+)\]:\s+([\s\S]*?)(?=\n\[\^|\n\n(?!\s)|$)/gm,
-            function (_match, id, text) {
-              definitions[id] = text.replace(/\n\s{2,}/g, " ").trim();
-              return "";
-            },
-          );
+          var definitionList = [];
 
-          if (!Object.keys(definitions).length) return markdown;
+          while ((definitionMatch = definitionRegex.exec(source)) !== null) {
+            var mappedRange = mapDocumentRangeToSource(
+              doc,
+              definitionMatch.index,
+              definitionMatch.index + definitionMatch[0].length,
+            );
 
-          // Replace footnote references: [^id]
+            definitions[definitionMatch[1]] = {
+              text: definitionMatch[2].replace(/\n\s{2,}/g, " ").trim(),
+              start: definitionMatch.index,
+              end: definitionMatch.index + definitionMatch[0].length,
+              srcStart: mappedRange.start,
+              srcEnd: mappedRange.end,
+            };
+            definitionList.push(definitions[definitionMatch[1]]);
+          }
+
+          if (!definitionList.length) return doc;
+
+          var builder = createMappedBuilder();
           var usedOrder = [];
-          var processed = cleaned.replace(
-            /\[\^([^\]]+)\]/g,
-            function (_match, id) {
-              if (!definitions[id]) return _match;
+          var cursor = 0;
+
+          function appendSliceWithReferences(start, end) {
+            if (end <= start) return;
+
+            var localSource = source.slice(start, end);
+            var localCursor = 0;
+            var referenceRegex = /\[\^([^\]]+)\]/g;
+            var referenceMatch;
+
+            while ((referenceMatch = referenceRegex.exec(localSource)) !== null) {
+              var refStart = start + referenceMatch.index;
+              var refEnd = refStart + referenceMatch[0].length;
+              var id = referenceMatch[1];
+
+              appendDocumentSlice(
+                builder,
+                doc,
+                start + localCursor,
+                refStart,
+              );
+
+              if (!definitions[id]) {
+                appendDocumentSlice(builder, doc, refStart, refEnd);
+                localCursor = referenceMatch.index + referenceMatch[0].length;
+                continue;
+              }
+
               var idx = usedOrder.indexOf(id);
               if (idx === -1) {
                 usedOrder.push(id);
                 idx = usedOrder.length - 1;
               }
-              var num = idx + 1;
-              return (
-                '<sup class="footnote-ref"><a href="#fn-' +
-                id +
-                '" id="fnref-' +
-                id +
-                '">' +
-                num +
-                "</a></sup>"
-              );
-            },
-          );
 
-          // Append footnotes section
-          if (usedOrder.length) {
-            processed += "\n\n---\n\n";
-            processed +=
-              '<section class="footnotes" role="doc-endnotes">\n<ol>\n';
-            usedOrder.forEach(function (id, i) {
-              processed +=
-                '<li id="fn-' +
-                id +
-                '" value="' +
-                (i + 1) +
-                '">' +
-                definitions[id] +
-                ' <a href="#fnref-' +
-                id +
-                '" class="footnote-backref" aria-label="Back to reference">↩</a></li>\n';
-            });
-            processed += "</ol>\n</section>";
+              var num = idx + 1;
+              appendMappedText(
+                builder,
+                '<sup class="footnote-ref"><a href="#fn-' +
+                  id +
+                  '" id="fnref-' +
+                  id +
+                  '">' +
+                  num +
+                  "</a></sup>",
+                definitions[id].srcStart,
+                definitions[id].srcEnd,
+              );
+              localCursor = referenceMatch.index + referenceMatch[0].length;
+            }
+
+            appendDocumentSlice(builder, doc, start + localCursor, end);
           }
 
-          return processed;
+          definitionList.forEach(function (definition) {
+            appendSliceWithReferences(cursor, definition.start);
+            cursor = definition.end;
+          });
+          appendSliceWithReferences(cursor, source.length);
+
+          if (usedOrder.length) {
+            var sectionRange = definitionList[0];
+            appendMappedText(
+              builder,
+              "\n\n---\n\n",
+              sectionRange.srcStart,
+              sectionRange.srcEnd,
+            );
+            appendMappedText(
+              builder,
+              '<section class="footnotes" role="doc-endnotes">\n<ol>\n',
+              sectionRange.srcStart,
+              sectionRange.srcEnd,
+            );
+            usedOrder.forEach(function (id, i) {
+              appendMappedText(
+                builder,
+                '<li id="fn-' +
+                  id +
+                  '" value="' +
+                  (i + 1) +
+                  '">' +
+                  definitions[id].text +
+                  ' <a href="#fnref-' +
+                  id +
+                  '" class="footnote-backref" aria-label="Back to reference">↩</a></li>\n',
+                definitions[id].srcStart,
+                definitions[id].srcEnd,
+              );
+            });
+            appendMappedText(
+              builder,
+              "</ol>\n</section>",
+              sectionRange.srcStart,
+              sectionRange.srcEnd,
+            );
+          }
+
+          return finishMappedDocument(builder);
+        }
+
+        function preprocessMarkdownWithSourceMap(markdown) {
+          var doc = createIdentityMappedDocument(markdown);
+          doc = preprocessFootnotes(doc);
+          doc = preprocessMath(doc);
+          return doc;
+        }
+
+        function annotateTokenSourceRanges(tokens, sourceDoc) {
+          var cursor = 0;
+
+          tokens.forEach(function (token) {
+            var raw = String(token.raw || "");
+            token.__preStart = cursor;
+            token.__preEnd = cursor + raw.length;
+            token.__sourceStart = mapDocumentOffsetToSource(
+              sourceDoc,
+              token.__preStart,
+            );
+            token.__sourceEnd = mapDocumentOffsetToSource(
+              sourceDoc,
+              token.__preEnd,
+            );
+
+            if (token.type === "list" && Array.isArray(token.items)) {
+              var itemCursor = token.__preStart;
+              token.items.forEach(function (item) {
+                var itemRaw = String(item.raw || "");
+                item.__preStart = itemCursor;
+                item.__preEnd = itemCursor + itemRaw.length;
+                item.__sourceStart = mapDocumentOffsetToSource(
+                  sourceDoc,
+                  item.__preStart,
+                );
+                item.__sourceEnd = mapDocumentOffsetToSource(
+                  sourceDoc,
+                  item.__preEnd,
+                );
+                itemCursor = item.__preEnd;
+              });
+            }
+
+            cursor = token.__preEnd;
+          });
+
+          return tokens;
         }
 
         function renderKatexPlaceholders(generation) {
@@ -9053,12 +9542,21 @@ Paste markdown on the left, open a local file, or drag one into the page.
         }
 
         function preservePreviewScroll(renderFn) {
-          const pane = els.previewPane;
-          const maxBefore = Math.max(1, pane.scrollHeight - pane.clientHeight);
-          const ratio = pane.scrollTop / maxBefore;
+          var shouldRestore = !isEditModeActive();
+          var previousOffset = shouldRestore
+            ? getPreviewViewportSourceOffset()
+            : null;
+          var previousRatio = shouldRestore ? captureWindowScrollRatio() : 0;
+
           renderFn();
-          const maxAfter = Math.max(1, pane.scrollHeight - pane.clientHeight);
-          pane.scrollTop = ratio * maxAfter;
+
+          if (!shouldRestore) return;
+
+          if (typeof previousOffset === "number") {
+            scrollPreviewToSourceOffset(previousOffset);
+          } else {
+            applyWindowScrollRatio(previousRatio);
+          }
         }
 
         function render(source) {
@@ -9082,10 +9580,13 @@ Paste markdown on the left, open a local file, or drag one into the page.
           let html = "";
           if (markdown.trim()) {
             try {
-              var preprocessed = markdown;
-              preprocessed = preprocessFootnotes(preprocessed);
-              preprocessed = preprocessMath(preprocessed);
-              html = marked.parse(preprocessed, markedOptions);
+              var preprocessed = preprocessMarkdownWithSourceMap(markdown);
+              var parseOptions = Object.assign({}, marked.defaults, markedOptions);
+              var tokens = annotateTokenSourceRanges(
+                marked.lexer(preprocessed.text, parseOptions),
+                preprocessed,
+              );
+              html = marked.parser(tokens, parseOptions);
             } catch (error) {
               html =
                 "<pre><code>" +
@@ -9362,7 +9863,14 @@ Paste markdown on the left, open a local file, or drag one into the page.
           setStatus("Cleared", { announce: true });
         }
 
-        els.editor.addEventListener("input", scheduleRender);
+        function syncEditorSelectionState() {
+          state.editorSelection = els.editor.selectionStart || 0;
+        }
+
+        els.editor.addEventListener("input", function () {
+          syncEditorSelectionState();
+          scheduleRender();
+        });
 
         els.editor.addEventListener("keydown", function (event) {
           if (event.key === "Tab") {
@@ -9375,20 +9883,13 @@ Paste markdown on the left, open a local file, or drag one into the page.
               value.slice(0, start) + indent + value.slice(end);
             els.editor.selectionStart = els.editor.selectionEnd =
               start + indent.length;
+            syncEditorSelectionState();
             scheduleRender();
           }
         });
 
-        els.editor.addEventListener("scroll", function () {
-          const editor = els.editor;
-          const pane = els.previewPane;
-          const maxEditor = Math.max(
-            1,
-            editor.scrollHeight - editor.clientHeight,
-          );
-          const ratio = editor.scrollTop / maxEditor;
-          const maxPreview = Math.max(1, pane.scrollHeight - pane.clientHeight);
-          pane.scrollTop = ratio * maxPreview;
+        ["click", "keyup", "select"].forEach(function (eventName) {
+          els.editor.addEventListener(eventName, syncEditorSelectionState);
         });
 
         document.addEventListener("selectionchange", function () {
@@ -9450,7 +9951,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           }
         });
 
-        els.previewPane.addEventListener("scroll", function () {
+        window.addEventListener("scroll", function () {
           hideSelectionBubble();
           hideContextMenu();
           hideActiveHighlight();
@@ -9874,21 +10375,309 @@ Paste markdown on the left, open a local file, or drag one into the page.
         const modeIconEdit = document.getElementById("modeIconEdit");
         const modeIconPreview = document.getElementById("modeIconPreview");
 
-        function captureScrollRatio() {
-          const maxY =
-            document.documentElement.scrollHeight - window.innerHeight;
+        function isEditModeActive() {
+          return Boolean(
+            document.getElementById("main") &&
+              document.getElementById("main").classList.contains("edit-mode"),
+          );
+        }
+
+        function getMaxWindowScrollY() {
+          return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        }
+
+        function captureWindowScrollRatio() {
+          var maxY = getMaxWindowScrollY();
           return maxY > 0 ? window.scrollY / maxY : 0;
         }
 
-        function applyScrollRatio(ratio) {
-          const maxY =
-            document.documentElement.scrollHeight - window.innerHeight;
-          window.scrollTo(0, Math.round(ratio * Math.max(0, maxY)));
+        function applyWindowScrollRatio(ratio) {
+          window.scrollTo(
+            0,
+            Math.round(clampNumber(ratio, 0, 1) * getMaxWindowScrollY()),
+          );
+        }
+
+        function applyWindowScrollY(offset) {
+          window.scrollTo(0, clampNumber(Math.round(offset), 0, getMaxWindowScrollY()));
+        }
+
+        function interpolateSourceOffset(start, end, fraction) {
+          if (typeof start !== "number") return 0;
+          if (typeof end !== "number" || end <= start) return start;
+          return Math.round(
+            start + clampNumber(fraction, 0, 1) * (end - start),
+          );
+        }
+
+        function getPreviewSourceAnchors() {
+          return Array.from(
+            els.preview.querySelectorAll("[data-source-start]"),
+          );
+        }
+
+        function getSourceRangeFromElement(element) {
+          if (!element) return null;
+          var start = Number(element.getAttribute("data-source-start"));
+          var end = Number(element.getAttribute("data-source-end"));
+
+          if (!Number.isFinite(start)) return null;
+          if (!Number.isFinite(end)) end = start;
+
+          return { start: start, end: end };
+        }
+
+        function findBestPreviewAnchorForViewportY(viewportY) {
+          var best = null;
+
+          getPreviewSourceAnchors().forEach(function (element) {
+            var range = getSourceRangeFromElement(element);
+            if (!range) return;
+
+            var rect = element.getBoundingClientRect();
+            if (rect.height <= 0 && rect.width <= 0) return;
+
+            var distance = 0;
+            if (viewportY < rect.top) {
+              distance = rect.top - viewportY;
+            } else if (viewportY > rect.bottom) {
+              distance = viewportY - rect.bottom;
+            }
+
+            var height = Math.max(1, rect.height);
+
+            if (
+              !best ||
+              distance < best.distance ||
+              (distance === best.distance && height < best.height)
+            ) {
+              best = {
+                element: element,
+                range: range,
+                rect: rect,
+                distance: distance,
+                height: height,
+              };
+            }
+          });
+
+          return best;
+        }
+
+        function getPreviewViewportSourceOffset() {
+          var centerY = window.innerHeight / 2;
+          var match = findBestPreviewAnchorForViewportY(centerY);
+          if (!match) return null;
+
+          var fraction =
+            match.rect.height > 1
+              ? (centerY - match.rect.top) / match.rect.height
+              : 0;
+
+          return interpolateSourceOffset(
+            match.range.start,
+            match.range.end,
+            fraction,
+          );
+        }
+
+        function findBestPreviewAnchorForSourceOffset(offset) {
+          var bestContaining = null;
+          var bestNearest = null;
+
+          getPreviewSourceAnchors().forEach(function (element) {
+            var range = getSourceRangeFromElement(element);
+            if (!range) return;
+
+            var span = Math.max(1, range.end - range.start);
+            if (offset >= range.start && offset <= range.end) {
+              if (!bestContaining || span < bestContaining.span) {
+                bestContaining = {
+                  element: element,
+                  range: range,
+                  span: span,
+                };
+              }
+              return;
+            }
+
+            var distance = Math.min(
+              Math.abs(offset - range.start),
+              Math.abs(offset - range.end),
+            );
+            if (
+              !bestNearest ||
+              distance < bestNearest.distance ||
+              (distance === bestNearest.distance && span < bestNearest.span)
+            ) {
+              bestNearest = {
+                element: element,
+                range: range,
+                distance: distance,
+                span: span,
+              };
+            }
+          });
+
+          return bestContaining || bestNearest;
+        }
+
+        function scrollPreviewToSourceOffset(offset) {
+          if (typeof offset !== "number") return;
+          var match = findBestPreviewAnchorForSourceOffset(offset);
+          if (!match) return;
+
+          var rect = match.element.getBoundingClientRect();
+          var pageTop = window.scrollY + rect.top;
+          var fraction =
+            match.range.end > match.range.start
+              ? (offset - match.range.start) /
+                Math.max(1, match.range.end - match.range.start)
+              : 0;
+
+          applyWindowScrollY(
+            pageTop + rect.height * clampNumber(fraction, 0, 1) - window.innerHeight / 2,
+          );
+        }
+
+        function createTextareaMeasurementMirror(textarea) {
+          var mirror = document.createElement("div");
+          var computed = window.getComputedStyle(textarea);
+          var properties = [
+            "boxSizing",
+            "borderTopWidth",
+            "borderRightWidth",
+            "borderBottomWidth",
+            "borderLeftWidth",
+            "paddingTop",
+            "paddingRight",
+            "paddingBottom",
+            "paddingLeft",
+            "fontStyle",
+            "fontVariant",
+            "fontWeight",
+            "fontStretch",
+            "fontSize",
+            "fontFamily",
+            "fontFeatureSettings",
+            "fontVariationSettings",
+            "lineHeight",
+            "letterSpacing",
+            "tabSize",
+            "textIndent",
+            "textTransform",
+            "textRendering",
+          ];
+
+          mirror.setAttribute("aria-hidden", "true");
+          mirror.style.position = "absolute";
+          mirror.style.visibility = "hidden";
+          mirror.style.pointerEvents = "none";
+          mirror.style.left = "-99999px";
+          mirror.style.top = "0";
+          mirror.style.whiteSpace = "pre-wrap";
+          mirror.style.overflowWrap = "break-word";
+          mirror.style.wordWrap = "break-word";
+          mirror.style.width = textarea.clientWidth + "px";
+
+          properties.forEach(function (property) {
+            mirror.style[property] = computed[property];
+          });
+
+          return mirror;
+        }
+
+        function measureTextareaCaretTop(textarea, position) {
+          var clampedPosition = clampNumber(position, 0, textarea.value.length);
+          var mirror = createTextareaMeasurementMirror(textarea);
+          var before = textarea.value.slice(0, clampedPosition);
+          var after = textarea.value.slice(clampedPosition);
+          var marker = document.createElement("span");
+
+          marker.textContent = after || "\u200b";
+          mirror.textContent = before;
+          mirror.appendChild(marker);
+          document.body.appendChild(mirror);
+
+          var top = marker.offsetTop;
+          mirror.remove();
+          return top;
+        }
+
+        function getEditorViewportSourceOffset() {
+          var editor = els.editor;
+          var valueLength = editor.value.length;
+          if (!valueLength || editor.clientHeight <= 0) {
+            return state.editorSelection || 0;
+          }
+
+          var targetY = editor.scrollTop + editor.clientHeight / 2;
+          var cache = Object.create(null);
+
+          function topFor(position) {
+            var clampedPosition = clampNumber(position, 0, valueLength);
+            if (cache[clampedPosition] == null) {
+              cache[clampedPosition] = measureTextareaCaretTop(
+                editor,
+                clampedPosition,
+              );
+            }
+            return cache[clampedPosition];
+          }
+
+          var low = 0;
+          var high = valueLength;
+          while (low < high) {
+            var mid = Math.floor((low + high) / 2);
+            if (topFor(mid) < targetY) {
+              low = mid + 1;
+            } else {
+              high = mid;
+            }
+          }
+
+          var candidates = [low, Math.max(0, low - 1)];
+          var bestOffset = candidates[0];
+          var bestDistance = Infinity;
+
+          candidates.forEach(function (candidate) {
+            var distance = Math.abs(topFor(candidate) - targetY);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestOffset = candidate;
+            }
+          });
+
+          return bestOffset;
+        }
+
+        function scrollEditorToSourceOffset(offset) {
+          var editor = els.editor;
+          var clampedOffset = clampNumber(offset, 0, editor.value.length);
+          var caretTop;
+          var lineHeight =
+            parseFloat(window.getComputedStyle(editor).lineHeight) || 20;
+
+          state.editorSelection = clampedOffset;
+
+          try {
+            editor.setSelectionRange(clampedOffset, clampedOffset);
+          } catch (_error) {}
+
+          caretTop = measureTextareaCaretTop(editor, clampedOffset);
+          editor.scrollTop = clampNumber(
+            Math.round(caretTop - editor.clientHeight / 2 + lineHeight / 2),
+            0,
+            Math.max(0, editor.scrollHeight - editor.clientHeight),
+          );
         }
 
         function setMode(mode) {
+          const wasEdit = mainEl.classList.contains("edit-mode");
+
           if (mode === "edit") {
-            const ratio = captureScrollRatio();
+            const sourceOffset =
+              getPreviewViewportSourceOffset() ?? state.editorSelection ?? 0;
             mainEl.classList.add("edit-mode");
             modeLabel.textContent = "Preview";
             modeBtn.setAttribute("aria-pressed", "true");
@@ -9896,25 +10685,18 @@ Paste markdown on the left, open a local file, or drag one into the page.
             if (modeIconEdit) modeIconEdit.style.display = "none";
             if (modeIconPreview) modeIconPreview.style.display = "";
             requestAnimationFrame(function () {
-              const pos =
-                typeof state.editorSelection === "number"
-                  ? state.editorSelection
-                  : 0;
-              try {
-                els.editor.setSelectionRange(pos, pos);
-              } catch (e) {}
               try {
                 els.editor.focus({ preventScroll: true });
-              } catch (e) {
+              } catch (_error) {
                 els.editor.focus();
               }
-              applyScrollRatio(ratio);
+              scrollEditorToSourceOffset(sourceOffset);
             });
           } else {
-            const ratio = captureScrollRatio();
-            if (document.activeElement === els.editor) {
-              state.editorSelection = els.editor.selectionStart;
-            }
+            const sourceOffset = wasEdit
+              ? getEditorViewportSourceOffset()
+              : getPreviewViewportSourceOffset() ?? state.editorSelection ?? 0;
+            state.editorSelection = sourceOffset;
             mainEl.classList.remove("edit-mode");
             modeLabel.textContent = "Edit";
             modeBtn.setAttribute("aria-pressed", "false");
@@ -9922,7 +10704,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
             if (modeIconEdit) modeIconEdit.style.display = "";
             if (modeIconPreview) modeIconPreview.style.display = "none";
             requestAnimationFrame(function () {
-              applyScrollRatio(ratio);
+              scrollPreviewToSourceOffset(sourceOffset);
             });
           }
         }
