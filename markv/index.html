@@ -8383,6 +8383,68 @@ Paste markdown on the left, open a local file, or drag one into the page.
           stage.addEventListener("pointerdown", hideTooltip);
         }
 
+        /* ============================================================
+         * Concept Mindmap — content hash + local cache
+         * ============================================================ */
+
+        const MINDMAP_CACHE_KEY = "markv:mindmap-cache:v1";
+        const MINDMAP_CACHE_MAX = 12;
+
+        async function hashString(str) {
+          if (window.crypto && window.crypto.subtle) {
+            const buf = new TextEncoder().encode(str);
+            const digest = await window.crypto.subtle.digest("SHA-256", buf);
+            const bytes = new Uint8Array(digest);
+            let out = "";
+            for (let i = 0; i < bytes.length; i++) {
+              out += bytes[i].toString(16).padStart(2, "0");
+            }
+            return out.slice(0, 16);
+          }
+          // Fallback: DJB2
+          let h = 5381;
+          for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+          return String(h >>> 0);
+        }
+
+        function loadMindmapCache() {
+          try {
+            const raw = window.localStorage.getItem(MINDMAP_CACHE_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === "object" ? parsed : {};
+          } catch (_) {
+            return {};
+          }
+        }
+
+        function saveMindmapCache(cache) {
+          try {
+            // Trim to most recent MINDMAP_CACHE_MAX entries.
+            const keys = Object.keys(cache).sort(
+              (a, b) => (cache[b].ts || 0) - (cache[a].ts || 0),
+            );
+            const trimmed = {};
+            for (const k of keys.slice(0, MINDMAP_CACHE_MAX)) trimmed[k] = cache[k];
+            window.localStorage.setItem(
+              MINDMAP_CACHE_KEY,
+              JSON.stringify(trimmed),
+            );
+          } catch (_) {}
+        }
+
+        function getCachedGraph(docHash) {
+          const cache = loadMindmapCache();
+          const entry = cache[docHash];
+          return entry ? entry.graph : null;
+        }
+
+        function setCachedGraph(docHash, graph) {
+          const cache = loadMindmapCache();
+          cache[docHash] = { graph, ts: Date.now() };
+          saveMindmapCache(cache);
+        }
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
