@@ -8445,6 +8445,104 @@ Paste markdown on the left, open a local file, or drag one into the page.
           saveMindmapCache(cache);
         }
 
+        /* ============================================================
+         * Concept Mindmap — LLM extractor
+         * ============================================================ */
+
+        const MINDMAP_SYSTEM_PROMPT = `You are a concept extractor for technical documents. Read the markdown document and return a JSON concept graph that helps a reader understand the document's shape.
+
+REQUIREMENTS:
+- Return ONLY valid JSON matching the schema. No prose, no markdown fences.
+- Root = the document itself. Label: 1-4 words capturing what this doc IS.
+- Primary nodes (parent: "root"): 4-7 load-bearing concepts a reader must understand.
+- Secondary nodes: decomposition of a primary, max 3-4 children per primary.
+- Total non-root nodes: max 24. Quality over coverage.
+- Each node.type must be one of: goal, non_goal, feature, constraint, actor, assumption, open_question, success_metric.
+- Each node.label: 1-5 words, human phrasing, no trailing punctuation.
+- Each node.summary: one sentence, max 180 characters.
+- Each node.sourceAnchor: the heading slug (kebab-case, lowercase, no #) if the concept maps to a specific heading; else null.
+- edges: cross-tree relationships only. Kinds: part_of, depends_on, blocks, supports, contradicts, measured_by.
+
+SCHEMA:
+{
+  "root": { "id": "root", "label": string, "summary": string },
+  "nodes": [ { "id": string, "label": string, "type": string, "summary": string, "sourceAnchor": string|null, "parent": string } ],
+  "edges": [ { "from": string, "to": string, "kind": string } ]
+}
+
+STYLE:
+- Plain editorial English.
+- Never "The user shall be able to" — write the noun.
+- Never generic labels like "Implementation" or "Requirements" — be specific.
+
+Return JSON only.`;
+
+        /**
+         * Invokes the shared LLM client (wired by chat feature) and returns a
+         * validated ConceptGraph. The client must be exposed as
+         * window.markvLLM = async ({system, user}) => string  returning raw text.
+         * Throws on any validation failure.
+         * @param {string} markdown
+         * @returns {Promise<ConceptGraph>}
+         */
+        async function extractConcepts(markdown) {
+          if (typeof window.markvLLM !== "function") {
+            throw new Error("No LLM client registered (window.markvLLM is not set)");
+          }
+          const userPrompt = `Extract the concept graph for the following markdown document.\n\nDOCUMENT:\n\n${markdown}`;
+          const raw = await window.markvLLM({
+            system: MINDMAP_SYSTEM_PROMPT,
+            user: userPrompt,
+          });
+          return parseAndValidateGraph(raw);
+        }
+
+        /**
+         * Accepts raw LLM output (potentially with markdown fences) and returns
+         * a validated ConceptGraph. Throws with a helpful message on failure.
+         */
+        function parseAndValidateGraph(raw) {
+          if (typeof raw !== "string") throw new Error("LLM returned non-string output");
+          let text = raw.trim();
+          // Strip fences if present.
+          const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (fenceMatch) text = fenceMatch[1].trim();
+          let parsed;
+          try {
+            parsed = JSON.parse(text);
+          } catch (e) {
+            throw new Error(`LLM output is not valid JSON: ${e.message}`);
+          }
+          if (!parsed || typeof parsed !== "object") throw new Error("Graph must be an object");
+          if (!parsed.root || parsed.root.id !== "root" || typeof parsed.root.label !== "string") {
+            throw new Error("Graph.root is missing or malformed");
+          }
+          if (!Array.isArray(parsed.nodes)) throw new Error("Graph.nodes must be an array");
+          if (parsed.nodes.length === 0) throw new Error("Graph has no nodes");
+          if (parsed.nodes.length > 30) throw new Error(`Graph has too many nodes (${parsed.nodes.length})`);
+
+          const seen = new Set(["root"]);
+          const allowedTypes = new Set(Object.keys(MINDMAP_TYPE_LABEL));
+          for (const n of parsed.nodes) {
+            if (!n.id || typeof n.id !== "string") throw new Error("Node missing id");
+            if (seen.has(n.id)) throw new Error(`Duplicate node id: ${n.id}`);
+            seen.add(n.id);
+            if (!n.label || typeof n.label !== "string") throw new Error(`Node ${n.id} missing label`);
+            if (!allowedTypes.has(n.type)) throw new Error(`Node ${n.id} has invalid type: ${n.type}`);
+            if (!n.parent || typeof n.parent !== "string") throw new Error(`Node ${n.id} missing parent`);
+            if (typeof n.summary !== "string") n.summary = "";
+            if (typeof n.sourceAnchor !== "string" && n.sourceAnchor !== null) n.sourceAnchor = null;
+          }
+          // Every non-root parent must resolve to a known id.
+          for (const n of parsed.nodes) {
+            if (n.parent !== "root" && !seen.has(n.parent)) {
+              throw new Error(`Node ${n.id} references unknown parent ${n.parent}`);
+            }
+          }
+          if (!Array.isArray(parsed.edges)) parsed.edges = [];
+          return parsed;
+        }
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
