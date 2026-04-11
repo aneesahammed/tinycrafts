@@ -8012,6 +8012,254 @@ Paste markdown on the left, open a local file, or drag one into the page.
           return { width, height };
         }
 
+        /* ============================================================
+         * Concept Mindmap — viewer controller
+         * ============================================================ */
+
+        const mindmapState = {
+          laid: null,
+          scale: 1,
+          tx: 0,
+          ty: 0,
+          baseScale: 1,
+          isPanning: false,
+          panStartX: 0,
+          panStartY: 0,
+          panStartTx: 0,
+          panStartTy: 0,
+          currentGraph: null,
+          currentDocHash: null,
+          previouslyFocused: null,
+        };
+
+        const MINDMAP_MAX_MARKDOWN_CHARS = 20000;
+
+        function getMindmapEls() {
+          return {
+            viewer: document.getElementById("mindmapViewer"),
+            stage: document.getElementById("mindmapStage"),
+            svg: document.getElementById("mindmapSvg"),
+            svgRoot: document.getElementById("mindmapSvgRoot"),
+            zoomLabel: document.getElementById("mindmapZoomLabel"),
+            tooltip: document.getElementById("mindmapTooltip"),
+            loading: document.getElementById("mindmapLoading"),
+            errorPane: document.getElementById("mindmapError"),
+            errorMsg: document.getElementById("mindmapErrorMessage"),
+          };
+        }
+
+        function openMindmapViewer() {
+          const { viewer } = getMindmapEls();
+          if (!viewer) return;
+          mindmapState.previouslyFocused = document.activeElement;
+          viewer.hidden = false;
+          requestAnimationFrame(() => {
+            viewer.setAttribute("aria-hidden", "false");
+            const closeBtn = document.getElementById("mindmapCloseBtn");
+            if (closeBtn) closeBtn.focus();
+          });
+          document.body.classList.add("mindmap-open");
+        }
+
+        function closeMindmapViewer() {
+          const { viewer } = getMindmapEls();
+          if (!viewer) return;
+          viewer.setAttribute("aria-hidden", "true");
+          document.body.classList.remove("mindmap-open");
+          setTimeout(() => {
+            viewer.hidden = true;
+          }, 260);
+          // Restore focus to whatever had it before open.
+          if (mindmapState.previouslyFocused && typeof mindmapState.previouslyFocused.focus === "function") {
+            try { mindmapState.previouslyFocused.focus(); } catch (_) {}
+          }
+        }
+
+        /**
+         * Trap focus inside the modal — Tab cycles through the focusable
+         * descendants of the viewer. Shift+Tab cycles backward.
+         */
+        function trapMindmapFocus(event) {
+          if (event.key !== "Tab") return;
+          const { viewer } = getMindmapEls();
+          if (!viewer || viewer.getAttribute("aria-hidden") === "true") return;
+          const focusables = viewer.querySelectorAll(
+            'button, [tabindex="0"], [tabindex]:not([tabindex="-1"])',
+          );
+          if (focusables.length === 0) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+
+        function applyMindmapTransform() {
+          const { svgRoot, zoomLabel } = getMindmapEls();
+          if (!svgRoot) return;
+          svgRoot.setAttribute(
+            "transform",
+            `translate(${mindmapState.tx} ${mindmapState.ty}) scale(${mindmapState.scale})`,
+          );
+          if (zoomLabel) {
+            zoomLabel.textContent = `${Math.round(mindmapState.scale * 100)}%`;
+          }
+        }
+
+        function fitMindmapToView(animated) {
+          const { stage, svgRoot } = getMindmapEls();
+          if (!stage || !svgRoot || !mindmapState.laid) return;
+
+          const bounds = computeBounds(mindmapState.laid.nodes);
+          const w = bounds.maxX - bounds.minX;
+          const h = bounds.maxY - bounds.minY;
+          const rect = stage.getBoundingClientRect();
+          const pad = 120;
+          const scaleX = (rect.width - pad * 2) / Math.max(1, w);
+          const scaleY = (rect.height - pad * 2) / Math.max(1, h);
+          const scale = Math.min(scaleX, scaleY, 1.1);
+
+          // Center the bounds in the stage.
+          const boundsCx = (bounds.minX + bounds.maxX) / 2;
+          const boundsCy = (bounds.minY + bounds.maxY) / 2;
+          const tx = rect.width / 2 - boundsCx * scale;
+          const ty = rect.height / 2 - boundsCy * scale;
+
+          if (animated) {
+            svgRoot.classList.remove("is-interactive");
+          } else {
+            svgRoot.classList.add("is-interactive");
+          }
+          mindmapState.scale = scale;
+          mindmapState.baseScale = scale;
+          mindmapState.tx = tx;
+          mindmapState.ty = ty;
+          applyMindmapTransform();
+        }
+
+        function setMindmapZoom(nextScale, focalX, focalY) {
+          const clamped = Math.max(0.3, Math.min(2.5, nextScale));
+          if (typeof focalX === "number" && typeof focalY === "number") {
+            // Zoom around the focal point (screen coords inside stage).
+            const { tx, ty, scale } = mindmapState;
+            const worldX = (focalX - tx) / scale;
+            const worldY = (focalY - ty) / scale;
+            mindmapState.scale = clamped;
+            mindmapState.tx = focalX - worldX * clamped;
+            mindmapState.ty = focalY - worldY * clamped;
+          } else {
+            mindmapState.scale = clamped;
+          }
+          applyMindmapTransform();
+        }
+
+        function wireMindmapInteractions() {
+          const els = getMindmapEls();
+          const { viewer, stage, svg, svgRoot } = els;
+          if (!viewer || !stage) return;
+
+          // Close button
+          document.getElementById("mindmapCloseBtn").addEventListener("click", closeMindmapViewer);
+
+          // Zoom buttons
+          document.getElementById("mindmapZoomInBtn").addEventListener("click", () => {
+            const rect = stage.getBoundingClientRect();
+            setMindmapZoom(mindmapState.scale * 1.18, rect.width / 2, rect.height / 2);
+          });
+          document.getElementById("mindmapZoomOutBtn").addEventListener("click", () => {
+            const rect = stage.getBoundingClientRect();
+            setMindmapZoom(mindmapState.scale / 1.18, rect.width / 2, rect.height / 2);
+          });
+          document.getElementById("mindmapFitBtn").addEventListener("click", () => {
+            svgRoot.classList.remove("is-interactive");
+            fitMindmapToView(true);
+          });
+
+          // Keyboard — local (modal scope)
+          viewer.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+              closeMindmapViewer();
+              return;
+            }
+            trapMindmapFocus(event);
+            if (event.key === "+" || event.key === "=") {
+              const rect = stage.getBoundingClientRect();
+              setMindmapZoom(mindmapState.scale * 1.18, rect.width / 2, rect.height / 2);
+            } else if (event.key === "-") {
+              const rect = stage.getBoundingClientRect();
+              setMindmapZoom(mindmapState.scale / 1.18, rect.width / 2, rect.height / 2);
+            } else if (event.key === "f" || event.key === "F") {
+              fitMindmapToView(true);
+            }
+          });
+
+          // Keyboard — global shortcut to open (Cmd/Ctrl+M)
+          document.addEventListener("keydown", (event) => {
+            const mod = event.metaKey || event.ctrlKey;
+            if (!mod || event.key.toLowerCase() !== "m") return;
+            // Skip if user is typing in the editor textarea.
+            const tag = (event.target && event.target.tagName) || "";
+            if (tag === "TEXTAREA" || tag === "INPUT") return;
+            event.preventDefault();
+            const btn = document.getElementById("mindmapBtn");
+            if (btn) btn.click();
+          });
+
+          // Wheel zoom
+          stage.addEventListener(
+            "wheel",
+            (event) => {
+              if (viewer.getAttribute("aria-hidden") === "true") return;
+              event.preventDefault();
+              const rect = stage.getBoundingClientRect();
+              const focalX = event.clientX - rect.left;
+              const focalY = event.clientY - rect.top;
+              const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
+              svgRoot.classList.add("is-interactive");
+              setMindmapZoom(mindmapState.scale * factor, focalX, focalY);
+            },
+            { passive: false },
+          );
+
+          // Drag to pan (only when starting on empty space, not on a node).
+          stage.addEventListener("pointerdown", (event) => {
+            if (event.target.closest(".mm-node")) return;
+            mindmapState.isPanning = true;
+            mindmapState.panStartX = event.clientX;
+            mindmapState.panStartY = event.clientY;
+            mindmapState.panStartTx = mindmapState.tx;
+            mindmapState.panStartTy = mindmapState.ty;
+            stage.classList.add("is-panning");
+            svgRoot.classList.add("is-interactive");
+            stage.setPointerCapture(event.pointerId);
+          });
+          stage.addEventListener("pointermove", (event) => {
+            if (!mindmapState.isPanning) return;
+            const dx = event.clientX - mindmapState.panStartX;
+            const dy = event.clientY - mindmapState.panStartY;
+            mindmapState.tx = mindmapState.panStartTx + dx;
+            mindmapState.ty = mindmapState.panStartTy + dy;
+            applyMindmapTransform();
+          });
+          const endPan = (event) => {
+            if (!mindmapState.isPanning) return;
+            mindmapState.isPanning = false;
+            stage.classList.remove("is-panning");
+            try { stage.releasePointerCapture(event.pointerId); } catch (_) {}
+          };
+          stage.addEventListener("pointerup", endPan);
+          stage.addEventListener("pointercancel", endPan);
+
+          // Backdrop click closes
+          viewer.addEventListener("click", (event) => {
+            if (event.target === viewer) closeMindmapViewer();
+          });
+        }
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
@@ -11452,6 +11700,16 @@ Paste markdown on the left, open a local file, or drag one into the page.
         els.reloadBtn.addEventListener("click", reloadCurrent);
         els.clearBtn.addEventListener("click", clearAll);
         els.autoRefreshToggle.addEventListener("change", startAutoRefresh);
+
+        wireMindmapInteractions();
+
+        document.getElementById("mindmapBtn").addEventListener("click", () => {
+          openMindmapViewer();
+          // Temporary: render fixture until the extractor task is wired up.
+          mindmapState.laid = computeRadialLayout(MINDMAP_FIXTURE);
+          renderMindmap(mindmapState.laid);
+          requestAnimationFrame(() => fitMindmapToView(false));
+        });
 
         els.fileInput.addEventListener("change", async function (event) {
           const file = event.target.files && event.target.files[0];
