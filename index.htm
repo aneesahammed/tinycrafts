@@ -16,16 +16,16 @@
     />
     <script>
       (function () {
-        const THEME_KEY = "tinycrafts-theme";
-
+        var r = document.documentElement;
         try {
-          const savedTheme = window.localStorage.getItem(THEME_KEY);
-          const systemDark =
-            window.matchMedia &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches;
-          const theme = savedTheme || (systemDark ? "dark" : "light");
-          document.documentElement.setAttribute("data-theme", theme);
-        } catch (_error) {}
+          r.setAttribute(
+            "data-theme",
+            localStorage.getItem("tinycrafts-theme") ||
+              (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+          );
+        } catch (_) {
+          r.setAttribute("data-theme", "light");
+        }
       })();
     </script>
 
@@ -38,8 +38,7 @@
         padding: 0;
       }
 
-      :root,
-      :root[data-theme="light"] {
+      :root {
         color-scheme: light;
         --bg:            #f8f6f0;
         --bg-raised:     #ffffff;
@@ -69,23 +68,6 @@
         --accent:        #f59e0b;
         --accent-soft:   rgba(245, 158, 11, 0.08);
         --accent-border: rgba(245, 158, 11, 0.2);
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root:not([data-theme]) {
-          color-scheme: dark;
-          --bg:            #0e1117;
-          --bg-raised:     #161b22;
-          --bg-code:       #1c2128;
-          --border:        #30363d;
-          --border-subtle: #21262d;
-          --text:          #e6edf3;
-          --text-muted:    #7d8590;
-          --text-dim:      #484f58;
-          --accent:        #f59e0b;
-          --accent-soft:   rgba(245, 158, 11, 0.08);
-          --accent-border: rgba(245, 158, 11, 0.2);
-        }
       }
 
       html, body {
@@ -169,6 +151,18 @@
         height: 14px;
         color: var(--accent);
         flex-shrink: 0;
+      }
+
+      .theme-toggle .icon-sun {
+        display: none;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-sun {
+        display: block;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-moon {
+        display: none;
       }
 
       /* ── LOGO MARK ── */
@@ -406,29 +400,15 @@
           id="themeToggleBtn"
           class="theme-toggle"
           type="button"
-          aria-label="Toggle theme"
-          title="Toggle theme"
+          aria-pressed="false"
+          aria-label="Switch to dark theme"
+          title="Switch to dark theme"
         >
-          <svg
-            id="themeIconSun"
-            viewBox="0 0 16 16"
-            fill="currentColor"
-            aria-hidden="true"
-            style="display: none"
-          >
-            <path
-              d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 0 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.465a.75.75 0 0 1-1.06 0L2.343 3.404a.75.75 0 0 1 1.06-1.06l1.061 1.06a.75.75 0 0 1 0 1.06Z"
-            />
+          <svg class="icon-sun" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 0 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.465a.75.75 0 0 1-1.06 0L2.343 3.404a.75.75 0 0 1 1.06-1.06l1.061 1.06a.75.75 0 0 1 0 1.06Z"/>
           </svg>
-          <svg
-            id="themeIconMoon"
-            viewBox="0 0 16 16"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"
-            />
+          <svg class="icon-moon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"/>
           </svg>
           <span id="themeToggleLabel">Dark</span>
         </button>
@@ -497,63 +477,42 @@
     </footer>
     <script>
       (function () {
-        const THEME_KEY = "tinycrafts-theme";
-        const themeBtn = document.getElementById("themeToggleBtn");
-        const themeLabel = document.getElementById("themeToggleLabel");
-        const sunIcon = document.getElementById("themeIconSun");
-        const moonIcon = document.getElementById("themeIconMoon");
-        const systemThemeQuery = window.matchMedia
+        const KEY = "tinycrafts-theme";
+        const root = document.documentElement;
+        const btn = document.getElementById("themeToggleBtn");
+        const label = document.getElementById("themeToggleLabel");
+        const mq = window.matchMedia
           ? window.matchMedia("(prefers-color-scheme: dark)")
           : null;
 
-        function getStoredTheme() {
-          try {
-            return window.localStorage.getItem(THEME_KEY);
-          } catch (_error) {
-            return null;
-          }
+        function sync() {
+          const dark = root.getAttribute("data-theme") === "dark";
+          const target = dark ? "light" : "dark";
+          label.textContent = dark ? "Light" : "Dark";
+          btn.setAttribute("aria-pressed", dark);
+          btn.setAttribute("aria-label", "Switch to " + target + " theme");
+          btn.setAttribute("title", "Switch to " + target + " theme");
         }
 
-        function setStoredTheme(theme) {
-          try {
-            window.localStorage.setItem(THEME_KEY, theme);
-          } catch (_error) {}
-        }
-
-        function applyTheme(theme) {
-          const nextLabel = theme === "dark" ? "Light" : "Dark";
-          document.documentElement.setAttribute("data-theme", theme);
-          sunIcon.style.display = theme === "dark" ? "" : "none";
-          moonIcon.style.display = theme === "dark" ? "none" : "";
-          themeLabel.textContent = nextLabel;
-          themeBtn.setAttribute("aria-label", "Switch to " + nextLabel.toLowerCase() + " theme");
-          themeBtn.setAttribute("title", "Switch to " + nextLabel.toLowerCase() + " theme");
-        }
-
-        themeBtn.addEventListener("click", function () {
-          const current =
-            document.documentElement.getAttribute("data-theme") || "light";
-          const next = current === "dark" ? "light" : "dark";
-          applyTheme(next);
-          setStoredTheme(next);
+        btn.addEventListener("click", function () {
+          const next =
+            root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          try { localStorage.setItem(KEY, next); } catch (_) {}
+          sync();
         });
 
-        if (systemThemeQuery) {
-          const syncToSystem = function (event) {
-            if (getStoredTheme()) return;
-            applyTheme(event.matches ? "dark" : "light");
+        if (mq) {
+          const onChange = function (e) {
+            try { if (localStorage.getItem(KEY)) return; } catch (_) {}
+            root.setAttribute("data-theme", e.matches ? "dark" : "light");
+            sync();
           };
-
-          if (typeof systemThemeQuery.addEventListener === "function") {
-            systemThemeQuery.addEventListener("change", syncToSystem);
-          } else if (typeof systemThemeQuery.addListener === "function") {
-            systemThemeQuery.addListener(syncToSystem);
-          }
+          if (mq.addEventListener) mq.addEventListener("change", onChange);
+          else if (mq.addListener) mq.addListener(onChange);
         }
 
-        applyTheme(
-          document.documentElement.getAttribute("data-theme") || "light"
-        );
+        sync();
       })();
     </script>
   </body>
