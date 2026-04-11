@@ -98,6 +98,11 @@
         --selection: rgba(95, 143, 128, 0.14);
         --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.025);
         --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.04);
+        --alert-note: #4f7fa8;
+        --alert-tip: #4f8c74;
+        --alert-important: #6f73c4;
+        --alert-warning: #b6801f;
+        --alert-caution: #b35d5d;
         --ont-intro: rgba(100, 150, 210, 0.55);
         --ont-definition: rgba(100, 150, 210, 0.55);
         --ont-explanation: rgba(170, 135, 55, 0.55);
@@ -139,6 +144,11 @@
         --selection: rgba(136, 190, 173, 0.18);
         --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
         --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.35);
+        --alert-note: #83acd6;
+        --alert-tip: #83c1a7;
+        --alert-important: #9da6ef;
+        --alert-warning: #d6af62;
+        --alert-caution: #d98d8d;
         --ont-intro: rgba(120, 170, 230, 0.45);
         --ont-definition: rgba(120, 170, 230, 0.45);
         --ont-explanation: rgba(190, 155, 75, 0.45);
@@ -857,6 +867,76 @@
         font-size: 0.98em;
       }
 
+      .markdown-body .markdown-alert,
+      .chat-msg.markdown-rendered .markdown-alert {
+        --alert-accent: var(--alert-note);
+        margin: 1.5em 0;
+        padding: 0.95em 1.1em 1em;
+        color: var(--fg-default);
+        font-style: normal;
+        background: color-mix(in srgb, var(--alert-accent) 7%, var(--bg-raised));
+        border: 1px solid color-mix(in srgb, var(--alert-accent) 18%, var(--border-soft));
+        border-left: 4px solid color-mix(in srgb, var(--alert-accent) 62%, transparent);
+        border-radius: 10px;
+        box-shadow: var(--shadow-sm);
+      }
+      .markdown-body .markdown-alert[data-alert-kind="note"],
+      .chat-msg.markdown-rendered .markdown-alert[data-alert-kind="note"] {
+        --alert-accent: var(--alert-note);
+      }
+      .markdown-body .markdown-alert[data-alert-kind="tip"],
+      .chat-msg.markdown-rendered .markdown-alert[data-alert-kind="tip"] {
+        --alert-accent: var(--alert-tip);
+      }
+      .markdown-body .markdown-alert[data-alert-kind="important"],
+      .chat-msg.markdown-rendered .markdown-alert[data-alert-kind="important"] {
+        --alert-accent: var(--alert-important);
+      }
+      .markdown-body .markdown-alert[data-alert-kind="warning"],
+      .chat-msg.markdown-rendered .markdown-alert[data-alert-kind="warning"] {
+        --alert-accent: var(--alert-warning);
+      }
+      .markdown-body .markdown-alert[data-alert-kind="caution"],
+      .chat-msg.markdown-rendered .markdown-alert[data-alert-kind="caution"] {
+        --alert-accent: var(--alert-caution);
+      }
+      .markdown-body .markdown-alert-title,
+      .chat-msg.markdown-rendered .markdown-alert-title {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin: 0 0 0.55em;
+        font-family: var(--font-sans);
+        font-size: 0.9rem;
+        font-style: normal;
+        font-weight: 700;
+        line-height: 1.25;
+        color: color-mix(in srgb, var(--alert-accent) 74%, var(--fg-default));
+      }
+      .markdown-body .markdown-alert-title svg,
+      .chat-msg.markdown-rendered .markdown-alert-title svg {
+        width: 1rem;
+        height: 1rem;
+        flex-shrink: 0;
+      }
+      .markdown-body .markdown-alert-content,
+      .chat-msg.markdown-rendered .markdown-alert-content {
+        color: var(--fg-default);
+        font-style: normal;
+      }
+      .markdown-body .markdown-alert-content > :first-child,
+      .chat-msg.markdown-rendered .markdown-alert-content > :first-child {
+        margin-top: 0;
+      }
+      .markdown-body .markdown-alert-content > :last-child,
+      .chat-msg.markdown-rendered .markdown-alert-content > :last-child {
+        margin-bottom: 0;
+      }
+      .markdown-body .markdown-alert-content p,
+      .chat-msg.markdown-rendered .markdown-alert-content p {
+        font-style: normal;
+      }
+
       /* Inline code — slight tint so it sits in the prose without shouting */
       .markdown-body code,
       .markdown-body tt {
@@ -1346,10 +1426,36 @@
         border-radius: 8px;
       }
 
-      /* Task checkboxes */
-      .markdown-body input[type="checkbox"] {
-        margin: 0 0.4em 0.2em -1.4em;
-        accent-color: var(--accent-fg);
+      /* Task lists */
+      .markdown-body ul > li.task-list-item {
+        list-style: none;
+      }
+      .markdown-body ul > li.task-list-item::marker {
+        content: "";
+      }
+      .markdown-body .task-list-item-checkbox {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 0.98em;
+        height: 0.98em;
+        margin: 0.08em 0.62em 0 0;
+        vertical-align: text-top;
+        border: 1px solid var(--border-strong);
+        border-radius: 0.24em;
+        background: var(--bg-raised);
+        color: transparent;
+        box-shadow: var(--shadow-sm);
+      }
+      .markdown-body .task-list-item-checkbox.is-checked {
+        border-color: var(--accent-fg);
+        background: color-mix(in srgb, var(--accent-fg) 12%, var(--bg-raised));
+        color: var(--accent-fg);
+      }
+      .markdown-body .task-list-item-checkbox svg {
+        width: 0.72em;
+        height: 0.72em;
+        display: block;
       }
 
       /* kbd */
@@ -1946,6 +2052,13 @@
         padding: 0.1em 0 0.1em 0.9em;
         color: var(--fg-muted);
         border-left: 3px solid var(--blockquote-border);
+      }
+      .chat-msg.markdown-rendered .markdown-alert {
+        margin: 0 0 0.9em;
+        padding: 0.8em 0.9em 0.85em;
+      }
+      .chat-msg.markdown-rendered .markdown-alert-title {
+        font-size: 0.85rem;
       }
       .chat-msg.markdown-rendered hr {
         border: 0;
@@ -7982,6 +8095,104 @@ Paste markdown on the left, open a local file, or drag one into the page.
         }
 
         const renderer = new marked.Renderer();
+        const MARKDOWN_ALERTS = {
+          note: {
+            label: "Note",
+            icon:
+              '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" stroke-width="1.5"/><path d="M8 7.1V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.7" r="0.9" fill="currentColor"/></svg>',
+          },
+          tip: {
+            label: "Tip",
+            icon:
+              '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5.5 10.5C5.74 9.76 4 8.66 4 6.5a4 4 0 1 1 8 0c0 2.16-1.74 3.26-1.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.1 12.25h3.8M6.55 14h2.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+          },
+          important: {
+            label: "Important",
+            icon:
+              '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 1.75 13 5v6L8 14.25 3 11V5L8 1.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 5.2v3.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r="0.85" fill="currentColor"/></svg>',
+          },
+          warning: {
+            label: "Warning",
+            icon:
+              '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 2.2 14 13H2L8 2.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 6v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.5" r="0.85" fill="currentColor"/></svg>',
+          },
+          caution: {
+            label: "Caution",
+            icon:
+              '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 1.75h6L14.25 5v6L11 14.25H5L1.75 11V5L5 1.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m6.1 6.1 3.8 3.8M9.9 6.1l-3.8 3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+          },
+        };
+        const MARKDOWN_ALERT_KINDS = Object.keys(MARKDOWN_ALERTS);
+        const MARKDOWN_ALERT_MARKER_PATTERN = new RegExp(
+          "^ {0,3}>[ \\t]?\\[!((?:" +
+            MARKDOWN_ALERT_KINDS.map(function (kind) {
+              return kind.toUpperCase();
+            }).join("|") +
+            "))\\][ \\t]*(.*)$",
+          "i",
+        );
+        const MARKDOWN_ALERT_BLOCK_PATTERN = /^(?: {0,3}>[^\n]*(?:\n|$))+/;
+
+        marked.use({
+          extensions: [
+            {
+              name: "markdown-alert",
+              level: "block",
+              start: function (src) {
+                const match = src.match(
+                  /^ {0,3}>[ \t]?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/im,
+                );
+                return match ? match.index : undefined;
+              },
+              tokenizer: function (src) {
+                const blockMatch = MARKDOWN_ALERT_BLOCK_PATTERN.exec(src);
+                if (!blockMatch) return;
+
+                const raw = blockMatch[0];
+                const lines = raw.replace(/\n$/, "").split("\n");
+                const markerMatch = MARKDOWN_ALERT_MARKER_PATTERN.exec(
+                  lines[0],
+                );
+                if (!markerMatch) return;
+
+                const kind = markerMatch[1].toLowerCase();
+                const bodyLines = [];
+                const leadingText = String(markerMatch[2] || "").trim();
+
+                if (leadingText) bodyLines.push(leadingText);
+                for (let i = 1; i < lines.length; i += 1) {
+                  bodyLines.push(lines[i].replace(/^ {0,3}> ?/, ""));
+                }
+
+                const body = bodyLines.join("\n").replace(/^\n+|\n+$/g, "");
+
+                return {
+                  type: "markdown-alert",
+                  raw: raw,
+                  kind: kind,
+                  tokens: body ? this.lexer.blockTokens(body) : [],
+                };
+              },
+              renderer: function (token) {
+                const config = MARKDOWN_ALERTS[token.kind] || MARKDOWN_ALERTS.note;
+                const content = this.parser.parse(token.tokens || []);
+                return (
+                  '<aside class="markdown-alert" data-alert-kind="' +
+                  token.kind +
+                  '">' +
+                  '<p class="markdown-alert-title">' +
+                  config.icon +
+                  "<span>" +
+                  config.label +
+                  "</span></p>" +
+                  '<div class="markdown-alert-content">' +
+                  content +
+                  "</div></aside>\n"
+                );
+              },
+            },
+          ],
+        });
 
         // Safe inline & block HTML tags that are standard in markdown documents.
         // Anything not on this list gets escaped into a visible raw-html block.
@@ -8054,6 +8265,27 @@ Paste markdown on the left, open a local file, or drag one into the page.
           out +=
             ' loading="lazy" decoding="async" referrerpolicy="no-referrer">';
           return out;
+        };
+
+        renderer.listitem = function (text, task) {
+          return task
+            ? '<li class="task-list-item">' + text + "</li>\n"
+            : "<li>" + text + "</li>\n";
+        };
+
+        renderer.checkbox = function (checked) {
+          return (
+            '<span class="task-list-item-checkbox' +
+            (checked ? " is-checked" : "") +
+            '" aria-hidden="true">' +
+            (checked
+              ? '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.75 8.25L6.5 11L12.25 5.25" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+              : "") +
+            "</span>" +
+            '<span class="visually-hidden">' +
+            (checked ? "Completed: " : "Not completed: ") +
+            "</span>"
+          );
         };
 
         const markedOptions = {
