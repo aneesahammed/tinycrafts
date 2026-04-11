@@ -7567,6 +7567,80 @@ Paste markdown on the left, open a local file, or drag one into the page.
           }
         }
 
+        /* ============================================================
+         * Concept Mindmap — schema and fixture
+         * ============================================================ */
+
+        /**
+         * @typedef {Object} ConceptNode
+         * @property {string} id
+         * @property {string} label
+         * @property {"goal"|"non_goal"|"feature"|"constraint"|"actor"|"assumption"|"open_question"|"success_metric"} type
+         * @property {string} summary
+         * @property {string|null} sourceAnchor
+         * @property {string} parent
+         */
+
+        /**
+         * @typedef {Object} ConceptGraph
+         * @property {{id: "root", label: string, summary: string}} root
+         * @property {ConceptNode[]} nodes
+         * @property {Array<{from: string, to: string, kind: string}>} edges
+         */
+
+        const MINDMAP_TYPE_COLOR_VAR = {
+          goal: "--ont-intro",
+          non_goal: "--ont-definition",
+          feature: "--ont-instruction",
+          constraint: "--ont-argument",
+          actor: "--ont-narrative",
+          assumption: "--ont-example",
+          open_question: "--ont-unknown",
+          success_metric: "--ont-explanation",
+        };
+
+        const MINDMAP_TYPE_LABEL = {
+          goal: "Goal",
+          non_goal: "Non-goal",
+          feature: "Feature",
+          constraint: "Constraint",
+          actor: "Actor",
+          assumption: "Assumption",
+          open_question: "Open question",
+          success_metric: "Success metric",
+        };
+
+        /** @type {ConceptGraph} */
+        const MINDMAP_FIXTURE = {
+          root: {
+            id: "root",
+            label: "Sample PRD",
+            summary: "A concept map fixture used while the LLM extractor is offline.",
+          },
+          nodes: [
+            { id: "g-reader-orient", label: "Reader Orientation", type: "goal", summary: "Let a reader see the shape of a dense PRD within 10 seconds of opening.", sourceAnchor: "goals", parent: "root" },
+            { id: "g-jump-nav", label: "Jump Navigation", type: "goal", summary: "Click any concept to scroll the source section into view.", sourceAnchor: "goals", parent: "root" },
+            { id: "f-extract", label: "Concept Extraction", type: "feature", summary: "LLM converts the markdown into a structured concept graph.", sourceAnchor: "features", parent: "root" },
+            { id: "f-render", label: "SVG Renderer", type: "feature", summary: "Custom radial SVG with editorial typography and inked edges.", sourceAnchor: "features", parent: "root" },
+            { id: "c-single-file", label: "Single HTML File", type: "constraint", summary: "All code must live inside the existing index.html; no new dependencies.", sourceAnchor: "constraints", parent: "root" },
+            { id: "c-theme", label: "Theme Fidelity", type: "constraint", summary: "Mindmap must feel like the reading pane in both light and dark themes.", sourceAnchor: "constraints", parent: "root" },
+            { id: "q-accuracy", label: "Extraction Accuracy", type: "open_question", summary: "How do we evaluate whether the LLM-produced graph is trustworthy?", sourceAnchor: "open-questions", parent: "root" },
+            { id: "m-time-to-shape", label: "Time to Shape", type: "success_metric", summary: "Median time from click to interactive mindmap, target under 4 seconds.", sourceAnchor: "success-metrics", parent: "root" },
+
+            { id: "f-extract-prompt", label: "Prompt Contract", type: "feature", summary: "Strict JSON schema output from the LLM, no free prose.", sourceAnchor: "features", parent: "f-extract" },
+            { id: "f-extract-cache", label: "Per-doc Cache", type: "feature", summary: "Cache by content hash so re-opening the same doc is instant.", sourceAnchor: "features", parent: "f-extract" },
+
+            { id: "f-render-layout", label: "Radial Layout", type: "feature", summary: "Custom tree layout; subtree weight drives angular allocation.", sourceAnchor: "features", parent: "f-render" },
+            { id: "f-render-motion", label: "Staggered Reveal", type: "feature", summary: "Nodes fade up in rings; root first, primaries next, secondaries last.", sourceAnchor: "features", parent: "f-render" },
+          ],
+          edges: [
+            { from: "g-reader-orient", to: "f-render", kind: "supports" },
+            { from: "g-jump-nav", to: "f-render", kind: "supports" },
+            { from: "c-single-file", to: "f-render", kind: "blocks" },
+            { from: "m-time-to-shape", to: "f-extract-cache", kind: "measured_by" },
+          ],
+        };
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
