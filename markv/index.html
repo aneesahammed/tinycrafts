@@ -2449,7 +2449,7 @@
       }
 
       /* ============================================================
-       Chat Bubble — floating Q&A panel (Ollama RAG)
+       Chat Bubble — floating Q&A panel (Ollama / Groq RAG)
        ============================================================ */
       .chat-fab {
         position: fixed;
@@ -2835,7 +2835,7 @@
         cursor: not-allowed;
       }
 
-      /* ---------- Ollama Settings ---------- */
+      /* ---------- AI Settings ---------- */
       .chat-settings {
         padding: 12px 14px;
         border-top: 1px solid var(--border-soft);
@@ -2862,7 +2862,8 @@
         letter-spacing: 0.04em;
         color: var(--fg-subtle);
       }
-      .chat-settings input {
+      .chat-settings input,
+      .chat-settings select {
         border: 1px solid var(--border-default);
         border-radius: 6px;
         padding: 5px 8px;
@@ -2871,9 +2872,16 @@
         background: var(--bg-canvas);
         font-family: var(--font-mono);
       }
-      .chat-settings input:focus {
+      .chat-settings input:focus,
+      .chat-settings select:focus {
         outline: none;
         border-color: var(--accent-fg);
+      }
+      .chat-settings-note {
+        margin: 0;
+        color: var(--fg-subtle);
+        font-size: 11px;
+        line-height: 1.45;
       }
 
       .doc-highlight {
@@ -12681,6 +12689,9 @@ Return JSON only.`;
         function humanizeMindmapError(err) {
           const msg = (err && err.message) || "";
           const lower = msg.toLowerCase();
+          if (lower.includes("groq api key")) {
+            return "Add a Groq API key in AI settings, then try again.";
+          }
           if (lower.includes("cors_blocked")) {
             return "Browser access to Ollama is blocked by CORS. Allow this viewer origin in OLLAMA_ORIGINS, then try again.";
           }
@@ -13305,7 +13316,8 @@ Return JSON only.`;
         // ── Constants ────────────────────────────────────────────────────────
         var EXCLUDED_SELECTOR =
           "pre, code, .raw-html, .blocked-resource, .mermaid-block";
-        var OLLAMA_STORAGE_KEY = "md-viewer-ollama";
+        var LLM_STORAGE_KEY = "md-viewer-llm";
+        var LEGACY_OLLAMA_STORAGE_KEY = "md-viewer-ollama";
         var CACHE_PREFIX = "ont-classify::";
         var CACHE_VERSION = 2;
 
@@ -13414,12 +13426,54 @@ Return JSON only.`;
           return "section::" + index;
         }
 
-        function getOllamaConfig() {
+        function normalizeProvider(value) {
+          return value === "groq" ? "groq" : "ollama";
+        }
+
+        function getLlmConfig() {
           try {
-            var raw = localStorage.getItem(OLLAMA_STORAGE_KEY);
-            if (raw) return JSON.parse(raw);
+            var raw = localStorage.getItem(LLM_STORAGE_KEY);
+            if (raw) {
+              var parsed = JSON.parse(raw);
+              if (parsed && typeof parsed === "object") {
+                parsed.provider = normalizeProvider(parsed.provider);
+                return parsed;
+              }
+            }
+          } catch (e) {}
+          try {
+            var legacyRaw = localStorage.getItem(LEGACY_OLLAMA_STORAGE_KEY);
+            if (legacyRaw) {
+              var legacy = JSON.parse(legacyRaw);
+              if (legacy && typeof legacy === "object") {
+                return {
+                  provider: "ollama",
+                  endpoint: legacy.endpoint || "",
+                  ollamaModel: legacy.model || "",
+                };
+              }
+            }
           } catch (e) {}
           return null;
+        }
+
+        function hasConfiguredLlm() {
+          if (typeof window.markvHasConfiguredLlm === "function") {
+            return window.markvHasConfiguredLlm();
+          }
+          var config = getLlmConfig();
+          if (!config) return false;
+          var provider = normalizeProvider(config.provider);
+          if (provider === "groq") {
+            return Boolean(
+              String(config.groqApiKey || "").trim() &&
+              String(config.groqModel || config.model || "").trim()
+            );
+          }
+          return Boolean(
+            String(config.endpoint || "").trim() &&
+            String(config.ollamaModel || config.model || "").trim()
+          );
         }
 
         // ── Stemmer (lightweight suffix stripping) ────────────────────────────
@@ -13670,10 +13724,14 @@ Return JSON only.`;
           } catch (e) {}
         }
 
-        // ── Phase 2: Ollama Classification ─────────────────────────────────────
+        // ── Phase 2: LLM Classification ────────────────────────────────────────
         function classifySections(docId, textHash, generation) {
-          var config = getOllamaConfig();
-          if (!config) return;
+          if (
+            !hasConfiguredLlm() ||
+            typeof window.markvCallTextLlm !== "function"
+          ) {
+            return;
+          }
 
           var cached = loadCache(docId);
           if (cached && cached.textHash === textHash) {
@@ -13687,11 +13745,7 @@ Return JSON only.`;
             return;
           }
 
-          var endpoint = (config.endpoint || "http://localhost:11434").replace(/\/$/, "");
-          var model = config.model || "llama3.2";
-          var abortController = new AbortController();
-
-          // Build single batched prompt — one Ollama call for all sections
+          // Build single batched prompt — one LLM call for all sections
           var listing = sections
             .map(function (s, idx) {
               var snippet = (s.previewText || "").replace(/"/g, "'").slice(0, 150);
@@ -13699,25 +13753,24 @@ Return JSON only.`;
             })
             .join("\n");
 
-          var prompt =
-            "Classify each document section into exactly one category.\n" +
-            "Categories: introduction, definition, explanation, instruction, argument, narrative, example\n\n" +
-            "Respond with ONLY a numbered list. Each line: number. category\n" +
-            "Example:\n1. introduction\n2. explanation\n3. instruction\n\n" +
-            "Sections:\n" + listing;
+          var systemPrompt =
+            "Classify each document section into exactly one category. " +
+            "Allowed categories: introduction, definition, explanation, instruction, argument, narrative, example. " +
+            "Respond with ONLY a numbered list. Each line must be: number. category";
+          var userPrompt = "Sections:\n" + listing;
 
-          fetch(endpoint + "/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: model, prompt: prompt, stream: false }),
-            signal: abortController.signal,
-          })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
+          window.markvCallTextLlm(
+            [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            { stream: false }
+          )
+            .then(function (content) {
               if (generation !== classifyGeneration) return;
 
               var localClassifs = {};
-              var lines = (data.response || "").trim().split("\n");
+              var lines = String(content || "").trim().split("\n");
 
               lines.forEach(function (line) {
                 var m = line.match(/^\s*(\d+)\.\s*(\w+)/);
@@ -13796,9 +13849,9 @@ Return JSON only.`;
             "var(--ont-example)",
             "var(--ont-definition)",
           ];
-          var ollamaConfigured = Boolean(getOllamaConfig());
+          var llmConfigured = hasConfiguredLlm();
           var classifying =
-            ollamaConfigured &&
+            llmConfigured &&
             Object.keys(classifications).length < sections.length &&
             !classifyStale;
 
@@ -13876,10 +13929,9 @@ Return JSON only.`;
           html +=
             '<div class="ont-section-label" style="padding-top:8px;">Document Shape</div>';
 
-          var config = getOllamaConfig();
-          if (!config) {
+          if (!llmConfigured) {
             html +=
-              '<div class="ont-fallback" style="padding:6px 0 12px;text-align:left;">Open Ollama settings for section analysis.</div>';
+              '<div class="ont-fallback" style="padding:6px 0 12px;text-align:left;">Open AI settings for section analysis.</div>';
           } else if (classifyStale) {
             html +=
               '<div style="padding:6px 0 12px;"><button class="ont-stale-link ont-reanalyze-btn">Stale \u2014 re-analyze</button></div>';
@@ -14339,7 +14391,7 @@ Return JSON only.`;
         <button
           id="chatSettingsBtn"
           class="chat-header-btn"
-          title="Ollama settings"
+          title="AI settings"
           aria-label="Settings"
           aria-controls="chatSettings"
           aria-expanded="false"
@@ -14390,8 +14442,8 @@ Return JSON only.`;
         aria-relevant="additions text"
       >
         <div id="chatHelp" class="chat-msg system">
-          Load a document, then ask questions about it. Powered by Ollama
-          (local).
+          Load a document, then ask questions about it. Powered by Ollama or
+          Groq.
         </div>
       </div>
       <div
@@ -14407,6 +14459,13 @@ Return JSON only.`;
         hidden
       >
         <label>
+          <span>Provider</span>
+          <select id="llmProvider" aria-label="AI provider">
+            <option value="ollama">Ollama</option>
+            <option value="groq">Groq</option>
+          </select>
+        </label>
+        <label id="ollamaEndpointField">
           <span>Local Ollama Endpoint</span>
           <input
             id="ollamaEndpoint"
@@ -14415,8 +14474,8 @@ Return JSON only.`;
             placeholder="http://localhost:11434"
           />
         </label>
-        <label>
-          <span>Model</span>
+        <label id="ollamaModelField">
+          <span>Ollama Model</span>
           <input
             id="ollamaModel"
             type="text"
@@ -14424,6 +14483,28 @@ Return JSON only.`;
             placeholder="gemma4:26b"
           />
         </label>
+        <label id="groqApiKeyField" hidden>
+          <span>Groq API Key</span>
+          <input
+            id="groqApiKey"
+            type="password"
+            placeholder="gsk_..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+        <label id="groqModelField" hidden>
+          <span>Groq Model</span>
+          <input
+            id="groqModel"
+            type="text"
+            value="qwen/qwen3-32b"
+            placeholder="qwen/qwen3-32b"
+          />
+        </label>
+        <p id="chatSettingsNote" class="chat-settings-note">
+          Groq needs an API key. Ollama stays local and needs a loopback endpoint.
+        </p>
       </div>
       <div class="chat-input-area">
         <div class="chat-input-card">
@@ -14464,7 +14545,7 @@ Return JSON only.`;
 
     <script>
       /* ============================================================
-     Document Q&A — Local RAG with Ollama
+     Document Q&A — RAG with Ollama or Groq
      ============================================================ */
       (function () {
         "use strict";
@@ -14479,16 +14560,32 @@ Return JSON only.`;
         const chatLiveRegion = document.getElementById("chatLiveRegion");
         const chatInput = document.getElementById("chatInput");
         const sendBtn = document.getElementById("chatSendBtn");
+        const providerInput = document.getElementById("llmProvider");
         const endpointInput = document.getElementById("ollamaEndpoint");
-        const modelInput = document.getElementById("ollamaModel");
+        const ollamaModelInput = document.getElementById("ollamaModel");
+        const groqApiKeyInput = document.getElementById("groqApiKey");
+        const groqModelInput = document.getElementById("groqModel");
+        const ollamaEndpointField = document.getElementById("ollamaEndpointField");
+        const ollamaModelField = document.getElementById("ollamaModelField");
+        const groqApiKeyField = document.getElementById("groqApiKeyField");
+        const groqModelField = document.getElementById("groqModelField");
         const CHAT_HISTORY_LIMIT = 8;
         const HISTORY_CHAR_LIMIT = 1200;
         const chatHistory = [];
         let lastDocumentFingerprint = "";
         let lastFocusedElement = null;
 
-        // ---- Ollama config ----
-        const OLLAMA_SETTINGS_KEY = "md-viewer-ollama";
+        // ---- AI config ----
+        const LLM_SETTINGS_KEY = "md-viewer-llm";
+        const LEGACY_OLLAMA_SETTINGS_KEY = "md-viewer-ollama";
+        const LEGACY_GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile";
+        const DEFAULT_LLM_SETTINGS = {
+          provider: "ollama",
+          endpoint: "http://localhost:11434",
+          ollamaModel: "gemma4:26b",
+          groqApiKey: "",
+          groqModel: "qwen/qwen3-32b",
+        };
         function readChatPreference(key, fallback) {
           try {
             const value = localStorage.getItem(key);
@@ -14502,33 +14599,108 @@ Return JSON only.`;
             localStorage.setItem(key, value);
           } catch (_error) {}
         }
-        function loadOllamaSettings() {
-          try {
-            const saved = JSON.parse(
-              readChatPreference(OLLAMA_SETTINGS_KEY, "{}"),
-            );
-            if (saved.endpoint) endpointInput.value = saved.endpoint;
-            if (saved.model) modelInput.value = saved.model;
-          } catch (_e) {}
+        function normalizeLlmProvider(value) {
+          return value === "groq" ? "groq" : "ollama";
         }
-        function saveOllamaSettings() {
+        function readStoredLlmSettings() {
+          let saved = null;
+          try {
+            saved = JSON.parse(readChatPreference(LLM_SETTINGS_KEY, "null"));
+          } catch (_error) {
+            saved = null;
+          }
+          if (!saved || typeof saved !== "object") {
+            try {
+              const legacy = JSON.parse(
+                readChatPreference(LEGACY_OLLAMA_SETTINGS_KEY, "null"),
+              );
+              if (legacy && typeof legacy === "object") {
+                saved = {
+                  provider: "ollama",
+                  endpoint: legacy.endpoint || "",
+                  ollamaModel: legacy.model || "",
+                };
+              }
+            } catch (_error) {
+              saved = null;
+            }
+          }
+          return Object.assign({}, DEFAULT_LLM_SETTINGS, saved || {}, {
+            provider: normalizeLlmProvider(saved && saved.provider),
+          });
+        }
+        function migrateLlmSettings(settings) {
+          const next = Object.assign({}, DEFAULT_LLM_SETTINGS, settings || {});
+          if (
+            next.provider === "groq" &&
+            (!next.groqModel || next.groqModel === LEGACY_GROQ_DEFAULT_MODEL)
+          ) {
+            next.groqModel = DEFAULT_LLM_SETTINGS.groqModel;
+          }
+          return next;
+        }
+        function getCurrentLlmSettings() {
+          return {
+            provider: normalizeLlmProvider(providerInput.value),
+            endpoint: endpointInput.value.trim(),
+            ollamaModel: ollamaModelInput.value.trim(),
+            groqApiKey: groqApiKeyInput.value.trim(),
+            groqModel: groqModelInput.value.trim(),
+          };
+        }
+        function applyLlmSettings(settings) {
+          const next = migrateLlmSettings(settings);
+          providerInput.value = normalizeLlmProvider(next.provider);
+          endpointInput.value = next.endpoint || DEFAULT_LLM_SETTINGS.endpoint;
+          ollamaModelInput.value =
+            next.ollamaModel || DEFAULT_LLM_SETTINGS.ollamaModel;
+          groqApiKeyInput.value = next.groqApiKey || "";
+          groqModelInput.value =
+            next.groqModel || DEFAULT_LLM_SETTINGS.groqModel;
+        }
+        function syncLlmSettingsUi() {
+          const provider = normalizeLlmProvider(providerInput.value);
+          const showOllama = provider === "ollama";
+          ollamaEndpointField.hidden = !showOllama;
+          ollamaModelField.hidden = !showOllama;
+          groqApiKeyField.hidden = showOllama;
+          groqModelField.hidden = showOllama;
+        }
+        function saveLlmSettings() {
+          const settings = getCurrentLlmSettings();
+          writeChatPreference(LLM_SETTINGS_KEY, JSON.stringify(settings));
           writeChatPreference(
-            OLLAMA_SETTINGS_KEY,
+            LEGACY_OLLAMA_SETTINGS_KEY,
             JSON.stringify({
-              endpoint: endpointInput.value.trim(),
-              model: modelInput.value.trim(),
+              endpoint: settings.endpoint,
+              model: settings.ollamaModel,
             }),
           );
+          syncLlmSettingsUi();
         }
-        loadOllamaSettings();
-        // Persist defaults if never saved — ensures ontology can read the config
-        if (!readChatPreference(OLLAMA_SETTINGS_KEY, null)) {
-          if (endpointInput.value.trim() && modelInput.value.trim()) {
-            saveOllamaSettings();
+        function hasConfiguredLlm() {
+          const settings = getCurrentLlmSettings();
+          if (settings.provider === "groq") {
+            return Boolean(settings.groqApiKey && settings.groqModel);
           }
+          return Boolean(settings.endpoint && settings.ollamaModel);
         }
-        endpointInput.addEventListener("change", saveOllamaSettings);
-        modelInput.addEventListener("change", saveOllamaSettings);
+        applyLlmSettings(migrateLlmSettings(readStoredLlmSettings()));
+        syncLlmSettingsUi();
+        saveLlmSettings();
+        [
+          providerInput,
+          endpointInput,
+          ollamaModelInput,
+          groqApiKeyInput,
+          groqModelInput,
+        ].forEach(function (input) {
+          input.addEventListener("change", saveLlmSettings);
+          input.addEventListener("input", function () {
+            if (input === providerInput) return;
+            syncLlmSettingsUi();
+          });
+        });
 
         function isLoopbackHostname(hostname) {
           const normalized = String(hostname || "")
@@ -14562,6 +14734,9 @@ Return JSON only.`;
 
           return parsed.toString().replace(/\/+$/, "");
         }
+
+        window.markvHasConfiguredLlm = hasConfiguredLlm;
+        window.markvGetLlmSettings = getCurrentLlmSettings;
 
         function escapeChatHtml(value) {
           const div = document.createElement("div");
@@ -15120,23 +15295,48 @@ Return JSON only.`;
           };
         }
 
-        // ---- Ollama API call ----
+        // ---- LLM API calls ----
+        async function parseProviderError(response, providerLabel) {
+          let message = "";
+          try {
+            const payload = await response.clone().json();
+            message =
+              (payload &&
+                payload.error &&
+                typeof payload.error.message === "string" &&
+                payload.error.message) ||
+              (payload &&
+                typeof payload.message === "string" &&
+                payload.message) ||
+              "";
+          } catch (_error) {}
+          if (!message) {
+            message = await response.text().catch(function () {
+              return "";
+            });
+          }
+          return (
+            providerLabel +
+            " error " +
+            response.status +
+            ": " +
+            (message || response.statusText)
+          );
+        }
+
         // Try a single endpoint; returns the fetch Response on success.
-        async function tryFetch(url, body) {
+        async function tryFetch(url, body, headers, providerLabel) {
           const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: Object.assign(
+              { "Content-Type": "application/json" },
+              headers || {},
+            ),
             body: JSON.stringify(body),
           });
           if (!response.ok) {
-            const errText = await response.text().catch(function () {
-              return "";
-            });
             throw new Error(
-              "Ollama error " +
-                response.status +
-                ": " +
-                (errText || response.statusText),
+              await parseProviderError(response, providerLabel || "LLM"),
             );
           }
           return response;
@@ -15146,7 +15346,8 @@ Return JSON only.`;
           const opts = options || {};
           const raw = endpointInput.value.trim().replace(/\/+$/, "");
           const endpoint = normalizeOllamaEndpoint(raw);
-          const model = modelInput.value.trim() || "gemma4:26b";
+          const model =
+            ollamaModelInput.value.trim() || DEFAULT_LLM_SETTINGS.ollamaModel;
           const body = {
             model: model,
             messages: messages,
@@ -15169,11 +15370,16 @@ Return JSON only.`;
           let lastErr = null;
           for (const ep of endpoints) {
             try {
-              const resp = await tryFetch(ep + "/api/chat", body);
+              const resp = await tryFetch(
+                ep + "/api/chat",
+                body,
+                null,
+                "Ollama",
+              );
               // If we succeeded with an alternate endpoint, persist it
               if (ep !== raw) {
                 endpointInput.value = ep;
-                saveOllamaSettings();
+                saveLlmSettings();
               }
               return resp;
             } catch (err) {
@@ -15195,12 +15401,7 @@ Return JSON only.`;
           throw lastErr;
         }
 
-        async function callOllamaJson(messages, options) {
-          const opts = options || {};
-          const response = await callOllama(messages, {
-            stream: false,
-            format: opts.format,
-          });
+        async function parseOllamaContent(response) {
           let parsed;
           try {
             parsed = await response.json();
@@ -15219,6 +15420,88 @@ Return JSON only.`;
           return content;
         }
 
+        async function callGroq(messages, options) {
+          const opts = options || {};
+          const apiKey = groqApiKeyInput.value.trim();
+          if (!apiKey) {
+            throw new Error("Groq API key is missing. Add it in AI settings.");
+          }
+          const model =
+            groqModelInput.value.trim() || DEFAULT_LLM_SETTINGS.groqModel;
+          const body = {
+            model: model,
+            messages: messages,
+            stream: opts.stream !== false,
+          };
+          if (/qwen3/i.test(model)) {
+            body.reasoning_effort = "none";
+          }
+          if (opts.responseFormat) {
+            body.response_format = opts.responseFormat;
+          }
+          return tryFetch(
+            "https://api.groq.com/openai/v1/chat/completions",
+            body,
+            { Authorization: "Bearer " + apiKey },
+            "Groq",
+          );
+        }
+
+        async function parseGroqContent(response) {
+          let parsed;
+          try {
+            parsed = await response.json();
+          } catch (error) {
+            throw new Error("LLM returned an unreadable response");
+          }
+          const content =
+            parsed &&
+            Array.isArray(parsed.choices) &&
+            parsed.choices[0] &&
+            parsed.choices[0].message &&
+            typeof parsed.choices[0].message.content === "string"
+              ? parsed.choices[0].message.content
+              : "";
+          if (!content.trim()) {
+            throw new Error("LLM returned no message content");
+          }
+          return content;
+        }
+
+        async function callConfiguredLlmResponse(messages, options) {
+          const settings = getCurrentLlmSettings();
+          return settings.provider === "groq"
+            ? callGroq(messages, options)
+            : callOllama(messages, options);
+        }
+
+        async function callConfiguredLlmText(messages, options) {
+          const settings = getCurrentLlmSettings();
+          const response = await callConfiguredLlmResponse(
+            messages,
+            Object.assign({}, options || {}, { stream: false }),
+          );
+          return settings.provider === "groq"
+            ? parseGroqContent(response)
+            : parseOllamaContent(response);
+        }
+
+        async function callConfiguredLlmJson(messages) {
+          const settings = getCurrentLlmSettings();
+          if (settings.provider === "groq") {
+            return callConfiguredLlmText(messages, {
+              responseFormat: { type: "json_object" },
+            });
+          }
+          const response = await callOllama(messages, {
+            stream: false,
+            format: "json",
+          });
+          return parseOllamaContent(response);
+        }
+
+        window.markvCallTextLlm = callConfiguredLlmText;
+
         if (typeof window.markvLLM !== "function") {
           window.markvLLM = async function markvMindmapLLM(payload) {
             const request = payload || {};
@@ -15227,14 +15510,21 @@ Return JSON only.`;
             if (!system || !user) {
               throw new Error("Mindmap extraction request was incomplete");
             }
-            return callOllamaJson([
+            return callConfiguredLlmJson([
               { role: "system", content: system },
               { role: "user", content: user },
-            ], { format: "json" });
+            ]);
           };
         }
 
-        async function streamResponse(response, msgDiv) {
+        function appendStreamText(msgDiv, fullText, chunk) {
+          fullText += chunk;
+          scheduleAssistantMessageContent(msgDiv, fullText);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          return fullText;
+        }
+
+        async function streamOllamaResponse(response, msgDiv) {
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let fullText = "";
@@ -15252,9 +15542,11 @@ Return JSON only.`;
               try {
                 const parsed = JSON.parse(line);
                 if (parsed.message && parsed.message.content) {
-                  fullText += parsed.message.content;
-                  scheduleAssistantMessageContent(msgDiv, fullText);
-                  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                  fullText = appendStreamText(
+                    msgDiv,
+                    fullText,
+                    parsed.message.content,
+                  );
                 }
               } catch (error) {
                 console.debug("Skipping malformed streaming chunk.", error);
@@ -15266,9 +15558,11 @@ Return JSON only.`;
             try {
               const parsed = JSON.parse(buffer);
               if (parsed.message && parsed.message.content) {
-                fullText += parsed.message.content;
-                scheduleAssistantMessageContent(msgDiv, fullText);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                fullText = appendStreamText(
+                  msgDiv,
+                  fullText,
+                  parsed.message.content,
+                );
               }
             } catch (error) {
               console.debug("Skipping malformed trailing streaming chunk.", error);
@@ -15280,6 +15574,110 @@ Return JSON only.`;
           }
           flushAssistantMessageContent(msgDiv, "No reply received.");
           return "No reply received.";
+        }
+
+        async function streamGroqResponse(response, msgDiv) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let fullText = "";
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const events = buffer.split(/\n\n/);
+            buffer = events.pop() || "";
+            for (const eventChunk of events) {
+              const lines = eventChunk.split(/\r?\n/);
+              for (const line of lines) {
+                if (!line.startsWith("data:")) continue;
+                const data = line.slice(5).trim();
+                if (!data || data === "[DONE]") continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta =
+                    parsed &&
+                    Array.isArray(parsed.choices) &&
+                    parsed.choices[0] &&
+                    parsed.choices[0].delta &&
+                    parsed.choices[0].delta.content;
+                  if (typeof delta === "string" && delta) {
+                    fullText = appendStreamText(msgDiv, fullText, delta);
+                  }
+                } catch (error) {
+                  console.debug("Skipping malformed SSE chunk.", error);
+                }
+              }
+            }
+          }
+
+          if (buffer.trim()) {
+            const trailingLines = buffer.split(/\r?\n/);
+            for (const line of trailingLines) {
+              if (!line.startsWith("data:")) continue;
+              const data = line.slice(5).trim();
+              if (!data || data === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(data);
+                const delta =
+                  parsed &&
+                  Array.isArray(parsed.choices) &&
+                  parsed.choices[0] &&
+                  parsed.choices[0].delta &&
+                  parsed.choices[0].delta.content;
+                if (typeof delta === "string" && delta) {
+                  fullText = appendStreamText(msgDiv, fullText, delta);
+                }
+              } catch (error) {
+                console.debug("Skipping malformed trailing SSE chunk.", error);
+              }
+            }
+          }
+          if (fullText.trim()) {
+            flushAssistantMessageContent(msgDiv, fullText);
+            return fullText;
+          }
+          flushAssistantMessageContent(msgDiv, "No reply received.");
+          return "No reply received.";
+        }
+
+        async function streamResponse(response, msgDiv) {
+          return getCurrentLlmSettings().provider === "groq"
+            ? streamGroqResponse(response, msgDiv)
+            : streamOllamaResponse(response, msgDiv);
+        }
+
+        function renderChatError(err) {
+          if (err.message === "CORS_BLOCKED") {
+            return (
+              "<b>Connection blocked (CORS)</b><br><br>" +
+              "Ollama is running but the browser is blocking the request. " +
+              "You need to restart Ollama with CORS allowed:<br><br>" +
+              '<code style="background:var(--code-bg);padding:3px 6px;border-radius:4px;font-size:12px;">' +
+              "OLLAMA_ORIGINS=* ollama serve" +
+              "</code><br><br>" +
+              "Or on macOS with the Ollama app:<br>" +
+              '<code style="background:var(--code-bg);padding:3px 6px;border-radius:4px;font-size:12px;">' +
+              'launchctl setenv OLLAMA_ORIGINS "*"' +
+              "</code><br>" +
+              "then restart the Ollama app."
+            );
+          }
+          const settings = getCurrentLlmSettings();
+          if (settings.provider === "groq") {
+            return escapeChatHtml(
+              "Error: " +
+                err.message +
+                "\n\nCheck your Groq API key and model in AI settings.",
+            ).replace(/\n/g, "<br>");
+          }
+          return escapeChatHtml(
+            "Error: " +
+              err.message +
+              "\n\nMake sure Ollama is running at " +
+              endpointInput.value.trim(),
+          ).replace(/\n/g, "<br>");
         }
 
         function buildSystemPrompt(question, retrieval) {
@@ -15356,7 +15754,7 @@ Return JSON only.`;
           const typingDiv = addTyping();
 
           try {
-            const response = await callOllama(conversation);
+            const response = await callConfiguredLlmResponse(conversation);
             const answer = await streamResponse(response, typingDiv);
             addHistory("user", question);
             addHistory("assistant", answer || typingDiv.textContent || "");
@@ -15365,26 +15763,7 @@ Return JSON only.`;
             );
           } catch (err) {
             typingDiv.className = "chat-msg system";
-            if (err.message === "CORS_BLOCKED") {
-              typingDiv.innerHTML =
-                "<b>Connection blocked (CORS)</b><br><br>" +
-                "Ollama is running but the browser is blocking the request. " +
-                "You need to restart Ollama with CORS allowed:<br><br>" +
-                '<code style="background:var(--code-bg);padding:3px 6px;border-radius:4px;font-size:12px;">' +
-                "OLLAMA_ORIGINS=* ollama serve" +
-                "</code><br><br>" +
-                "Or on macOS with the Ollama app:<br>" +
-                '<code style="background:var(--code-bg);padding:3px 6px;border-radius:4px;font-size:12px;">' +
-                'launchctl setenv OLLAMA_ORIGINS "*"' +
-                "</code><br>" +
-                "then restart the Ollama app.";
-            } else {
-              typingDiv.textContent =
-                "Error: " +
-                err.message +
-                "\n\nMake sure Ollama is running at " +
-                endpointInput.value.trim();
-            }
+            typingDiv.innerHTML = renderChatError(err);
             announceChatUpdate(typingDiv.textContent || "Chat error");
           }
 
