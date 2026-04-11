@@ -7825,6 +7825,193 @@ Paste markdown on the left, open a local file, or drag one into the page.
           return Math.min(180, (label.length * base) / 2 + padding);
         }
 
+        /* ============================================================
+         * Concept Mindmap — SVG renderer
+         * ============================================================ */
+
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        /**
+         * Render a laid-out graph into the #mindmapSvg element.
+         * Clears previous content first.
+         * @param {ReturnType<typeof computeRadialLayout>} laid
+         */
+        function renderMindmap(laid) {
+          const svg = document.getElementById("mindmapSvg");
+          const rootG = document.getElementById("mindmapSvgRoot");
+          const edgesG = document.getElementById("mindmapEdges");
+          const nodesG = document.getElementById("mindmapNodes");
+          if (!svg || !edgesG || !nodesG || !rootG) return;
+
+          edgesG.textContent = "";
+          nodesG.textContent = "";
+
+          // --- Edges first so nodes render on top ---
+          laid.treeEdges.forEach((e, idx) => {
+            const path = document.createElementNS(SVG_NS, "path");
+            path.setAttribute("class", "mm-edge");
+            path.setAttribute("data-depth", String(e.depth));
+            path.setAttribute("d", edgePath(e.from, e.to, `tree-${idx}-${e.to.id}`));
+            path.style.setProperty("--mm-stagger", String(idx));
+            edgesG.appendChild(path);
+          });
+
+          // Cross edges (optional visual layer — lighter, dashed)
+          laid.crossEdges.forEach((e, idx) => {
+            const path = document.createElementNS(SVG_NS, "path");
+            path.setAttribute("class", "mm-edge mm-edge-cross");
+            path.setAttribute("data-depth", "3");
+            path.setAttribute("stroke-dasharray", "3 5");
+            path.setAttribute("d", edgePath(e.from, e.to, `cross-${idx}-${e.from.id}-${e.to.id}`));
+            edgesG.appendChild(path);
+          });
+
+          // --- Nodes ---
+          laid.nodes.forEach((node, idx) => {
+            const g = document.createElementNS(SVG_NS, "g");
+            g.setAttribute("class", "mm-node");
+            g.setAttribute("data-depth", String(node.depth));
+            g.setAttribute("data-id", node.id);
+            g.setAttribute("data-type", node.type);
+            g.setAttribute("role", "button");
+            g.setAttribute("tabindex", "0");
+            g.setAttribute("aria-label", `${MINDMAP_TYPE_LABEL[node.type] || node.type || "Concept"}: ${node.label}`);
+            g.style.setProperty("--mm-stagger", String(idx));
+
+            // Measure the label to size the card.
+            const dims = measureNodeCard(node);
+
+            // Background card
+            const card = document.createElementNS(SVG_NS, "rect");
+            card.setAttribute("class", "mm-node-card");
+            card.setAttribute("x", String(node.x - dims.width / 2));
+            card.setAttribute("y", String(node.y - dims.height / 2));
+            card.setAttribute("width", String(dims.width));
+            card.setAttribute("height", String(dims.height));
+            card.setAttribute("rx", "12");
+            card.setAttribute("ry", "12");
+            g.appendChild(card);
+
+            // Left-edge semantic bar (non-root only)
+            if (node.depth > 0 && node.type && MINDMAP_TYPE_COLOR_VAR[node.type]) {
+              const bar = document.createElementNS(SVG_NS, "rect");
+              bar.setAttribute("class", "mm-node-typebar");
+              bar.setAttribute("x", String(node.x - dims.width / 2));
+              bar.setAttribute("y", String(node.y - dims.height / 2));
+              bar.setAttribute("width", "3");
+              bar.setAttribute("height", String(dims.height));
+              bar.setAttribute("rx", "1.5");
+              bar.setAttribute("ry", "1.5");
+              bar.setAttribute(
+                "fill",
+                `var(${MINDMAP_TYPE_COLOR_VAR[node.type]})`,
+              );
+              g.appendChild(bar);
+            }
+
+            // Type badge (non-root only)
+            if (node.depth > 0 && node.type && MINDMAP_TYPE_LABEL[node.type]) {
+              const badge = document.createElementNS(SVG_NS, "text");
+              badge.setAttribute("class", "mm-node-badge");
+              badge.setAttribute("x", String(node.x));
+              badge.setAttribute("y", String(node.y - dims.height / 2 + 14));
+              badge.setAttribute("text-anchor", "middle");
+              badge.textContent = MINDMAP_TYPE_LABEL[node.type].toUpperCase();
+              g.appendChild(badge);
+            }
+
+            // Main label
+            const label = document.createElementNS(SVG_NS, "text");
+            label.setAttribute("class", "mm-node-label");
+            label.setAttribute("x", String(node.x));
+            label.setAttribute(
+              "y",
+              String(node.depth === 0 ? node.y + 2 : node.y + 6),
+            );
+            label.setAttribute("text-anchor", "middle");
+            label.textContent = node.label;
+            g.appendChild(label);
+
+            nodesG.appendChild(g);
+          });
+
+          // Render the screen-reader-only concept list and legend as side-effects.
+          renderMindmapSrList(laid);
+          renderMindmapLegend(laid);
+
+          return { bounds: computeBounds(laid.nodes) };
+        }
+
+        /**
+         * Render a nested <ul> mirror of the concept tree for assistive tech.
+         * Root > primaries > secondaries. Each item shows "{type}: {label} — {summary}".
+         */
+        function renderMindmapSrList(laid) {
+          const target = document.getElementById("mindmapSrList");
+          if (!target) return;
+          function renderNode(node) {
+            const li = document.createElement("li");
+            const typeText = node.depth === 0
+              ? "Document"
+              : (MINDMAP_TYPE_LABEL[node.type] || "Concept");
+            const summary = node.summary ? ` — ${node.summary}` : "";
+            li.textContent = `${typeText}: ${node.label || ""}${summary}`;
+            if (node.children && node.children.length > 0) {
+              const ul = document.createElement("ul");
+              for (const c of node.children) ul.appendChild(renderNode(c));
+              li.appendChild(ul);
+            }
+            return li;
+          }
+          const ul = document.createElement("ul");
+          ul.appendChild(renderNode(laid.root));
+          target.textContent = "";
+          target.appendChild(ul);
+        }
+
+        /**
+         * Render the type legend below the header. Only types that actually
+         * appear in the current graph are shown.
+         */
+        function renderMindmapLegend(laid) {
+          const target = document.getElementById("mindmapLegend");
+          if (!target) return;
+          const seen = new Set();
+          for (const n of laid.nodes) {
+            if (n.depth > 0 && n.type && MINDMAP_TYPE_LABEL[n.type]) seen.add(n.type);
+          }
+          target.textContent = "";
+          const order = ["goal", "non_goal", "feature", "constraint", "actor", "assumption", "success_metric", "open_question"];
+          for (const type of order) {
+            if (!seen.has(type)) continue;
+            const chip = document.createElement("span");
+            chip.className = "mindmap-legend-chip";
+            const dot = document.createElement("span");
+            dot.className = "mindmap-legend-dot";
+            dot.style.background = `var(${MINDMAP_TYPE_COLOR_VAR[type]})`;
+            const label = document.createElement("span");
+            label.textContent = MINDMAP_TYPE_LABEL[type];
+            chip.appendChild(dot);
+            chip.appendChild(label);
+            target.appendChild(chip);
+          }
+        }
+
+        /**
+         * Lightweight card-size estimator. The SVG renders then we
+         * optionally refit after measuring actual text (next step).
+         */
+        function measureNodeCard(node) {
+          const label = node.label || "";
+          const basePerChar = node.depth === 0 ? 13 : node.depth === 1 ? 9 : 7.5;
+          const width = Math.min(
+            Math.max(140, label.length * basePerChar + 40),
+            320,
+          );
+          const height = node.depth === 0 ? 62 : 54;
+          return { width, height };
+        }
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
