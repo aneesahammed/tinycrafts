@@ -696,6 +696,152 @@
         outline-offset: -2px;
       }
 
+      /* ── Floating editor toolbar — Medium-style, selection-driven ───── */
+      .editor-toolbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        height: 44px;
+        background: #1a1a1a;
+        color: #fff;
+        border-radius: 6px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28),
+          0 2px 4px rgba(0, 0, 0, 0.18);
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity 160ms ease, transform 160ms ease;
+        pointer-events: none;
+        user-select: none;
+        -webkit-user-select: none;
+        white-space: nowrap;
+      }
+      .editor-toolbar.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .editor-toolbar .et-buttons {
+        display: flex;
+        align-items: center;
+        height: 100%;
+      }
+      .editor-toolbar.et-link-mode .et-buttons {
+        display: none;
+      }
+      .editor-toolbar .et-link {
+        display: none;
+        align-items: center;
+        height: 100%;
+        padding: 0 6px 0 12px;
+        gap: 6px;
+      }
+      .editor-toolbar.et-link-mode .et-link {
+        display: flex;
+      }
+      .editor-toolbar button {
+        all: unset;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 44px;
+        min-width: 42px;
+        padding: 0 10px;
+        color: #fff;
+        cursor: pointer;
+        transition: color 140ms ease;
+      }
+      .editor-toolbar button:hover,
+      .editor-toolbar button:focus-visible {
+        color: #6fcf8c;
+      }
+      .editor-toolbar button:focus-visible {
+        outline: 2px solid #6fcf8c;
+        outline-offset: -4px;
+        border-radius: 4px;
+      }
+      .editor-toolbar .et-divider {
+        width: 1px;
+        height: 24px;
+        background: #3a3a3a;
+        margin: 0 2px;
+      }
+      .editor-toolbar .et-glyph {
+        font-family: Georgia, "Source Serif 4", "Times New Roman", serif;
+        font-feature-settings: "kern" 1;
+        line-height: 1;
+      }
+      .editor-toolbar .et-glyph-b {
+        font-weight: 700;
+        font-size: 19px;
+      }
+      .editor-toolbar .et-glyph-i {
+        font-style: italic;
+        font-weight: 500;
+        font-size: 20px;
+      }
+      .editor-toolbar .et-glyph-t1 {
+        font-weight: 700;
+        font-size: 22px;
+      }
+      .editor-toolbar .et-glyph-t2 {
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .editor-toolbar .et-glyph-q {
+        font-weight: 700;
+        font-size: 26px;
+        transform: translateY(4px);
+        display: inline-block;
+      }
+      .editor-toolbar .et-link-input {
+        all: unset;
+        box-sizing: border-box;
+        height: 32px;
+        min-width: 260px;
+        padding: 0 10px;
+        color: #fff;
+        font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+        font-size: 13px;
+        background: transparent;
+      }
+      .editor-toolbar .et-link-input::placeholder {
+        color: #888;
+      }
+      .editor-toolbar .et-link button {
+        min-width: 32px;
+        height: 32px;
+        font-size: 22px;
+        padding: 0 8px;
+      }
+      .editor-toolbar .et-arrow {
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        width: 0;
+        height: 0;
+        margin-left: -6px;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 6px solid #1a1a1a;
+        pointer-events: none;
+      }
+      .editor-toolbar.et-arrow-up .et-arrow {
+        top: -6px;
+        bottom: auto;
+        border-top: 0;
+        border-bottom: 6px solid #1a1a1a;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .editor-toolbar {
+          transition: opacity 0s;
+          transform: none;
+        }
+      }
+
       .preview-pane {
         padding: 72px max(24px, calc((100% - 740px) / 2)) 128px;
       }
@@ -2891,6 +3037,52 @@ Drop a .md file anywhere on the page, or open one with the Open button."
           <article id="preview" class="markdown-body"></article>
         </section>
       </main>
+
+      <!-- Floating editor formatting toolbar (edit mode, selection-driven) -->
+      <div
+        id="editorToolbar"
+        class="editor-toolbar"
+        role="toolbar"
+        aria-label="Text formatting"
+        hidden
+      >
+        <div class="et-buttons">
+          <button type="button" data-et-action="bold" title="Bold (Cmd/Ctrl+B)" aria-label="Bold">
+            <span class="et-glyph et-glyph-b">B</span>
+          </button>
+          <button type="button" data-et-action="italic" title="Italic (Cmd/Ctrl+I)" aria-label="Italic">
+            <span class="et-glyph et-glyph-i">i</span>
+          </button>
+          <button type="button" data-et-action="link" title="Link (Cmd/Ctrl+K)" aria-label="Link">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6.5 9.5a2.8 2.8 0 0 0 4 0l2.4-2.4a2.8 2.8 0 0 0-4-4L7.7 4.3"/>
+              <path d="M9.5 6.5a2.8 2.8 0 0 0-4 0L3.1 8.9a2.8 2.8 0 0 0 4 4l1.2-1.2"/>
+            </svg>
+          </button>
+          <span class="et-divider" aria-hidden="true"></span>
+          <button type="button" data-et-action="h1" title="Heading 1" aria-label="Heading 1">
+            <span class="et-glyph et-glyph-t1">T</span>
+          </button>
+          <button type="button" data-et-action="h2" title="Heading 2" aria-label="Heading 2">
+            <span class="et-glyph et-glyph-t2">T</span>
+          </button>
+          <button type="button" data-et-action="quote" title="Quote" aria-label="Quote">
+            <span class="et-glyph et-glyph-q">&ldquo;</span>
+          </button>
+        </div>
+        <div class="et-link" role="group" aria-label="Insert link">
+          <input
+            type="url"
+            class="et-link-input"
+            placeholder="Paste or type a link…"
+            aria-label="Link URL"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button type="button" data-et-action="link-cancel" title="Cancel" aria-label="Cancel">&times;</button>
+        </div>
+        <span class="et-arrow" aria-hidden="true"></span>
+      </div>
 
       <div
         id="mermaidViewer"
@@ -12920,6 +13112,553 @@ Paste markdown on the left, open a local file, or drag one into the page.
               hideChatPanel();
             }
           }
+        });
+      })();
+    </script>
+
+    <!-- ============================================================
+         Floating editor formatting toolbar.
+         Medium-style, selection-driven, edit-mode only.
+         Self-contained IIFE — no external dependencies.
+         ============================================================ -->
+    <script>
+      (function setupEditorToolbar() {
+        const editor = document.getElementById("editor");
+        const toolbar = document.getElementById("editorToolbar");
+        const mainEl = document.getElementById("main");
+        if (!editor || !toolbar || !mainEl) return;
+
+        const linkInput = toolbar.querySelector(".et-link-input");
+        const arrow = toolbar.querySelector(".et-arrow");
+        let pendingLinkRange = null;
+        let repositionRaf = null;
+        let suppressNextBlurHide = false;
+
+        // ---------- Mirror div for textarea caret coordinates ----------
+        const mirror = document.createElement("div");
+        mirror.setAttribute("aria-hidden", "true");
+        mirror.style.position = "absolute";
+        mirror.style.visibility = "hidden";
+        mirror.style.top = "0";
+        mirror.style.left = "-9999px";
+        mirror.style.whiteSpace = "pre-wrap";
+        mirror.style.wordWrap = "break-word";
+        mirror.style.overflowWrap = "break-word";
+        mirror.style.pointerEvents = "none";
+        document.body.appendChild(mirror);
+
+        const MIRROR_PROPS = [
+          "direction",
+          "boxSizing",
+          "width",
+          "height",
+          "overflowX",
+          "overflowY",
+          "borderTopWidth",
+          "borderRightWidth",
+          "borderBottomWidth",
+          "borderLeftWidth",
+          "borderStyle",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "paddingLeft",
+          "fontStyle",
+          "fontVariant",
+          "fontWeight",
+          "fontStretch",
+          "fontSize",
+          "fontSizeAdjust",
+          "lineHeight",
+          "fontFamily",
+          "textAlign",
+          "textTransform",
+          "textIndent",
+          "textDecoration",
+          "letterSpacing",
+          "wordSpacing",
+          "tabSize",
+          "MozTabSize",
+        ];
+
+        function syncMirrorStyles() {
+          const cs = window.getComputedStyle(editor);
+          for (let i = 0; i < MIRROR_PROPS.length; i++) {
+            const p = MIRROR_PROPS[i];
+            mirror.style[p] = cs[p];
+          }
+          mirror.style.width = editor.offsetWidth + "px";
+          mirror.style.height = "auto";
+        }
+
+        // Returns viewport-relative caret coordinates for a given char offset.
+        function getCaretViewportRect(position) {
+          syncMirrorStyles();
+          mirror.textContent = editor.value.substring(0, position);
+          const span = document.createElement("span");
+          // Use remainder so the span lays out at the correct baseline even
+          // when the caret is at the very end of the content.
+          span.textContent = editor.value.substring(position) || ".";
+          mirror.appendChild(span);
+
+          const cs = window.getComputedStyle(editor);
+          const borderTop = parseFloat(cs.borderTopWidth) || 0;
+          const borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+          const lineHeight =
+            parseFloat(cs.lineHeight) ||
+            parseFloat(cs.fontSize) * 1.2 ||
+            20;
+
+          const eRect = editor.getBoundingClientRect();
+          const caretX =
+            eRect.left +
+            borderLeft +
+            span.offsetLeft -
+            editor.scrollLeft;
+          const caretY =
+            eRect.top +
+            borderTop +
+            span.offsetTop -
+            editor.scrollTop;
+
+          return { x: caretX, y: caretY, lineHeight: lineHeight };
+        }
+
+        // ---------- Visibility helpers ----------
+        function isEditMode() {
+          return mainEl.classList.contains("edit-mode");
+        }
+
+        function showToolbar() {
+          if (toolbar.hidden) {
+            toolbar.hidden = false;
+            // Force layout so the transition runs.
+            void toolbar.offsetWidth;
+          }
+          toolbar.classList.add("visible");
+        }
+
+        function hideToolbar() {
+          toolbar.classList.remove("visible");
+          toolbar.classList.remove("et-link-mode");
+          toolbar.classList.remove("et-arrow-up");
+          pendingLinkRange = null;
+        }
+
+        toolbar.addEventListener("transitionend", function (e) {
+          if (
+            e.propertyName === "opacity" &&
+            !toolbar.classList.contains("visible")
+          ) {
+            toolbar.hidden = true;
+          }
+        });
+
+        function positionToolbarForSelection() {
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          if (start === end) {
+            hideToolbar();
+            return;
+          }
+
+          const startPos = getCaretViewportRect(start);
+          const endPos = getCaretViewportRect(end);
+          const sameLine =
+            Math.abs(startPos.y - endPos.y) < startPos.lineHeight * 0.6;
+
+          const anchorY = startPos.y;
+          const anchorX = sameLine
+            ? (startPos.x + endPos.x) / 2
+            : startPos.x;
+
+          // Reveal the toolbar (opacity 0 still paints, so we can measure).
+          showToolbar();
+          const tbRect = toolbar.getBoundingClientRect();
+
+          const gap = 10;
+          const margin = 8;
+          let tx = anchorX - tbRect.width / 2;
+          let ty = anchorY - tbRect.height - gap;
+
+          // Horizontal clamp
+          const maxX = window.innerWidth - tbRect.width - margin;
+          if (tx < margin) tx = margin;
+          if (tx > maxX) tx = Math.max(margin, maxX);
+
+          // Vertical flip if near top of viewport
+          let flipped = false;
+          if (ty < margin) {
+            ty = anchorY + startPos.lineHeight + gap;
+            flipped = true;
+          }
+          toolbar.classList.toggle("et-arrow-up", flipped);
+
+          // Absolute positioning relative to document
+          toolbar.style.left = Math.round(tx + window.scrollX) + "px";
+          toolbar.style.top = Math.round(ty + window.scrollY) + "px";
+
+          // Re-anchor the arrow horizontally so it still points at the caret
+          if (arrow) {
+            const arrowPx = Math.max(
+              14,
+              Math.min(tbRect.width - 14, anchorX - tx)
+            );
+            arrow.style.left = arrowPx + "px";
+            arrow.style.marginLeft = "-6px";
+          }
+        }
+
+        function updateToolbar() {
+          if (!isEditMode()) return hideToolbar();
+          const activeIsEditor = document.activeElement === editor;
+          const activeIsInToolbar = toolbar.contains(document.activeElement);
+          if (!activeIsEditor && !activeIsInToolbar) return hideToolbar();
+          if (toolbar.classList.contains("et-link-mode")) return; // don't reposition during link entry
+          if (editor.selectionStart === editor.selectionEnd) {
+            return hideToolbar();
+          }
+          positionToolbarForSelection();
+        }
+
+        function scheduleUpdate() {
+          if (repositionRaf) cancelAnimationFrame(repositionRaf);
+          repositionRaf = requestAnimationFrame(function () {
+            repositionRaf = null;
+            updateToolbar();
+          });
+        }
+
+        // ---------- Text replacement (preserves undo) ----------
+        function replaceRange(start, end, replacement, selStart, selEnd) {
+          editor.focus();
+          editor.setSelectionRange(start, end);
+          let ok = false;
+          try {
+            ok = document.execCommand("insertText", false, replacement);
+          } catch (err) {
+            ok = false;
+          }
+          if (!ok) {
+            editor.setRangeText(replacement, start, end, "end");
+            editor.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          if (typeof selStart === "number") {
+            editor.setSelectionRange(
+              selStart,
+              typeof selEnd === "number" ? selEnd : selStart
+            );
+          }
+        }
+
+        // ---------- Inline wrap toggle (bold, italic) ----------
+        function wrapInline(prefix, suffix) {
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          if (start === end) return;
+          const v = editor.value;
+          const sel = v.slice(start, end);
+
+          // Case A: selection INCLUDES the wrappers -> unwrap.
+          if (
+            sel.length >= prefix.length + suffix.length &&
+            sel.slice(0, prefix.length) === prefix &&
+            sel.slice(sel.length - suffix.length) === suffix
+          ) {
+            const inner = sel.slice(prefix.length, sel.length - suffix.length);
+            replaceRange(start, end, inner, start, start + inner.length);
+            return;
+          }
+
+          // Case B: wrappers are IMMEDIATELY outside the selection -> unwrap.
+          if (
+            start >= prefix.length &&
+            end + suffix.length <= v.length &&
+            v.slice(start - prefix.length, start) === prefix &&
+            v.slice(end, end + suffix.length) === suffix
+          ) {
+            replaceRange(
+              start - prefix.length,
+              end + suffix.length,
+              sel,
+              start - prefix.length,
+              start - prefix.length + sel.length
+            );
+            return;
+          }
+
+          // Case C: wrap it.
+          const wrapped = prefix + sel + suffix;
+          replaceRange(
+            start,
+            end,
+            wrapped,
+            start + prefix.length,
+            start + prefix.length + sel.length
+          );
+        }
+
+        // ---------- Line-level toggles (headings, quotes) ----------
+        function expandToLineBounds(start, end) {
+          const v = editor.value;
+          const lineStart = v.lastIndexOf("\n", start - 1) + 1;
+          let lineEnd = v.indexOf("\n", end);
+          if (lineEnd === -1) lineEnd = v.length;
+          return { lineStart: lineStart, lineEnd: lineEnd };
+        }
+
+        function toggleHeading(level) {
+          const { lineStart, lineEnd } = expandToLineBounds(
+            editor.selectionStart,
+            editor.selectionStart
+          );
+          let line = editor.value.slice(lineStart, lineEnd);
+          const existing = line.match(/^(#{1,6})\s+/);
+          const targetPrefix = "#".repeat(level) + " ";
+          if (existing) {
+            line = line.slice(existing[0].length);
+            if (existing[1].length === level) {
+              // Same level -> remove (toggle off)
+              replaceRange(
+                lineStart,
+                lineEnd,
+                line,
+                lineStart,
+                lineStart + line.length
+              );
+              return;
+            }
+          }
+          const newLine = targetPrefix + line;
+          replaceRange(
+            lineStart,
+            lineEnd,
+            newLine,
+            lineStart,
+            lineStart + newLine.length
+          );
+        }
+
+        function toggleQuote() {
+          const { lineStart, lineEnd } = expandToLineBounds(
+            editor.selectionStart,
+            editor.selectionEnd
+          );
+          const block = editor.value.slice(lineStart, lineEnd);
+          const lines = block.split("\n");
+          const nonEmpty = lines.filter(function (l) {
+            return l.length > 0;
+          });
+          const allQuoted =
+            nonEmpty.length > 0 &&
+            nonEmpty.every(function (l) {
+              return l.startsWith("> ") || l === ">";
+            });
+          let newLines;
+          if (allQuoted) {
+            newLines = lines.map(function (l) {
+              if (l.startsWith("> ")) return l.slice(2);
+              if (l === ">") return "";
+              return l;
+            });
+          } else {
+            newLines = lines.map(function (l) {
+              return l.length === 0 ? l : "> " + l;
+            });
+          }
+          const newBlock = newLines.join("\n");
+          replaceRange(
+            lineStart,
+            lineEnd,
+            newBlock,
+            lineStart,
+            lineStart + newBlock.length
+          );
+        }
+
+        // ---------- Link flow ----------
+        function startLinkFlow() {
+          pendingLinkRange = {
+            start: editor.selectionStart,
+            end: editor.selectionEnd,
+          };
+          if (pendingLinkRange.start === pendingLinkRange.end) return;
+          toolbar.classList.add("et-link-mode");
+          linkInput.value = "";
+          suppressNextBlurHide = true;
+          setTimeout(function () {
+            linkInput.focus();
+            suppressNextBlurHide = false;
+          }, 0);
+        }
+
+        function confirmLink() {
+          const url = linkInput.value.trim();
+          toolbar.classList.remove("et-link-mode");
+          if (!pendingLinkRange) {
+            editor.focus();
+            return;
+          }
+          if (!url) {
+            const r = pendingLinkRange;
+            pendingLinkRange = null;
+            editor.focus();
+            editor.setSelectionRange(r.start, r.end);
+            return;
+          }
+          const r = pendingLinkRange;
+          pendingLinkRange = null;
+          const text = editor.value.slice(r.start, r.end) || "link";
+          const replacement = "[" + text + "](" + url + ")";
+          replaceRange(
+            r.start,
+            r.end,
+            replacement,
+            r.start + replacement.length,
+            r.start + replacement.length
+          );
+          editor.focus();
+          hideToolbar();
+        }
+
+        function cancelLink() {
+          toolbar.classList.remove("et-link-mode");
+          const r = pendingLinkRange;
+          pendingLinkRange = null;
+          editor.focus();
+          if (r) editor.setSelectionRange(r.start, r.end);
+        }
+
+        // ---------- Action dispatch ----------
+        const actions = {
+          bold: function () {
+            wrapInline("**", "**");
+          },
+          italic: function () {
+            wrapInline("*", "*");
+          },
+          link: startLinkFlow,
+          h1: function () {
+            toggleHeading(1);
+          },
+          h2: function () {
+            toggleHeading(2);
+          },
+          quote: toggleQuote,
+        };
+
+        // ---------- Event wiring ----------
+        toolbar.addEventListener("mousedown", function (e) {
+          const btn = e.target.closest("button[data-et-action]");
+          if (btn) {
+            e.preventDefault(); // keep editor focus
+            const action = btn.dataset.etAction;
+            if (action === "link-cancel") {
+              cancelLink();
+              return;
+            }
+            if (actions[action]) {
+              actions[action]();
+              if (!toolbar.classList.contains("et-link-mode")) {
+                requestAnimationFrame(updateToolbar);
+              }
+            }
+            return;
+          }
+          // Clicks on the input or elsewhere in link mode should not steal focus
+          // from the input; clicks on the toolbar background should not blur editor.
+          if (e.target !== linkInput) {
+            e.preventDefault();
+          }
+        });
+
+        linkInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            confirmLink();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancelLink();
+          }
+        });
+
+        linkInput.addEventListener("blur", function () {
+          // If focus leaves the input without Enter/Escape, treat as cancel.
+          setTimeout(function () {
+            if (
+              toolbar.classList.contains("et-link-mode") &&
+              document.activeElement !== linkInput
+            ) {
+              cancelLink();
+            }
+          }, 0);
+        });
+
+        document.addEventListener("selectionchange", function () {
+          if (document.activeElement === editor) {
+            scheduleUpdate();
+          }
+        });
+
+        editor.addEventListener("blur", function () {
+          setTimeout(function () {
+            if (suppressNextBlurHide) return;
+            if (toolbar.contains(document.activeElement)) return;
+            hideToolbar();
+          }, 60);
+        });
+
+        window.addEventListener(
+          "scroll",
+          function () {
+            if (toolbar.classList.contains("visible")) scheduleUpdate();
+          },
+          { passive: true }
+        );
+
+        window.addEventListener("resize", function () {
+          if (toolbar.classList.contains("visible")) scheduleUpdate();
+        });
+
+        // Keyboard shortcuts + Escape
+        document.addEventListener(
+          "keydown",
+          function (e) {
+            if (
+              e.key === "Escape" &&
+              toolbar.classList.contains("visible")
+            ) {
+              hideToolbar();
+              editor.focus();
+              return;
+            }
+            if (!isEditMode()) return;
+            if (document.activeElement !== editor) return;
+            if (!(e.metaKey || e.ctrlKey)) return;
+            const key = e.key.toLowerCase();
+            if (key === "b") {
+              e.preventDefault();
+              actions.bold();
+              requestAnimationFrame(updateToolbar);
+            } else if (key === "i") {
+              e.preventDefault();
+              actions.italic();
+              requestAnimationFrame(updateToolbar);
+            } else if (key === "k") {
+              e.preventDefault();
+              actions.link();
+            }
+          },
+          true
+        );
+
+        // Hide immediately when leaving edit mode.
+        const modeObserver = new MutationObserver(function () {
+          if (!isEditMode()) hideToolbar();
+        });
+        modeObserver.observe(mainEl, {
+          attributes: true,
+          attributeFilter: ["class"],
         });
       })();
     </script>
