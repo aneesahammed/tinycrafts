@@ -112,6 +112,31 @@
         --ont-example: rgba(100, 160, 160, 0.50);
         --ont-unknown: rgba(138, 133, 120, 0.45);
         --ont-term-underline: rgba(214, 176, 89, 0.5);
+
+        /* ── Mindmap tokens ────────────────────────────────────── */
+        --mm-canvas-bg: var(--bg-canvas);
+        --mm-node-bg: var(--bg-raised);
+        --mm-node-border: var(--border-strong);
+        --mm-node-border-hover: var(--accent-fg);
+        --mm-node-shadow: 0 2px 14px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+        --mm-node-shadow-hover: 0 6px 28px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
+        --mm-node-bg-selected: rgba(95, 143, 128, 0.06);
+        --mm-edge-stroke: var(--fg-muted);
+        --mm-edge-opacity-primary: 0.32;
+        --mm-edge-opacity-secondary: 0.22;
+        --mm-edge-opacity-tertiary: 0.14;
+        --mm-label-serif: var(--font-serif);
+        --mm-badge-sans: var(--font-sans);
+        --mm-root-label-size: calc(var(--reading-font-size, 19px) * 1.18);
+        --mm-primary-label-size: calc(var(--reading-font-size, 19px) * 0.84);
+        --mm-secondary-label-size: calc(var(--reading-font-size, 19px) * 0.74);
+        --mm-badge-size: 10px;
+        --mm-ring-1-radius: 240px;
+        --mm-ring-2-radius: 480px;
+        --mm-ring-3-radius: 700px;
+        --mm-node-padding-x: 20px;
+        --mm-node-padding-y: 14px;
+        --mm-node-gap-min: 28px;
       }
 
       :root[data-theme="dark"] {
@@ -158,6 +183,14 @@
         --ont-example: rgba(120, 180, 180, 0.40);
         --ont-unknown: rgba(110, 104, 92, 0.40);
         --ont-term-underline: rgba(214, 176, 89, 0.45);
+
+        /* ── Mindmap dark overrides ─────────────────────────────── */
+        --mm-node-shadow: 0 2px 18px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
+        --mm-node-shadow-hover: 0 6px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+        --mm-edge-opacity-primary: 0.38;
+        --mm-edge-opacity-secondary: 0.26;
+        --mm-edge-opacity-tertiary: 0.16;
+        --mm-node-bg-selected: rgba(120, 170, 230, 0.08);
       }
 
       /* Font stacks */
