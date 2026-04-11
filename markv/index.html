@@ -8332,6 +8332,57 @@ Paste markdown on the left, open a local file, or drag one into the page.
           });
         }
 
+        /* ============================================================
+         * Concept Mindmap — hover tooltip
+         * ============================================================ */
+
+        function wireMindmapHover() {
+          const nodesG = document.getElementById("mindmapNodes");
+          const { tooltip, stage } = getMindmapEls();
+          if (!nodesG || !tooltip || !stage) return;
+
+          const typeEl = tooltip.querySelector(".mm-tooltip-type");
+          const labelEl = tooltip.querySelector(".mm-tooltip-label");
+          const summaryEl = tooltip.querySelector(".mm-tooltip-summary");
+
+          function showTooltip(node, clientX, clientY) {
+            const label = MINDMAP_TYPE_LABEL[node.type] || "Concept";
+            typeEl.textContent = label.toUpperCase();
+            labelEl.textContent = node.label || "";
+            summaryEl.textContent = node.summary || "";
+            const stageRect = stage.getBoundingClientRect();
+            const x = clientX - stageRect.left + 14;
+            const y = clientY - stageRect.top + 14;
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+            tooltip.classList.add("is-visible");
+          }
+          function hideTooltip() {
+            tooltip.classList.remove("is-visible");
+          }
+
+          nodesG.addEventListener("pointerover", (event) => {
+            const g = event.target.closest(".mm-node");
+            if (!g) return;
+            const id = g.getAttribute("data-id");
+            const node = mindmapState.laid && mindmapState.laid.nodes.find((n) => n.id === id);
+            if (node) showTooltip(node, event.clientX, event.clientY);
+          });
+          nodesG.addEventListener("pointermove", (event) => {
+            if (!tooltip.classList.contains("is-visible")) return;
+            const g = event.target.closest(".mm-node");
+            if (!g) { hideTooltip(); return; }
+            const stageRect = stage.getBoundingClientRect();
+            tooltip.style.left = `${event.clientX - stageRect.left + 14}px`;
+            tooltip.style.top = `${event.clientY - stageRect.top + 14}px`;
+          });
+          nodesG.addEventListener("pointerout", (event) => {
+            if (event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(".mm-node")) return;
+            hideTooltip();
+          });
+          stage.addEventListener("pointerdown", hideTooltip);
+        }
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
@@ -11775,6 +11826,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
 
         wireMindmapInteractions();
         wireMindmapNodeClicks();
+        wireMindmapHover();
 
         document.getElementById("mindmapBtn").addEventListener("click", () => {
           openMindmapViewer();
