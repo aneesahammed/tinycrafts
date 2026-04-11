@@ -14,6 +14,20 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        const THEME_KEY = "tinycrafts-theme";
+
+        try {
+          const savedTheme = window.localStorage.getItem(THEME_KEY);
+          const systemDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const theme = savedTheme || (systemDark ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (_error) {}
+      })();
+    </script>
 
     <style>
       *,
@@ -24,7 +38,26 @@
         padding: 0;
       }
 
-      :root {
+      :root,
+      :root[data-theme="light"] {
+        color-scheme: light;
+        --bg:            #f8f6f0;
+        --bg-raised:     #ffffff;
+        --bg-code:       #efe9de;
+        --border:        #cec4b0;
+        --border-subtle: #e7dfd0;
+        --text:          #1f1b16;
+        --text-muted:    #6d6558;
+        --text-dim:      #948a7a;
+        --accent:        #d97706;
+        --accent-soft:   rgba(217, 119, 6, 0.1);
+        --accent-border: rgba(217, 119, 6, 0.22);
+        --mono: "JetBrains Mono", "Fira Code", monospace;
+        --sans: "Inter", system-ui, -apple-system, sans-serif;
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
         --bg:            #0e1117;
         --bg-raised:     #161b22;
         --bg-code:       #1c2128;
@@ -34,8 +67,25 @@
         --text-muted:    #7d8590;
         --text-dim:      #484f58;
         --accent:        #f59e0b;
-        --mono: "JetBrains Mono", "Fira Code", monospace;
-        --sans: "Inter", system-ui, -apple-system, sans-serif;
+        --accent-soft:   rgba(245, 158, 11, 0.08);
+        --accent-border: rgba(245, 158, 11, 0.2);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) {
+          color-scheme: dark;
+          --bg:            #0e1117;
+          --bg-raised:     #161b22;
+          --bg-code:       #1c2128;
+          --border:        #30363d;
+          --border-subtle: #21262d;
+          --text:          #e6edf3;
+          --text-muted:    #7d8590;
+          --text-dim:      #484f58;
+          --accent:        #f59e0b;
+          --accent-soft:   rgba(245, 158, 11, 0.08);
+          --accent-border: rgba(245, 158, 11, 0.2);
+        }
       }
 
       html, body {
@@ -71,6 +121,56 @@
         width: 100%;
       }
 
+      .page-controls {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 2rem;
+      }
+
+      .theme-toggle {
+        appearance: none;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-raised);
+        color: var(--text-muted);
+        border-radius: 999px;
+        padding: 0.5rem 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        font: inherit;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        line-height: 1;
+        letter-spacing: 0.03em;
+        cursor: pointer;
+        transition:
+          color 0.15s,
+          border-color 0.15s,
+          background-color 0.15s,
+          transform 0.15s;
+      }
+
+      .theme-toggle:hover {
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      .theme-toggle:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .theme-toggle:active {
+        transform: translateY(1px);
+      }
+
+      .theme-toggle svg {
+        width: 14px;
+        height: 14px;
+        color: var(--accent);
+        flex-shrink: 0;
+      }
+
       /* ── LOGO MARK ── */
       .logomark {
         display: flex;
@@ -84,6 +184,7 @@
         height: 32px;
         border: 1.5px solid var(--accent);
         border-radius: 7px;
+        color: var(--accent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -213,8 +314,8 @@
 
       .tool-status.live {
         color: var(--accent);
-        background: rgba(245, 158, 11, 0.08);
-        border: 1px solid rgba(245, 158, 11, 0.2);
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-border);
       }
 
       .tool-status.soon {
@@ -280,6 +381,10 @@
           padding-top: 4rem;
         }
 
+        .page-controls {
+          margin-bottom: 1.5rem;
+        }
+
         .tagline {
           font-size: 1.75rem;
         }
@@ -296,14 +401,47 @@
   </head>
   <body>
     <main>
+      <div class="page-controls">
+        <button
+          id="themeToggleBtn"
+          class="theme-toggle"
+          type="button"
+          aria-label="Toggle theme"
+          title="Toggle theme"
+        >
+          <svg
+            id="themeIconSun"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+            style="display: none"
+          >
+            <path
+              d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 0 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.465a.75.75 0 0 1-1.06 0L2.343 3.404a.75.75 0 0 1 1.06-1.06l1.061 1.06a.75.75 0 0 1 0 1.06Z"
+            />
+          </svg>
+          <svg
+            id="themeIconMoon"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"
+            />
+          </svg>
+          <span id="themeToggleLabel">Dark</span>
+        </button>
+      </div>
+
       <!-- Logo -->
       <div class="logomark">
         <div class="logomark-icon">
           <svg viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- hammer handle -->
-            <line x1="10.5" y1="10.5" x2="14.5" y2="14.5" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10.5" y1="10.5" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             <!-- hammer head -->
-            <rect x="3" y="3" width="8" height="5" rx="1.5" stroke="#f59e0b" stroke-width="1.4" fill="none" transform="rotate(-45 7 5.5)"/>
+            <rect x="3" y="3" width="8" height="5" rx="1.5" stroke="currentColor" stroke-width="1.4" fill="none" transform="rotate(-45 7 5.5)"/>
           </svg>
         </div>
         <span class="logomark-name">tinycrafts<span>.ai</span></span>
@@ -357,5 +495,66 @@
         <a href="https://anees.xyz" target="_blank" rel="noopener">Blog</a>
       </div>
     </footer>
+    <script>
+      (function () {
+        const THEME_KEY = "tinycrafts-theme";
+        const themeBtn = document.getElementById("themeToggleBtn");
+        const themeLabel = document.getElementById("themeToggleLabel");
+        const sunIcon = document.getElementById("themeIconSun");
+        const moonIcon = document.getElementById("themeIconMoon");
+        const systemThemeQuery = window.matchMedia
+          ? window.matchMedia("(prefers-color-scheme: dark)")
+          : null;
+
+        function getStoredTheme() {
+          try {
+            return window.localStorage.getItem(THEME_KEY);
+          } catch (_error) {
+            return null;
+          }
+        }
+
+        function setStoredTheme(theme) {
+          try {
+            window.localStorage.setItem(THEME_KEY, theme);
+          } catch (_error) {}
+        }
+
+        function applyTheme(theme) {
+          const nextLabel = theme === "dark" ? "Light" : "Dark";
+          document.documentElement.setAttribute("data-theme", theme);
+          sunIcon.style.display = theme === "dark" ? "" : "none";
+          moonIcon.style.display = theme === "dark" ? "none" : "";
+          themeLabel.textContent = nextLabel;
+          themeBtn.setAttribute("aria-label", "Switch to " + nextLabel.toLowerCase() + " theme");
+          themeBtn.setAttribute("title", "Switch to " + nextLabel.toLowerCase() + " theme");
+        }
+
+        themeBtn.addEventListener("click", function () {
+          const current =
+            document.documentElement.getAttribute("data-theme") || "light";
+          const next = current === "dark" ? "light" : "dark";
+          applyTheme(next);
+          setStoredTheme(next);
+        });
+
+        if (systemThemeQuery) {
+          const syncToSystem = function (event) {
+            if (getStoredTheme()) return;
+            applyTheme(event.matches ? "dark" : "light");
+          };
+
+          if (typeof systemThemeQuery.addEventListener === "function") {
+            systemThemeQuery.addEventListener("change", syncToSystem);
+          } else if (typeof systemThemeQuery.addListener === "function") {
+            systemThemeQuery.addListener(syncToSystem);
+          }
+        }
+
+        applyTheme(
+          document.documentElement.getAttribute("data-theme") || "light"
+        );
+      })();
+    </script>
   </body>
 </html>
