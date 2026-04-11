@@ -7696,10 +7696,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
          * @param {{ring1:number, ring2:number, ring3:number}} [config]
          */
         function computeRadialLayout(graph, config) {
-          const ring1 = (config && config.ring1) || 320;
-          const ring2 = (config && config.ring2) || 620;
-          const ring3 = (config && config.ring3) || 920;
-          const ringRadii = [0, ring1, ring2, ring3];
+          // Ring radii are computed further down from the real card widths,
+          // not fixed values — see "Width-aware ring radii" below. This is
+          // what prevents long labels from overlapping on the same ring.
 
           // Index nodes by id. Root is synthetic from graph.root.
           const nodeById = new Map();
@@ -7758,7 +7757,65 @@ Paste markdown on the left, open a local file, or drag one into the page.
           }
           countLeaves(rootNode);
 
-          // Radial position assignment.
+          // --- Width-aware ring radii ---
+          // Each ring grows until its circumference fits every card on that
+          // depth plus breathing room, and stays far enough from the inner
+          // ring that edges remain legible. Reacting to real card widths is
+          // what kills overlap for any label length.
+          const MIN_RING_RADII = [0, 360, 680, 1000];
+          const MIN_INTER_RING_GAP = 240;
+          const CARD_ANGULAR_GAP = 48; // px of breathing room between siblings
+
+          const nodesByDepth = [[], [], [], []];
+          for (const n of nodeById.values()) {
+            const d = Math.min(n.depth, nodesByDepth.length - 1);
+            nodesByDepth[d].push(n);
+          }
+          const cardWidthById = new Map();
+          for (const n of nodeById.values()) {
+            cardWidthById.set(n.id, measureNodeCard(n).width);
+          }
+
+          const ringRadii = [0];
+          for (let d = 1; d < nodesByDepth.length; d++) {
+            const nodes = nodesByDepth[d];
+            const totalW = nodes.reduce(
+              (s, n) => s + cardWidthById.get(n.id) + CARD_ANGULAR_GAP,
+              0,
+            );
+            const circFit = totalW / (2 * Math.PI);
+            const floor = Math.max(
+              MIN_RING_RADII[d],
+              ringRadii[d - 1] + MIN_INTER_RING_GAP,
+            );
+            ringRadii.push(Math.max(circFit, floor));
+          }
+
+          // Honour explicit config overrides when the caller wants bigger rings.
+          if (config) {
+            if (config.ring1) ringRadii[1] = Math.max(ringRadii[1], config.ring1);
+            if (config.ring2) ringRadii[2] = Math.max(ringRadii[2], config.ring2);
+            if (config.ring3) ringRadii[3] = Math.max(ringRadii[3], config.ring3);
+          }
+
+          // --- Demand-weighted angle assignment ---
+          // Each subtree asks for an angular share proportional to the widest
+          // angular footprint anywhere inside it (its own card vs. the sum of
+          // its children). Wide labels get a wide slice; short ones don't
+          // steal angle they don't need.
+          function subtreeAngularDemand(node) {
+            const r =
+              ringRadii[Math.min(node.depth, ringRadii.length - 1)] || 1;
+            const ownArc =
+              node.depth === 0
+                ? 0
+                : (cardWidthById.get(node.id) + CARD_ANGULAR_GAP) / r;
+            if (node.children.length === 0) return ownArc || 0.0001;
+            let childSum = 0;
+            for (const c of node.children) childSum += subtreeAngularDemand(c);
+            return Math.max(ownArc, childSum);
+          }
+
           function assign(node, startAngle, endAngle) {
             const midAngle = (startAngle + endAngle) / 2;
             const r = ringRadii[Math.min(node.depth, ringRadii.length - 1)];
@@ -7768,10 +7825,12 @@ Paste markdown on the left, open a local file, or drag one into the page.
 
             if (node.children.length === 0) return;
             const span = endAngle - startAngle;
+            const demands = node.children.map(subtreeAngularDemand);
+            const total = demands.reduce((s, v) => s + v, 0) || 1;
             let cursor = startAngle;
-            for (const child of node.children) {
-              const childSpan = (child.leaves / node.leaves) * span;
-              assign(child, cursor, cursor + childSpan);
+            for (let i = 0; i < node.children.length; i++) {
+              const childSpan = (demands[i] / total) * span;
+              assign(node.children[i], cursor, cursor + childSpan);
               cursor += childSpan;
             }
           }
@@ -7851,8 +7910,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
           }
           let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
           for (const n of positionedNodes) {
-            const halfW = estimateNodeHalfWidth(n);
-            const halfH = 28;
+            const dims = measureNodeCard(n);
+            const halfW = dims.width / 2;
+            const halfH = dims.height / 2;
             if (n.x - halfW < minX) minX = n.x - halfW;
             if (n.x + halfW > maxX) maxX = n.x + halfW;
             if (n.y - halfH < minY) minY = n.y - halfH;
@@ -7862,11 +7922,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
         }
 
         function estimateNodeHalfWidth(node) {
-          const label = node.label || "";
-          // Rough monospace-adjacent estimate; refined at render time.
-          const base = node.depth === 0 ? 14 : node.depth === 1 ? 9 : 7.5;
-          const padding = 24;
-          return Math.min(180, (label.length * base) / 2 + padding);
+          return measureNodeCard(node).width / 2;
         }
 
         /* ============================================================
@@ -7967,16 +8023,34 @@ Paste markdown on the left, open a local file, or drag one into the page.
               g.appendChild(badge);
             }
 
-            // Main label
+            // Main label — multi-line via <tspan>s. dims.lines is the
+            // pre-wrapped array from measureNodeCard; vertically center
+            // the whole block in the card, shifted down slightly when a
+            // type badge is sitting at the top.
             const label = document.createElementNS(SVG_NS, "text");
             label.setAttribute("class", "mm-node-label");
             label.setAttribute("x", String(node.x));
-            label.setAttribute(
-              "y",
-              String(node.depth === 0 ? node.y + 2 : node.y + 6),
-            );
             label.setAttribute("text-anchor", "middle");
-            label.textContent = node.label;
+
+            const labelLines =
+              dims.lines && dims.lines.length ? dims.lines : [node.label || ""];
+            const isRootNode = node.depth === 0;
+            const lineHeight = isRootNode ? 30 : node.depth === 1 ? 24 : 22;
+            const hasBadge =
+              !isRootNode && node.type && MINDMAP_TYPE_LABEL[node.type];
+            const badgePush = hasBadge ? 12 : 0;
+            const firstLineY =
+              node.y -
+              ((labelLines.length - 1) * lineHeight) / 2 +
+              badgePush;
+
+            labelLines.forEach((line, li) => {
+              const tspan = document.createElementNS(SVG_NS, "tspan");
+              tspan.setAttribute("x", String(node.x));
+              tspan.setAttribute("y", String(firstLineY + li * lineHeight));
+              tspan.textContent = line;
+              label.appendChild(tspan);
+            });
             g.appendChild(label);
 
             nodesG.appendChild(g);
@@ -8044,19 +8118,142 @@ Paste markdown on the left, open a local file, or drag one into the page.
           }
         }
 
+        /* ----------------------------------------------------------
+         * Real text measurement — hidden <text> elements styled like
+         * each depth's labels, so getComputedTextLength() returns the
+         * exact on-screen width. This is what we use to size cards and
+         * wrap long labels so text never overflows its card.
+         * ---------------------------------------------------------- */
+        const _mmMeasureElements = {};
+        function getMMMeasureText(depth) {
+          const key = depth >= 2 ? 2 : depth;
+          if (_mmMeasureElements[key] && _mmMeasureElements[key].isConnected) {
+            return _mmMeasureElements[key];
+          }
+          const svg = document.getElementById("mindmapSvg");
+          if (!svg) return null;
+          const g = document.createElementNS(SVG_NS, "g");
+          g.setAttribute("class", "mm-node");
+          g.setAttribute("data-depth", String(key));
+          g.setAttribute("aria-hidden", "true");
+          g.setAttribute("pointer-events", "none");
+          g.setAttribute("visibility", "hidden");
+          const t = document.createElementNS(SVG_NS, "text");
+          t.setAttribute("class", "mm-node-label");
+          t.setAttribute("x", "-99999");
+          t.setAttribute("y", "-99999");
+          g.appendChild(t);
+          svg.appendChild(g);
+          _mmMeasureElements[key] = t;
+          return t;
+        }
+
+        function measureMMText(text, depth) {
+          const el = getMMMeasureText(depth);
+          const safe = String(text || "");
+          if (!el) {
+            const per = depth === 0 ? 18 : depth === 1 ? 11 : 8.5;
+            return safe.length * per;
+          }
+          el.textContent = safe;
+          try {
+            return el.getComputedTextLength();
+          } catch {
+            const per = depth === 0 ? 18 : depth === 1 ? 11 : 8.5;
+            return safe.length * per;
+          }
+        }
+
         /**
-         * Lightweight card-size estimator. The SVG renders then we
-         * optionally refit after measuring actual text (next step).
+         * Greedy word-wrap at a real pixel width. Packs words until the
+         * next word would overflow, then starts a new line. The final
+         * allowed line absorbs any remaining words and ellipsizes if they
+         * still don't fit. Single words wider than maxWidth are kept on
+         * their own line — the card will widen to accommodate them.
+         */
+        function wrapMMLabel(text, depth, maxWidth, maxLines) {
+          const words = String(text || "").trim().split(/\s+/);
+          if (words.length === 0 || (words.length === 1 && words[0] === "")) {
+            return [""];
+          }
+          const lines = [];
+          let current = "";
+          for (let i = 0; i < words.length; i++) {
+            const candidate = current ? current + " " + words[i] : words[i];
+            if (measureMMText(candidate, depth) <= maxWidth) {
+              current = candidate;
+              continue;
+            }
+            if (current) lines.push(current);
+            if (lines.length >= maxLines - 1) {
+              let last = words[i];
+              for (let j = i + 1; j < words.length; j++) {
+                const tryAdd = last + " " + words[j];
+                if (measureMMText(tryAdd, depth) <= maxWidth) {
+                  last = tryAdd;
+                } else {
+                  while (
+                    last.length > 1 &&
+                    measureMMText(last + "…", depth) > maxWidth
+                  ) {
+                    last = last.slice(0, -1);
+                  }
+                  last += "…";
+                  break;
+                }
+              }
+              lines.push(last);
+              return lines;
+            }
+            current = words[i];
+          }
+          if (current) lines.push(current);
+          return lines;
+        }
+
+        /**
+         * Measure a node's card using real SVG text metrics and wrap long
+         * labels across up to two lines. Returns width, height, and the
+         * pre-wrapped lines array to render as <tspan>s.
          */
         function measureNodeCard(node) {
           const label = node.label || "";
-          const basePerChar = node.depth === 0 ? 13 : node.depth === 1 ? 9 : 7.5;
-          const width = Math.min(
-            Math.max(140, label.length * basePerChar + 40),
-            320,
+          const isRoot = node.depth === 0;
+          const isPrimary = node.depth === 1;
+          const paddingX = isRoot ? 48 : 36;
+          const paddingY = isRoot ? 32 : 26;
+          const lineHeight = isRoot ? 30 : isPrimary ? 24 : 22;
+          const badgeHeight =
+            !isRoot && node.type && MINDMAP_TYPE_LABEL[node.type] ? 22 : 0;
+          const minWidth = isRoot ? 260 : 180;
+          const maxWidth = isRoot ? 560 : isPrimary ? 380 : 300;
+          const maxLines = 2;
+
+          const singleLineWidth = measureMMText(label, node.depth) + paddingX;
+          if (singleLineWidth <= maxWidth) {
+            return {
+              width: Math.max(minWidth, singleLineWidth),
+              height: badgeHeight + lineHeight + paddingY,
+              lines: [label],
+            };
+          }
+
+          const lines = wrapMMLabel(
+            label,
+            node.depth,
+            maxWidth - paddingX,
+            maxLines,
           );
-          const height = node.depth === 0 ? 62 : 54;
-          return { width, height };
+          let widest = 0;
+          for (const ln of lines) {
+            const w = measureMMText(ln, node.depth);
+            if (w > widest) widest = w;
+          }
+          return {
+            width: Math.max(minWidth, widest + paddingX),
+            height: badgeHeight + lines.length * lineHeight + paddingY,
+            lines,
+          };
         }
 
         /* ============================================================
