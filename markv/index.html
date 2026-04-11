@@ -754,7 +754,7 @@
         line-height: 1.2;
         letter-spacing: -0.018em;
         color: var(--fg-default);
-        margin: 2em 0 0.6em;
+        margin: 1.5em 0 0.45em;
         font-variation-settings: "opsz" 36;
       }
 
@@ -763,16 +763,17 @@
         font-weight: 700;
         letter-spacing: -0.025em;
         margin-top: 0;
-        margin-bottom: 0.4em;
+        margin-bottom: 0.35em;
       }
       .markdown-body h2 {
         font-size: 1.7em;
-        margin-top: 2.2em;
+        margin-top: 1.7em;
         padding-bottom: 0.3em;
         border-bottom: 1px solid var(--border-soft);
       }
       .markdown-body h3 {
         font-size: 1.32em;
+        margin-top: 1.4em;
       }
       .markdown-body h4 {
         font-size: 1.12em;
@@ -819,7 +820,7 @@
 
       .markdown-body hr {
         height: 1px;
-        margin: 3em auto;
+        margin: 2em auto;
         width: 64px;
         background: var(--border-default);
         border: 0;
@@ -2741,6 +2742,7 @@
           aria-pressed="false"
         >
           <svg
+            id="modeIconEdit"
             width="14"
             height="14"
             viewBox="0 0 16 16"
@@ -2749,6 +2751,19 @@
           >
             <path
               d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"
+            />
+          </svg>
+          <svg
+            id="modeIconPreview"
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+            style="display:none"
+          >
+            <path
+              d="M8 2C4.5 2 1.73 4.11.07 7.18a1.5 1.5 0 0 0 0 1.64C1.73 11.89 4.5 14 8 14s6.27-2.11 7.93-5.18a1.5 1.5 0 0 0 0-1.64C14.27 4.11 11.5 2 8 2Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"
             />
           </svg>
           <span id="modeToggleLabel">Edit</span>
@@ -9856,21 +9871,59 @@ Paste markdown on the left, open a local file, or drag one into the page.
         const mainEl = document.getElementById("main");
         const modeBtn = document.getElementById("modeToggleBtn");
         const modeLabel = document.getElementById("modeToggleLabel");
+        const modeIconEdit = document.getElementById("modeIconEdit");
+        const modeIconPreview = document.getElementById("modeIconPreview");
+
+        function captureScrollRatio() {
+          const maxY =
+            document.documentElement.scrollHeight - window.innerHeight;
+          return maxY > 0 ? window.scrollY / maxY : 0;
+        }
+
+        function applyScrollRatio(ratio) {
+          const maxY =
+            document.documentElement.scrollHeight - window.innerHeight;
+          window.scrollTo(0, Math.round(ratio * Math.max(0, maxY)));
+        }
 
         function setMode(mode) {
           if (mode === "edit") {
+            const ratio = captureScrollRatio();
             mainEl.classList.add("edit-mode");
             modeLabel.textContent = "Preview";
             modeBtn.setAttribute("aria-pressed", "true");
             modeBtn.title = "Show preview (Ctrl/Cmd+E)";
-            setTimeout(function () {
-              els.editor.focus();
-            }, 0);
+            if (modeIconEdit) modeIconEdit.style.display = "none";
+            if (modeIconPreview) modeIconPreview.style.display = "";
+            requestAnimationFrame(function () {
+              const pos =
+                typeof state.editorSelection === "number"
+                  ? state.editorSelection
+                  : 0;
+              try {
+                els.editor.setSelectionRange(pos, pos);
+              } catch (e) {}
+              try {
+                els.editor.focus({ preventScroll: true });
+              } catch (e) {
+                els.editor.focus();
+              }
+              applyScrollRatio(ratio);
+            });
           } else {
+            const ratio = captureScrollRatio();
+            if (document.activeElement === els.editor) {
+              state.editorSelection = els.editor.selectionStart;
+            }
             mainEl.classList.remove("edit-mode");
             modeLabel.textContent = "Edit";
             modeBtn.setAttribute("aria-pressed", "false");
             modeBtn.title = "Edit markdown (Ctrl/Cmd+E)";
+            if (modeIconEdit) modeIconEdit.style.display = "";
+            if (modeIconPreview) modeIconPreview.style.display = "none";
+            requestAnimationFrame(function () {
+              applyScrollRatio(ratio);
+            });
           }
         }
 
