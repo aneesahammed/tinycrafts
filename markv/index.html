@@ -1840,8 +1840,8 @@
       }
 
       @keyframes mm-edge-in {
-        from { opacity: 0; stroke-dashoffset: 200; }
-        to { opacity: 1; stroke-dashoffset: 0; }
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -12030,6 +12030,9 @@ Return JSON only.`;
 
           openMindmapViewer();
           if (errorPane) errorPane.classList.add("is-hidden");
+          // Start every run with a clean loading pane so a prior run's spinner
+          // can't linger into an early-return branch (empty doc / no client).
+          if (loading) loading.classList.add("is-hidden");
 
           if (!rawMarkdown.trim()) {
             showMindmapError(
