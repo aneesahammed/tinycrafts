@@ -1947,6 +1947,20 @@
         border: 0;
       }
 
+      .mm-jump-flash {
+        animation: mm-flash 1800ms ease-out;
+      }
+
+      @keyframes mm-flash {
+        0%   { background-color: color-mix(in srgb, var(--accent-fg) 22%, transparent); }
+        40%  { background-color: color-mix(in srgb, var(--accent-fg) 14%, transparent); }
+        100% { background-color: transparent; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .mm-jump-flash { animation: none; }
+      }
+
       .markdown-body .raw-html {
         border-style: dashed;
         opacity: 0.85;
@@ -8260,6 +8274,64 @@ Paste markdown on the left, open a local file, or drag one into the page.
           });
         }
 
+        /* ============================================================
+         * Concept Mindmap — preview navigation
+         * ============================================================ */
+
+        /**
+         * Jump to the source section corresponding to a node.
+         * Scrolls the preview, applies a transient highlight to the heading.
+         */
+        function jumpToMindmapSource(node) {
+          if (!node) return;
+          closeMindmapViewer();
+          if (!node.sourceAnchor) return;
+
+          const preview = document.getElementById("preview");
+          if (!preview) return;
+
+          // Find an element with id matching the anchor, or a heading containing the slug.
+          let target = preview.querySelector(`#${CSS.escape(node.sourceAnchor)}`);
+          if (!target) {
+            // Fallback: marked's Slugger gives headings matching slugs; try stripping.
+            const slug = node.sourceAnchor.toLowerCase();
+            const candidates = preview.querySelectorAll("h1, h2, h3, h4, h5, h6");
+            for (const c of candidates) {
+              if (c.id && c.id.toLowerCase() === slug) {
+                target = c;
+                break;
+              }
+            }
+          }
+          if (!target) return;
+
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.classList.add("mm-jump-flash");
+          setTimeout(() => target.classList.remove("mm-jump-flash"), 1800);
+        }
+
+        function wireMindmapNodeClicks() {
+          const nodesG = document.getElementById("mindmapNodes");
+          if (!nodesG) return;
+          nodesG.addEventListener("click", (event) => {
+            const g = event.target.closest(".mm-node");
+            if (!g) return;
+            const id = g.getAttribute("data-id");
+            if (!mindmapState.laid) return;
+            const node = mindmapState.laid.nodes.find((n) => n.id === id);
+            if (node) jumpToMindmapSource(node);
+          });
+          nodesG.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            const g = event.target.closest(".mm-node");
+            if (!g) return;
+            event.preventDefault();
+            const id = g.getAttribute("data-id");
+            const node = mindmapState.laid && mindmapState.laid.nodes.find((n) => n.id === id);
+            if (node) jumpToMindmapSource(node);
+          });
+        }
+
         const els = {
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
@@ -11702,6 +11774,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
         els.autoRefreshToggle.addEventListener("change", startAutoRefresh);
 
         wireMindmapInteractions();
+        wireMindmapNodeClicks();
 
         document.getElementById("mindmapBtn").addEventListener("click", () => {
           openMindmapViewer();
