@@ -3,6 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-+DuK4j3o3tRKTkYlSvyzK2PW5ni5cP2hunsLXKiBP6w=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-BG7qSuBDLKsPNTu3EDDcFkR2AXDPRChVW2yjIpw3DBI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+    />
     <title>Markdown Viewer</title>
 
     <script>
@@ -8062,6 +8067,18 @@ Drop a .md file anywhere on the page, or open one with the Open button."
         const MERMAID_SCRIPT_URL = "./vendor/mermaid.min.js";
         const HLJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1";
         const KATEX_CDN = "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist";
+        const REMOTE_ASSET_INTEGRITY = Object.freeze({
+          [HLJS_CDN + "/highlight.min.js"]:
+            "sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU",
+          [HLJS_CDN + "/styles/github.min.css"]:
+            "sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L",
+          [HLJS_CDN + "/styles/github-dark.min.css"]:
+            "sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH",
+          [KATEX_CDN + "/katex.min.css"]:
+            "sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP",
+          [KATEX_CDN + "/katex.min.js"]:
+            "sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6",
+        });
         const HIGHLIGHT_EXCLUDED_SELECTOR =
           "pre, code, .raw-html, .blocked-resource, .mermaid-block";
         const READING_PRESETS = {
@@ -11940,11 +11957,20 @@ Return JSON only.`;
         }
 
         // ── highlight.js lazy loader ──────────────────────────────
+        function decorateRemoteAsset(element, href) {
+          var integrity = REMOTE_ASSET_INTEGRITY[href];
+          if (!integrity) return;
+          element.integrity = integrity;
+          element.crossOrigin = "anonymous";
+          element.referrerPolicy = "no-referrer";
+        }
+
         function loadCss(href) {
           if (document.querySelector('link[href="' + href + '"]')) return;
           var link = document.createElement("link");
           link.rel = "stylesheet";
           link.href = href;
+          decorateRemoteAsset(link, href);
           document.head.appendChild(link);
         }
 
@@ -11964,6 +11990,7 @@ Return JSON only.`;
             var script = document.createElement("script");
             script.src = HLJS_CDN + "/highlight.min.js";
             script.async = true;
+            decorateRemoteAsset(script, script.src);
             script.onload = function () {
               if (window.hljs) {
                 loadCss(getHljsThemeUrl());
@@ -12030,6 +12057,7 @@ Return JSON only.`;
             var script = document.createElement("script");
             script.src = KATEX_CDN + "/katex.min.js";
             script.async = true;
+            decorateRemoteAsset(script, script.src);
             script.onload = function () {
               if (window.katex) {
                 resolve(window.katex);

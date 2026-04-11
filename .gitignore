@@ -141,3 +141,4 @@ vite.config.ts.timestamp-*
 markv/.DS_Store
 /output
 /markv/docs
+/.playwright-mcp
