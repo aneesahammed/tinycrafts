@@ -11988,12 +11988,128 @@ Return JSON only.`;
         wireMindmapNodeClicks();
         wireMindmapHover();
 
-        document.getElementById("mindmapBtn").addEventListener("click", () => {
+        // TEMPORARY: fixture-returning stub. Replace with the real chat
+        // feature's LLM client when available.
+        if (!window.markvLLM) {
+          window.markvLLM = function mockMarkvLLM() {
+            return new Promise((resolve) => {
+              setTimeout(() => resolve(JSON.stringify(MINDMAP_FIXTURE)), 600);
+            });
+          };
+        }
+
+        async function runMindmapPipeline(options) {
+          const force = !!(options && options.force);
+          const { loading, errorPane } = getMindmapEls();
+          const editor = document.getElementById("editor");
+          const rawMarkdown = editor ? editor.value : "";
+
           openMindmapViewer();
-          // Temporary: render fixture until the extractor task is wired up.
-          mindmapState.laid = computeRadialLayout(MINDMAP_FIXTURE);
-          renderMindmap(mindmapState.laid);
-          requestAnimationFrame(() => fitMindmapToView(false));
+          if (errorPane) errorPane.classList.add("is-hidden");
+
+          if (!rawMarkdown.trim()) {
+            showMindmapError(
+              "Load a markdown document first, then open the mindmap.",
+              "empty_document",
+            );
+            return;
+          }
+
+          // Truncate oversize docs with a soft warning in the tooltip later.
+          let markdown = rawMarkdown;
+          let truncated = false;
+          if (markdown.length > MINDMAP_MAX_MARKDOWN_CHARS) {
+            markdown = markdown.slice(0, MINDMAP_MAX_MARKDOWN_CHARS);
+            truncated = true;
+          }
+
+          const docHash = await hashString(markdown);
+          mindmapState.currentDocHash = docHash;
+
+          // Cache check
+          if (!force) {
+            const cached = getCachedGraph(docHash);
+            if (cached) {
+              mindmapState.currentGraph = cached;
+              mindmapState.laid = computeRadialLayout(cached);
+              renderMindmap(mindmapState.laid);
+              requestAnimationFrame(() => fitMindmapToView(false));
+              return;
+            }
+          }
+
+          // No LLM client configured? Bail out with a clear CTA instead of a raw error.
+          if (typeof window.markvLLM !== "function") {
+            showMindmapError(
+              "Configure an LLM client to extract concepts. Open the chat panel once to register the client, then try again.",
+              "no_client",
+            );
+            return;
+          }
+
+          // LLM path
+          if (loading) loading.classList.remove("is-hidden");
+          try {
+            const graph = await extractConcepts(markdown);
+            if (!graph.nodes || graph.nodes.length < 3) {
+              throw new Error(
+                "This document is too short or too abstract to map meaningfully. Try a document with at least a few sections.",
+              );
+            }
+            setCachedGraph(docHash, graph);
+            mindmapState.currentGraph = graph;
+            mindmapState.laid = computeRadialLayout(graph);
+            renderMindmap(mindmapState.laid);
+            requestAnimationFrame(() => fitMindmapToView(false));
+            if (truncated) {
+              console.info(
+                `Mindmap: input truncated to ${MINDMAP_MAX_MARKDOWN_CHARS} chars (~top of doc).`,
+              );
+            }
+          } catch (err) {
+            showMindmapError(humanizeMindmapError(err), "extract_failed");
+          } finally {
+            if (loading) loading.classList.add("is-hidden");
+          }
+        }
+
+        function humanizeMindmapError(err) {
+          const msg = (err && err.message) || "";
+          const lower = msg.toLowerCase();
+          if (lower.includes("fetch") || lower.includes("network") || lower.includes("failed to fetch")) {
+            return "Couldn't reach the LLM. Check your connection and try again.";
+          }
+          if (lower.includes("429") || lower.includes("rate limit") || lower.includes("rate-limit")) {
+            return "Rate limited by the LLM. Wait a moment and retry.";
+          }
+          if (lower.includes("401") || lower.includes("unauthorized") || lower.includes("api key")) {
+            return "The LLM rejected the request. Check your API key in the chat settings.";
+          }
+          if (lower.includes("timeout") || lower.includes("timed out")) {
+            return "The LLM took too long to respond. Try again, or regenerate with a smaller document.";
+          }
+          if (msg) return msg;
+          return "Could not extract concepts. Try regenerating.";
+        }
+
+        function showMindmapError(msg, kind) {
+          const { errorPane, errorMsg } = getMindmapEls();
+          if (!errorPane || !errorMsg) return;
+          errorMsg.textContent = msg;
+          errorPane.dataset.kind = kind || "generic";
+          errorPane.classList.remove("is-hidden");
+        }
+
+        document.getElementById("mindmapBtn").addEventListener("click", () => {
+          runMindmapPipeline({ force: false });
+        });
+
+        document.getElementById("mindmapRegenerateBtn").addEventListener("click", () => {
+          runMindmapPipeline({ force: true });
+        });
+
+        document.getElementById("mindmapRetryBtn").addEventListener("click", () => {
+          runMindmapPipeline({ force: true });
         });
 
         els.fileInput.addEventListener("change", async function (event) {
