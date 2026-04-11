@@ -133,9 +133,9 @@
         --mm-primary-label-size: calc(var(--reading-font-size, 19px) * 0.84);
         --mm-secondary-label-size: calc(var(--reading-font-size, 19px) * 0.74);
         --mm-badge-size: 10px;
-        --mm-ring-1-radius: 240px;
-        --mm-ring-2-radius: 480px;
-        --mm-ring-3-radius: 700px;
+        --mm-ring-1-radius: 320px;
+        --mm-ring-2-radius: 620px;
+        --mm-ring-3-radius: 920px;
         --mm-node-padding-x: 20px;
         --mm-node-padding-y: 14px;
         --mm-node-gap-min: 28px;
@@ -1683,10 +1683,14 @@
       /* ── Nodes ──────────────────────────────────────────────── */
 
       .mm-node {
-        cursor: pointer;
+        cursor: default;
         transition: transform 200ms cubic-bezier(0.34, 1.3, 0.64, 1);
         transform-box: fill-box;
         transform-origin: center;
+      }
+
+      .mm-node.is-interactive {
+        cursor: pointer;
       }
 
       .mm-node-card {
@@ -1697,7 +1701,7 @@
         transition: stroke 180ms, filter 220ms;
       }
 
-      .mm-node:hover .mm-node-card {
+      .mm-node.is-interactive:hover .mm-node-card {
         stroke: var(--mm-node-border-hover);
         filter: var(--mm-node-filter-hover);
       }
@@ -1707,7 +1711,7 @@
         stroke: var(--mm-node-border-hover);
       }
 
-      .mm-node:focus-visible .mm-node-card {
+      .mm-node.is-interactive:focus-visible .mm-node-card {
         stroke: var(--accent-fg);
         stroke-width: 2;
         outline: none;
@@ -3717,7 +3721,7 @@ Drop a .md file anywhere on the page, or open one with the Open button."
                 Concept Mindmap
               </h2>
               <p id="mindmapViewerHelp" class="mindmap-viewer-help">
-                Click any concept to jump to its section. Drag to pan, scroll to zoom.
+                Click a linked concept to jump to its section. Drag to pan, scroll to zoom.
               </p>
             </div>
             <div class="mindmap-viewer-actions" aria-label="Mindmap viewer actions">
@@ -7613,7 +7617,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
          * @typedef {Object} ConceptNode
          * @property {string} id
          * @property {string} label
-         * @property {"goal"|"non_goal"|"feature"|"constraint"|"actor"|"assumption"|"open_question"|"success_metric"} type
+         * @property {"goal"|"non_goal"|"feature"|"constraint"|"dependency"|"actor"|"assumption"|"open_question"|"success_metric"} type
          * @property {string} summary
          * @property {string|null} sourceAnchor
          * @property {string} parent
@@ -7631,6 +7635,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           non_goal: "--ont-definition",
           feature: "--ont-instruction",
           constraint: "--ont-argument",
+          dependency: "--ont-argument",
           actor: "--ont-narrative",
           assumption: "--ont-example",
           open_question: "--ont-unknown",
@@ -7642,6 +7647,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           non_goal: "Non-goal",
           feature: "Feature",
           constraint: "Constraint",
+          dependency: "Dependency",
           actor: "Actor",
           assumption: "Assumption",
           open_question: "Open question",
@@ -7690,9 +7696,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
          * @param {{ring1:number, ring2:number, ring3:number}} [config]
          */
         function computeRadialLayout(graph, config) {
-          const ring1 = (config && config.ring1) || 240;
-          const ring2 = (config && config.ring2) || 480;
-          const ring3 = (config && config.ring3) || 700;
+          const ring1 = (config && config.ring1) || 320;
+          const ring2 = (config && config.ring2) || 620;
+          const ring3 = (config && config.ring3) || 920;
           const ringRadii = [0, ring1, ring2, ring3];
 
           // Index nodes by id. Root is synthetic from graph.root.
@@ -7911,9 +7917,12 @@ Paste markdown on the left, open a local file, or drag one into the page.
             g.setAttribute("data-depth", String(node.depth));
             g.setAttribute("data-id", node.id);
             g.setAttribute("data-type", node.type);
-            g.setAttribute("role", "button");
-            g.setAttribute("tabindex", "0");
-            g.setAttribute("aria-label", `${MINDMAP_TYPE_LABEL[node.type] || node.type || "Concept"}: ${node.label}`);
+            if (node.depth > 0) {
+              g.classList.add("is-interactive");
+              g.setAttribute("role", "button");
+              g.setAttribute("tabindex", "0");
+              g.setAttribute("aria-label", `${MINDMAP_TYPE_LABEL[node.type] || node.type || "Concept"}: ${node.label}`);
+            }
             g.style.setProperty("--mm-stagger", String(idx));
 
             // Measure the label to size the card.
@@ -8019,7 +8028,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
             if (n.depth > 0 && n.type && MINDMAP_TYPE_LABEL[n.type]) seen.add(n.type);
           }
           target.textContent = "";
-          const order = ["goal", "non_goal", "feature", "constraint", "actor", "assumption", "success_metric", "open_question"];
+          const order = ["goal", "non_goal", "feature", "constraint", "dependency", "actor", "assumption", "success_metric", "open_question"];
           for (const type of order) {
             if (!seen.has(type)) continue;
             const chip = document.createElement("span");
@@ -8068,6 +8077,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           currentGraph: null,
           currentDocHash: null,
           previouslyFocused: null,
+          hideTimer: 0,
         };
 
         const MINDMAP_MAX_MARKDOWN_CHARS = 20000;
@@ -8089,6 +8099,10 @@ Paste markdown on the left, open a local file, or drag one into the page.
         function openMindmapViewer() {
           const { viewer } = getMindmapEls();
           if (!viewer) return;
+          if (mindmapState.hideTimer) {
+            clearTimeout(mindmapState.hideTimer);
+            mindmapState.hideTimer = 0;
+          }
           mindmapState.previouslyFocused = document.activeElement;
           viewer.hidden = false;
           requestAnimationFrame(() => {
@@ -8102,15 +8116,46 @@ Paste markdown on the left, open a local file, or drag one into the page.
         function closeMindmapViewer() {
           const { viewer } = getMindmapEls();
           if (!viewer) return;
+          if (mindmapState.hideTimer) {
+            clearTimeout(mindmapState.hideTimer);
+          }
           viewer.setAttribute("aria-hidden", "true");
           document.body.classList.remove("mindmap-open");
-          setTimeout(() => {
-            viewer.hidden = true;
+          mindmapState.hideTimer = setTimeout(() => {
+            if (viewer.getAttribute("aria-hidden") === "true") {
+              viewer.hidden = true;
+            }
+            mindmapState.hideTimer = 0;
           }, 260);
           // Restore focus to whatever had it before open.
           if (mindmapState.previouslyFocused && typeof mindmapState.previouslyFocused.focus === "function") {
             try { mindmapState.previouslyFocused.focus(); } catch (_) {}
           }
+        }
+
+        function isMindmapFocusable(element) {
+          if (!element) return false;
+          if (element.hasAttribute("disabled")) return false;
+          if (element.closest("[hidden], .is-hidden, [aria-hidden=\"true\"]")) {
+            return false;
+          }
+          const style = window.getComputedStyle(element);
+          if (style.display === "none" || style.visibility === "hidden") {
+            return false;
+          }
+          return typeof element.getClientRects === "function"
+            ? element.getClientRects().length > 0
+            : true;
+        }
+
+        function getMindmapFocusableElements() {
+          const { viewer } = getMindmapEls();
+          if (!viewer) return [];
+          return Array.from(
+            viewer.querySelectorAll(
+              'button, [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter(isMindmapFocusable);
         }
 
         /**
@@ -8121,9 +8166,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           if (event.key !== "Tab") return;
           const { viewer } = getMindmapEls();
           if (!viewer || viewer.getAttribute("aria-hidden") === "true") return;
-          const focusables = viewer.querySelectorAll(
-            'button, [tabindex="0"], [tabindex]:not([tabindex="-1"])',
-          );
+          const focusables = getMindmapFocusableElements();
           if (focusables.length === 0) return;
           const first = focusables[0];
           const last = focusables[focusables.length - 1];
@@ -8306,29 +8349,136 @@ Paste markdown on the left, open a local file, or drag one into the page.
          * Jump to the source section corresponding to a node.
          * Scrolls the preview, applies a transient highlight to the heading.
          */
+        function slugifyMindmapText(text) {
+          return String(text || "")
+            .toLowerCase()
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/&/g, " and ")
+            .replace(/[^a-z0-9\s-]/g, " ")
+            .trim()
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-");
+        }
+
+        function normalizeMindmapToken(token) {
+          const value = String(token || "").toLowerCase();
+          if (value.endsWith("ies") && value.length > 4) return value.slice(0, -3) + "y";
+          if (value.endsWith("s") && value.length > 3) return value.slice(0, -1);
+          return value;
+        }
+
+        function getMindmapNodeById(id) {
+          return mindmapState.laid && mindmapState.laid.nodes
+            ? mindmapState.laid.nodes.find((n) => n.id === id) || null
+            : null;
+        }
+
+        function findMindmapTargetByAnchor(preview, anchor) {
+          if (!anchor) return null;
+          let target = preview.querySelector(`#${CSS.escape(anchor)}`);
+          if (target) return target;
+
+          const slug = String(anchor).toLowerCase();
+          const headings = preview.querySelectorAll("h1, h2, h3, h4, h5, h6");
+          for (const heading of headings) {
+            if (heading.id && heading.id.toLowerCase() === slug) {
+              return heading;
+            }
+          }
+          return null;
+        }
+
+        function resolveMindmapTarget(node, preview) {
+          if (!node || !preview) return null;
+
+          const triedAnchors = new Set();
+          const tryAnchor = (anchor) => {
+            if (!anchor || triedAnchors.has(anchor)) return null;
+            triedAnchors.add(anchor);
+            return findMindmapTargetByAnchor(preview, anchor);
+          };
+
+          let target = tryAnchor(node.sourceAnchor);
+          if (target) return target;
+
+          target = tryAnchor(slugifyMindmapText(node.label));
+          if (target) return target;
+
+          let ancestorId = node.parent;
+          while (ancestorId) {
+            const ancestor = getMindmapNodeById(ancestorId);
+            if (!ancestor) break;
+            target = tryAnchor(ancestor.sourceAnchor);
+            if (target) return target;
+            ancestorId = ancestor.parent;
+          }
+
+          const headings = Array.from(preview.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+          if (headings.length === 0) return null;
+
+          const labelTokens = Array.from(
+            new Set(
+              String(node.label || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .map(normalizeMindmapToken)
+                .filter((token) => token.length > 2),
+            ),
+          );
+          const summaryTokens = Array.from(
+            new Set(
+              String(node.summary || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .map(normalizeMindmapToken)
+                .filter((token) => token.length > 3),
+            ),
+          );
+
+          let best = null;
+          for (const heading of headings) {
+            const headingText = heading.textContent.trim();
+            const headingSlug = slugifyMindmapText(headingText);
+            let score = 0;
+
+            if (headingSlug && headingSlug === slugifyMindmapText(node.label)) score += 8;
+
+            const headingTokens = new Set(
+              headingText
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .map(normalizeMindmapToken)
+                .filter((token) => token.length > 2),
+            );
+
+            for (const token of labelTokens) {
+              if (headingTokens.has(token)) score += 3;
+            }
+            for (const token of summaryTokens) {
+              if (headingTokens.has(token)) score += 1;
+            }
+
+            if (!best || score > best.score) {
+              best = { heading, score };
+            }
+          }
+
+          return best && best.score > 0 ? best.heading : null;
+        }
+
         function jumpToMindmapSource(node) {
           if (!node) return;
-          closeMindmapViewer();
-          if (!node.sourceAnchor) return;
 
           const preview = document.getElementById("preview");
           if (!preview) return;
-
-          // Find an element with id matching the anchor, or a heading containing the slug.
-          let target = preview.querySelector(`#${CSS.escape(node.sourceAnchor)}`);
-          if (!target) {
-            // Fallback: marked's Slugger gives headings matching slugs; try stripping.
-            const slug = node.sourceAnchor.toLowerCase();
-            const candidates = preview.querySelectorAll("h1, h2, h3, h4, h5, h6");
-            for (const c of candidates) {
-              if (c.id && c.id.toLowerCase() === slug) {
-                target = c;
-                break;
-              }
-            }
-          }
+          const target = resolveMindmapTarget(node, preview);
           if (!target) return;
 
+          closeMindmapViewer();
           target.scrollIntoView({ behavior: "smooth", block: "start" });
           target.classList.add("mm-jump-flash");
           setTimeout(() => target.classList.remove("mm-jump-flash"), 1800);
@@ -8343,7 +8493,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
             const id = g.getAttribute("data-id");
             if (!mindmapState.laid) return;
             const node = mindmapState.laid.nodes.find((n) => n.id === id);
-            if (node) jumpToMindmapSource(node);
+            if (node && node.depth > 0) jumpToMindmapSource(node);
           });
           nodesG.addEventListener("keydown", (event) => {
             if (event.key !== "Enter" && event.key !== " ") return;
@@ -8352,7 +8502,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
             event.preventDefault();
             const id = g.getAttribute("data-id");
             const node = mindmapState.laid && mindmapState.laid.nodes.find((n) => n.id === id);
-            if (node) jumpToMindmapSource(node);
+            if (node && node.depth > 0) jumpToMindmapSource(node);
           });
         }
 
@@ -8411,7 +8561,8 @@ Paste markdown on the left, open a local file, or drag one into the page.
          * Concept Mindmap — content hash + local cache
          * ============================================================ */
 
-        const MINDMAP_CACHE_KEY = "markv:mindmap-cache:v1";
+        // v2 invalidates the old fixture-backed cache entries.
+        const MINDMAP_CACHE_KEY = "markv:mindmap-cache:v2";
         const MINDMAP_CACHE_MAX = 12;
 
         async function hashString(str) {
@@ -8481,7 +8632,7 @@ REQUIREMENTS:
 - Primary nodes (parent: "root"): 4-7 load-bearing concepts a reader must understand.
 - Secondary nodes: decomposition of a primary, max 3-4 children per primary.
 - Total non-root nodes: max 24. Quality over coverage.
-- Each node.type must be one of: goal, non_goal, feature, constraint, actor, assumption, open_question, success_metric.
+- Each node.type must be one of: goal, non_goal, feature, constraint, dependency, actor, assumption, open_question, success_metric.
 - Each node.label: 1-5 words, human phrasing, no trailing punctuation.
 - Each node.summary: one sentence, max 180 characters.
 - Each node.sourceAnchor: the heading slug (kebab-case, lowercase, no #) if the concept maps to a specific heading; else null.
@@ -8525,17 +8676,139 @@ Return JSON only.`;
          * Accepts raw LLM output (potentially with markdown fences) and returns
          * a validated ConceptGraph. Throws with a helpful message on failure.
          */
+        function extractBalancedJsonObject(text) {
+          const firstBrace = text.indexOf("{");
+          if (firstBrace === -1) return text;
+
+          let start = firstBrace;
+          let depth = 0;
+          let inString = false;
+          let escaped = false;
+
+          for (let i = firstBrace; i < text.length; i++) {
+            const ch = text[i];
+            if (inString) {
+              if (escaped) {
+                escaped = false;
+              } else if (ch === "\\") {
+                escaped = true;
+              } else if (ch === "\"") {
+                inString = false;
+              }
+              continue;
+            }
+
+            if (ch === "\"") {
+              inString = true;
+              continue;
+            }
+            if (ch === "{") {
+              if (depth === 0) start = i;
+              depth += 1;
+            } else if (ch === "}") {
+              depth -= 1;
+              if (depth === 0) {
+                return text.slice(start, i + 1);
+              }
+            }
+          }
+
+          return text;
+        }
+
+        function stripJsonTrailingCommas(text) {
+          let out = "";
+          let inString = false;
+          let escaped = false;
+
+          for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            if (inString) {
+              out += ch;
+              if (escaped) {
+                escaped = false;
+              } else if (ch === "\\") {
+                escaped = true;
+              } else if (ch === "\"") {
+                inString = false;
+              }
+              continue;
+            }
+
+            if (ch === "\"") {
+              inString = true;
+              out += ch;
+              continue;
+            }
+
+            if (ch === ",") {
+              let j = i + 1;
+              while (j < text.length && /\s/.test(text[j])) j += 1;
+              if (text[j] === "}" || text[j] === "]") {
+                continue;
+              }
+            }
+
+            out += ch;
+          }
+
+          return out;
+        }
+
+        function normalizeMindmapJsonText(raw) {
+          let text = String(raw || "").trim().replace(/^\uFEFF/, "");
+          const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+          if (fenceMatch) text = fenceMatch[1].trim();
+          return extractBalancedJsonObject(text).trim();
+        }
+
+        const MINDMAP_TYPE_ALIASES = {
+          goal: "goal",
+          goals: "goal",
+          non_goal: "non_goal",
+          non_goals: "non_goal",
+          nongoal: "non_goal",
+          nongoals: "non_goal",
+          feature: "feature",
+          features: "feature",
+          constraint: "constraint",
+          constraints: "constraint",
+          dependency: "dependency",
+          dependencies: "dependency",
+          actor: "actor",
+          actors: "actor",
+          assumption: "assumption",
+          assumptions: "assumption",
+          open_question: "open_question",
+          open_questions: "open_question",
+          question: "open_question",
+          questions: "open_question",
+          success_metric: "success_metric",
+          success_metrics: "success_metric",
+          metric: "success_metric",
+          metrics: "success_metric",
+          kpi: "success_metric",
+          kpis: "success_metric",
+        };
+
+        function normalizeMindmapNodeType(type) {
+          if (typeof type !== "string") return type;
+          const canonical = type.trim().toLowerCase().replace(/[\s-]+/g, "_");
+          return MINDMAP_TYPE_ALIASES[canonical] || canonical;
+        }
+
         function parseAndValidateGraph(raw) {
           if (typeof raw !== "string") throw new Error("LLM returned non-string output");
-          let text = raw.trim();
-          // Strip fences if present.
-          const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-          if (fenceMatch) text = fenceMatch[1].trim();
+          const text = normalizeMindmapJsonText(raw);
           let parsed;
           try {
             parsed = JSON.parse(text);
           } catch (e) {
-            throw new Error(`LLM output is not valid JSON: ${e.message}`);
+            try {
+              parsed = JSON.parse(stripJsonTrailingCommas(text));
+            } catch (_) {
+              throw new Error(`LLM output is not valid JSON: ${e.message}`);
+            }
           }
           if (!parsed || typeof parsed !== "object") throw new Error("Graph must be an object");
           if (!parsed.root || parsed.root.id !== "root" || typeof parsed.root.label !== "string") {
@@ -8547,11 +8820,22 @@ Return JSON only.`;
 
           const seen = new Set(["root"]);
           const allowedTypes = new Set(Object.keys(MINDMAP_TYPE_LABEL));
+          const allowedEdgeKinds = new Set([
+            "part_of",
+            "depends_on",
+            "blocks",
+            "supports",
+            "contradicts",
+            "measured_by",
+          ]);
+          const parentById = new Map([["root", null]]);
           for (const n of parsed.nodes) {
             if (!n.id || typeof n.id !== "string") throw new Error("Node missing id");
             if (seen.has(n.id)) throw new Error(`Duplicate node id: ${n.id}`);
             seen.add(n.id);
+            parentById.set(n.id, n.parent);
             if (!n.label || typeof n.label !== "string") throw new Error(`Node ${n.id} missing label`);
+            n.type = normalizeMindmapNodeType(n.type);
             if (!allowedTypes.has(n.type)) throw new Error(`Node ${n.id} has invalid type: ${n.type}`);
             if (!n.parent || typeof n.parent !== "string") throw new Error(`Node ${n.id} missing parent`);
             if (typeof n.summary !== "string") n.summary = "";
@@ -8564,6 +8848,41 @@ Return JSON only.`;
             }
           }
           if (!Array.isArray(parsed.edges)) parsed.edges = [];
+          for (const edge of parsed.edges) {
+            if (!edge || typeof edge !== "object") throw new Error("Edge must be an object");
+            if (!seen.has(edge.from)) throw new Error(`Edge references unknown node ${edge.from}`);
+            if (!seen.has(edge.to)) throw new Error(`Edge references unknown node ${edge.to}`);
+            if (!allowedEdgeKinds.has(edge.kind)) throw new Error(`Edge has invalid kind: ${edge.kind}`);
+          }
+
+          const visitState = new Map();
+          const depthById = new Map([["root", 0]]);
+          function resolveDepth(id) {
+            if (id === "root") return 0;
+            const state = visitState.get(id);
+            if (state === "visiting") {
+              throw new Error(`Cycle detected in parent chain at ${id}`);
+            }
+            if (state === "done") return depthById.get(id);
+
+            visitState.set(id, "visiting");
+            const parentId = parentById.get(id);
+            if (!parentById.has(parentId)) {
+              throw new Error(`Node ${id} is not rooted under root`);
+            }
+
+            const depth = resolveDepth(parentId) + 1;
+            if (depth > 3) {
+              throw new Error(`Node ${id} exceeds supported depth`);
+            }
+            depthById.set(id, depth);
+            visitState.set(id, "done");
+            return depth;
+          }
+
+          for (const n of parsed.nodes) {
+            resolveDepth(n.id);
+          }
           return parsed;
         }
 
@@ -12012,16 +12331,6 @@ Return JSON only.`;
         wireMindmapNodeClicks();
         wireMindmapHover();
 
-        // TEMPORARY: fixture-returning stub. Replace with the real chat
-        // feature's LLM client when available.
-        if (!window.markvLLM) {
-          window.markvLLM = function mockMarkvLLM() {
-            return new Promise((resolve) => {
-              setTimeout(() => resolve(JSON.stringify(MINDMAP_FIXTURE)), 600);
-            });
-          };
-        }
-
         async function runMindmapPipeline(options) {
           const force = !!(options && options.force);
           const { loading, errorPane } = getMindmapEls();
@@ -12103,6 +12412,9 @@ Return JSON only.`;
         function humanizeMindmapError(err) {
           const msg = (err && err.message) || "";
           const lower = msg.toLowerCase();
+          if (lower.includes("cors_blocked")) {
+            return "Browser access to Ollama is blocked by CORS. Allow this viewer origin in OLLAMA_ORIGINS, then try again.";
+          }
           if (lower.includes("fetch") || lower.includes("network") || lower.includes("failed to fetch")) {
             return "Couldn't reach the LLM. Check your connection and try again.";
           }
@@ -14561,11 +14873,19 @@ Return JSON only.`;
           return response;
         }
 
-        async function callOllama(messages) {
+        async function callOllama(messages, options) {
+          const opts = options || {};
           const raw = endpointInput.value.trim().replace(/\/+$/, "");
           const endpoint = normalizeOllamaEndpoint(raw);
           const model = modelInput.value.trim() || "gemma4:26b";
-          const body = { model: model, messages: messages, stream: true };
+          const body = {
+            model: model,
+            messages: messages,
+            stream: opts.stream !== false,
+          };
+          if (opts.format) {
+            body.format = opts.format;
+          }
 
           // Build a list of endpoints to try.
           // Browsers treat "localhost" and "127.0.0.1" as different origins;
@@ -14604,6 +14924,45 @@ Return JSON only.`;
             throw new Error("CORS_BLOCKED");
           }
           throw lastErr;
+        }
+
+        async function callOllamaJson(messages, options) {
+          const opts = options || {};
+          const response = await callOllama(messages, {
+            stream: false,
+            format: opts.format,
+          });
+          let parsed;
+          try {
+            parsed = await response.json();
+          } catch (error) {
+            throw new Error("LLM returned an unreadable response");
+          }
+          const content =
+            parsed &&
+            parsed.message &&
+            typeof parsed.message.content === "string"
+              ? parsed.message.content
+              : "";
+          if (!content.trim()) {
+            throw new Error("LLM returned no message content");
+          }
+          return content;
+        }
+
+        if (typeof window.markvLLM !== "function") {
+          window.markvLLM = async function markvMindmapLLM(payload) {
+            const request = payload || {};
+            const system = String(request.system || "").trim();
+            const user = String(request.user || "").trim();
+            if (!system || !user) {
+              throw new Error("Mindmap extraction request was incomplete");
+            }
+            return callOllamaJson([
+              { role: "system", content: system },
+              { role: "user", content: user },
+            ], { format: "json" });
+          };
         }
 
         async function streamResponse(response, msgDiv) {
