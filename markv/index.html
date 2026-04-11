@@ -8293,6 +8293,65 @@ Paste markdown on the left, open a local file, or drag one into the page.
           };
         }
 
+        function clearMindmapSurface() {
+          const { svgRoot, zoomLabel, tooltip, loading, errorPane, errorMsg } =
+            getMindmapEls();
+          const edgesG = document.getElementById("mindmapEdges");
+          const nodesG = document.getElementById("mindmapNodes");
+          const legend = document.getElementById("mindmapLegend");
+          const srList = document.getElementById("mindmapSrList");
+          if (edgesG) edgesG.textContent = "";
+          if (nodesG) nodesG.textContent = "";
+          if (legend) legend.textContent = "";
+          if (srList) srList.textContent = "";
+          if (svgRoot) {
+            svgRoot.classList.remove("is-interactive");
+            svgRoot.setAttribute("transform", "translate(0 0) scale(1)");
+          }
+          if (zoomLabel) zoomLabel.textContent = "100%";
+          if (tooltip) tooltip.classList.remove("is-visible");
+          if (loading) loading.classList.add("is-hidden");
+          if (errorPane) {
+            errorPane.classList.add("is-hidden");
+            errorPane.dataset.kind = "";
+          }
+          if (errorMsg) errorMsg.textContent = "Something went wrong.";
+        }
+
+        function resetMindmapState(options) {
+          const closeViewer = !!(options && options.closeViewer);
+          const forgetDocHash =
+            !options || options.forgetDocHash !== false;
+          const { viewer } = getMindmapEls();
+          if (mindmapState.hideTimer) {
+            clearTimeout(mindmapState.hideTimer);
+            mindmapState.hideTimer = 0;
+          }
+          if (closeViewer && viewer) {
+            viewer.setAttribute("aria-hidden", "true");
+            viewer.hidden = true;
+            document.body.classList.remove("mindmap-open");
+          }
+          clearMindmapSurface();
+          mindmapState.laid = null;
+          mindmapState.scale = 1;
+          mindmapState.tx = 0;
+          mindmapState.ty = 0;
+          mindmapState.baseScale = 1;
+          mindmapState.isPanning = false;
+          mindmapState.panStartX = 0;
+          mindmapState.panStartY = 0;
+          mindmapState.panStartTx = 0;
+          mindmapState.panStartTy = 0;
+          mindmapState.currentGraph = null;
+          if (forgetDocHash) {
+            mindmapState.currentDocHash = null;
+          }
+          if (closeViewer) {
+            mindmapState.previouslyFocused = null;
+          }
+        }
+
         function openMindmapViewer() {
           const { viewer } = getMindmapEls();
           if (!viewer) return;
@@ -10966,9 +11025,14 @@ Return JSON only.`;
           const canReload = Boolean(
             state.fileHandle || state.sourceMode === "file",
           );
+          const canOpenMindmap = Boolean((els.editor.value || "").trim());
           els.reloadBtn.disabled = !canReload;
           const canAutoRefresh = Boolean(state.fileHandle);
           els.autoRefreshToggle.disabled = !canAutoRefresh;
+          const mindmapBtn = document.getElementById("mindmapBtn");
+          if (mindmapBtn) {
+            mindmapBtn.disabled = !canOpenMindmap;
+          }
           if (!canAutoRefresh) {
             els.autoRefreshToggle.checked = false;
             stopAutoRefresh();
@@ -11885,6 +11949,7 @@ Return JSON only.`;
                 "</code></pre>";
             }
           } else {
+            resetMindmapState({ closeViewer: false });
             html =
               '<div class="empty-state">' +
               '<div class="empty-state-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor"><path d="M46 0L46 46L0 46Q6 6 46 0Z"/><path d="M54 0L54 46L100 46Q94 6 54 0Z"/><path d="M46 100L46 54L0 54Q6 94 46 100Z"/><path d="M54 100L54 54L100 54Q94 94 54 100Z"/></svg></div>' +
@@ -11916,6 +11981,7 @@ Return JSON only.`;
           state.lastRenderedText = markdown;
           state.lastRenderedDocumentToken = documentToken;
           writeStorage(window.sessionStorage, SESSION_CONTENT_KEY, markdown);
+          updateUiState();
 
           const label = state.currentName ? state.currentName + " • " : "";
           const action =
@@ -12145,6 +12211,7 @@ Return JSON only.`;
           state.highlightTextModel = null;
 
           els.editor.value = "";
+          resetMindmapState({ closeViewer: true });
 
           removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
           updateUiState();
@@ -12158,6 +12225,7 @@ Return JSON only.`;
 
         els.editor.addEventListener("input", function () {
           syncEditorSelectionState();
+          updateUiState();
           scheduleRender();
         });
 
@@ -12541,6 +12609,7 @@ Return JSON only.`;
           if (loading) loading.classList.add("is-hidden");
 
           if (!rawMarkdown.trim()) {
+            resetMindmapState({ closeViewer: false });
             showMindmapError(
               "Load a markdown document first, then open the mindmap.",
               "empty_document",
@@ -12557,6 +12626,9 @@ Return JSON only.`;
           }
 
           const docHash = await hashString(markdown);
+          if (docHash !== mindmapState.currentDocHash) {
+            resetMindmapState({ closeViewer: false });
+          }
           mindmapState.currentDocHash = docHash;
 
           // Cache check
