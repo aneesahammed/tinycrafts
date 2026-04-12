@@ -142,3 +142,4 @@ markv/.DS_Store
 /output
 /markv/docs
 /.playwright-mcp
+/markv/.claude

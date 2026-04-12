@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-+DuK4j3o3tRKTkYlSvyzK2PW5ni5cP2hunsLXKiBP6w=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-BG7qSuBDLKsPNTu3EDDcFkR2AXDPRChVW2yjIpw3DBI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-K3z9OEm5blvwI9pJtnjmYA0ore/GXXCwYdjXNoZwgHk=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-BG7qSuBDLKsPNTu3EDDcFkR2AXDPRChVW2yjIpw3DBI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -612,6 +612,19 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         font-feature-settings: "tnum";
+      }
+      .word-count {
+        font-family: var(--font-sans);
+        font-size: 12px;
+        color: var(--fg-subtle);
+        white-space: nowrap;
+        font-feature-settings: "tnum";
+        opacity: 0.7;
+      }
+      .word-count::before {
+        content: "·";
+        margin: 0 6px;
+        opacity: 0.5;
       }
       .status[data-kind="error"] {
         color: #b05050;
@@ -3601,6 +3614,7 @@
         </div>
 
         <div id="status" class="status">Ready</div>
+        <span id="wordCount" class="word-count" hidden></span>
         <div
           id="liveRegion"
           class="visually-hidden"
@@ -9683,6 +9697,7 @@ Return JSON only.`;
           readingResetBtn: document.getElementById("readingResetBtn"),
           readingCloseBtn: document.getElementById("readingCloseBtn"),
           status: document.getElementById("status"),
+          wordCount: document.getElementById("wordCount"),
           liveRegion: document.getElementById("liveRegion"),
           fileInput: document.getElementById("fileInput"),
           previewPane: document.querySelector(".preview-pane"),
@@ -11535,6 +11550,17 @@ Return JSON only.`;
           if (options.announce) announce(message);
         }
 
+        function updateWordCount() {
+          var text = els.editor.value.trim();
+          if (!text) {
+            els.wordCount.hidden = true;
+            return;
+          }
+          var count = text.split(/\s+/).length;
+          els.wordCount.textContent = count.toLocaleString() + (count === 1 ? " word" : " words");
+          els.wordCount.hidden = false;
+        }
+
         function updateUiState() {
           const canReload = Boolean(
             state.fileHandle || state.sourceMode === "file",
@@ -12523,6 +12549,7 @@ Return JSON only.`;
 
           const detail = source === "editor" ? "" : " • " + nowString();
           setStatus(label + action + detail);
+          updateWordCount();
           document.dispatchEvent(
             new CustomEvent("markv:render-complete", {
               detail: {
