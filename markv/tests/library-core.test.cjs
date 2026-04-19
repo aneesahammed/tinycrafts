@@ -119,3 +119,92 @@ test("clears library collection state for a full reset", () => {
     },
   );
 });
+
+test("normalizes imported folder files into library entries", () => {
+  assert.deepEqual(
+    core.prepareImportedLibraryEntries?.([
+      {
+        name: "README.md",
+        webkitRelativePath: "docs/README.md",
+      },
+      {
+        name: "intro.MD",
+        webkitRelativePath: "docs/guides/intro.MD",
+      },
+      {
+        name: "logo.png",
+        webkitRelativePath: "docs/assets/logo.png",
+      },
+      {
+        name: "notes.txt",
+        webkitRelativePath: "docs/notes.txt",
+      },
+    ]),
+    {
+      rootName: "docs",
+      entries: [
+        { path: "README.md", name: "README.md" },
+        { path: "guides/intro.MD", name: "intro.MD" },
+        { path: "notes.txt", name: "notes.txt" },
+      ],
+    },
+  );
+});
+
+test("describes refresh capabilities for each source mode", () => {
+  assert.deepEqual(
+    core.getReaderRefreshState?.({
+      sourceMode: "handle",
+      hasFileHandle: true,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+    }),
+    {
+      canReload: true,
+      canAutoRefresh: true,
+      reloadAction: "file-handle",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderRefreshState?.({
+      sourceMode: "library",
+      hasFileHandle: false,
+      hasLibraryFileHandle: true,
+      librarySourceType: "persistent",
+    }),
+    {
+      canReload: true,
+      canAutoRefresh: true,
+      reloadAction: "library-persistent",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderRefreshState?.({
+      sourceMode: "library",
+      hasFileHandle: false,
+      hasLibraryFileHandle: true,
+      librarySourceType: "snapshot",
+    }),
+    {
+      canReload: true,
+      canAutoRefresh: false,
+      reloadAction: "library-snapshot",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderRefreshState?.({
+      sourceMode: "file",
+      hasFileHandle: false,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+    }),
+    {
+      canReload: true,
+      canAutoRefresh: false,
+      reloadAction: "file-picker",
+    },
+  );
+});

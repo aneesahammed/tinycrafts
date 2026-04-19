@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-bnDHPIKOR+vIQdT9+4T4aJb//1Av8d7hkFamaKnJC8I=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-7+nh2zr8ItLdYTO1kNB0uHwtsTTbyKeb/SqrEYzgrxE=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -4478,6 +4478,13 @@
           id="fileInput"
           type="file"
           accept=".md,.markdown,.mdown,.mkdn,.txt,text/markdown,text/plain"
+          hidden
+        />
+        <input
+          id="libraryFolderInput"
+          type="file"
+          webkitdirectory
+          multiple
           hidden
         />
       </header>
@@ -10498,6 +10505,7 @@ Return JSON only.`;
           wordCount: document.getElementById("wordCount"),
           liveRegion: document.getElementById("liveRegion"),
           fileInput: document.getElementById("fileInput"),
+          libraryFolderInput: document.getElementById("libraryFolderInput"),
           previewPane: document.querySelector(".preview-pane"),
           selectionBubble: document.getElementById("selectionBubble"),
           selectionHighlightBtn: document.getElementById(
@@ -10626,6 +10634,8 @@ Return JSON only.`;
           libraryActiveFilePath: "",
           libraryCurrentFileHandle: null,
           libraryCurrentFolderHandle: null,
+          libraryPendingImportTargetFolderId: "",
+          libraryPendingImportToken: 0,
           libraryIsOpen: false,
           libraryNextScanRevision: 0,
           highlightMemoryBuckets: {
@@ -10679,6 +10689,20 @@ Return JSON only.`;
               window.isSecureContext &&
               typeof indexedDB !== "undefined",
           );
+        }
+
+        function canUseLibraryStorage() {
+          return typeof indexedDB !== "undefined";
+        }
+
+        function canUseLibraryFolderImport() {
+          const input =
+            els.libraryFolderInput || document.createElement("input");
+          return Boolean(input && "webkitdirectory" in input);
+        }
+
+        function canUseAnyLibrary() {
+          return canUsePersistentLibrary() || canUseLibraryFolderImport();
         }
 
         function libraryIsSupportedFile(name) {
@@ -10756,6 +10780,115 @@ Return JSON only.`;
               ? currentRevision + 1
               : 1,
           };
+        }
+
+        function prepareImportedLibraryEntries(files) {
+          if (typeof libraryCore.prepareImportedLibraryEntries === "function") {
+            return libraryCore.prepareImportedLibraryEntries(files);
+          }
+          const list = Array.isArray(files) ? files : [];
+          let rootName = "";
+          const entries = [];
+          list.forEach(function (file) {
+            if (!file) return;
+            const rawPath =
+              typeof file.webkitRelativePath === "string" &&
+              file.webkitRelativePath
+                ? file.webkitRelativePath
+                : String(file.name || "");
+            const parts = rawPath.split("/").filter(Boolean);
+            if (!parts.length) return;
+            if (!rootName) rootName = parts[0];
+            const relativePath =
+              parts.length > 1 ? parts.slice(1).join("/") : parts[0];
+            if (!relativePath || !libraryIsSupportedFile(relativePath)) return;
+            entries.push({
+              path: relativePath,
+              name: parts[parts.length - 1],
+            });
+          });
+          return {
+            rootName: rootName,
+            entries: entries,
+          };
+        }
+
+        function getActiveLibrarySourceType() {
+          const folder = state.libraryActiveFolderId
+            ? getLibraryFolderById(state.libraryActiveFolderId)
+            : null;
+          return folder && typeof folder.sourceType === "string"
+            ? folder.sourceType
+            : "";
+        }
+
+        function getReaderRefreshState() {
+          if (typeof libraryCore.getReaderRefreshState === "function") {
+            return libraryCore.getReaderRefreshState({
+              sourceMode: state.sourceMode,
+              hasFileHandle: Boolean(state.fileHandle),
+              hasLibraryFileHandle: Boolean(state.libraryCurrentFileHandle),
+              librarySourceType: getActiveLibrarySourceType(),
+            });
+          }
+
+          const sourceMode = String(state.sourceMode || "editor");
+          const hasFileHandle = Boolean(state.fileHandle);
+          const hasLibraryFileHandle = Boolean(state.libraryCurrentFileHandle);
+          const librarySourceType = getActiveLibrarySourceType();
+          let reloadAction = "none";
+
+          if (hasFileHandle) {
+            reloadAction = "file-handle";
+          } else if (
+            sourceMode === "library" &&
+            hasLibraryFileHandle &&
+            librarySourceType === "persistent"
+          ) {
+            reloadAction = "library-persistent";
+          } else if (
+            sourceMode === "library" &&
+            hasLibraryFileHandle &&
+            librarySourceType === "snapshot"
+          ) {
+            reloadAction = "library-snapshot";
+          } else if (sourceMode === "file") {
+            reloadAction = "file-picker";
+          }
+
+          return {
+            canReload: reloadAction !== "none",
+            canAutoRefresh:
+              hasFileHandle ||
+              (sourceMode === "library" &&
+                hasLibraryFileHandle &&
+                librarySourceType === "persistent"),
+            reloadAction: reloadAction,
+          };
+        }
+
+        function requestLibraryFolderImport(options) {
+          options = options || {};
+          if (!els.libraryFolderInput) return;
+
+          state.libraryPendingImportTargetFolderId =
+            String(options.replaceFolderId || "");
+          state.libraryPendingImportToken = Date.now() + Math.random();
+          const token = state.libraryPendingImportToken;
+
+          window.addEventListener(
+            "focus",
+            function () {
+              window.setTimeout(function () {
+                if (state.libraryPendingImportToken !== token) return;
+                state.libraryPendingImportTargetFolderId = "";
+                state.libraryPendingImportToken = 0;
+              }, 150);
+            },
+            { once: true },
+          );
+
+          els.libraryFolderInput.click();
         }
 
         function readSessionMeta() {
@@ -10871,7 +11004,7 @@ Return JSON only.`;
             renderLibraryDrawer();
           }
 
-          if (!options.persist || !hadActiveSelection) {
+          if (!options.persist || !hadActiveSelection || !canUseLibraryStorage()) {
             return hadActiveSelection;
           }
 
@@ -10907,12 +11040,14 @@ Return JSON only.`;
           state.libraryCurrentFolderHandle =
             nextState.libraryCurrentFolderHandle;
           state.libraryNextScanRevision = nextState.libraryNextScanRevision;
+          state.libraryPendingImportTargetFolderId = "";
+          state.libraryPendingImportToken = 0;
 
           if (options.renderDrawer) {
             renderLibraryDrawer();
           }
 
-          if (!options.persist || !canUsePersistentLibrary()) {
+          if (!options.persist || !canUseLibraryStorage()) {
             return;
           }
 
@@ -10928,7 +11063,19 @@ Return JSON only.`;
             id: data.id,
             name: data.name,
             displayLabel: data.name,
-            handle: data.handle,
+            handle: data.handle || null,
+            sourceType:
+              data.sourceType || (data.handle ? "persistent" : "snapshot"),
+            snapshotFiles: Array.isArray(data.snapshotFiles)
+              ? data.snapshotFiles.map(function (item) {
+                  return {
+                    path: String(item && item.path ? item.path : ""),
+                    name: String(item && item.name ? item.name : ""),
+                    text: String(item && item.text ? item.text : ""),
+                    lastModified: Number(item && item.lastModified) || 0,
+                  };
+                })
+              : [],
             addedAt: Number(data.addedAt) || Date.now(),
             status: "loading",
             note: "",
@@ -10985,7 +11132,20 @@ Return JSON only.`;
               tx.objectStore(LIBRARY_FOLDER_STORE).put({
                 id: record.id,
                 name: record.name,
-                handle: record.handle,
+                handle:
+                  record.sourceType === "persistent" ? record.handle : null,
+                sourceType: record.sourceType,
+                snapshotFiles:
+                  record.sourceType === "snapshot"
+                    ? record.snapshotFiles.map(function (item) {
+                        return {
+                          path: item.path,
+                          name: item.name,
+                          text: item.text,
+                          lastModified: item.lastModified,
+                        };
+                      })
+                    : [],
                 addedAt: record.addedAt,
               });
               tx.oncomplete = function () {
@@ -11133,7 +11293,81 @@ Return JSON only.`;
           });
         }
 
+        function createSnapshotLibraryFileHandle(snapshotFile) {
+          return {
+            kind: "file",
+            name: snapshotFile.name,
+            getFile: async function () {
+              return new File([snapshotFile.text], snapshotFile.name, {
+                type: "text/plain",
+                lastModified: snapshotFile.lastModified || Date.now(),
+              });
+            },
+          };
+        }
+
+        async function hydrateSnapshotLibraryFolder(folder) {
+          const snapshotFiles = Array.isArray(folder.snapshotFiles)
+            ? folder.snapshotFiles.filter(function (item) {
+                return (
+                  item &&
+                  typeof item.path === "string" &&
+                  item.path &&
+                  libraryIsSupportedFile(item.path)
+                );
+              })
+            : [];
+
+          const fileHandlesByPath = new Map();
+          snapshotFiles.forEach(function (item) {
+            fileHandlesByPath.set(item.path, createSnapshotLibraryFileHandle(item));
+          });
+
+          const tree = attachLibraryFileHandles(
+            shapeLibraryTree(
+              snapshotFiles.map(function (item) {
+                return {
+                  kind: "file",
+                  path: item.path,
+                };
+              }),
+              {
+                expandedPaths: getLibraryExpandedPaths(folder.id),
+              },
+            ),
+            fileHandlesByPath,
+          );
+
+          folder.tree = tree;
+          folder.fileHandlesByPath = fileHandlesByPath;
+          folder.lastScannedAt = Date.now();
+          folder.status = tree.length ? "ready" : "empty";
+          folder.note = tree.length
+            ? "Imported snapshot"
+            : "No markdown files found in this folder.";
+
+          if (
+            state.libraryActiveFolderId === folder.id &&
+            state.libraryActiveFilePath &&
+            !findLibraryFileNode(tree, state.libraryActiveFilePath)
+          ) {
+            await clearActiveLibrarySelection({ persist: canUseLibraryStorage() });
+            if (state.sourceMode === "library") {
+              state.sourceMode = "editor";
+              updateUiState();
+            }
+          }
+
+          renderLibraryDrawer();
+        }
+
         async function scanLibraryFolder(folder) {
+          if (!folder) return;
+          if (folder.sourceType === "snapshot") {
+            await hydrateSnapshotLibraryFolder(folder);
+            return;
+          }
+
           const revision = ++state.libraryNextScanRevision;
           folder.scanRevision = revision;
           folder.status = "loading";
@@ -13055,18 +13289,24 @@ Return JSON only.`;
           if (!syncLibraryRefs()) return;
           if (!els.libraryBody) return;
 
-          const supported = canUsePersistentLibrary();
+          const persistentSupported = canUsePersistentLibrary();
+          const importSupported = canUseLibraryFolderImport();
+          const supported = persistentSupported || importSupported;
           els.libraryAddBtn.disabled =
             !supported || state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders;
 
           if (!supported) {
             els.librarySupportedNote.hidden = false;
             els.librarySupportedNote.textContent =
-              "Persistent folder libraries need File System Access support in a secure browser context.";
+              "This browser cannot add folders to the library yet.";
           } else if (state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders) {
             els.librarySupportedNote.hidden = false;
             els.librarySupportedNote.textContent =
               "The v1 library is capped at " + LIBRARY_LIMITS.maxFolders + " folders.";
+          } else if (!persistentSupported && importSupported) {
+            els.librarySupportedNote.hidden = false;
+            els.librarySupportedNote.textContent =
+              "This browser imports a folder snapshot rather than keeping a live folder connection.";
           } else {
             els.librarySupportedNote.hidden = true;
             els.librarySupportedNote.textContent = "";
@@ -13086,16 +13326,20 @@ Return JSON only.`;
                     ? "Permission needed"
                     : folder.status === "empty"
                       ? "Empty folder"
-                      : "Ready";
+                      : folder.sourceType === "snapshot"
+                        ? "Imported snapshot"
+                        : "Ready";
               const actions =
                 '<div class="lib-folder-actions">' +
                 (folder.status === "needs-permission"
                   ? '<button type="button" class="lib-action-btn" data-action="reauthorize-folder" data-folder-id="' +
                     escapeHtml(folder.id) +
                     '">Reauthorize</button>'
-                  : '<button type="button" class="lib-action-btn" data-action="refresh-folder" data-folder-id="' +
-                    escapeHtml(folder.id) +
-                    '">Refresh</button>') +
+                  : folder.sourceType === "persistent"
+                    ? '<button type="button" class="lib-action-btn" data-action="refresh-folder" data-folder-id="' +
+                      escapeHtml(folder.id) +
+                      '">Refresh</button>'
+                    : "") +
                 '<button type="button" class="lib-action-btn" data-action="remove-folder" data-folder-id="' +
                 escapeHtml(folder.id) +
                 '">Remove</button>' +
@@ -13304,9 +13548,11 @@ Return JSON only.`;
             ),
             folder.fileHandlesByPath,
           );
-          persistLibraryMeta().catch(function (error) {
-            console.warn("[library] could not persist expanded paths", error);
-          });
+          if (canUseLibraryStorage()) {
+            persistLibraryMeta().catch(function (error) {
+              console.warn("[library] could not persist expanded paths", error);
+            });
+          }
           renderLibraryDrawer();
         }
 
@@ -13326,7 +13572,7 @@ Return JSON only.`;
           const folder = getLibraryFolderById(folderId);
           if (!folder) return false;
 
-          if (folder.status === "needs-permission") {
+          if (folder.status === "needs-permission" && folder.handle) {
             if (!options.userInitiated) return false;
             const permission = await requestLibraryPermission(folder.handle);
             if (permission !== "granted") {
@@ -13361,7 +13607,7 @@ Return JSON only.`;
 
           state.fileHandle = null;
           state.libraryCurrentFileHandle = node.handle;
-          state.libraryCurrentFolderHandle = folder.handle;
+          state.libraryCurrentFolderHandle = folder.handle || null;
           state.libraryActiveFolderId = folder.id;
           state.libraryActiveFilePath = path;
           state.sourceMode = "library";
@@ -13375,9 +13621,11 @@ Return JSON only.`;
           render("library");
           renderLibraryDrawer();
 
-          await persistLibraryMeta().catch(function (error) {
-            console.warn("[library] failed to persist active file", error);
-          });
+          if (canUseLibraryStorage()) {
+            await persistLibraryMeta().catch(function (error) {
+              console.warn("[library] failed to persist active file", error);
+            });
+          }
 
           if (!options.quiet) {
             setStatus(file.name + " • loaded • " + nowString(), {
@@ -13393,6 +13641,13 @@ Return JSON only.`;
         async function refreshLibraryFolder(folderId) {
           const folder = getLibraryFolderById(folderId);
           if (!folder) return;
+          if (folder.sourceType === "snapshot") {
+            setStatus(
+              "This folder was imported as a snapshot • add it again to capture newer changes.",
+              { announce: true },
+            );
+            return;
+          }
           await scanLibraryFolder(folder);
           renderLibraryDrawer();
           setStatus((folder.displayLabel || folder.name) + " • refreshed", {
@@ -13402,7 +13657,7 @@ Return JSON only.`;
 
         async function reauthorizeLibraryFolder(folderId) {
           const folder = getLibraryFolderById(folderId);
-          if (!folder) return;
+          if (!folder || !folder.handle) return;
           const permission = await requestLibraryPermission(folder.handle);
           if (permission !== "granted") {
             folder.status = "needs-permission";
@@ -13440,12 +13695,14 @@ Return JSON only.`;
             }
           }
 
-          await libraryDeleteFolderFromDb(folderId).catch(function (error) {
-            console.warn("[library] failed to delete folder from db", error);
-          });
-          await persistLibraryMeta().catch(function (error) {
-            console.warn("[library] failed to persist removal", error);
-          });
+          if (canUseLibraryStorage()) {
+            await libraryDeleteFolderFromDb(folderId).catch(function (error) {
+              console.warn("[library] failed to delete folder from db", error);
+            });
+            await persistLibraryMeta().catch(function (error) {
+              console.warn("[library] failed to persist removal", error);
+            });
+          }
 
           renderLibraryDrawer();
           setStatus(
@@ -13457,6 +13714,7 @@ Return JSON only.`;
 
         async function getLibraryHandleConflict(targetHandle) {
           for (const folder of state.libraryFolders) {
+            if (!folder.handle || folder.sourceType !== "persistent") continue;
             try {
               if (await folder.handle.isSameEntry(targetHandle)) {
                 return "duplicate";
@@ -13472,8 +13730,122 @@ Return JSON only.`;
           return null;
         }
 
+        function getImportedLibraryRelativePath(file) {
+          const rawPath =
+            typeof file.webkitRelativePath === "string" && file.webkitRelativePath
+              ? file.webkitRelativePath
+              : String(file.name || "");
+          const parts = rawPath.split("/").filter(Boolean);
+          if (!parts.length) return "";
+          return parts.length > 1 ? parts.slice(1).join("/") : parts[0];
+        }
+
+        async function importLibraryFolderSnapshot(files, options) {
+          options = options || {};
+          const replaceFolderId = String(options.replaceFolderId || "");
+          const activePath =
+            replaceFolderId && state.libraryActiveFolderId === replaceFolderId
+              ? state.libraryActiveFilePath
+              : "";
+          const selectedFiles = Array.from(files || []);
+          const prepared = prepareImportedLibraryEntries(selectedFiles);
+          if (!prepared.rootName) {
+            setStatus(
+              "That folder could not be imported • Safari needs at least one file to build the library snapshot.",
+              { announce: true },
+            );
+            return;
+          }
+
+          const allowedPaths = new Set(
+            prepared.entries.map(function (entry) {
+              return entry.path;
+            }),
+          );
+          const snapshotFiles = [];
+          const seenPaths = new Set();
+
+          for (const file of selectedFiles) {
+            if (snapshotFiles.length >= LIBRARY_LIMITS.maxFiles) {
+              break;
+            }
+            const relativePath = getImportedLibraryRelativePath(file);
+            if (
+              !relativePath ||
+              !allowedPaths.has(relativePath) ||
+              seenPaths.has(relativePath)
+            ) {
+              continue;
+            }
+            seenPaths.add(relativePath);
+            snapshotFiles.push({
+              path: relativePath,
+              name: String(file.name || relativePath.split("/").pop() || "Untitled"),
+              text: await file.text(),
+              lastModified: Number(file.lastModified) || Date.now(),
+            });
+            if (snapshotFiles.length % LIBRARY_LIMITS.yieldEvery === 0) {
+              await yieldToUi();
+            }
+          }
+
+          let record = null;
+          if (replaceFolderId) {
+            record = getLibraryFolderById(replaceFolderId);
+          }
+
+          if (record) {
+            record.name = prepared.rootName;
+            record.snapshotFiles = snapshotFiles;
+            record.status = "loading";
+            record.note = "";
+          } else {
+            record = createLibraryFolderRecord({
+              id: nextLibraryFolderId(),
+              name: prepared.rootName,
+              sourceType: "snapshot",
+              snapshotFiles: snapshotFiles,
+              addedAt: Date.now(),
+            });
+            state.libraryFolders.push(record);
+          }
+
+          applyLibraryFolderOrder();
+          if (canUseLibraryStorage()) {
+            await libraryPutFolderInDb(record);
+            await persistLibraryMeta();
+          }
+          renderLibraryDrawer();
+          await scanLibraryFolder(record);
+
+          let restoredActiveFile = false;
+          if (record.id === replaceFolderId && activePath) {
+            restoredActiveFile = await loadFromLibrarySelection(
+              record.id,
+              activePath,
+              {
+                closeDrawerOnMobile: false,
+                quiet: false,
+                userInitiated: true,
+              },
+            );
+          }
+
+          if (!restoredActiveFile) {
+            setStatus(
+              record.displayLabel +
+                (replaceFolderId
+                  ? " • snapshot refreshed"
+                  : " • added as a folder snapshot"),
+              {
+                announce: true,
+              },
+            );
+          }
+        }
+
         async function addLibraryFolder() {
-          if (!canUsePersistentLibrary()) {
+          if (!canUseAnyLibrary()) {
             renderLibraryDrawer();
             return;
           }
@@ -13482,6 +13854,11 @@ Return JSON only.`;
               "Library limit reached • remove a folder before adding another.",
               { announce: true },
             );
+            return;
+          }
+
+          if (!canUsePersistentLibrary()) {
+            requestLibraryFolderImport();
             return;
           }
 
@@ -13508,12 +13885,15 @@ Return JSON only.`;
               id: nextLibraryFolderId(),
               name: handle.name,
               handle: handle,
+              sourceType: "persistent",
               addedAt: Date.now(),
             });
             state.libraryFolders.push(record);
             applyLibraryFolderOrder();
-            await libraryPutFolderInDb(record);
-            await persistLibraryMeta();
+            if (canUseLibraryStorage()) {
+              await libraryPutFolderInDb(record);
+              await persistLibraryMeta();
+            }
             renderLibraryDrawer();
             await scanLibraryFolder(record);
             setStatus(record.displayLabel + " • added to library", {
@@ -13532,7 +13912,7 @@ Return JSON only.`;
 
         async function restoreLibraryFromStorage(sessionMeta) {
           renderLibraryDrawer();
-          if (!canUsePersistentLibrary()) return;
+          if (!canUseLibraryStorage()) return;
 
           let meta;
           let folders;
@@ -13587,15 +13967,35 @@ Return JSON only.`;
         }
 
         function updateUiState() {
-          const canReload = Boolean(
-            state.fileHandle ||
-              state.sourceMode === "file" ||
-              (state.sourceMode === "library" && state.libraryCurrentFileHandle),
-          );
+          const refreshState = getReaderRefreshState();
           const canOpenMindmap = Boolean((els.editor.value || "").trim());
-          els.reloadBtn.disabled = !canReload;
-          const canAutoRefresh = Boolean(state.fileHandle);
+          els.reloadBtn.disabled = !refreshState.canReload;
+          const reloadLabel =
+            refreshState.reloadAction === "file-handle"
+              ? "Reload current file"
+              : refreshState.reloadAction === "library-persistent"
+                ? "Reload current library file"
+                : refreshState.reloadAction === "library-snapshot"
+                  ? "Choose the folder again to refresh this imported snapshot"
+                  : refreshState.reloadAction === "file-picker"
+                    ? "Choose the file again"
+                    : "Reload current file";
+          els.reloadBtn.title = reloadLabel;
+          els.reloadBtn.setAttribute("aria-label", reloadLabel);
+
+          const canAutoRefresh = refreshState.canAutoRefresh;
           els.autoRefreshToggle.disabled = !canAutoRefresh;
+          if (els.autoRefreshToggle.parentElement) {
+            els.autoRefreshToggle.parentElement.title = canAutoRefresh
+              ? refreshState.reloadAction === "library-persistent"
+                ? "Auto refresh works for live library files"
+                : "Auto refresh works for opened file handles"
+              : refreshState.reloadAction === "library-snapshot"
+                ? "Auto refresh is unavailable for imported folder snapshots"
+                : refreshState.reloadAction === "file-picker"
+                  ? "Auto refresh is unavailable for picked files without a live handle"
+                  : "Auto refresh works for opened file handles";
+          }
           const mindmapBtn = document.getElementById("mindmapBtn");
           if (mindmapBtn) {
             mindmapBtn.disabled = !canOpenMindmap;
@@ -14702,8 +15102,28 @@ Return JSON only.`;
 
           state.autoRefreshInFlight = true;
           try {
-            if (state.fileHandle) {
+            const refreshState = getReaderRefreshState();
+            if (refreshState.reloadAction === "file-handle") {
               await loadFromHandle(true);
+            } else if (
+              refreshState.reloadAction === "library-persistent" &&
+              state.libraryActiveFolderId &&
+              state.libraryActiveFilePath
+            ) {
+              await loadFromLibrarySelection(
+                state.libraryActiveFolderId,
+                state.libraryActiveFilePath,
+                {
+                  closeDrawerOnMobile: false,
+                  quiet: true,
+                  userInitiated: false,
+                },
+              );
+            } else {
+              stopAutoRefresh();
+              els.autoRefreshToggle.checked = false;
+              updateUiState();
+              return;
             }
           } catch (error) {
             stopAutoRefresh();
@@ -14726,7 +15146,7 @@ Return JSON only.`;
           stopAutoRefresh();
 
           if (!els.autoRefreshToggle.checked) return;
-          if (!state.fileHandle) {
+          if (!getReaderRefreshState().canAutoRefresh) {
             els.autoRefreshToggle.checked = false;
             updateUiState();
             return;
@@ -14777,13 +15197,15 @@ Return JSON only.`;
 
         async function reloadCurrent() {
           try {
-            if (state.fileHandle) {
+            const refreshState = getReaderRefreshState();
+
+            if (refreshState.reloadAction === "file-handle") {
               await loadFromHandle(false);
               return;
             }
 
             if (
-              state.sourceMode === "library" &&
+              refreshState.reloadAction === "library-persistent" &&
               state.libraryActiveFolderId &&
               state.libraryActiveFilePath
             ) {
@@ -14799,7 +15221,21 @@ Return JSON only.`;
               return;
             }
 
-            if (state.sourceMode === "file") {
+            if (
+              refreshState.reloadAction === "library-snapshot" &&
+              state.libraryActiveFolderId
+            ) {
+              requestLibraryFolderImport({
+                replaceFolderId: state.libraryActiveFolderId,
+              });
+              setStatus(
+                "Choose the folder again to refresh this imported snapshot.",
+                { announce: true },
+              );
+              return;
+            }
+
+            if (refreshState.reloadAction === "file-picker") {
               els.fileInput.click();
               return;
             }
@@ -15439,6 +15875,26 @@ Return JSON only.`;
             );
           } finally {
             els.fileInput.value = "";
+          }
+        });
+
+        els.libraryFolderInput.addEventListener("change", async function (event) {
+          const replaceFolderId = state.libraryPendingImportTargetFolderId;
+          state.libraryPendingImportTargetFolderId = "";
+          state.libraryPendingImportToken = 0;
+          try {
+            await importLibraryFolderSnapshot(event.target.files || [], {
+              replaceFolderId: replaceFolderId,
+            });
+          } catch (error) {
+            setStatus(
+              "Folder import failed • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true },
+            );
+            console.warn("[library] folder import failed", error);
+          } finally {
+            els.libraryFolderInput.value = "";
           }
         });
 
