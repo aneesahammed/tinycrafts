@@ -6,10 +6,11 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Q3cGst7/gUoV1WSO7sITdK1Toi/+k1pinM3Nr4x3FpU=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-BG7qSuBDLKsPNTu3EDDcFkR2AXDPRChVW2yjIpw3DBI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-KluVgSpHUuqsjTDE3bOsK9K0LvF/Cn/MXxUb+/3C+jQ=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
+    <script src="assets/library-core.js"></script>
     <script>
       (function () {
         "use strict";
@@ -266,6 +267,11 @@
       @keyframes drag-pulse {
         from { opacity: 0.6; }
         to   { opacity: 1; }
+      }
+
+      html.empty-preview-state,
+      body.empty-preview-state {
+        overflow: hidden;
       }
 
       .app {
@@ -899,6 +905,17 @@
 
       .preview-pane {
         padding: 72px max(24px, calc((100% - 740px) / 2)) 128px;
+      }
+      .preview-pane.is-empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        overflow: auto;
+      }
+      .preview-pane.is-empty-state .empty-state {
+        min-height: 0;
+        width: min(100%, 680px);
       }
       .preview-pane:focus-visible {
         outline: 2px solid var(--accent-fg);
@@ -2533,19 +2550,28 @@
       /* Push main content + toolbar when sidebar is open */
       #main,
       .toolbar {
-        transition: margin-right 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        transition:
+          margin-right 300ms cubic-bezier(0.4, 0, 0.2, 1),
+          margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
       }
       body.chat-open #main,
       body.chat-open .toolbar {
         margin-right: 360px;
+      }
+      body.library-open #main,
+      body.library-open .toolbar {
+        margin-left: 320px;
       }
       body.mindmap-open {
         overflow: hidden;
       }
       @media (max-width: 600px) {
         body.chat-open #main,
-        body.chat-open .toolbar {
+        body.chat-open .toolbar,
+        body.library-open #main,
+        body.library-open .toolbar {
           margin-right: 0;
+          margin-left: 0;
         }
         .chat-panel {
           width: 100vw;
@@ -2909,6 +2935,301 @@
         display: none !important;
       }
 
+      /* ---------- Library Drawer ---------- */
+      .lib-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 14, 20, 0);
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+        z-index: 9996;
+        pointer-events: none;
+        transition:
+          background-color 220ms ease,
+          backdrop-filter 220ms ease;
+      }
+      .lib-overlay.is-open {
+        background: rgba(10, 14, 20, 0.18);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+        pointer-events: auto;
+      }
+      :root[data-theme="dark"] .lib-overlay.is-open {
+        background: rgba(0, 0, 0, 0.42);
+      }
+
+      .lib-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: min(320px, 100vw);
+        background:
+          linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--bg-canvas) 92%, var(--bg-raised)) 0%,
+            var(--bg-canvas) 100%
+          );
+        border-right: 1px solid var(--border-soft);
+        box-shadow: 24px 0 48px -28px rgba(0, 0, 0, 0.2);
+        z-index: 9997;
+        display: flex;
+        flex-direction: column;
+        color: var(--fg-default);
+        transform: translateX(-100%);
+        transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .lib-drawer.is-open {
+        transform: translateX(0);
+      }
+      .lib-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid var(--border-soft);
+        flex-shrink: 0;
+      }
+      .lib-header-copy {
+        flex: 1;
+        min-width: 0;
+      }
+      .lib-header-title {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .lib-header-help {
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--fg-muted);
+      }
+      .lib-close {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--fg-muted);
+        cursor: pointer;
+        transition:
+          background-color 140ms ease,
+          color 140ms ease,
+          border-color 140ms ease;
+      }
+      .lib-close:hover {
+        background: var(--border-soft);
+        color: var(--fg-default);
+      }
+      .lib-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 20px 12px;
+        border-bottom: 1px solid var(--border-soft);
+        flex-shrink: 0;
+      }
+      .lib-actions .btn {
+        height: 34px;
+      }
+      .lib-supported-note {
+        padding: 0 20px 14px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--fg-subtle);
+      }
+      .lib-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 14px 12px 24px;
+      }
+      .lib-empty {
+        padding: 24px 12px;
+        text-align: center;
+        color: var(--fg-muted);
+      }
+      .lib-empty-title {
+        margin: 0 0 8px;
+        font-family: var(--font-serif);
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .lib-empty-copy {
+        margin: 0;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: var(--fg-subtle);
+      }
+      .lib-folder {
+        margin-bottom: 12px;
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--bg-raised) 76%, transparent);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+      .lib-folder-head {
+        padding: 14px 14px 12px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .lib-folder-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .lib-folder-meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .lib-folder-name {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--fg-default);
+        word-break: break-word;
+      }
+      .lib-folder-sub {
+        margin: 3px 0 0;
+        font-size: 11.5px;
+        line-height: 1.45;
+        color: var(--fg-muted);
+      }
+      .lib-folder-status {
+        margin-top: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: var(--bg-subtle);
+        color: var(--fg-muted);
+        font-size: 11px;
+      }
+      .lib-folder-status[data-status="needs-permission"] {
+        background: color-mix(in srgb, var(--alert-warning) 12%, var(--bg-subtle));
+        color: color-mix(in srgb, var(--alert-warning) 68%, var(--fg-default));
+      }
+      .lib-folder-status[data-status="empty"] {
+        background: color-mix(in srgb, var(--accent-fg) 10%, var(--bg-subtle));
+        color: color-mix(in srgb, var(--accent-fg) 80%, var(--fg-default));
+      }
+      .lib-folder-status[data-status="loading"]::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.42;
+        animation: lib-pulse 900ms ease-in-out infinite alternate;
+      }
+      @keyframes lib-pulse {
+        from { opacity: 0.25; transform: scale(0.92); }
+        to { opacity: 0.8; transform: scale(1); }
+      }
+      .lib-folder-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .lib-action-btn {
+        appearance: none;
+        border: 1px solid var(--border-default);
+        background: transparent;
+        color: var(--fg-muted);
+        border-radius: 999px;
+        padding: 5px 9px;
+        font: inherit;
+        font-size: 11.5px;
+        cursor: pointer;
+        transition:
+          background-color 140ms ease,
+          color 140ms ease,
+          border-color 140ms ease;
+      }
+      .lib-action-btn:hover {
+        background: var(--bg-subtle);
+        color: var(--fg-default);
+        border-color: var(--border-strong);
+      }
+      .lib-tree {
+        padding: 8px 8px 10px;
+      }
+      .lib-tree-node {
+        display: block;
+      }
+      .lib-tree-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 0;
+        background: transparent;
+        border-radius: 10px;
+        color: var(--fg-muted);
+        font: inherit;
+        font-size: 12.5px;
+        text-align: left;
+        cursor: pointer;
+        transition:
+          background-color 140ms ease,
+          color 140ms ease,
+          transform 140ms ease;
+      }
+      .lib-tree-row:hover {
+        background: var(--bg-subtle);
+        color: var(--fg-default);
+      }
+      .lib-tree-row.is-active {
+        background: color-mix(in srgb, var(--accent-fg) 13%, var(--bg-subtle));
+        color: color-mix(in srgb, var(--accent-fg) 82%, var(--fg-default));
+      }
+      .lib-tree-row:focus-visible,
+      .lib-close:focus-visible,
+      .lib-action-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--selection);
+      }
+      .lib-tree-row[data-kind="directory"] {
+        font-weight: 600;
+      }
+      .lib-tree-caret {
+        width: 12px;
+        color: var(--fg-subtle);
+        flex-shrink: 0;
+        transition: transform 140ms ease;
+      }
+      .lib-tree-row[aria-expanded="true"] .lib-tree-caret {
+        transform: rotate(90deg);
+      }
+      .lib-tree-children {
+        margin-left: 14px;
+        padding-left: 10px;
+        border-left: 1px solid var(--border-soft);
+      }
+      .lib-tree-label {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .lib-tree-empty {
+        padding: 4px 10px 0 26px;
+        font-size: 11.5px;
+        color: var(--fg-subtle);
+      }
+
       /* ---------- Global Settings Drawer ---------- */
       .gs-overlay {
         position: fixed;
@@ -2953,6 +3274,8 @@
         transform: translateX(0);
       }
       @media (prefers-reduced-motion: reduce) {
+        .lib-drawer,
+        .lib-overlay,
         .gs-drawer,
         .gs-overlay {
           transition: none;
@@ -3643,6 +3966,31 @@
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
           Open
+        </button>
+
+        <button
+          id="libraryToggleBtn"
+          type="button"
+          class="btn"
+          title="Open folder library"
+          aria-haspopup="dialog"
+          aria-controls="libraryDrawer"
+          aria-expanded="false"
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5Z"/>
+          </svg>
+          Library
         </button>
 
         <button
@@ -8071,16 +8419,37 @@ Drop a .md file anywhere on the page, or open one with the Open button."
         "use strict";
 
         const SESSION_CONTENT_KEY = "fast-md-viewer-session-content";
+        const SESSION_META_KEY = "fast-md-viewer-session-meta";
         const READING_SETTINGS_KEY = "md-viewer-reading";
         const THEME_KEY = "md-viewer-theme";
         const HIGHLIGHT_STORAGE_KEY = "md-viewer-highlights";
         const DRAFT_HIGHLIGHT_STORAGE_KEY = "md-viewer-draft-highlights";
+        const LIBRARY_DB_NAME = "md-viewer-library";
+        const LIBRARY_DB_VERSION = 1;
+        const LIBRARY_FOLDER_STORE = "folders";
+        const LIBRARY_META_STORE = "libraryMeta";
+        const LIBRARY_LIMITS = Object.freeze({
+          maxDepth: 12,
+          maxFiles: 2000,
+          maxFolders: 12,
+          yieldEvery: 40,
+        });
+        const LIBRARY_IGNORED_NAMES = new Set([
+          ".git",
+          "node_modules",
+          ".next",
+          "dist",
+          "build",
+          ".turbo",
+          ".DS_Store",
+        ]);
         const MAX_HIGHLIGHTS_PER_DOCUMENT = 200;
         const MIN_HIGHLIGHT_SELECTION_LENGTH = 3;
         const HIGHLIGHT_CONTEXT_WINDOW = 32;
         const MERMAID_SCRIPT_URL = "./vendor/mermaid.min.js";
         const HLJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1";
         const KATEX_CDN = "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist";
+        const libraryCore = window.MarkVLibraryCore || {};
         const REMOTE_ASSET_INTEGRITY = Object.freeze({
           [HLJS_CDN + "/highlight.min.js"]:
             "sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU",
@@ -8803,6 +9172,8 @@ Paste markdown on the left, open a local file, or drag one into the page.
           currentDocHash: null,
           previouslyFocused: null,
           hideTimer: 0,
+          isLoading: false,
+          rateLimitUntil: 0,
         };
 
         const MINDMAP_MAX_MARKDOWN_CHARS = 20000;
@@ -9345,8 +9716,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
          * Concept Mindmap — content hash + local cache
          * ============================================================ */
 
-        // v2 invalidates the old fixture-backed cache entries.
-        const MINDMAP_CACHE_KEY = "markv:mindmap-cache:v2";
+        // v3 invalidates older entries generated before digest compaction and
+        // edge-kind normalization were added.
+        const MINDMAP_CACHE_KEY = "markv:mindmap-cache:v3";
         const MINDMAP_CACHE_MAX = 12;
 
         async function hashString(str) {
@@ -9412,6 +9784,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
 
 REQUIREMENTS:
 - Return ONLY valid JSON matching the schema. No prose, no markdown fences.
+- The supplied document may be raw markdown or a structure-focused digest. Treat headings, anchor lines, and excerpts as authoritative.
 - Root = the document itself. Label: 1-4 words capturing what this doc IS.
 - Primary nodes (parent: "root"): 4-7 load-bearing concepts a reader must understand.
 - Secondary nodes: decomposition of a primary, max 3-4 children per primary.
@@ -9421,6 +9794,9 @@ REQUIREMENTS:
 - Each node.summary: one sentence, max 180 characters.
 - Each node.sourceAnchor: the heading slug (kebab-case, lowercase, no #) if the concept maps to a specific heading; else null.
 - edges: cross-tree relationships only. Kinds: part_of, depends_on, blocks, supports, contradicts, measured_by.
+- "dependency" is a valid node.type but NOT a valid edge.kind. For dependency relationships, edge.kind must be "depends_on".
+- If you are unsure about an edge kind, omit the edge instead of inventing a new enum value.
+- Do not restate the parent-child tree in edges; edges are only for cross-tree relationships.
 
 SCHEMA:
 {
@@ -9436,6 +9812,311 @@ STYLE:
 
 Return JSON only.`;
 
+        const MINDMAP_SOURCE_CHAR_LIMIT = 9000;
+        const MINDMAP_SOURCE_SECTION_LIMIT = 18;
+        const MINDMAP_SOURCE_SECTION_SNIPPET_CHARS = 320;
+        const MINDMAP_SOURCE_OVERVIEW_CHARS = 900;
+        const MINDMAP_GROQ_LOW_TPM_MODEL_RE = /^(?:qwen\/qwen3-32b|llama-3\.1-8b-instant|allam-2-7b)$/i;
+        const MINDMAP_MAX_COMPLETION_TOKENS = 1400;
+
+        const MINDMAP_EDGE_KIND_ALIASES = {
+          part_of: "part_of",
+          partof: "part_of",
+          depends_on: "depends_on",
+          dependson: "depends_on",
+          dependency: "depends_on",
+          dependencies: "depends_on",
+          dependent_on: "depends_on",
+          depends: "depends_on",
+          requires: "depends_on",
+          requirement: "depends_on",
+          blocked: "blocks",
+          blocks: "blocks",
+          supports: "supports",
+          support: "supports",
+          contradicts: "contradicts",
+          contradict: "contradicts",
+          measured_by: "measured_by",
+          measuredby: "measured_by",
+          measures: "measured_by",
+        };
+
+        const MINDMAP_NODE_TYPE_ENUM = [
+          "goal",
+          "non_goal",
+          "feature",
+          "constraint",
+          "dependency",
+          "actor",
+          "assumption",
+          "open_question",
+          "success_metric",
+        ];
+
+        const MINDMAP_EDGE_KIND_ENUM = [
+          "part_of",
+          "depends_on",
+          "blocks",
+          "supports",
+          "contradicts",
+          "measured_by",
+        ];
+
+        const MINDMAP_JSON_SCHEMA = {
+          type: "object",
+          additionalProperties: false,
+          required: ["root", "nodes", "edges"],
+          properties: {
+            root: {
+              type: "object",
+              additionalProperties: false,
+              required: ["id", "label", "summary"],
+              properties: {
+                id: { type: "string", enum: ["root"] },
+                label: { type: "string" },
+                summary: { type: "string" },
+              },
+            },
+            nodes: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["id", "label", "type", "summary", "sourceAnchor", "parent"],
+                properties: {
+                  id: { type: "string" },
+                  label: { type: "string" },
+                  type: { type: "string", enum: MINDMAP_NODE_TYPE_ENUM },
+                  summary: { type: "string" },
+                  sourceAnchor: { type: ["string", "null"] },
+                  parent: { type: "string" },
+                },
+              },
+            },
+            edges: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["from", "to", "kind"],
+                properties: {
+                  from: { type: "string" },
+                  to: { type: "string" },
+                  kind: { type: "string", enum: MINDMAP_EDGE_KIND_ENUM },
+                },
+              },
+            },
+          },
+        };
+
+        function getMindmapLlmSettings() {
+          if (typeof window.markvGetLlmSettings === "function") {
+            try {
+              const settings = window.markvGetLlmSettings();
+              return settings && typeof settings === "object" ? settings : null;
+            } catch (_) {}
+          }
+          return null;
+        }
+
+        function normalizeMindmapWhitespace(text) {
+          return String(text || "").replace(/\s+/g, " ").trim();
+        }
+
+        function clipMindmapText(text, maxChars) {
+          const normalized = normalizeMindmapWhitespace(text);
+          if (!normalized || normalized.length <= maxChars) return normalized;
+          const clipped = normalized.slice(0, Math.max(0, maxChars - 1));
+          const boundary = clipped.lastIndexOf(" ");
+          return (boundary > 48 ? clipped.slice(0, boundary) : clipped).trim() + "…";
+        }
+
+        function cleanMindmapInlineMarkdown(text) {
+          return normalizeMindmapWhitespace(
+            String(text || "")
+              .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+              .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function (_match, alt) {
+                return alt ? `[image: ${alt}]` : "[image]";
+              })
+              .replace(/`([^`]+)`/g, "$1")
+              .replace(/[*_~]/g, "")
+              .replace(/<\/?[^>]+>/g, ""),
+          );
+        }
+
+        function simplifyMindmapMarkdown(text) {
+          return normalizeMindmapWhitespace(
+            String(text || "")
+              .replace(/```([^\n`]*)\n[\s\S]*?```/g, function (_match, lang) {
+                const label = normalizeMindmapWhitespace(lang).toLowerCase();
+                return label ? `\n[${label} code block]\n` : "\n[code block]\n";
+              })
+              .replace(/~~~([^\n~]*)\n[\s\S]*?~~~/g, function (_match, lang) {
+                const label = normalizeMindmapWhitespace(lang).toLowerCase();
+                return label ? `\n[${label} code block]\n` : "\n[code block]\n";
+              })
+              .replace(/^ {0,3}\|(?:[-: ]+\|)+\s*$/gm, "")
+              .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function (_match, alt) {
+                return alt ? `[image: ${alt}]` : "[image]";
+              })
+              .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+              .replace(/<https?:\/\/[^>]+>/g, "[link]")
+              .replace(/`([^`]+)`/g, "$1")
+              .replace(/^ {0,3}>\s?/gm, "")
+              .replace(/^(\s*)([-*+]|\d+\.)\s+/gm, "$1- "),
+          );
+        }
+
+        function parseMindmapMarkdownSections(markdown) {
+          const lines = String(markdown || "").split(/\r?\n/);
+          const sections = [];
+          let current = {
+            heading: "Document",
+            level: 0,
+            anchor: null,
+            lines: [],
+          };
+          let inFence = false;
+
+          function pushCurrent() {
+            const rawText = current.lines.join("\n");
+            const text = simplifyMindmapMarkdown(rawText);
+            if (!text && current.level === 0 && current.heading === "Document") return;
+            if (!current.heading && !text) return;
+            sections.push({
+              heading: current.heading || "Document",
+              level: current.level || 0,
+              anchor: current.anchor || null,
+              text: text,
+            });
+          }
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^(```|~~~)/.test(line.trim())) {
+              inFence = !inFence;
+              current.lines.push(line);
+              continue;
+            }
+            if (!inFence) {
+              const headingMatch = line.match(/^ {0,3}(#{1,6})[ \t]+(.+?)\s*#*\s*$/);
+              if (headingMatch) {
+                pushCurrent();
+                const headingText = cleanMindmapInlineMarkdown(headingMatch[2]);
+                current = {
+                  heading: headingText || "Untitled Section",
+                  level: headingMatch[1].length,
+                  anchor: slugifyMindmapText(headingText),
+                  lines: [],
+                };
+                continue;
+              }
+            }
+            current.lines.push(line);
+          }
+
+          pushCurrent();
+          return sections.filter(function (section) {
+            return section.heading || section.text;
+          });
+        }
+
+        function shouldCompactMindmapSource(markdown) {
+          const settings = getMindmapLlmSettings();
+          const model =
+            settings && settings.provider === "groq"
+              ? String(settings.groqModel || "").trim()
+              : "";
+          if (settings && settings.provider === "groq" && MINDMAP_GROQ_LOW_TPM_MODEL_RE.test(model)) {
+            return true;
+          }
+          return String(markdown || "").length > 12000;
+        }
+
+        function buildMindmapDocumentSource(markdown) {
+          const raw = String(markdown || "");
+          if (!shouldCompactMindmapSource(raw)) {
+            return {
+              mode: "raw_markdown",
+              text: raw.slice(0, MINDMAP_MAX_MARKDOWN_CHARS),
+              truncated: raw.length > MINDMAP_MAX_MARKDOWN_CHARS,
+            };
+          }
+
+          const simplified = simplifyMindmapMarkdown(raw);
+          const sections = parseMindmapMarkdownSections(raw);
+          const preview = document.getElementById("preview");
+          const title =
+            normalizeMindmapWhitespace(
+              sections[0] && sections[0].level === 1
+                ? sections[0].heading
+                : preview && preview.dataset && preview.dataset.documentLabel,
+            ) || "Document";
+
+          const parts = [
+            "# " + title,
+            "",
+            "Document digest for concept extraction. Heading text, anchor lines, and excerpts are authoritative.",
+            "",
+            "## Overview",
+            clipMindmapText(simplified, MINDMAP_SOURCE_OVERVIEW_CHARS) || "No overview available.",
+          ];
+
+          let usedChars = parts.join("\n").length;
+          const maxSections = Math.min(MINDMAP_SOURCE_SECTION_LIMIT, sections.length);
+
+          for (let i = 0; i < maxSections; i++) {
+            const section = sections[i];
+            const snippet = clipMindmapText(section.text, MINDMAP_SOURCE_SECTION_SNIPPET_CHARS);
+            if (!snippet) continue;
+            const depth = Math.min(Math.max(section.level || 2, 2), 6);
+            const block = [
+              `${"#".repeat(depth)} ${section.heading}`,
+              section.anchor ? `anchor: ${section.anchor}` : "anchor: null",
+              snippet,
+            ].join("\n");
+            if (usedChars + block.length > MINDMAP_SOURCE_CHAR_LIMIT) break;
+            parts.push("", block);
+            usedChars += block.length;
+          }
+
+          return {
+            mode: "digest",
+            text: parts.join("\n").trim(),
+            truncated: true,
+          };
+        }
+
+        function getMindmapGroqResponseFormat(model) {
+          const normalized = String(model || "").trim().toLowerCase();
+          if (normalized === "openai/gpt-oss-20b" || normalized === "openai/gpt-oss-120b") {
+            return {
+              type: "json_schema",
+              json_schema: {
+                name: "concept_graph",
+                strict: true,
+                schema: MINDMAP_JSON_SCHEMA,
+              },
+            };
+          }
+          if (
+            normalized === "openai/gpt-oss-safeguard-20b" ||
+            normalized === "meta-llama/llama-4-scout-17b-16e-instruct"
+          ) {
+            return {
+              type: "json_schema",
+              json_schema: {
+                name: "concept_graph",
+                strict: false,
+                schema: MINDMAP_JSON_SCHEMA,
+              },
+            };
+          }
+          return { type: "json_object" };
+        }
+
+        window.markvGetMindmapGroqResponseFormat = getMindmapGroqResponseFormat;
+
         /**
          * Invokes the shared LLM client (wired by chat feature) and returns a
          * validated ConceptGraph. The client must be exposed as
@@ -9448,10 +10129,14 @@ Return JSON only.`;
           if (typeof window.markvLLM !== "function") {
             throw new Error("No LLM client registered (window.markvLLM is not set)");
           }
-          const userPrompt = `Extract the concept graph for the following markdown document.\n\nDOCUMENT:\n\n${markdown}`;
+          const source = buildMindmapDocumentSource(markdown);
+          const userPrompt =
+            `Extract the concept graph for the following technical document.\n\n` +
+            `SOURCE_MODE: ${source.mode}\n\nDOCUMENT:\n\n${source.text}`;
           const raw = await window.markvLLM({
             system: MINDMAP_SYSTEM_PROMPT,
             user: userPrompt,
+            maxCompletionTokens: MINDMAP_MAX_COMPLETION_TOKENS,
           });
           return parseAndValidateGraph(raw);
         }
@@ -9581,6 +10266,13 @@ Return JSON only.`;
           return MINDMAP_TYPE_ALIASES[canonical] || canonical;
         }
 
+        function normalizeMindmapEdgeKind(kind) {
+          if (typeof kind !== "string") return kind;
+          const canonical = kind.trim().toLowerCase().replace(/[\s-]+/g, "_");
+          const collapsed = canonical.replace(/_/g, "");
+          return MINDMAP_EDGE_KIND_ALIASES[canonical] || MINDMAP_EDGE_KIND_ALIASES[collapsed] || canonical;
+        }
+
         function parseAndValidateGraph(raw) {
           if (typeof raw !== "string") throw new Error("LLM returned non-string output");
           const text = normalizeMindmapJsonText(raw);
@@ -9636,6 +10328,7 @@ Return JSON only.`;
             if (!edge || typeof edge !== "object") throw new Error("Edge must be an object");
             if (!seen.has(edge.from)) throw new Error(`Edge references unknown node ${edge.from}`);
             if (!seen.has(edge.to)) throw new Error(`Edge references unknown node ${edge.to}`);
+            edge.kind = normalizeMindmapEdgeKind(edge.kind);
             if (!allowedEdgeKinds.has(edge.kind)) throw new Error(`Edge has invalid kind: ${edge.kind}`);
           }
 
@@ -9674,6 +10367,7 @@ Return JSON only.`;
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
           openFileBtn: document.getElementById("openFileBtn"),
+          libraryToggleBtn: document.getElementById("libraryToggleBtn"),
           reloadBtn: document.getElementById("reloadBtn"),
           autoRefreshToggle: document.getElementById("autoRefreshToggle"),
           clearBtn: document.getElementById("clearBtn"),
@@ -9744,7 +10438,43 @@ Return JSON only.`;
             "mermaidViewerZoomLabel",
           ),
           mermaidViewerMeta: document.getElementById("mermaidViewerMeta"),
+          libraryOverlay: document.getElementById("libraryOverlay"),
+          libraryDrawer: document.getElementById("libraryDrawer"),
+          libraryAddBtn: document.getElementById("libraryAddBtn"),
+          libraryCloseBtn: document.getElementById("libraryCloseBtn"),
+          libraryBody: document.getElementById("libraryBody"),
+          libraryEmpty: document.getElementById("libraryEmpty"),
+          librarySupportedNote: document.getElementById("librarySupportedNote"),
         };
+        let libraryUiWired = false;
+
+        function syncLibraryRefs() {
+          els.libraryOverlay =
+            els.libraryOverlay || document.getElementById("libraryOverlay");
+          els.libraryDrawer =
+            els.libraryDrawer || document.getElementById("libraryDrawer");
+          els.libraryAddBtn =
+            els.libraryAddBtn || document.getElementById("libraryAddBtn");
+          els.libraryCloseBtn =
+            els.libraryCloseBtn || document.getElementById("libraryCloseBtn");
+          els.libraryBody =
+            els.libraryBody || document.getElementById("libraryBody");
+          els.libraryEmpty =
+            els.libraryEmpty || document.getElementById("libraryEmpty");
+          els.librarySupportedNote =
+            els.librarySupportedNote ||
+            document.getElementById("librarySupportedNote");
+
+          return Boolean(
+            els.libraryOverlay &&
+              els.libraryDrawer &&
+              els.libraryAddBtn &&
+              els.libraryCloseBtn &&
+              els.libraryBody &&
+              els.libraryEmpty &&
+              els.librarySupportedNote,
+          );
+        }
 
         const state = {
           fileHandle: null,
@@ -9781,6 +10511,19 @@ Return JSON only.`;
           mermaidViewerDownloadUrl: "",
           mermaidViewerLastFocused: null,
           mermaidViewerDrag: null,
+          hasSessionDraft: false,
+          libraryRestorePending: false,
+          libraryDbPromise: null,
+          libraryDrawerLastFocused: null,
+          libraryFolders: [],
+          libraryFolderOrder: [],
+          libraryExpandedPathsByFolder: {},
+          libraryActiveFolderId: "",
+          libraryActiveFilePath: "",
+          libraryCurrentFileHandle: null,
+          libraryCurrentFolderHandle: null,
+          libraryIsOpen: false,
+          libraryNextScanRevision: 0,
           highlightMemoryBuckets: {
             local: {},
             session: {},
@@ -9824,6 +10567,499 @@ Return JSON only.`;
           try {
             storage.removeItem(key);
           } catch (_error) {}
+        }
+
+        function canUsePersistentLibrary() {
+          return Boolean(
+            window.showDirectoryPicker &&
+              window.isSecureContext &&
+              typeof indexedDB !== "undefined",
+          );
+        }
+
+        function libraryIsSupportedFile(name) {
+          if (typeof libraryCore.isSupportedLibraryFile === "function") {
+            return libraryCore.isSupportedLibraryFile(name);
+          }
+          return /\.(md|markdown|mdown|mkdn|txt)$/i.test(String(name || ""));
+        }
+
+        function normalizeLibraryMetaState(raw) {
+          if (typeof libraryCore.normalizeLibraryMeta === "function") {
+            return libraryCore.normalizeLibraryMeta(raw);
+          }
+          const source = raw && typeof raw === "object" ? raw : {};
+          return {
+            folderOrder: Array.isArray(source.folderOrder)
+              ? source.folderOrder.slice()
+              : [],
+            expandedPathsByFolder:
+              source.expandedPathsByFolder &&
+              typeof source.expandedPathsByFolder === "object"
+                ? source.expandedPathsByFolder
+                : {},
+            lastActiveFile:
+              source.lastActiveFile &&
+              typeof source.lastActiveFile.folderId === "string" &&
+              typeof source.lastActiveFile.path === "string"
+                ? {
+                    folderId: source.lastActiveFile.folderId,
+                    path: source.lastActiveFile.path,
+                  }
+                : null,
+          };
+        }
+
+        function shouldAutoRestoreLastFile(input) {
+          if (typeof libraryCore.shouldAutoRestoreLastFile === "function") {
+            return libraryCore.shouldAutoRestoreLastFile(input);
+          }
+          const source = input && typeof input === "object" ? input : {};
+          return Boolean(!source.hasSessionDraft && source.lastActiveFile);
+        }
+
+        function shapeLibraryTree(entries, options) {
+          if (typeof libraryCore.shapeLibraryTree === "function") {
+            return libraryCore.shapeLibraryTree(entries, options);
+          }
+          return [];
+        }
+
+        function sortLibraryEntries(entries) {
+          if (typeof libraryCore.sortLibraryEntries === "function") {
+            return libraryCore.sortLibraryEntries(entries);
+          }
+          return Array.isArray(entries) ? entries.slice() : [];
+        }
+
+        function readSessionMeta() {
+          const raw = readStorage(window.sessionStorage, SESSION_META_KEY, "");
+          if (!raw) {
+            return {
+              hasSessionDraft: false,
+              sourceMode: "editor",
+            };
+          }
+          try {
+            const parsed = JSON.parse(raw);
+            return {
+              hasSessionDraft: Boolean(parsed && parsed.hasSessionDraft),
+              sourceMode:
+                parsed && typeof parsed.sourceMode === "string"
+                  ? parsed.sourceMode
+                  : "editor",
+            };
+          } catch (_error) {
+            return {
+              hasSessionDraft: false,
+              sourceMode: "editor",
+            };
+          }
+        }
+
+        function writeSessionMeta() {
+          writeStorage(
+            window.sessionStorage,
+            SESSION_META_KEY,
+            JSON.stringify({
+              hasSessionDraft: Boolean(state.hasSessionDraft),
+              sourceMode: state.sourceMode,
+            }),
+          );
+        }
+
+        function nextLibraryFolderId() {
+          return (
+            "folder_" +
+            Date.now().toString(36) +
+            "_" +
+            Math.random().toString(36).slice(2, 7)
+          );
+        }
+
+        function cloneExpandedPathsByFolder(map) {
+          const output = {};
+          Object.keys(map || {}).forEach(function (key) {
+            output[key] = Array.isArray(map[key]) ? map[key].slice() : [];
+          });
+          return output;
+        }
+
+        function computeLibraryDisplayLabels() {
+          const seen = Object.create(null);
+          state.libraryFolders.forEach(function (folder) {
+            const base = String(folder.name || "Untitled folder");
+            seen[base] = (seen[base] || 0) + 1;
+            folder.displayLabel =
+              seen[base] === 1 ? base : base + " (" + seen[base] + ")";
+          });
+        }
+
+        function applyLibraryFolderOrder() {
+          const order = Array.isArray(state.libraryFolderOrder)
+            ? state.libraryFolderOrder.slice()
+            : [];
+          state.libraryFolders.sort(function (a, b) {
+            const aIndex = order.indexOf(a.id);
+            const bIndex = order.indexOf(b.id);
+            if (aIndex === -1 && bIndex === -1) {
+              return (a.addedAt || 0) - (b.addedAt || 0);
+            }
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+          });
+          state.libraryFolderOrder = state.libraryFolders.map(function (folder) {
+            return folder.id;
+          });
+          computeLibraryDisplayLabels();
+        }
+
+        function getLibraryFolderById(folderId) {
+          return state.libraryFolders.find(function (folder) {
+            return folder.id === folderId;
+          });
+        }
+
+        function getLibraryExpandedPaths(folderId) {
+          return Array.isArray(state.libraryExpandedPathsByFolder[folderId])
+            ? state.libraryExpandedPathsByFolder[folderId].slice()
+            : [];
+        }
+
+        async function clearActiveLibrarySelection(options) {
+          options = options || {};
+          const hadActiveSelection = Boolean(
+            state.libraryActiveFolderId ||
+              state.libraryActiveFilePath ||
+              state.libraryCurrentFileHandle ||
+              state.libraryCurrentFolderHandle,
+          );
+
+          state.libraryActiveFolderId = "";
+          state.libraryActiveFilePath = "";
+          state.libraryCurrentFileHandle = null;
+          state.libraryCurrentFolderHandle = null;
+
+          if (options.renderDrawer) {
+            renderLibraryDrawer();
+          }
+
+          if (!options.persist || !hadActiveSelection) {
+            return hadActiveSelection;
+          }
+
+          try {
+            await persistLibraryMeta();
+          } catch (error) {
+            console.warn("[library] failed to persist cleared active file", error);
+          }
+
+          return hadActiveSelection;
+        }
+
+        function createLibraryFolderRecord(data) {
+          const record = {
+            id: data.id,
+            name: data.name,
+            displayLabel: data.name,
+            handle: data.handle,
+            addedAt: Number(data.addedAt) || Date.now(),
+            status: "loading",
+            note: "",
+            tree: [],
+            fileHandlesByPath: new Map(),
+            scanRevision: 0,
+            lastScannedAt: 0,
+          };
+          return record;
+        }
+
+        function openLibraryDb() {
+          if (state.libraryDbPromise) return state.libraryDbPromise;
+          state.libraryDbPromise = new Promise(function (resolve, reject) {
+            const request = indexedDB.open(LIBRARY_DB_NAME, LIBRARY_DB_VERSION);
+            request.onupgradeneeded = function () {
+              const db = request.result;
+              if (!db.objectStoreNames.contains(LIBRARY_FOLDER_STORE)) {
+                db.createObjectStore(LIBRARY_FOLDER_STORE, { keyPath: "id" });
+              }
+              if (!db.objectStoreNames.contains(LIBRARY_META_STORE)) {
+                db.createObjectStore(LIBRARY_META_STORE, { keyPath: "key" });
+              }
+            };
+            request.onsuccess = function () {
+              resolve(request.result);
+            };
+            request.onerror = function () {
+              reject(request.error);
+            };
+          });
+          return state.libraryDbPromise;
+        }
+
+        function libraryGetAllFoldersFromDb() {
+          return openLibraryDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(LIBRARY_FOLDER_STORE, "readonly");
+              const request = tx.objectStore(LIBRARY_FOLDER_STORE).getAll();
+              request.onsuccess = function () {
+                resolve(request.result || []);
+              };
+              request.onerror = function () {
+                reject(request.error);
+              };
+            });
+          });
+        }
+
+        function libraryPutFolderInDb(record) {
+          return openLibraryDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(LIBRARY_FOLDER_STORE, "readwrite");
+              tx.objectStore(LIBRARY_FOLDER_STORE).put({
+                id: record.id,
+                name: record.name,
+                handle: record.handle,
+                addedAt: record.addedAt,
+              });
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        function libraryDeleteFolderFromDb(folderId) {
+          return openLibraryDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(LIBRARY_FOLDER_STORE, "readwrite");
+              tx.objectStore(LIBRARY_FOLDER_STORE).delete(folderId);
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        function libraryReadMetaFromDb() {
+          return openLibraryDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(LIBRARY_META_STORE, "readonly");
+              const request = tx.objectStore(LIBRARY_META_STORE).getAll();
+              request.onsuccess = function () {
+                const meta = {};
+                (request.result || []).forEach(function (item) {
+                  meta[item.key] = item.value;
+                });
+                resolve(
+                  normalizeLibraryMetaState({
+                    folderOrder: meta.folderOrder,
+                    expandedPathsByFolder: meta.expandedPathsByFolder,
+                    lastActiveFile: meta.lastActiveFile,
+                  }),
+                );
+              };
+              request.onerror = function () {
+                reject(request.error);
+              };
+            });
+          });
+        }
+
+        function persistLibraryMeta() {
+          const payload = {
+            folderOrder: state.libraryFolderOrder.slice(),
+            expandedPathsByFolder: cloneExpandedPathsByFolder(
+              state.libraryExpandedPathsByFolder,
+            ),
+            lastActiveFile:
+              state.libraryActiveFolderId && state.libraryActiveFilePath
+                ? {
+                    folderId: state.libraryActiveFolderId,
+                    path: state.libraryActiveFilePath,
+                  }
+                : null,
+          };
+
+          return openLibraryDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(LIBRARY_META_STORE, "readwrite");
+              const store = tx.objectStore(LIBRARY_META_STORE);
+              store.put({ key: "folderOrder", value: payload.folderOrder });
+              store.put({
+                key: "expandedPathsByFolder",
+                value: payload.expandedPathsByFolder,
+              });
+              store.put({ key: "lastActiveFile", value: payload.lastActiveFile });
+              tx.oncomplete = function () {
+                resolve(payload);
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        async function queryLibraryPermission(handle) {
+          if (!handle || typeof handle.queryPermission !== "function") {
+            return "denied";
+          }
+          try {
+            return await handle.queryPermission({ mode: "read" });
+          } catch (_error) {
+            return "prompt";
+          }
+        }
+
+        async function requestLibraryPermission(handle) {
+          if (!handle || typeof handle.requestPermission !== "function") {
+            return "denied";
+          }
+          try {
+            return await handle.requestPermission({ mode: "read" });
+          } catch (_error) {
+            return "denied";
+          }
+        }
+
+        function yieldToUi() {
+          return new Promise(function (resolve) {
+            window.setTimeout(resolve, 0);
+          });
+        }
+
+        function attachLibraryFileHandles(nodes, byPath) {
+          return nodes.map(function (node) {
+            if (node.type === "file") {
+              return Object.assign({}, node, {
+                handle: byPath.get(node.path) || null,
+              });
+            }
+            return Object.assign({}, node, {
+              children: attachLibraryFileHandles(node.children || [], byPath),
+            });
+          });
+        }
+
+        async function scanLibraryFolder(folder) {
+          const revision = ++state.libraryNextScanRevision;
+          folder.scanRevision = revision;
+          folder.status = "loading";
+          folder.note = "";
+          renderLibraryDrawer();
+
+          const permission = await queryLibraryPermission(folder.handle);
+          if (permission !== "granted") {
+            folder.status = "needs-permission";
+            folder.tree = [];
+            folder.fileHandlesByPath = new Map();
+            folder.note = "Access needs to be granted again.";
+            renderLibraryDrawer();
+            return;
+          }
+
+          const result = {
+            entries: [],
+            fileHandlesByPath: new Map(),
+            truncated: false,
+          };
+
+          async function walk(handle, parentPath, depth) {
+            if (folder.scanRevision !== revision) {
+              throw new Error("scan-stale");
+            }
+            if (depth > LIBRARY_LIMITS.maxDepth) {
+              result.truncated = true;
+              return;
+            }
+
+            let index = 0;
+            for await (const [name, childHandle] of handle.entries()) {
+              if (folder.scanRevision !== revision) {
+                throw new Error("scan-stale");
+              }
+              if (LIBRARY_IGNORED_NAMES.has(name)) continue;
+
+              const nextPath = parentPath ? parentPath + "/" + name : name;
+              if (childHandle.kind === "directory") {
+                await walk(childHandle, nextPath, depth + 1);
+              } else {
+                if (name.startsWith(".") && !libraryIsSupportedFile(name)) continue;
+                if (!libraryIsSupportedFile(name)) continue;
+                if (result.entries.length >= LIBRARY_LIMITS.maxFiles) {
+                  result.truncated = true;
+                  break;
+                }
+                result.entries.push({
+                  kind: "file",
+                  path: nextPath,
+                });
+                result.fileHandlesByPath.set(nextPath, childHandle);
+              }
+
+              index += 1;
+              if (index % LIBRARY_LIMITS.yieldEvery === 0) {
+                await yieldToUi();
+              }
+            }
+          }
+
+          try {
+            await walk(folder.handle, "", 0);
+          } catch (error) {
+            if (error && error.message === "scan-stale") {
+              return;
+            }
+            folder.status = "needs-permission";
+            folder.tree = [];
+            folder.fileHandlesByPath = new Map();
+            folder.note = "This folder could not be read.";
+            console.warn("[library] folder scan failed", {
+              folderId: folder.id,
+              error: error && error.message ? error.message : String(error),
+            });
+            renderLibraryDrawer();
+            return;
+          }
+
+          const tree = attachLibraryFileHandles(
+            shapeLibraryTree(result.entries, {
+              expandedPaths: getLibraryExpandedPaths(folder.id),
+            }),
+            result.fileHandlesByPath,
+          );
+
+          folder.tree = tree;
+          folder.fileHandlesByPath = result.fileHandlesByPath;
+          folder.lastScannedAt = Date.now();
+          folder.status = tree.length ? "ready" : "empty";
+          folder.note = result.truncated
+            ? "Showing a bounded slice of this folder."
+            : tree.length
+              ? ""
+              : "No markdown files found in this folder.";
+
+          if (
+            state.libraryActiveFolderId === folder.id &&
+            state.libraryActiveFilePath &&
+            !findLibraryFileNode(tree, state.libraryActiveFilePath)
+          ) {
+            await clearActiveLibrarySelection({ persist: true });
+            if (state.sourceMode === "library") {
+              state.sourceMode = "editor";
+              updateUiState();
+            }
+          }
+
+          renderLibraryDrawer();
         }
 
         function clampNumber(value, min, max) {
@@ -11550,6 +12786,611 @@ Return JSON only.`;
           if (options.announce) announce(message);
         }
 
+        function closeGlobalSettingsSurface() {
+          const drawer = document.getElementById("globalSettingsDrawer");
+          const overlay = document.getElementById("globalSettingsOverlay");
+          const openBtn = document.getElementById("globalSettingsBtn");
+          if (!drawer || !overlay || !openBtn) return;
+          drawer.classList.remove("is-open");
+          overlay.classList.remove("is-open");
+          drawer.setAttribute("aria-hidden", "true");
+          overlay.setAttribute("aria-hidden", "true");
+          openBtn.setAttribute("aria-expanded", "false");
+        }
+
+        function getLibraryFocusableElements() {
+          if (!syncLibraryRefs()) return [];
+          return Array.prototype.slice
+            .call(
+              els.libraryDrawer.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+              ),
+            )
+            .filter(function (element) {
+              return !element.hidden && element.offsetParent !== null;
+            });
+        }
+
+        function renderLibraryTreeNodes(nodes, folderId, depth) {
+          return (nodes || [])
+            .map(function (node) {
+              const padding = 10 + depth * 14;
+              if (node.type === "directory") {
+                return (
+                  '<div class="lib-tree-node">' +
+                  '<button type="button" class="lib-tree-row" data-kind="directory" data-action="toggle-dir" data-folder-id="' +
+                  escapeHtml(folderId) +
+                  '" data-path="' +
+                  escapeHtml(node.path) +
+                  '" aria-expanded="' +
+                  String(Boolean(node.expanded)) +
+                  '" style="padding-left:' +
+                  padding +
+                  'px">' +
+                  '<span class="lib-tree-caret" aria-hidden="true">▸</span>' +
+                  '<span class="lib-tree-label">' +
+                  escapeHtml(node.name) +
+                  "</span>" +
+                  "</button>" +
+                  (node.expanded
+                    ? '<div class="lib-tree-children">' +
+                      renderLibraryTreeNodes(node.children || [], folderId, depth + 1) +
+                      "</div>"
+                    : "") +
+                  "</div>"
+                );
+              }
+
+              const isActive =
+                state.libraryActiveFolderId === folderId &&
+                state.libraryActiveFilePath === node.path;
+
+              return (
+                '<div class="lib-tree-node">' +
+                '<button type="button" class="lib-tree-row' +
+                (isActive ? " is-active" : "") +
+                '" data-kind="file" data-action="open-file" data-folder-id="' +
+                escapeHtml(folderId) +
+                '" data-path="' +
+                escapeHtml(node.path) +
+                '" style="padding-left:' +
+                padding +
+                'px">' +
+                '<span class="lib-tree-caret" aria-hidden="true">·</span>' +
+                '<span class="lib-tree-label">' +
+                escapeHtml(node.name) +
+                "</span>" +
+                "</button>" +
+                "</div>"
+              );
+            })
+            .join("");
+        }
+
+        function renderLibraryDrawer() {
+          if (!syncLibraryRefs()) return;
+          if (!els.libraryBody) return;
+
+          const supported = canUsePersistentLibrary();
+          els.libraryAddBtn.disabled =
+            !supported || state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders;
+
+          if (!supported) {
+            els.librarySupportedNote.hidden = false;
+            els.librarySupportedNote.textContent =
+              "Persistent folder libraries need File System Access support in a secure browser context.";
+          } else if (state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders) {
+            els.librarySupportedNote.hidden = false;
+            els.librarySupportedNote.textContent =
+              "The v1 library is capped at " + LIBRARY_LIMITS.maxFolders + " folders.";
+          } else {
+            els.librarySupportedNote.hidden = true;
+            els.librarySupportedNote.textContent = "";
+          }
+
+          if (!state.libraryFolders.length) {
+            els.libraryBody.innerHTML = els.libraryEmpty.outerHTML;
+            return;
+          }
+
+          const html = state.libraryFolders
+            .map(function (folder) {
+              const statusLabel =
+                folder.status === "loading"
+                  ? "Scanning folder"
+                  : folder.status === "needs-permission"
+                    ? "Permission needed"
+                    : folder.status === "empty"
+                      ? "Empty folder"
+                      : "Ready";
+              const actions =
+                '<div class="lib-folder-actions">' +
+                (folder.status === "needs-permission"
+                  ? '<button type="button" class="lib-action-btn" data-action="reauthorize-folder" data-folder-id="' +
+                    escapeHtml(folder.id) +
+                    '">Reauthorize</button>'
+                  : '<button type="button" class="lib-action-btn" data-action="refresh-folder" data-folder-id="' +
+                    escapeHtml(folder.id) +
+                    '">Refresh</button>') +
+                '<button type="button" class="lib-action-btn" data-action="remove-folder" data-folder-id="' +
+                escapeHtml(folder.id) +
+                '">Remove</button>' +
+                "</div>";
+
+              const content =
+                folder.status === "ready"
+                  ? '<div class="lib-tree">' +
+                    renderLibraryTreeNodes(folder.tree || [], folder.id, 0) +
+                    "</div>"
+                  : folder.status === "empty"
+                    ? '<div class="lib-tree-empty">' +
+                      escapeHtml(
+                        folder.note || "No markdown files found in this folder.",
+                      ) +
+                      "</div>"
+                    : folder.note
+                      ? '<div class="lib-tree-empty">' +
+                        escapeHtml(folder.note) +
+                        "</div>"
+                      : "";
+
+              return (
+                '<section class="lib-folder" data-folder-id="' +
+                escapeHtml(folder.id) +
+                '">' +
+                '<div class="lib-folder-head">' +
+                '<div class="lib-folder-top">' +
+                '<div class="lib-folder-meta">' +
+                '<h3 class="lib-folder-name">' +
+                escapeHtml(folder.displayLabel || folder.name) +
+                "</h3>" +
+                '<p class="lib-folder-sub">' +
+                escapeHtml(folder.name) +
+                "</p>" +
+                '<span class="lib-folder-status" data-status="' +
+                escapeHtml(folder.status) +
+                '">' +
+                escapeHtml(statusLabel) +
+                "</span>" +
+                actions +
+                "</div>" +
+                "</div>" +
+                "</div>" +
+                content +
+                "</section>"
+              );
+            })
+            .join("");
+
+          els.libraryBody.innerHTML = html;
+        }
+
+        function showLibraryDrawer() {
+          if (!syncLibraryRefs()) return;
+          if (!els.libraryDrawer || state.libraryIsOpen) return;
+          closeGlobalSettingsSurface();
+          state.libraryDrawerLastFocused =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
+          state.libraryIsOpen = true;
+          els.libraryDrawer.classList.add("is-open");
+          els.libraryOverlay.classList.add("is-open");
+          els.libraryDrawer.setAttribute("aria-hidden", "false");
+          els.libraryOverlay.setAttribute("aria-hidden", "false");
+          els.libraryToggleBtn.setAttribute("aria-expanded", "true");
+          document.body.classList.add("library-open");
+          renderLibraryDrawer();
+          window.requestAnimationFrame(function () {
+            const focusTarget = els.libraryAddBtn.disabled
+              ? els.libraryCloseBtn
+              : els.libraryAddBtn;
+            focusTarget.focus();
+          });
+        }
+
+        function hideLibraryDrawer(options) {
+          options = options || {};
+          if (!syncLibraryRefs()) return;
+          if (!els.libraryDrawer || !state.libraryIsOpen) return;
+          let target = options.restoreFocus === false
+            ? null
+            : state.libraryDrawerLastFocused;
+          if (
+            target &&
+            (!document.contains(target) ||
+              target === document.body ||
+              els.libraryDrawer.contains(target))
+          ) {
+            target = null;
+          }
+          if (!target && options.restoreFocus !== false) {
+            target = els.libraryToggleBtn;
+          }
+          if (
+            document.activeElement instanceof HTMLElement &&
+            els.libraryDrawer.contains(document.activeElement)
+          ) {
+            document.activeElement.blur();
+          }
+          if (target && typeof target.focus === "function") {
+            target.focus();
+          }
+          state.libraryIsOpen = false;
+          els.libraryDrawer.classList.remove("is-open");
+          els.libraryOverlay.classList.remove("is-open");
+          els.libraryDrawer.setAttribute("aria-hidden", "true");
+          els.libraryOverlay.setAttribute("aria-hidden", "true");
+          els.libraryToggleBtn.setAttribute("aria-expanded", "false");
+          document.body.classList.remove("library-open");
+        }
+
+        function wireLibraryUi() {
+          if (libraryUiWired || !syncLibraryRefs()) return;
+          libraryUiWired = true;
+
+          els.libraryToggleBtn.addEventListener("click", function () {
+            if (state.libraryIsOpen) {
+              hideLibraryDrawer();
+              return;
+            }
+            showLibraryDrawer();
+          });
+          els.libraryCloseBtn.addEventListener("click", function () {
+            hideLibraryDrawer();
+          });
+          els.libraryOverlay.addEventListener("click", function () {
+            hideLibraryDrawer();
+          });
+          els.libraryAddBtn.addEventListener("click", async function () {
+            await addLibraryFolder();
+          });
+          els.libraryBody.addEventListener("click", async function (event) {
+            const trigger = event.target.closest("[data-action]");
+            if (!trigger || !els.libraryBody.contains(trigger)) return;
+
+            const action = trigger.getAttribute("data-action");
+            const folderId = trigger.getAttribute("data-folder-id") || "";
+            const path = trigger.getAttribute("data-path") || "";
+
+            if (action === "toggle-dir") {
+              toggleLibraryDirectory(folderId, path);
+              return;
+            }
+            if (action === "open-file") {
+              await loadFromLibrarySelection(folderId, path, {
+                userInitiated: true,
+              });
+              return;
+            }
+            if (action === "refresh-folder") {
+              await refreshLibraryFolder(folderId);
+              return;
+            }
+            if (action === "reauthorize-folder") {
+              await reauthorizeLibraryFolder(folderId);
+              return;
+            }
+            if (action === "remove-folder") {
+              await removeLibraryFolder(folderId);
+            }
+          });
+          els.libraryDrawer.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              hideLibraryDrawer();
+              return;
+            }
+            if (event.key !== "Tab") return;
+
+            const focusables = getLibraryFocusableElements();
+            if (!focusables.length) return;
+
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
+          });
+
+          renderLibraryDrawer();
+        }
+
+        function toggleLibraryDirectory(folderId, path) {
+          const paths = getLibraryExpandedPaths(folderId);
+          const next = paths.includes(path)
+            ? paths.filter(function (item) {
+                return item !== path;
+              })
+            : paths.concat(path);
+          state.libraryExpandedPathsByFolder[folderId] = next;
+          const folder = getLibraryFolderById(folderId);
+          if (!folder) return;
+          folder.tree = attachLibraryFileHandles(
+            shapeLibraryTree(
+              Array.from(folder.fileHandlesByPath.keys()).map(function (item) {
+                return { kind: "file", path: item };
+              }),
+              { expandedPaths: next },
+            ),
+            folder.fileHandlesByPath,
+          );
+          persistLibraryMeta().catch(function (error) {
+            console.warn("[library] could not persist expanded paths", error);
+          });
+          renderLibraryDrawer();
+        }
+
+        function findLibraryFileNode(nodes, path) {
+          for (const node of nodes || []) {
+            if (node.type === "file" && node.path === path) return node;
+            if (node.type === "directory") {
+              const found = findLibraryFileNode(node.children || [], path);
+              if (found) return found;
+            }
+          }
+          return null;
+        }
+
+        async function loadFromLibrarySelection(folderId, path, options) {
+          options = options || {};
+          const folder = getLibraryFolderById(folderId);
+          if (!folder) return false;
+
+          if (folder.status === "needs-permission") {
+            if (!options.userInitiated) return false;
+            const permission = await requestLibraryPermission(folder.handle);
+            if (permission !== "granted") {
+              folder.note = "Access still needs to be granted.";
+              renderLibraryDrawer();
+              setStatus("Library access was not granted.", { announce: true });
+              console.warn("[library] permission request denied", {
+                folderId: folder.id,
+              });
+              return false;
+            }
+            await scanLibraryFolder(folder);
+          }
+
+          const node = findLibraryFileNode(folder.tree, path);
+          if (!node || !node.handle) {
+            setStatus("That library file is no longer available.", {
+              announce: true,
+            });
+            console.warn("[library] missing file in tree", {
+              folderId: folder.id,
+              path: path,
+            });
+            return false;
+          }
+
+          const file = await node.handle.getFile();
+          const markdown = await file.text();
+
+          stopAutoRefresh();
+          els.autoRefreshToggle.checked = false;
+
+          state.fileHandle = null;
+          state.libraryCurrentFileHandle = node.handle;
+          state.libraryCurrentFolderHandle = folder.handle;
+          state.libraryActiveFolderId = folder.id;
+          state.libraryActiveFilePath = path;
+          state.sourceMode = "library";
+          state.currentName = file.name;
+          state.baseHref = window.location.href;
+          state.dirty = false;
+          state.hasSessionDraft = false;
+
+          els.editor.value = markdown;
+          updateUiState();
+          render("library");
+          renderLibraryDrawer();
+
+          await persistLibraryMeta().catch(function (error) {
+            console.warn("[library] failed to persist active file", error);
+          });
+
+          if (!options.quiet) {
+            setStatus(file.name + " • loaded • " + nowString(), {
+              announce: true,
+            });
+          }
+          if (options.closeDrawerOnMobile !== false && isCoarsePointer()) {
+            hideLibraryDrawer({ restoreFocus: false });
+          }
+          return true;
+        }
+
+        async function refreshLibraryFolder(folderId) {
+          const folder = getLibraryFolderById(folderId);
+          if (!folder) return;
+          await scanLibraryFolder(folder);
+          renderLibraryDrawer();
+          setStatus((folder.displayLabel || folder.name) + " • refreshed", {
+            announce: true,
+          });
+        }
+
+        async function reauthorizeLibraryFolder(folderId) {
+          const folder = getLibraryFolderById(folderId);
+          if (!folder) return;
+          const permission = await requestLibraryPermission(folder.handle);
+          if (permission !== "granted") {
+            folder.status = "needs-permission";
+            folder.note = "Access still needs to be granted.";
+            renderLibraryDrawer();
+            setStatus("Library access was not granted.", { announce: true });
+            console.warn("[library] reauthorization denied", {
+              folderId: folder.id,
+            });
+            return;
+          }
+          await scanLibraryFolder(folder);
+          setStatus((folder.displayLabel || folder.name) + " • reauthorized", {
+            announce: true,
+          });
+        }
+
+        async function removeLibraryFolder(folderId) {
+          const nextFolders = state.libraryFolders.filter(function (folder) {
+            return folder.id !== folderId;
+          });
+          const removed = getLibraryFolderById(folderId);
+          state.libraryFolders = nextFolders;
+          applyLibraryFolderOrder();
+
+          delete state.libraryExpandedPathsByFolder[folderId];
+          if (state.libraryActiveFolderId === folderId) {
+            state.libraryActiveFolderId = "";
+            state.libraryActiveFilePath = "";
+            state.libraryCurrentFileHandle = null;
+            state.libraryCurrentFolderHandle = null;
+            if (state.sourceMode === "library") {
+              state.sourceMode = "editor";
+              updateUiState();
+            }
+          }
+
+          await libraryDeleteFolderFromDb(folderId).catch(function (error) {
+            console.warn("[library] failed to delete folder from db", error);
+          });
+          await persistLibraryMeta().catch(function (error) {
+            console.warn("[library] failed to persist removal", error);
+          });
+
+          renderLibraryDrawer();
+          setStatus(
+            (removed ? removed.displayLabel || removed.name : "Folder") +
+              " • removed from library",
+            { announce: true },
+          );
+        }
+
+        async function getLibraryHandleConflict(targetHandle) {
+          for (const folder of state.libraryFolders) {
+            try {
+              if (await folder.handle.isSameEntry(targetHandle)) {
+                return "duplicate";
+              }
+              const childOfExisting = await folder.handle.resolve(targetHandle);
+              if (Array.isArray(childOfExisting)) return "overlap";
+              const parentOfExisting = await targetHandle.resolve(folder.handle);
+              if (Array.isArray(parentOfExisting)) return "overlap";
+            } catch (_error) {
+              // Ignore unsupported relationship checks.
+            }
+          }
+          return null;
+        }
+
+        async function addLibraryFolder() {
+          if (!canUsePersistentLibrary()) {
+            renderLibraryDrawer();
+            return;
+          }
+          if (state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders) {
+            setStatus(
+              "Library limit reached • remove a folder before adding another.",
+              { announce: true },
+            );
+            return;
+          }
+
+          try {
+            const handle = await window.showDirectoryPicker({ mode: "read" });
+            if (!handle) return;
+
+            const conflict = await getLibraryHandleConflict(handle);
+            if (conflict) {
+              setStatus(
+                conflict === "duplicate"
+                  ? "That folder is already in the library."
+                  : "That folder overlaps an existing library root.",
+                { announce: true },
+              );
+              console.warn("[library] rejected folder add", {
+                conflict: conflict,
+                name: handle.name,
+              });
+              return;
+            }
+
+            const record = createLibraryFolderRecord({
+              id: nextLibraryFolderId(),
+              name: handle.name,
+              handle: handle,
+              addedAt: Date.now(),
+            });
+            state.libraryFolders.push(record);
+            applyLibraryFolderOrder();
+            await libraryPutFolderInDb(record);
+            await persistLibraryMeta();
+            renderLibraryDrawer();
+            await scanLibraryFolder(record);
+            setStatus(record.displayLabel + " • added to library", {
+              announce: true,
+            });
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+            setStatus(
+              "Could not add folder • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true },
+            );
+            console.warn("[library] add folder failed", error);
+          }
+        }
+
+        async function restoreLibraryFromStorage(sessionMeta) {
+          renderLibraryDrawer();
+          if (!canUsePersistentLibrary()) return;
+
+          let meta;
+          let folders;
+          try {
+            meta = await libraryReadMetaFromDb();
+            folders = await libraryGetAllFoldersFromDb();
+          } catch (error) {
+            console.warn("[library] restore failed", error);
+            setStatus("Library restore skipped • storage unavailable", {
+              announce: true,
+            });
+            return;
+          }
+
+          state.libraryFolderOrder = meta.folderOrder.slice();
+          state.libraryExpandedPathsByFolder = cloneExpandedPathsByFolder(
+            meta.expandedPathsByFolder,
+          );
+          state.libraryFolders = folders.map(function (item) {
+            return createLibraryFolderRecord(item);
+          });
+          applyLibraryFolderOrder();
+          renderLibraryDrawer();
+
+          for (const folder of state.libraryFolders) {
+            await scanLibraryFolder(folder);
+          }
+
+          if (
+            shouldAutoRestoreLastFile({
+              hasSessionDraft: Boolean(sessionMeta && sessionMeta.hasSessionDraft),
+              lastActiveFile: meta.lastActiveFile,
+            })
+          ) {
+            await loadFromLibrarySelection(
+              meta.lastActiveFile.folderId,
+              meta.lastActiveFile.path,
+              { quiet: true, userInitiated: false },
+            );
+          }
+        }
+
         function updateWordCount() {
           var text = els.editor.value.trim();
           if (!text) {
@@ -11563,7 +13404,9 @@ Return JSON only.`;
 
         function updateUiState() {
           const canReload = Boolean(
-            state.fileHandle || state.sourceMode === "file",
+            state.fileHandle ||
+              state.sourceMode === "file" ||
+              (state.sourceMode === "library" && state.libraryCurrentFileHandle),
           );
           const canOpenMindmap = Boolean((els.editor.value || "").trim());
           els.reloadBtn.disabled = !canReload;
@@ -12512,6 +14355,12 @@ Return JSON only.`;
 
           preservePreviewScroll(function () {
             els.preview.innerHTML = html;
+            document.documentElement.classList.toggle(
+              "empty-preview-state",
+              !markdown.trim(),
+            );
+            document.body.classList.toggle("empty-preview-state", !markdown.trim());
+            els.previewPane.classList.toggle("is-empty-state", !markdown.trim());
             els.preview.dataset.documentLabel =
               state.currentName || "current document";
             wrapTables();
@@ -12532,19 +14381,24 @@ Return JSON only.`;
           state.lastRenderedText = markdown;
           state.lastRenderedDocumentToken = documentToken;
           writeStorage(window.sessionStorage, SESSION_CONTENT_KEY, markdown);
+          writeSessionMeta();
           updateUiState();
 
           const label = state.currentName ? state.currentName + " • " : "";
           const action =
             source === "editor"
               ? state.dirty &&
-                (state.fileHandle || state.currentName)
+                (state.fileHandle ||
+                  state.currentName ||
+                  state.libraryCurrentFileHandle)
                 ? "edited locally"
                 : "edited"
               : source === "handle"
                   ? "reloaded"
                   : source === "file"
                     ? "loaded"
+                    : source === "library"
+                      ? "loaded"
                     : "rendered";
 
           const detail = source === "editor" ? "" : " • " + nowString();
@@ -12564,13 +14418,18 @@ Return JSON only.`;
         function scheduleRender() {
           window.clearTimeout(state.renderTimer);
           state.renderTimer = window.setTimeout(function () {
-            if (state.fileHandle || state.sourceMode === "file") {
+            if (
+              state.fileHandle ||
+              state.sourceMode === "file" ||
+              state.sourceMode === "library"
+            ) {
               state.dirty = true;
               if (els.autoRefreshToggle.checked) {
                 els.autoRefreshToggle.checked = false;
                 stopAutoRefresh();
               }
             }
+            state.hasSessionDraft = true;
             state.sourceMode = "editor";
             state.currentName = state.currentName || "";
             render("editor");
@@ -12587,6 +14446,11 @@ Return JSON only.`;
           state.currentName = file.name;
           state.baseHref = window.location.href;
           state.dirty = false;
+          state.hasSessionDraft = false;
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: true,
+          });
 
           els.editor.value = markdown;
           updateUiState();
@@ -12613,6 +14477,11 @@ Return JSON only.`;
           state.currentName = file.name;
           state.baseHref = window.location.href;
           state.dirty = false;
+          state.hasSessionDraft = false;
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: true,
+          });
 
           els.editor.value = markdown;
           updateUiState();
@@ -12729,6 +14598,23 @@ Return JSON only.`;
               return;
             }
 
+            if (
+              state.sourceMode === "library" &&
+              state.libraryActiveFolderId &&
+              state.libraryActiveFilePath
+            ) {
+              await loadFromLibrarySelection(
+                state.libraryActiveFolderId,
+                state.libraryActiveFilePath,
+                {
+                  closeDrawerOnMobile: false,
+                  quiet: false,
+                  userInitiated: true,
+                },
+              );
+              return;
+            }
+
             if (state.sourceMode === "file") {
               els.fileInput.click();
               return;
@@ -12744,7 +14630,7 @@ Return JSON only.`;
           }
         }
 
-        function clearAll() {
+        async function clearAll() {
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
           dismissSelectionUi();
@@ -12757,15 +14643,21 @@ Return JSON only.`;
           state.lastRenderedText = null;
           state.lastRenderedDocumentToken = "";
           state.dirty = false;
+          state.hasSessionDraft = false;
           state.highlightDocKey = "";
           state.currentHighlights = [];
           state.resolvedHighlights = [];
           state.highlightTextModel = null;
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: true,
+          });
 
           els.editor.value = "";
           resetMindmapState({ closeViewer: true });
 
           removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
+          removeStorage(window.sessionStorage, SESSION_META_KEY);
           updateUiState();
           render("force");
           setStatus("Cleared", { announce: true });
@@ -13143,10 +15035,61 @@ Return JSON only.`;
         els.reloadBtn.addEventListener("click", reloadCurrent);
         els.clearBtn.addEventListener("click", clearAll);
         els.autoRefreshToggle.addEventListener("change", startAutoRefresh);
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", wireLibraryUi, {
+            once: true,
+          });
+        } else {
+          wireLibraryUi();
+        }
 
         wireMindmapInteractions();
         wireMindmapNodeClicks();
         wireMindmapHover();
+
+        function parseMindmapRetryDelayMs(value) {
+          const raw = String(value || "").trim();
+          if (!raw) return 0;
+          if (/^\d+(?:\.\d+)?$/.test(raw)) {
+            return Math.max(0, Math.round(parseFloat(raw) * 1000));
+          }
+          let total = 0;
+          const regex = /(\d+(?:\.\d+)?)(ms|s|m|h)/gi;
+          let match;
+          while ((match = regex.exec(raw))) {
+            const amount = parseFloat(match[1]);
+            const unit = match[2].toLowerCase();
+            if (unit === "ms") total += amount;
+            else if (unit === "s") total += amount * 1000;
+            else if (unit === "m") total += amount * 60000;
+            else if (unit === "h") total += amount * 3600000;
+          }
+          return Math.max(0, Math.round(total));
+        }
+
+        function formatMindmapRetryDelay(ms) {
+          const seconds = Math.max(1, Math.ceil(ms / 1000));
+          if (seconds < 60) return `${seconds}s`;
+          const minutes = Math.floor(seconds / 60);
+          const remainder = seconds % 60;
+          return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+        }
+
+        function isMindmapRateLimitError(err) {
+          if (!err) return false;
+          if (err.status === 429) return true;
+          const message = String(err.message || "").toLowerCase();
+          return message.includes("rate limit") || message.includes("rate-limit") || message.includes("too many requests");
+        }
+
+        function getMindmapRetryDelayMs(err) {
+          if (!err) return 0;
+          const fromRetryAfter = parseMindmapRetryDelayMs(err.retryAfter);
+          if (fromRetryAfter > 0) return fromRetryAfter;
+          const fromReset = parseMindmapRetryDelayMs(err.rateLimitResetTokens);
+          if (fromReset > 0) return fromReset;
+          return 15000;
+        }
 
         async function runMindmapPipeline(options) {
           const force = !!(options && options.force);
@@ -13169,23 +15112,16 @@ Return JSON only.`;
             return;
           }
 
-          // Truncate oversize docs with a soft warning in the tooltip later.
-          let markdown = rawMarkdown;
-          let truncated = false;
-          if (markdown.length > MINDMAP_MAX_MARKDOWN_CHARS) {
-            markdown = markdown.slice(0, MINDMAP_MAX_MARKDOWN_CHARS);
-            truncated = true;
-          }
-
-          const docHash = await hashString(markdown);
+          const docHash = await hashString(rawMarkdown);
           if (docHash !== mindmapState.currentDocHash) {
             resetMindmapState({ closeViewer: false });
           }
           mindmapState.currentDocHash = docHash;
 
+          const cached = getCachedGraph(docHash);
+
           // Cache check
           if (!force) {
-            const cached = getCachedGraph(docHash);
             if (cached) {
               mindmapState.currentGraph = cached;
               mindmapState.laid = computeRadialLayout(cached);
@@ -13193,6 +15129,26 @@ Return JSON only.`;
               requestAnimationFrame(() => fitMindmapToView(false));
               return;
             }
+          }
+
+          if (mindmapState.isLoading) {
+            return;
+          }
+
+          if (mindmapState.rateLimitUntil > Date.now()) {
+            if (cached) {
+              mindmapState.currentGraph = cached;
+              mindmapState.laid = computeRadialLayout(cached);
+              renderMindmap(mindmapState.laid);
+              requestAnimationFrame(() => fitMindmapToView(false));
+            }
+            showMindmapError(
+              `Rate limited by the LLM. Try again in about ${formatMindmapRetryDelay(
+                mindmapState.rateLimitUntil - Date.now(),
+              )}.`,
+              "rate_limited",
+            );
+            return;
           }
 
           // No LLM client configured? Bail out with a clear CTA instead of a raw error.
@@ -13205,27 +15161,35 @@ Return JSON only.`;
           }
 
           // LLM path
+          mindmapState.isLoading = true;
           if (loading) loading.classList.remove("is-hidden");
           try {
-            const graph = await extractConcepts(markdown);
+            const graph = await extractConcepts(rawMarkdown);
             if (!graph.nodes || graph.nodes.length < 3) {
               throw new Error(
                 "This document is too short or too abstract to map meaningfully. Try a document with at least a few sections.",
               );
             }
+            mindmapState.rateLimitUntil = 0;
             setCachedGraph(docHash, graph);
             mindmapState.currentGraph = graph;
             mindmapState.laid = computeRadialLayout(graph);
             renderMindmap(mindmapState.laid);
             requestAnimationFrame(() => fitMindmapToView(false));
-            if (truncated) {
-              console.info(
-                `Mindmap: input truncated to ${MINDMAP_MAX_MARKDOWN_CHARS} chars (~top of doc).`,
-              );
-            }
           } catch (err) {
+            if (isMindmapRateLimitError(err)) {
+              mindmapState.rateLimitUntil = Date.now() + getMindmapRetryDelayMs(err);
+              const fallback = cached || mindmapState.currentGraph;
+              if (fallback) {
+                mindmapState.currentGraph = fallback;
+                mindmapState.laid = computeRadialLayout(fallback);
+                renderMindmap(mindmapState.laid);
+                requestAnimationFrame(() => fitMindmapToView(false));
+              }
+            }
             showMindmapError(humanizeMindmapError(err), "extract_failed");
           } finally {
+            mindmapState.isLoading = false;
             if (loading) loading.classList.add("is-hidden");
           }
         }
@@ -13242,7 +15206,11 @@ Return JSON only.`;
           if (lower.includes("fetch") || lower.includes("network") || lower.includes("failed to fetch")) {
             return "Couldn't reach the LLM. Check your connection and try again.";
           }
-          if (lower.includes("429") || lower.includes("rate limit") || lower.includes("rate-limit")) {
+          if (isMindmapRateLimitError(err) || lower.includes("429")) {
+            const retryMs = getMindmapRetryDelayMs(err);
+            if (retryMs > 0) {
+              return `Rate limited by the LLM. Try again in about ${formatMindmapRetryDelay(retryMs)}.`;
+            }
             return "Rate limited by the LLM. Wait a moment and retry.";
           }
           if (lower.includes("401") || lower.includes("unauthorized") || lower.includes("api key")) {
@@ -13340,11 +15308,18 @@ Return JSON only.`;
             ? event.dataTransfer.getData("text/plain")
             : "";
           if (text) {
+            stopAutoRefresh();
+            els.autoRefreshToggle.checked = false;
             state.sourceMode = "editor";
             state.currentName = "";
             state.fileHandle = null;
             state.baseHref = window.location.href;
             state.dirty = false;
+            state.hasSessionDraft = true;
+            await clearActiveLibrarySelection({
+              persist: true,
+              renderDrawer: true,
+            });
             updateUiState();
 
             els.editor.value = text;
@@ -13353,17 +15328,31 @@ Return JSON only.`;
         });
 
         async function init() {
+          const sessionMeta = readSessionMeta();
           const savedContent = readStorage(
             window.sessionStorage,
             SESSION_CONTENT_KEY,
             "",
           );
 
+          state.hasSessionDraft = Boolean(sessionMeta.hasSessionDraft);
           applyReadingSettings(readReadingSettings());
+          renderLibraryDrawer();
           updateUiState();
 
-          els.editor.value = savedContent || await loadDefaultSample();
+          els.editor.value = savedContent || "";
           render("force");
+
+          await restoreLibraryFromStorage(sessionMeta);
+
+          if (
+            state.sourceMode !== "library" &&
+            !state.hasSessionDraft &&
+            !els.editor.value.trim()
+          ) {
+            els.editor.value = await loadDefaultSample();
+            render("force");
+          }
         }
 
         init();
@@ -15087,6 +17076,62 @@ Return JSON only.`;
       </div>
     </div>
 
+    <!-- Folder Library Drawer -->
+    <div id="libraryOverlay" class="lib-overlay" aria-hidden="true"></div>
+    <aside
+      id="libraryDrawer"
+      class="lib-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="libraryDrawerTitle"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <header class="lib-header">
+        <div class="lib-header-copy">
+          <h2 id="libraryDrawerTitle" class="lib-header-title">Library</h2>
+          <p class="lib-header-help">
+            Keep your reading folders close, without crowding the page.
+          </p>
+        </div>
+        <button
+          id="libraryCloseBtn"
+          type="button"
+          class="lib-close"
+          aria-label="Close library"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </header>
+      <div class="lib-actions">
+        <button id="libraryAddBtn" type="button" class="btn btn-primary">
+          Add Folder
+        </button>
+      </div>
+      <div id="librarySupportedNote" class="lib-supported-note" hidden></div>
+      <div id="libraryBody" class="lib-body">
+        <div id="libraryEmpty" class="lib-empty">
+          <p class="lib-empty-title">No folders yet</p>
+          <p class="lib-empty-copy">
+            Add a local folder to browse your markdown files as a quiet, persistent library.
+          </p>
+        </div>
+      </div>
+    </aside>
+
     <!-- Global Settings Drawer -->
     <div
       id="globalSettingsOverlay"
@@ -16514,7 +18559,7 @@ Return JSON only.`;
         }
 
         // ---- LLM API calls ----
-        async function parseProviderError(response, providerLabel) {
+        async function buildProviderError(response, providerLabel) {
           let message = "";
           try {
             const payload = await response.clone().json();
@@ -16533,13 +18578,19 @@ Return JSON only.`;
               return "";
             });
           }
-          return (
+          const error = new Error(
             providerLabel +
-            " error " +
-            response.status +
-            ": " +
-            (message || response.statusText)
+              " error " +
+              response.status +
+              ": " +
+              (message || response.statusText),
           );
+          error.status = response.status;
+          error.provider = providerLabel;
+          error.retryAfter = response.headers.get("retry-after") || "";
+          error.rateLimitResetTokens =
+            response.headers.get("x-ratelimit-reset-tokens") || "";
+          return error;
         }
 
         // Try a single endpoint; returns the fetch Response on success.
@@ -16553,9 +18604,7 @@ Return JSON only.`;
             body: JSON.stringify(body),
           });
           if (!response.ok) {
-            throw new Error(
-              await parseProviderError(response, providerLabel || "LLM"),
-            );
+            throw await buildProviderError(response, providerLabel || "LLM");
           }
           return response;
         }
@@ -16654,6 +18703,9 @@ Return JSON only.`;
           if (/qwen3/i.test(model)) {
             body.reasoning_effort = "none";
           }
+          if (Number.isFinite(opts.maxCompletionTokens) && opts.maxCompletionTokens > 0) {
+            body.max_completion_tokens = Math.floor(opts.maxCompletionTokens);
+          }
           if (opts.responseFormat) {
             body.response_format = opts.responseFormat;
           }
@@ -16704,12 +18756,16 @@ Return JSON only.`;
             : parseOllamaContent(response);
         }
 
-        async function callConfiguredLlmJson(messages) {
+        async function callConfiguredLlmJson(messages, options) {
           const settings = getCurrentLlmSettings();
+          const opts = options || {};
           if (settings.provider === "groq") {
-            return callConfiguredLlmText(messages, {
-              responseFormat: { type: "json_object" },
-            });
+            return callConfiguredLlmText(
+              messages,
+              Object.assign({}, opts, {
+                responseFormat: opts.responseFormat || { type: "json_object" },
+              }),
+            );
           }
           const response = await callOllama(messages, {
             stream: false,
@@ -16728,10 +18784,39 @@ Return JSON only.`;
             if (!system || !user) {
               throw new Error("Mindmap extraction request was incomplete");
             }
-            return callConfiguredLlmJson([
-              { role: "system", content: system },
-              { role: "user", content: user },
-            ]);
+            const settings = getCurrentLlmSettings();
+            const groqFormat =
+              settings.provider === "groq" &&
+              typeof window.markvGetMindmapGroqResponseFormat === "function"
+                ? window.markvGetMindmapGroqResponseFormat(
+                    settings.groqModel || DEFAULT_LLM_SETTINGS.groqModel,
+                  )
+                : null;
+            try {
+              return await callConfiguredLlmJson([
+                { role: "system", content: system },
+                { role: "user", content: user },
+              ], {
+                maxCompletionTokens: request.maxCompletionTokens,
+                responseFormat: groqFormat,
+              });
+            } catch (error) {
+              const usedStructuredOutput =
+                groqFormat && groqFormat.type === "json_schema";
+              const shouldFallback =
+                settings.provider === "groq" &&
+                usedStructuredOutput &&
+                error &&
+                error.status === 400;
+              if (!shouldFallback) throw error;
+              return callConfiguredLlmJson([
+                { role: "system", content: system },
+                { role: "user", content: user },
+              ], {
+                maxCompletionTokens: request.maxCompletionTokens,
+                responseFormat: { type: "json_object" },
+              });
+            }
           };
         }
 
