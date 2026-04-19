@@ -94,3 +94,28 @@ test("skips auto-restore when session draft content exists", () => {
     true,
   );
 });
+
+test("clears library collection state for a full reset", () => {
+  assert.deepEqual(
+    core.getClearedLibraryCollectionState?.({
+      libraryFolders: [{ id: "docs" }],
+      libraryFolderOrder: ["docs"],
+      libraryExpandedPathsByFolder: { docs: ["guides"] },
+      libraryActiveFolderId: "docs",
+      libraryActiveFilePath: "guides/intro.md",
+      libraryCurrentFileHandle: { kind: "file" },
+      libraryCurrentFolderHandle: { kind: "directory" },
+      libraryNextScanRevision: 4,
+    }),
+    {
+      libraryFolders: [],
+      libraryFolderOrder: [],
+      libraryExpandedPathsByFolder: {},
+      libraryActiveFolderId: "",
+      libraryActiveFilePath: "",
+      libraryCurrentFileHandle: null,
+      libraryCurrentFolderHandle: null,
+      libraryNextScanRevision: 5,
+    },
+  );
+});

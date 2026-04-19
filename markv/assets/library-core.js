@@ -180,11 +180,30 @@
     );
   }
 
+  function getClearedLibraryCollectionState(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const currentRevision = Number(source.libraryNextScanRevision);
+
+    return {
+      libraryFolders: [],
+      libraryFolderOrder: [],
+      libraryExpandedPathsByFolder: {},
+      libraryActiveFolderId: "",
+      libraryActiveFilePath: "",
+      libraryCurrentFileHandle: null,
+      libraryCurrentFolderHandle: null,
+      libraryNextScanRevision: Number.isFinite(currentRevision)
+        ? currentRevision + 1
+        : 1,
+    };
+  }
+
   return {
     SUPPORTED_EXTENSIONS: SUPPORTED_EXTENSIONS.slice(),
     compareLibraryNames,
     createDirectoryNode,
     createFileNode,
+    getClearedLibraryCollectionState,
     getFolderConflict,
     isSupportedLibraryFile,
     normalizeLibraryMeta,
