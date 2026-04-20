@@ -436,6 +436,19 @@
         display: none;
       }
 
+      /* Mirror the contrast icon horizontally in dark mode. In light
+         theme the filled half sits on the right; in dark theme it
+         flips to the left, giving a clear visual cue that the theme
+         state actually changed even though the icon itself is
+         state-neutral. `transform-origin: center` keeps the flip
+         optically centered inside the button. */
+      #themeIconContrast {
+        transition: transform 180ms ease;
+      }
+      :root[data-theme="dark"] #themeIconContrast {
+        transform: scaleX(-1);
+      }
+
       /* ── Destructive affordance: Clear ──────────────────────────
          Kept in the toolbar (no feature removal) but muted by default
          and tinted red on hover so the caution reads without shouting. */
@@ -4638,7 +4651,11 @@
         >
           <!-- Active: state-neutral "contrast" icon. Reads as
                "theme toggle" regardless of current mode, following the
-               iOS/macOS/Material `contrast` convention. -->
+               iOS/macOS/Material `contrast` convention.
+               Two-tone design: the filled half uses `--fg-default`
+               (strong), the stroke uses `--fg-muted` (soft). Both
+               tokens invert with theme, so light-on-dark becomes
+               dark-on-light automatically — "vice versa" swap. */ -->
           <svg
             id="themeIconContrast"
             width="15"
@@ -4651,12 +4668,12 @@
               cy="12"
               r="9"
               fill="none"
-              stroke="currentColor"
+              stroke="var(--fg-muted)"
               stroke-width="1.75"
             />
             <path
               d="M12 3 A9 9 0 0 1 12 21 Z"
-              fill="currentColor"
+              fill="var(--fg-default)"
             />
           </svg>
           <!-- Legacy sun/moon icons preserved for easy revert.
