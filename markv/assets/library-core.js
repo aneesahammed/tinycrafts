@@ -273,6 +273,65 @@
     };
   }
 
+  function getReaderSaveState(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const hasFileHandle = Boolean(source.hasFileHandle);
+    const hasLibraryFileHandle = Boolean(source.hasLibraryFileHandle);
+    const librarySourceType =
+      source.librarySourceType === "persistent" ||
+      source.librarySourceType === "snapshot"
+        ? source.librarySourceType
+        : "";
+    const hasContent = Boolean(source.hasContent);
+    const currentName = String(source.currentName || "");
+
+    if (hasFileHandle) {
+      return {
+        canSave: true,
+        saveAction: "overwrite-handle",
+        saveLabel: "Save",
+      };
+    }
+
+    if (hasLibraryFileHandle && librarySourceType === "persistent") {
+      return {
+        canSave: true,
+        saveAction: "overwrite-library-handle",
+        saveLabel: "Save",
+      };
+    }
+
+    if (hasContent || currentName) {
+      return {
+        canSave: true,
+        saveAction: "pick-save-target",
+        saveLabel: "Save",
+      };
+    }
+
+    return {
+      canSave: false,
+      saveAction: "none",
+      saveLabel: "Save",
+    };
+  }
+
+  function getReaderAuthoringState(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const saveState = getReaderSaveState(source);
+    const editMode = Boolean(source.editMode);
+    const dirty = Boolean(source.dirty);
+    const hasSessionDraft = Boolean(source.hasSessionDraft);
+
+    return {
+      showSaveButton: editMode && saveState.canSave,
+      showDirtyCue:
+        !editMode && saveState.canSave && (dirty || hasSessionDraft),
+      saveAction: saveState.saveAction,
+      saveLabel: saveState.saveLabel,
+    };
+  }
+
   return {
     SUPPORTED_EXTENSIONS: SUPPORTED_EXTENSIONS.slice(),
     compareLibraryNames,
@@ -280,7 +339,9 @@
     createFileNode,
     getClearedLibraryCollectionState,
     getFolderConflict,
+    getReaderAuthoringState,
     getReaderRefreshState,
+    getReaderSaveState,
     isSupportedLibraryFile,
     normalizeLibraryMeta,
     normalizePathKey,

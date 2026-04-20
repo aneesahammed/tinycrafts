@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-7+nh2zr8ItLdYTO1kNB0uHwtsTTbyKeb/SqrEYzgrxE=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-tp3BgFeLTRW4PF6huXyVkf/jPtdt7E0TuABd9w/CQ4U=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -295,6 +295,10 @@
         border-bottom: 1px solid var(--border-soft);
       }
 
+      body.preview-mode #saveBtn {
+        display: none !important;
+      }
+
       .brand {
         display: flex;
         align-items: center;
@@ -379,6 +383,16 @@
       .highlight-undo-btn:focus-visible {
         outline: none;
         box-shadow: 0 0 0 3px var(--selection);
+      }
+
+      .mode-toggle-btn.has-unsaved::after {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent-fg) 74%, white 26%);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-fg) 12%, transparent);
+        flex: 0 0 auto;
       }
 
       .btn-icon {
@@ -4073,6 +4087,17 @@
         </button>
 
         <button
+          id="saveBtn"
+          type="button"
+          class="btn"
+          title="Save current document (Ctrl/Cmd+S)"
+          disabled
+          hidden
+        >
+          Save
+        </button>
+
+        <button
           id="libraryToggleBtn"
           type="button"
           class="btn"
@@ -4302,7 +4327,7 @@
         <button
           id="modeToggleBtn"
           type="button"
-          class="btn"
+          class="btn mode-toggle-btn"
           title="Toggle edit mode (Ctrl/Cmd+E)"
           aria-pressed="false"
         >
@@ -10478,6 +10503,8 @@ Return JSON only.`;
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
           openFileBtn: document.getElementById("openFileBtn"),
+          saveBtn: document.getElementById("saveBtn"),
+          modeToggleBtn: document.getElementById("modeToggleBtn"),
           libraryToggleBtn: document.getElementById("libraryToggleBtn"),
           reloadBtn: document.getElementById("reloadBtn"),
           autoRefreshToggle: document.getElementById("autoRefreshToggle"),
@@ -10865,6 +10892,182 @@ Return JSON only.`;
                 librarySourceType === "persistent"),
             reloadAction: reloadAction,
           };
+        }
+
+        function getReaderSaveState() {
+          const hasContent = Boolean((els.editor.value || "").trim());
+          if (typeof libraryCore.getReaderSaveState === "function") {
+            return libraryCore.getReaderSaveState({
+              sourceMode: state.sourceMode,
+              hasFileHandle: Boolean(state.fileHandle),
+              hasLibraryFileHandle: Boolean(state.libraryCurrentFileHandle),
+              librarySourceType: getActiveLibrarySourceType(),
+              hasContent: hasContent,
+              currentName: state.currentName,
+            });
+          }
+
+          if (state.fileHandle) {
+            return {
+              canSave: true,
+              saveAction: "overwrite-handle",
+              saveLabel: "Save",
+            };
+          }
+
+          if (
+            state.libraryCurrentFileHandle &&
+            getActiveLibrarySourceType() === "persistent"
+          ) {
+            return {
+              canSave: true,
+              saveAction: "overwrite-library-handle",
+              saveLabel: "Save",
+            };
+          }
+
+          if (hasContent || state.currentName) {
+            return {
+              canSave: true,
+              saveAction: "pick-save-target",
+              saveLabel: "Save",
+            };
+          }
+
+          return {
+            canSave: false,
+            saveAction: "none",
+            saveLabel: "Save",
+          };
+        }
+
+        function getReaderAuthoringState() {
+          const input = {
+            sourceMode: state.sourceMode,
+            hasFileHandle: Boolean(state.fileHandle),
+            hasLibraryFileHandle: Boolean(state.libraryCurrentFileHandle),
+            librarySourceType: getActiveLibrarySourceType(),
+            hasContent: Boolean((els.editor.value || "").trim()),
+            currentName: state.currentName,
+            editMode: isEditModeActive(),
+            dirty: state.dirty,
+            hasSessionDraft: state.hasSessionDraft,
+          };
+
+          if (typeof libraryCore.getReaderAuthoringState === "function") {
+            return libraryCore.getReaderAuthoringState(input);
+          }
+
+          const saveState = getReaderSaveState();
+          return {
+            showSaveButton: input.editMode && saveState.canSave,
+            showDirtyCue:
+              !input.editMode &&
+              saveState.canSave &&
+              (input.dirty || input.hasSessionDraft),
+            saveAction: saveState.saveAction,
+            saveLabel: saveState.saveLabel,
+          };
+        }
+
+        function canUseNativeSavePicker() {
+          return Boolean(window.showSaveFilePicker && window.isSecureContext);
+        }
+
+        function getSuggestedSaveName() {
+          const activePath = state.libraryActiveFilePath
+            ? String(state.libraryActiveFilePath).split("/").pop()
+            : "";
+          let name = String(state.currentName || activePath || "untitled.md").trim();
+          if (!/\.[a-z0-9]+$/i.test(name)) {
+            name += ".md";
+          }
+          return name;
+        }
+
+        function createMarkdownFileTypes() {
+          return [
+            {
+              description: "Markdown files",
+              accept: {
+                "text/markdown": [".md", ".markdown", ".mdown", ".mkdn"],
+                "text/plain": [".txt"],
+              },
+            },
+          ];
+        }
+
+        async function ensureWritableHandle(handle) {
+          if (!handle || typeof handle.createWritable !== "function") {
+            return false;
+          }
+
+          if (typeof handle.queryPermission === "function") {
+            let permission = "prompt";
+            try {
+              permission = await handle.queryPermission({ mode: "readwrite" });
+            } catch (_error) {
+              permission = "prompt";
+            }
+
+            if (
+              permission !== "granted" &&
+              typeof handle.requestPermission === "function"
+            ) {
+              try {
+                permission = await handle.requestPermission({
+                  mode: "readwrite",
+                });
+              } catch (_error) {
+                permission = "denied";
+              }
+            }
+
+            if (permission !== "granted") {
+              return false;
+            }
+          }
+
+          return true;
+        }
+
+        async function writeMarkdownToHandle(handle, markdown) {
+          const writable = await handle.createWritable();
+          await writable.write(markdown);
+          await writable.close();
+        }
+
+        function downloadMarkdown(markdown, fileName) {
+          const blob = new Blob([markdown], {
+            type: "text/markdown;charset=utf-8",
+          });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(function () {
+            URL.revokeObjectURL(url);
+          }, 1000);
+        }
+
+        function markDocumentSaved(nextSourceMode) {
+          if (nextSourceMode) {
+            state.sourceMode = nextSourceMode;
+          }
+          state.dirty = false;
+          state.hasSessionDraft = false;
+          updateUiState();
+
+          if (nextSourceMode === "handle" || nextSourceMode === "library") {
+            state.lastRenderedText = null;
+            state.lastRenderedDocumentToken = "";
+            render(nextSourceMode);
+          } else {
+            writeSessionMeta();
+          }
         }
 
         function requestLibraryFolderImport(options) {
@@ -13968,6 +14171,9 @@ Return JSON only.`;
 
         function updateUiState() {
           const refreshState = getReaderRefreshState();
+          const saveState = getReaderSaveState();
+          const authoringState = getReaderAuthoringState();
+          const editModeActive = isEditModeActive();
           const canOpenMindmap = Boolean((els.editor.value || "").trim());
           els.reloadBtn.disabled = !refreshState.canReload;
           const reloadLabel =
@@ -13982,6 +14188,28 @@ Return JSON only.`;
                     : "Reload current file";
           els.reloadBtn.title = reloadLabel;
           els.reloadBtn.setAttribute("aria-label", reloadLabel);
+
+          els.saveBtn.hidden = !authoringState.showSaveButton;
+          els.saveBtn.style.display = authoringState.showSaveButton ? "" : "none";
+          els.saveBtn.disabled = !saveState.canSave;
+          els.saveBtn.textContent = saveState.saveLabel;
+          const saveLabel = "Save current document (Ctrl/Cmd+S)";
+          els.saveBtn.title = saveLabel;
+          els.saveBtn.setAttribute("aria-label", saveLabel);
+
+          if (els.modeToggleBtn) {
+            els.modeToggleBtn.classList.toggle(
+              "has-unsaved",
+              authoringState.showDirtyCue,
+            );
+            const modeActionLabel = editModeActive
+              ? "Show preview (Ctrl/Cmd+E)"
+              : authoringState.showDirtyCue
+                ? "Edit markdown • unsaved changes (Ctrl/Cmd+E)"
+                : "Edit markdown (Ctrl/Cmd+E)";
+            els.modeToggleBtn.title = modeActionLabel;
+            els.modeToggleBtn.setAttribute("aria-label", modeActionLabel);
+          }
 
           const canAutoRefresh = refreshState.canAutoRefresh;
           els.autoRefreshToggle.disabled = !canAutoRefresh;
@@ -15086,7 +15314,7 @@ Return JSON only.`;
 
         function scheduleNextAutoRefresh() {
           if (!els.autoRefreshToggle.checked) return;
-          if (!state.fileHandle) return;
+          if (!getReaderRefreshState().canAutoRefresh) return;
           state.autoRefreshTimer = window.setTimeout(runAutoRefreshTick, 1500);
         }
 
@@ -15244,6 +15472,98 @@ Return JSON only.`;
           } catch (error) {
             setStatus(
               "Reload failed • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true },
+            );
+          }
+        }
+
+        async function saveCurrentDocument() {
+          const saveState = getReaderSaveState();
+          if (!saveState.canSave) return;
+
+          const markdown = els.editor.value;
+          const suggestedName = getSuggestedSaveName();
+
+          try {
+            if (saveState.saveAction === "overwrite-handle") {
+              const canWrite = await ensureWritableHandle(state.fileHandle);
+              if (!canWrite) {
+                setStatus("Save cancelled • write access was not granted.", {
+                  announce: true,
+                });
+                return;
+              }
+              await writeMarkdownToHandle(state.fileHandle, markdown);
+              state.currentName = state.fileHandle.name || suggestedName;
+              markDocumentSaved("handle");
+              setStatus(state.currentName + " • saved • " + nowString(), {
+                announce: true,
+              });
+              return;
+            }
+
+            if (saveState.saveAction === "overwrite-library-handle") {
+              const canWrite = await ensureWritableHandle(
+                state.libraryCurrentFileHandle,
+              );
+              if (!canWrite) {
+                setStatus("Save cancelled • write access was not granted.", {
+                  announce: true,
+                });
+                return;
+              }
+              await writeMarkdownToHandle(state.libraryCurrentFileHandle, markdown);
+              state.currentName =
+                state.libraryCurrentFileHandle.name || suggestedName;
+              markDocumentSaved("library");
+              setStatus(state.currentName + " • saved • " + nowString(), {
+                announce: true,
+              });
+              return;
+            }
+
+            if (saveState.saveAction === "pick-save-target") {
+              if (canUseNativeSavePicker()) {
+                const handle = await window.showSaveFilePicker({
+                  suggestedName: suggestedName,
+                  types: createMarkdownFileTypes(),
+                });
+                const canWrite = await ensureWritableHandle(handle);
+                if (!canWrite) {
+                  setStatus("Save cancelled • write access was not granted.", {
+                    announce: true,
+                  });
+                  return;
+                }
+                await writeMarkdownToHandle(handle, markdown);
+                stopAutoRefresh();
+                els.autoRefreshToggle.checked = false;
+                state.fileHandle = handle;
+                state.currentName = handle.name || suggestedName;
+                state.baseHref = window.location.href;
+                await clearActiveLibrarySelection({
+                  persist: true,
+                  renderDrawer: true,
+                });
+                markDocumentSaved("handle");
+                setStatus(state.currentName + " • saved • " + nowString(), {
+                  announce: true,
+                });
+                return;
+              }
+
+              downloadMarkdown(markdown, suggestedName);
+              state.currentName = state.currentName || suggestedName;
+              markDocumentSaved(null);
+              setStatus(suggestedName + " • downloaded • " + nowString(), {
+                announce: true,
+              });
+            }
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+            setStatus(
+              "Save failed • " +
                 (error && error.message ? error.message : String(error)),
               { announce: true },
             );
@@ -15652,6 +15972,7 @@ Return JSON only.`;
         });
 
         els.openFileBtn.addEventListener("click", openFile);
+        els.saveBtn.addEventListener("click", saveCurrentDocument);
         els.reloadBtn.addEventListener("click", reloadCurrent);
         els.clearBtn.addEventListener("click", clearAll);
         els.autoRefreshToggle.addEventListener("change", startAutoRefresh);
@@ -16353,6 +16674,8 @@ Return JSON only.`;
             const sourceOffset =
               getPreviewViewportSourceOffset() ?? state.editorSelection ?? 0;
             mainEl.classList.add("edit-mode");
+            document.body.classList.add("edit-mode-active");
+            document.body.classList.remove("preview-mode");
             modeLabel.textContent = "Preview";
             modeBtn.setAttribute("aria-pressed", "true");
             modeBtn.title = "Show preview (Ctrl/Cmd+E)";
@@ -16372,6 +16695,8 @@ Return JSON only.`;
               : getPreviewViewportSourceOffset() ?? state.editorSelection ?? 0;
             state.editorSelection = sourceOffset;
             mainEl.classList.remove("edit-mode");
+            document.body.classList.add("preview-mode");
+            document.body.classList.remove("edit-mode-active");
             modeLabel.textContent = "Edit";
             modeBtn.setAttribute("aria-pressed", "false");
             modeBtn.title = "Edit markdown (Ctrl/Cmd+E)";
@@ -16381,6 +16706,8 @@ Return JSON only.`;
               scrollPreviewToSourceOffset(sourceOffset);
             });
           }
+
+          updateUiState();
         }
 
         modeBtn.addEventListener("click", function () {
@@ -16462,6 +16789,12 @@ Return JSON only.`;
           if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
             e.preventDefault();
             modeBtn.click();
+            return;
+          }
+
+          if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
+            e.preventDefault();
+            saveCurrentDocument();
           }
         });
 

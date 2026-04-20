@@ -208,3 +208,126 @@ test("describes refresh capabilities for each source mode", () => {
     },
   );
 });
+
+test("describes save capabilities for live and export-only sources", () => {
+  assert.deepEqual(
+    core.getReaderSaveState?.({
+      sourceMode: "editor",
+      hasFileHandle: true,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+      hasContent: true,
+      currentName: "draft.md",
+    }),
+    {
+      canSave: true,
+      saveAction: "overwrite-handle",
+      saveLabel: "Save",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderSaveState?.({
+      sourceMode: "editor",
+      hasFileHandle: false,
+      hasLibraryFileHandle: true,
+      librarySourceType: "persistent",
+      hasContent: true,
+      currentName: "doc.md",
+    }),
+    {
+      canSave: true,
+      saveAction: "overwrite-library-handle",
+      saveLabel: "Save",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderSaveState?.({
+      sourceMode: "library",
+      hasFileHandle: false,
+      hasLibraryFileHandle: true,
+      librarySourceType: "snapshot",
+      hasContent: true,
+      currentName: "doc.md",
+    }),
+    {
+      canSave: true,
+      saveAction: "pick-save-target",
+      saveLabel: "Save",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderSaveState?.({
+      sourceMode: "editor",
+      hasFileHandle: false,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+      hasContent: false,
+      currentName: "",
+    }),
+    {
+      canSave: false,
+      saveAction: "none",
+      saveLabel: "Save",
+    },
+  );
+});
+
+test("describes authoring chrome for preview and edit states", () => {
+  assert.deepEqual(
+    core.getReaderAuthoringState?.({
+      editMode: false,
+      dirty: false,
+      hasSessionDraft: true,
+      hasFileHandle: false,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+      hasContent: true,
+      currentName: "",
+    }),
+    {
+      showSaveButton: false,
+      showDirtyCue: true,
+      saveAction: "pick-save-target",
+      saveLabel: "Save",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderAuthoringState?.({
+      editMode: true,
+      dirty: true,
+      hasFileHandle: true,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+      hasContent: true,
+      currentName: "notes.md",
+    }),
+    {
+      showSaveButton: true,
+      showDirtyCue: false,
+      saveAction: "overwrite-handle",
+      saveLabel: "Save",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderAuthoringState?.({
+      editMode: false,
+      dirty: false,
+      hasFileHandle: false,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+      hasContent: false,
+      currentName: "",
+    }),
+    {
+      showSaveButton: false,
+      showDirtyCue: false,
+      saveAction: "none",
+      saveLabel: "Save",
+    },
+  );
+});
