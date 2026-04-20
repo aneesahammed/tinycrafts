@@ -480,6 +480,18 @@
       .btn:active:not(:disabled) {
         background: var(--bg-muted);
       }
+      /* Toggle-state buttons (e.g. Edit, Mindmap): visually "pressed"
+         when aria-pressed="true". Driven by assets/toolbar-sync.js
+         from body classes. Discrete-button alternative to a segmented
+         pill — consistent with the rest of the File / Refresh groups. */
+      .btn[aria-pressed="true"]:not(:disabled) {
+        background: var(--bg-subtle);
+        border-color: var(--border-strong);
+        color: var(--fg-default);
+      }
+      .btn[aria-pressed="true"]:not(:disabled):hover {
+        background: var(--bg-muted);
+      }
       .btn:disabled {
         opacity: 0.35;
         cursor: not-allowed;
@@ -4177,73 +4189,6 @@
         ></div>
         <div class="spacer"></div>
 
-        <!-- ── Cluster: View mode — segmented pill ─────────────────
-             Two joined toggles (Edit · Mindmap). Active segment is
-             synced from body.edit-mode / body.mindmap-open via a
-             small MutationObserver at the end of the document.
-             These two buttons keep their original IDs + handlers;
-             only their classes changed (.btn → .tb-seg-btn). -->
-        <div class="tb-segment" role="group" aria-label="View mode">
-          <button
-            id="modeToggleBtn"
-            type="button"
-            class="tb-seg-btn mode-toggle-btn"
-            title="Toggle edit mode (Ctrl/Cmd+E)"
-            aria-pressed="false"
-          >
-            <svg
-              id="modeIconEdit"
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"
-              />
-            </svg>
-            <svg
-              id="modeIconPreview"
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              aria-hidden="true"
-              style="display:none"
-            >
-              <path
-                d="M8 2C4.5 2 1.73 4.11.07 7.18a1.5 1.5 0 0 0 0 1.64C1.73 11.89 4.5 14 8 14s6.27-2.11 7.93-5.18a1.5 1.5 0 0 0 0-1.64C14.27 4.11 11.5 2 8 2Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"
-              />
-            </svg>
-            <span id="modeToggleLabel">Edit</span>
-          </button>
-
-          <button
-            id="mindmapBtn"
-            type="button"
-            class="tb-seg-btn"
-            title="Open concept mindmap"
-            aria-label="Open concept mindmap"
-            aria-pressed="false"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="2.2"></circle>
-              <circle cx="4" cy="5" r="1.8"></circle>
-              <circle cx="20" cy="5" r="1.8"></circle>
-              <circle cx="4" cy="19" r="1.8"></circle>
-              <circle cx="20" cy="19" r="1.8"></circle>
-              <path d="M12 12 L5.5 6"></path>
-              <path d="M12 12 L18.5 6"></path>
-              <path d="M12 12 L5.5 18"></path>
-              <path d="M12 12 L18.5 18"></path>
-            </svg>
-            <span>Mindmap</span>
-          </button>
-        </div>
-
-        <span class="tb-divider" aria-hidden="true"></span>
-
         <!-- ── Cluster: File — Open · Library · Save ─────────────
              Save auto-hides in preview mode via existing CSS
              `body.preview-mode #saveBtn { display: none !important }`. -->
@@ -4309,6 +4254,96 @@
 
         <span class="tb-divider" aria-hidden="true"></span>
 
+        <!-- ── Cluster: Edit & insights — Mode · Document insights ──
+             Edit-mode toggle paired with the document insights popover.
+             Both pertain to "working with the current document." -->
+        <div class="tb-group" role="group" aria-label="Edit and insights">
+          <button
+            id="modeToggleBtn"
+            type="button"
+            class="btn mode-toggle-btn"
+            title="Toggle edit mode (Ctrl/Cmd+E)"
+            aria-pressed="false"
+          >
+            <svg
+              id="modeIconEdit"
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"
+              />
+            </svg>
+            <svg
+              id="modeIconPreview"
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+              style="display:none"
+            >
+              <path
+                d="M8 2C4.5 2 1.73 4.11.07 7.18a1.5 1.5 0 0 0 0 1.64C1.73 11.89 4.5 14 8 14s6.27-2.11 7.93-5.18a1.5 1.5 0 0 0 0-1.64C14.27 4.11 11.5 2 8 2Zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"
+              />
+            </svg>
+            <span id="modeToggleLabel">Edit</span>
+          </button>
+
+          <div class="ont-settings">
+            <button
+              id="ontologyToggleBtn"
+              type="button"
+              class="btn btn-icon"
+              title="Document insights"
+              aria-label="Document insights"
+              aria-expanded="false"
+              aria-controls="ontologyPanel"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.5 4a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0ZM5 2.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm6.5 2a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm2-1a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM5 7a3 3 0 0 0-3 3v1.75a.75.75 0 0 0 1.5 0V10A1.5 1.5 0 0 1 5 8.5h1a.75.75 0 0 0 0-1.5H5Zm8 3a2 2 0 0 0-2-2h-.5a.75.75 0 0 0 0 1.5h.5a.5.5 0 0 1 .5.5v1.75a.75.75 0 0 0 1.5 0V10Z"
+                />
+              </svg>
+            </button>
+            <div
+              id="ontologyPanel"
+              class="ont-panel hidden"
+              role="region"
+              aria-label="Document insights"
+              aria-hidden="true"
+              hidden
+            >
+              <div class="ont-header">
+                <span class="ont-title">Document Insights</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span id="ontSummary" class="ont-summary"></span>
+                  <button
+                    id="ontCloseBtn"
+                    type="button"
+                    class="ont-close"
+                    aria-label="Close insights"
+                  >&times;</button>
+                </div>
+              </div>
+              <div id="ontBody">
+                <div class="ont-empty">No content to analyze.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <span class="tb-divider" aria-hidden="true"></span>
+
         <!-- ── Cluster: Refresh — Reload · Auto-refresh ────────── -->
         <div class="tb-group" role="group" aria-label="Refresh">
           <button
@@ -4343,8 +4378,8 @@
 
         <span class="tb-divider" aria-hidden="true"></span>
 
-        <!-- ── Cluster: Document view — Reading · Insights ─────── -->
-        <div class="tb-group" role="group" aria-label="Document view">
+        <!-- ── Cluster: Display preferences — Reading · Theme ──── -->
+        <div class="tb-group" role="group" aria-label="Display preferences">
           <div class="reading-settings">
           <button
             id="readingToggleBtn"
@@ -4518,66 +4553,13 @@
           </div>
         </div>
 
-        <div class="ont-settings">
-          <button
-            id="ontologyToggleBtn"
-            type="button"
-            class="btn btn-icon"
-            title="Document insights"
-            aria-label="Document insights"
-            aria-expanded="false"
-            aria-controls="ontologyPanel"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                d="M2.5 4a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0ZM5 2.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm6.5 2a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm2-1a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM5 7a3 3 0 0 0-3 3v1.75a.75.75 0 0 0 1.5 0V10A1.5 1.5 0 0 1 5 8.5h1a.75.75 0 0 0 0-1.5H5Zm8 3a2 2 0 0 0-2-2h-.5a.75.75 0 0 0 0 1.5h.5a.5.5 0 0 1 .5.5v1.75a.75.75 0 0 0 1.5 0V10Z"
-              />
-            </svg>
-          </button>
-          <div
-            id="ontologyPanel"
-            class="ont-panel hidden"
-            role="region"
-            aria-label="Document insights"
-            aria-hidden="true"
-            hidden
-          >
-            <div class="ont-header">
-              <span class="ont-title">Document Insights</span>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span id="ontSummary" class="ont-summary"></span>
-                <button
-                  id="ontCloseBtn"
-                  type="button"
-                  class="ont-close"
-                  aria-label="Close insights"
-                >&times;</button>
-              </div>
-            </div>
-            <div id="ontBody">
-              <div class="ont-empty">No content to analyze.</div>
-            </div>
-          </div>
-        </div>
-        </div>
-
-        <span class="tb-divider" aria-hidden="true"></span>
-
-        <!-- ── Cluster: Appearance — Theme · Settings ─────────── -->
-        <div class="tb-group" role="group" aria-label="Appearance">
-          <button
-            id="themeToggleBtn"
-            type="button"
-            class="btn btn-icon"
-            title="Toggle theme"
-            aria-label="Toggle theme"
-          >
+        <button
+          id="themeToggleBtn"
+          type="button"
+          class="btn btn-icon"
+          title="Toggle theme"
+          aria-label="Toggle theme"
+        >
           <svg
             id="themeIconSun"
             width="14"
@@ -4604,6 +4586,33 @@
             />
           </svg>
         </button>
+        </div>
+
+        <span class="tb-divider" aria-hidden="true"></span>
+
+        <!-- ── Cluster: Mindmap & settings — Concept map · Preferences ── -->
+        <div class="tb-group" role="group" aria-label="Mindmap and settings">
+          <button
+            id="mindmapBtn"
+            type="button"
+            class="btn"
+            title="Open concept mindmap"
+            aria-label="Open concept mindmap"
+            aria-pressed="false"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="2.2"></circle>
+              <circle cx="4" cy="5" r="1.8"></circle>
+              <circle cx="20" cy="5" r="1.8"></circle>
+              <circle cx="4" cy="19" r="1.8"></circle>
+              <circle cx="20" cy="19" r="1.8"></circle>
+              <path d="M12 12 L5.5 6"></path>
+              <path d="M12 12 L18.5 6"></path>
+              <path d="M12 12 L5.5 18"></path>
+              <path d="M12 12 L18.5 18"></path>
+            </svg>
+            <span>Mindmap</span>
+          </button>
 
         <button
           id="globalSettingsBtn"
