@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-nUTheRwJ+Easmt+EgTnXzwMUfNyobFonWkeGMCsdOEs=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-xGouB095Bdwiq5JE2GlQB1k7hT3RWEFzcLWunfBZeZQ=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -145,6 +145,34 @@
         --mm-node-padding-x: 20px;
         --mm-node-padding-y: 14px;
         --mm-node-gap-min: 28px;
+
+        /* ── Motion system ────────────────────────────────────────
+           Calm & bliss curve — gentle ease-out, never bouncy.
+           Durations scale with affordance: micro → hover/focus,
+           small → toggles/toasts, panel → drawers/dialogs,
+           page → route-level transitions. */
+        --motion-micro: 140ms;
+        --motion-small: 220ms;
+        --motion-panel: 380ms;
+        --motion-page: 520ms;
+        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+        --ease-in: cubic-bezier(0.4, 0, 1, 1);
+        --ease-calm: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      /* Reduced-motion: honor user preference globally. Kills the
+         translate/scale, leaves opacity in place so state changes
+         still read. Any component-level animation below should
+         likewise respect this. */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
       }
 
       :root[data-theme="dark"] {
@@ -436,6 +464,34 @@
         display: none;
       }
 
+      /* View Transition theme swap — when startViewTransition is
+         supported, the new theme unfolds from the theme button as
+         a radial clip. `--vt-origin-x/y` are set on :root at click
+         time (screen-space pixels). Uses a large radius so the
+         reveal always completes across even ultra-wide monitors.
+         Firefox and older Safari fall back to the default crossfade
+         via the API, no change needed there. */
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
+      }
+      ::view-transition-old(root) {
+        z-index: 1;
+      }
+      ::view-transition-new(root) {
+        z-index: 2;
+        animation: vt-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @keyframes vt-reveal {
+        from {
+          clip-path: circle(0 at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
+        }
+        to {
+          clip-path: circle(150% at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
+        }
+      }
+
       /* Mirror the contrast icon horizontally in dark mode. In light
          theme the filled half sits on the right; in dark theme it
          flips to the left, giving a clear visual cue that the theme
@@ -494,15 +550,58 @@
         border-radius: 8px;
         cursor: pointer;
         white-space: nowrap;
-        transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+        position: relative;
+        /* Settle physics — hover lifts 0.5px with a soft shadow bloom;
+           press sinks. Transitions driven off the motion system so
+           the whole UI shares one timing vocabulary. */
+        transform: translateY(0);
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+        transition:
+          color var(--motion-micro) var(--ease-calm),
+          background var(--motion-micro) var(--ease-calm),
+          border-color var(--motion-micro) var(--ease-calm),
+          transform var(--motion-micro) var(--ease-out),
+          box-shadow var(--motion-micro) var(--ease-out);
+      }
+      /* Pressed-state underline: a calm alternative to a full
+         segmented-pill slider. When a toggle button (Edit, Mindmap,
+         Reading, Library, etc.) enters aria-pressed=true, a thin
+         accent underline scales in from center. Reads as "active"
+         without shouting, and the scaleX transition gives a gentle
+         slide feeling rather than a hard on/off. */
+      .btn::after {
+        content: "";
+        position: absolute;
+        left: 20%;
+        right: 20%;
+        bottom: 3px;
+        height: 1.5px;
+        border-radius: 2px;
+        background: var(--accent-fg);
+        transform: scaleX(0);
+        transform-origin: center;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          transform var(--motion-small) var(--ease-out),
+          opacity var(--motion-small) var(--ease-out);
+      }
+      .btn[aria-pressed="true"]:not(:disabled)::after {
+        transform: scaleX(1);
+        opacity: 0.7;
       }
       .btn:hover:not(:disabled) {
         color: var(--fg-default);
         background: var(--bg-subtle);
         border-color: var(--border-strong);
+        transform: translateY(-0.5px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
       }
       .btn:active:not(:disabled) {
         background: var(--bg-muted);
+        transform: translateY(0.5px);
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+        transition-duration: 80ms;
       }
       /* Toggle-state buttons (e.g. Edit, Mindmap): visually "pressed"
          when aria-pressed="true". Driven by assets/toolbar-sync.js
@@ -553,7 +652,12 @@
         box-shadow: 0 0 0 3px var(--selection);
       }
 
-      .mode-toggle-btn.has-unsaved::after {
+      /* Unsaved-state cue. Moved to ::before so the ::after pseudo
+         is free for the pressed-state underline (shared across all
+         .btn). The dot breathes gently — 4s cycle, opacity+scale —
+         so the "you have unsaved changes" signal is present without
+         being anxious. */
+      .mode-toggle-btn.has-unsaved::before {
         content: "";
         width: 6px;
         height: 6px;
@@ -561,6 +665,47 @@
         background: color-mix(in srgb, var(--accent-fg) 74%, white 26%);
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-fg) 12%, transparent);
         flex: 0 0 auto;
+        order: 99; /* place it after the label, like the old ::after */
+        margin-left: 2px;
+        animation: unsaved-breathe 4s var(--ease-calm) infinite;
+      }
+      @keyframes unsaved-breathe {
+        0%, 100% {
+          opacity: 0.7;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.15);
+        }
+      }
+
+      /* Just-saved morph: when the unsaved state resolves (JS adds
+         .just-saved for 1.4s), the dot becomes a checkmark glyph.
+         Same footprint, no layout shift — just a calm confirmation. */
+      .mode-toggle-btn.just-saved::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        flex: 0 0 auto;
+        order: 99;
+        margin-left: 4px;
+        animation: none;
+        /* SVG checkmark as a background mask so it picks up accent color */
+        -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13.5 4.5 L6 12 L2.5 8.5' fill='none' stroke='%23000' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+        mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M13.5 4.5 L6 12 L2.5 8.5' fill='none' stroke='%23000' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / contain no-repeat;
+        background: var(--accent-fg);
+        opacity: 0;
+        transform: scale(0.6);
+        animation: just-saved-pop var(--motion-panel) var(--ease-out) forwards;
+      }
+      @keyframes just-saved-pop {
+        0% { opacity: 0; transform: scale(0.6); }
+        55% { opacity: 1; transform: scale(1.08); }
+        100% { opacity: 1; transform: scale(1); }
       }
 
       .btn-icon {
@@ -1173,6 +1318,27 @@
         color: var(--fg-default);
         margin: 1.5em 0 0.45em;
         font-variation-settings: "opsz" 36;
+      }
+
+      /* Scroll-reveal for headings — only applies when JS wires up
+         the IntersectionObserver (body class `js-scroll-reveal` is
+         set from script). If JS fails for any reason, content stays
+         visible by default. Gate on `.preview-pane` so the editor
+         view and mindmap aren't affected.  */
+      html.js-scroll-reveal
+        .preview-pane
+        .markdown-body
+        :is(h1, h2, h3, h4):not([data-revealed]) {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      html.js-scroll-reveal
+        .preview-pane
+        .markdown-body
+        :is(h1, h2, h3, h4) {
+        transition:
+          opacity var(--motion-page) var(--ease-out),
+          transform var(--motion-page) var(--ease-out);
       }
 
       .markdown-body h1 {
@@ -1921,6 +2087,44 @@
         transition: transform 200ms cubic-bezier(0.34, 1.3, 0.64, 1);
         transform-box: fill-box;
         transform-origin: center;
+      }
+
+      /* Mindmap fan-out on open — nodes emerge with a staggered
+         fade+defocus. Chose opacity+blur over scale to avoid
+         fighting the SVG positioning transforms. Stagger by
+         data-depth so the root node lands first, rings follow.
+         Respects prefers-reduced-motion via the global reset. */
+      body.mindmap-open .mm-node {
+        animation: mindmap-fan-out var(--motion-page)
+          var(--ease-out) both;
+      }
+      body.mindmap-open .mm-node[data-depth="0"] { animation-delay: 0ms; }
+      body.mindmap-open .mm-node[data-depth="1"] { animation-delay: 90ms; }
+      body.mindmap-open .mm-node[data-depth="2"] { animation-delay: 180ms; }
+      body.mindmap-open .mm-node[data-depth="3"] { animation-delay: 260ms; }
+      body.mindmap-open .mm-node[data-depth="4"] { animation-delay: 320ms; }
+
+      @keyframes mindmap-fan-out {
+        from {
+          opacity: 0;
+          filter: blur(3px);
+        }
+        to {
+          opacity: 1;
+          filter: blur(0);
+        }
+      }
+
+      /* Mindmap edges follow slightly behind the nodes so the
+         structure assembles gracefully rather than flashing in. */
+      body.mindmap-open .mindmap-edge,
+      body.mindmap-open path.mm-edge {
+        animation: mindmap-edge-enter var(--motion-page)
+          var(--ease-out) 160ms both;
+      }
+      @keyframes mindmap-edge-enter {
+        from { opacity: 0; }
+        to   { opacity: var(--mm-edge-opacity-primary, 0.4); }
       }
 
       .mm-node.is-interactive {
@@ -2807,6 +3011,40 @@
       body.library-open #main,
       body.library-open .toolbar {
         margin-left: 320px;
+      }
+
+      /* Library drawer stagger — when `body.library-open` is set,
+         direct children of #libraryBody fade/slide in with a 40ms
+         cascade. Capped at item 12 so very long libraries don't
+         crawl. Reduced-motion users get the instant show via the
+         global reset. */
+      body.library-open #libraryBody > * {
+        animation: library-item-enter var(--motion-panel)
+          var(--ease-out) both;
+      }
+      body.library-open #libraryBody > *:nth-child(1)  { animation-delay: 0ms; }
+      body.library-open #libraryBody > *:nth-child(2)  { animation-delay: 40ms; }
+      body.library-open #libraryBody > *:nth-child(3)  { animation-delay: 80ms; }
+      body.library-open #libraryBody > *:nth-child(4)  { animation-delay: 120ms; }
+      body.library-open #libraryBody > *:nth-child(5)  { animation-delay: 160ms; }
+      body.library-open #libraryBody > *:nth-child(6)  { animation-delay: 200ms; }
+      body.library-open #libraryBody > *:nth-child(7)  { animation-delay: 240ms; }
+      body.library-open #libraryBody > *:nth-child(8)  { animation-delay: 280ms; }
+      body.library-open #libraryBody > *:nth-child(9)  { animation-delay: 320ms; }
+      body.library-open #libraryBody > *:nth-child(10) { animation-delay: 360ms; }
+      body.library-open #libraryBody > *:nth-child(11) { animation-delay: 400ms; }
+      body.library-open #libraryBody > *:nth-child(12) { animation-delay: 440ms; }
+      body.library-open #libraryBody > *:nth-child(n + 13) { animation-delay: 480ms; }
+
+      @keyframes library-item-enter {
+        from {
+          opacity: 0;
+          transform: translateX(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
       }
       body.mindmap-open {
         overflow: hidden;
@@ -14811,6 +15049,19 @@ Return JSON only.`;
           }
 
           if (els.modeToggleBtn) {
+            // Detect the unsaved→saved transition so the breathing
+            // dot morphs into a calm checkmark confirmation for ~1.4s.
+            // `.just-saved` is a transient class — added only when the
+            // dirty cue goes away WHILE it was previously showing.
+            const wasUnsaved =
+              els.modeToggleBtn.classList.contains("has-unsaved");
+            if (wasUnsaved && !authoringState.showDirtyCue) {
+              els.modeToggleBtn.classList.add("just-saved");
+              window.clearTimeout(state.justSavedTimer);
+              state.justSavedTimer = window.setTimeout(function () {
+                els.modeToggleBtn.classList.remove("just-saved");
+              }, 1400);
+            }
             els.modeToggleBtn.classList.toggle(
               "has-unsaved",
               authoringState.showDirtyCue,
@@ -16988,18 +17239,56 @@ Return JSON only.`;
           }, 90);
         }
 
-        themeBtn.addEventListener("click", function () {
+        themeBtn.addEventListener("click", function (event) {
           const current =
             document.documentElement.getAttribute("data-theme") || "light";
           const next = current === "dark" ? "light" : "dark";
-          applyTheme(next);
-          writeStorage(window.localStorage, THEME_KEY, next);
-          swapHljsTheme();
-          schedulePreviewRerender();
-          // If the mindmap viewer is open, re-render so semantic colors refresh.
-          const mmViewer = document.getElementById("mindmapViewer");
-          if (mmViewer && mmViewer.getAttribute("aria-hidden") === "false" && mindmapState.laid) {
-            renderMindmap(mindmapState.laid);
+
+          // Capture the button origin so the radial reveal can
+          // emanate from the icon itself rather than the screen
+          // center — feels causal, like the click spread the theme.
+          const rect = themeBtn.getBoundingClientRect();
+          const originX = rect.left + rect.width / 2;
+          const originY = rect.top + rect.height / 2;
+          document.documentElement.style.setProperty(
+            "--vt-origin-x",
+            originX + "px",
+          );
+          document.documentElement.style.setProperty(
+            "--vt-origin-y",
+            originY + "px",
+          );
+
+          const commitTheme = function () {
+            applyTheme(next);
+            writeStorage(window.localStorage, THEME_KEY, next);
+            swapHljsTheme();
+            schedulePreviewRerender();
+            const mmViewer = document.getElementById("mindmapViewer");
+            if (
+              mmViewer &&
+              mmViewer.getAttribute("aria-hidden") === "false" &&
+              mindmapState.laid
+            ) {
+              renderMindmap(mindmapState.laid);
+            }
+          };
+
+          // Progressive enhancement: browsers that implement the
+          // View Transitions API (Chromium, Safari ≥18) get a
+          // radial clip-path reveal from the button. Firefox and
+          // older Safari fall through to the existing behavior —
+          // no regression.
+          const reduceMotion =
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          if (
+            !reduceMotion &&
+            typeof document.startViewTransition === "function"
+          ) {
+            document.startViewTransition(commitTheme);
+          } else {
+            commitTheme();
           }
         });
 
@@ -17451,6 +17740,51 @@ Return JSON only.`;
 
         // Start in preview mode.
         setMode("preview");
+
+        // ── Scroll-reveal typography ────────────────────────────
+        // Gentle fade+rise on h1–h4 when they enter the viewport.
+        // Honors prefers-reduced-motion via the global reset above.
+        // Safe-by-default: the CSS rules are gated on
+        // `html.js-scroll-reveal` which only applies when THIS
+        // script wires things up — if JS or IO fails, headings
+        // stay fully visible.
+        (function setupScrollReveal() {
+          if (!("IntersectionObserver" in window)) return;
+          if (!("MutationObserver" in window)) return;
+          const previewRoot = document.querySelector(".preview-pane");
+          if (!previewRoot) return;
+
+          const io = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (e) {
+                if (e.isIntersecting) {
+                  e.target.setAttribute("data-revealed", "");
+                  io.unobserve(e.target);
+                }
+              });
+            },
+            { rootMargin: "0px 0px -8% 0px", threshold: 0.01 },
+          );
+
+          function observeNew() {
+            const headings = previewRoot.querySelectorAll(
+              ".markdown-body h1:not([data-observing]),"
+              + " .markdown-body h2:not([data-observing]),"
+              + " .markdown-body h3:not([data-observing]),"
+              + " .markdown-body h4:not([data-observing])",
+            );
+            headings.forEach(function (h) {
+              h.setAttribute("data-observing", "");
+              io.observe(h);
+            });
+          }
+
+          observeNew();
+          const mo = new MutationObserver(observeNew);
+          mo.observe(previewRoot, { childList: true, subtree: true });
+
+          document.documentElement.classList.add("js-scroll-reveal");
+        })();
       })();
     </script>
 
