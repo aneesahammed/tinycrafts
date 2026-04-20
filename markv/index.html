@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-01yvRcstTtbxQciBDydrNw5KepgJtT8PzWA/en1WCyg=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-nUTheRwJ+Easmt+EgTnXzwMUfNyobFonWkeGMCsdOEs=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -4225,7 +4225,7 @@
         ></div>
         <div class="spacer"></div>
 
-        <!-- ── Cluster: File — Open · Library · Save · Share ─────
+        <!-- ── Cluster: File — Open · Library · Save ────────────
              Save auto-hides in preview mode via existing CSS
              `body.preview-mode #saveBtn { display: none !important }`. -->
         <div class="tb-group" role="group" aria-label="File">
@@ -4285,16 +4285,6 @@
             hidden
           >
             Save
-          </button>
-
-          <button
-            id="shareBtn"
-            type="button"
-            class="btn"
-            title="Share a snapshot link for the current markdown"
-            disabled
-          >
-            Share
           </button>
         </div>
 
@@ -4636,8 +4626,8 @@
 
         <span class="tb-divider" aria-hidden="true"></span>
 
-        <!-- ── Cluster: Mindmap & settings — Concept map · Preferences ── -->
-        <div class="tb-group" role="group" aria-label="Mindmap and settings">
+        <!-- ── Cluster: Mindmap, share & settings — Concept map · Snapshot link · Preferences ── -->
+        <div class="tb-group" role="group" aria-label="Mindmap, share, and settings">
           <button
             id="mindmapBtn"
             type="button"
@@ -4658,6 +4648,33 @@
               <path d="M12 12 L18.5 18"></path>
             </svg>
             <span>Mindmap</span>
+          </button>
+
+          <button
+            id="shareBtn"
+            type="button"
+            class="btn"
+            title="Share a snapshot link for the current markdown"
+            disabled
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="18" cy="5" r="2.2"></circle>
+              <circle cx="6" cy="12" r="2.2"></circle>
+              <circle cx="18" cy="19" r="2.2"></circle>
+              <path d="M7.9 10.95 15.95 6.05"></path>
+              <path d="M7.9 13.05 15.95 17.95"></path>
+            </svg>
+            <span id="shareBtnLabel">Share</span>
           </button>
 
         <button
@@ -10711,6 +10728,7 @@ Return JSON only.`;
           openFileBtn: document.getElementById("openFileBtn"),
           saveBtn: document.getElementById("saveBtn"),
           shareBtn: document.getElementById("shareBtn"),
+          shareBtnLabel: document.getElementById("shareBtnLabel"),
           modeToggleBtn: document.getElementById("modeToggleBtn"),
           libraryToggleBtn: document.getElementById("libraryToggleBtn"),
           reloadBtn: document.getElementById("reloadBtn"),
@@ -14691,7 +14709,11 @@ Return JSON only.`;
                   ? "Share a snapshot link for the current markdown"
                   : "Add markdown content before sharing";
             els.shareBtn.disabled = !shareSupported || !hasContent || shareBusy;
-            els.shareBtn.textContent = shareBusy ? "Preparing..." : "Share";
+            if (els.shareBtnLabel) {
+              els.shareBtnLabel.textContent = shareBusy ? "Preparing..." : "Share";
+            } else {
+              els.shareBtn.textContent = shareBusy ? "Preparing..." : "Share";
+            }
             els.shareBtn.classList.toggle("is-busy", shareBusy);
             els.shareBtn.setAttribute("aria-busy", shareBusy ? "true" : "false");
             els.shareBtn.title = shareTitle;
