@@ -2310,12 +2310,41 @@
         margin-bottom: 8px;
       }
 
-      /* ---------- Responsive ---------- */
+      /* ---------- Responsive ----------
+         Progressive degradation strategy:
+         • ≤1024px: hide verbose .status text (live-region still announces
+           state to AT). Prevents the 769–950px "squeeze zone" where
+           .status collapsed to 0 width, creating visual dead space.
+         • ≤768px: wrap toolbar, enlarge tap targets to WCAG 2.5.5 AA
+           (44×44px) since this is the coarse-pointer territory.
+      */
+      @media (max-width: 1024px) {
+        .toolbar {
+          flex-wrap: wrap;
+        }
+        .toolbar .status {
+          display: none;
+        }
+      }
+
       @media (max-width: 768px) {
         .toolbar {
           padding: 8px 14px;
-          gap: 5px;
+          gap: 6px;
           flex-wrap: wrap;
+        }
+        /* WCAG 2.5.5 AA — minimum 44×44px tap target on touch-sized
+           viewports. Also covers Apple HIG (44pt) and Material (48dp). */
+        .toolbar .btn,
+        .toolbar .tb-segment .tb-seg-btn {
+          min-height: 44px;
+          min-width: 44px;
+        }
+        .toolbar .tb-segment {
+          padding: 4px;
+        }
+        .tb-divider {
+          display: none;
         }
         .brand {
           margin-right: 0;
@@ -2323,7 +2352,7 @@
         .brand span:last-child {
           display: none;
         }
-        .status {
+        .toolbar .status {
           display: block;
           order: 11;
           flex-basis: 100%;
