@@ -8,6 +8,14 @@ try {
   core = {};
 }
 
+function encodeBase64Url(bytes) {
+  return Buffer.from(bytes)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
 test("matches supported markdown extensions case-insensitively", () => {
   assert.equal(core.isSupportedLibraryFile?.("README.MD"), true);
   assert.equal(core.isSupportedLibraryFile?.("notes.mdx"), false);
@@ -334,12 +342,12 @@ test("describes authoring chrome for preview and edit states", () => {
 
 test("creates a versioned share fragment and parses it back", async () => {
   const fragment = await core.createShareSnapshotFragment?.({
-    text: "# Shared snapshot\n\nHello world.",
+    text: "# Shared snapshot\n\nHello world.\n\n- Café\n- Emoji: 😀",
     name: "notes.md",
     view: "preview",
   });
 
-  assert.match(fragment, /^#mkv=v1\.[gp]\.[A-Za-z0-9_-]+$/);
+  assert.match(fragment, /^#mkv=v1\.[cgph]\.[A-Za-z0-9_-]+$/);
 
   const parsed = await core.parseShareSnapshotFragment?.(fragment);
   assert.deepEqual(parsed, {
@@ -347,7 +355,31 @@ test("creates a versioned share fragment and parses it back", async () => {
     codec: parsed.codec,
     payload: {
       name: "notes.md",
-      text: "# Shared snapshot\n\nHello world.",
+      text: "# Shared snapshot\n\nHello world.\n\n- Café\n- Emoji: 😀",
+      view: "preview",
+    },
+  });
+});
+
+test("parses legacy plain-json share fragments", async () => {
+  const legacyBytes = Buffer.from(
+    JSON.stringify({
+      v: 1,
+      n: "legacy.md",
+      t: "# Legacy snapshot\n\nStill works.",
+      w: "preview",
+    }),
+    "utf8",
+  );
+  const fragment = "#mkv=v1.p." + encodeBase64Url(legacyBytes);
+
+  const parsed = await core.parseShareSnapshotFragment?.(fragment);
+  assert.deepEqual(parsed, {
+    version: 1,
+    codec: "p",
+    payload: {
+      name: "legacy.md",
+      text: "# Legacy snapshot\n\nStill works.",
       view: "preview",
     },
   });
@@ -382,7 +414,7 @@ test("describes share request state for empty, small, and large docs", () => {
     {
       canShare: true,
       reason: "ok",
-      estimatedPlainBytes: 64,
+      estimatedPlainBytes: 29,
       mayTakeTime: false,
     },
   );
@@ -396,7 +428,7 @@ test("describes share request state for empty, small, and large docs", () => {
     {
       canShare: true,
       reason: "ok",
-      estimatedPlainBytes: 12042,
+      estimatedPlainBytes: 12009,
       mayTakeTime: true,
     },
   );

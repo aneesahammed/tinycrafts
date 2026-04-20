@@ -12,6 +12,8 @@
   const SHARE_FORMAT_VERSION = "v1";
   const SHARE_CODEC_GZIP = "g";
   const SHARE_CODEC_PLAIN = "p";
+  const SHARE_CODEC_COMPACT = "c";
+  const SHARE_CODEC_COMPACT_GZIP = "h";
   const SHARE_PROGRESS_THRESHOLD_BYTES = 12000;
 
   function toLower(value) {
@@ -74,6 +76,107 @@
     return getUtf8Bytes(JSON.stringify(createShareSnapshotEnvelope(input)));
   }
 
+  function concatByteArrays(chunks) {
+    const list = Array.isArray(chunks) ? chunks : [];
+    let total = 0;
+    for (let index = 0; index < list.length; index += 1) {
+      total += list[index] ? list[index].length : 0;
+    }
+
+    const output = new Uint8Array(total);
+    let offset = 0;
+    for (let index = 0; index < list.length; index += 1) {
+      const chunk = list[index];
+      if (!chunk || !chunk.length) continue;
+      output.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return output;
+  }
+
+  function encodeUnsignedVarint(value) {
+    let remaining = Number(value);
+    if (!Number.isFinite(remaining) || remaining < 0) {
+      throw new Error("Invalid varint value");
+    }
+
+    const bytes = [];
+    do {
+      let next = remaining & 0x7f;
+      remaining = Math.floor(remaining / 128);
+      if (remaining > 0) {
+        next |= 0x80;
+      }
+      bytes.push(next);
+    } while (remaining > 0);
+
+    return new Uint8Array(bytes);
+  }
+
+  function decodeUnsignedVarint(bytes, startIndex) {
+    const list = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    let offset = Number(startIndex) || 0;
+    let shift = 0;
+    let value = 0;
+
+    for (; offset < list.length; offset += 1) {
+      const byte = list[offset];
+      value += (byte & 0x7f) * Math.pow(2, shift);
+      if ((byte & 0x80) === 0) {
+        return {
+          value: value,
+          nextIndex: offset + 1,
+        };
+      }
+      shift += 7;
+      if (shift > 35) {
+        throw new Error("Varint is too large");
+      }
+    }
+
+    throw new Error("Truncated varint");
+  }
+
+  function encodeCompactShareSnapshotBytes(input) {
+    const payload = normalizeShareSnapshotPayload(input);
+    const nameBytes = getUtf8Bytes(payload.name);
+    const textBytes = getUtf8Bytes(payload.text);
+    const flags = payload.view === "edit" ? 1 : 0;
+
+    return concatByteArrays([
+      new Uint8Array([flags]),
+      encodeUnsignedVarint(nameBytes.length),
+      nameBytes,
+      textBytes,
+    ]);
+  }
+
+  function decodeCompactShareSnapshotBytes(bytes) {
+    const list = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    if (!list.length) {
+      throw new Error("Empty compact snapshot payload");
+    }
+
+    const decoder = getTextDecoder();
+    if (!decoder) {
+      throw new Error("TextDecoder is unavailable in this browser.");
+    }
+
+    const flags = list[0];
+    const nameLengthMeta = decodeUnsignedVarint(list, 1);
+    const nameStart = nameLengthMeta.nextIndex;
+    const nameEnd = nameStart + nameLengthMeta.value;
+    if (nameEnd > list.length) {
+      throw new Error("Compact snapshot payload is truncated");
+    }
+
+    return {
+      name: decoder.decode(list.slice(nameStart, nameEnd)),
+      text: decoder.decode(list.slice(nameEnd)),
+      view: (flags & 1) === 1 ? "edit" : "preview",
+    };
+  }
+
   function encodeBase64Url(bytes) {
     if (
       typeof Buffer !== "undefined" &&
@@ -128,11 +231,14 @@
   }
 
   async function decompressShareBytes(bytes, codec) {
-    if (codec === SHARE_CODEC_PLAIN) {
+    if (codec === SHARE_CODEC_PLAIN || codec === SHARE_CODEC_COMPACT) {
       return bytes;
     }
 
-    if (codec !== SHARE_CODEC_GZIP || typeof DecompressionStream !== "function") {
+    if (
+      (codec !== SHARE_CODEC_GZIP && codec !== SHARE_CODEC_COMPACT_GZIP) ||
+      typeof DecompressionStream !== "function"
+    ) {
       throw new Error("Unsupported share snapshot codec");
     }
     const source = new Blob([bytes]);
@@ -141,15 +247,14 @@
   }
 
   async function createShareSnapshotFragment(input) {
-    const plainBytes = encodeShareSnapshotPayloadBytes(input);
-
-    let codec = SHARE_CODEC_PLAIN;
-    let finalBytes = plainBytes;
+    const compactBytes = encodeCompactShareSnapshotBytes(input);
+    let codec = SHARE_CODEC_COMPACT;
+    let finalBytes = compactBytes;
 
     try {
-      const compressedBytes = await compressShareBytes(plainBytes);
-      if (compressedBytes && compressedBytes.length < plainBytes.length) {
-        codec = SHARE_CODEC_GZIP;
+      const compressedBytes = await compressShareBytes(compactBytes);
+      if (compressedBytes && compressedBytes.length < compactBytes.length) {
+        codec = SHARE_CODEC_COMPACT_GZIP;
         finalBytes = compressedBytes;
       }
     } catch (_error) {}
@@ -177,7 +282,7 @@
 
     let estimatedPlainBytes = 0;
     try {
-      estimatedPlainBytes = encodeShareSnapshotPayloadBytes(payload).length;
+      estimatedPlainBytes = encodeCompactShareSnapshotBytes(payload).length;
     } catch (_error) {
       return {
         canShare: false,
@@ -211,18 +316,30 @@
 
     if (
       version !== SHARE_FORMAT_VERSION ||
-      (codec !== SHARE_CODEC_GZIP && codec !== SHARE_CODEC_PLAIN) ||
+      (
+        codec !== SHARE_CODEC_GZIP &&
+        codec !== SHARE_CODEC_PLAIN &&
+        codec !== SHARE_CODEC_COMPACT &&
+        codec !== SHARE_CODEC_COMPACT_GZIP
+      ) ||
       !encoded
     ) {
       return null;
     }
 
     try {
-      const decoder = getTextDecoder();
-      if (!decoder) return null;
-
       const bytes = decodeBase64Url(encoded);
       const restoredBytes = await decompressShareBytes(bytes, codec);
+      if (codec === SHARE_CODEC_COMPACT || codec === SHARE_CODEC_COMPACT_GZIP) {
+        return {
+          version: 1,
+          codec: codec,
+          payload: decodeCompactShareSnapshotBytes(restoredBytes),
+        };
+      }
+
+      const decoder = getTextDecoder();
+      if (!decoder) return null;
       const parsed = JSON.parse(decoder.decode(restoredBytes));
 
       if (!parsed || Number(parsed.v) !== 1 || typeof parsed.t !== "string") {

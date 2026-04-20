@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-UIqA7C2WlX6bkrfk6wjXtH+QjfsJz75ZzUoF0SMwQAs=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-fmkKuS/4aZOJC8zmFLYAzE4Fsl+2apsSwVMsn9GdUfg=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -488,7 +488,7 @@
           clip-path: circle(0 at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
         }
         to {
-          clip-path: circle(150% at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
+          clip-path: circle(var(--vt-end-radius, 150%) at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
         }
       }
 
@@ -11501,6 +11501,7 @@ Return JSON only.`;
           katexPromise: null,
           previewRenderGeneration: 0,
           themeMermaidRenderTimer: null,
+          themeRefreshToken: 0,
           editorSelection: 0,
           mermaidViewerOpen: false,
           mermaidViewerScale: 1,
@@ -15792,8 +15793,52 @@ Return JSON only.`;
             .filter(Boolean);
         }
 
-        async function renderMermaidBlocks(generation) {
-          const blocks = collectMermaidBlocks();
+        function collectRenderedMermaidBlocks() {
+          return Array.from(
+            els.preview.querySelectorAll(".mermaid-block[data-mermaid-source]"),
+          )
+            .map(function (host, index) {
+              const source = String(host.dataset.mermaidSource || "").replace(/\s+$/, "");
+              if (!source) return null;
+              const blockIndex = Number(host.dataset.mermaidIndex);
+
+              return {
+                host: host,
+                source: source,
+                index: Number.isFinite(blockIndex) ? blockIndex : index,
+              };
+            })
+            .filter(Boolean);
+        }
+
+        function applyRenderedMermaidSvg(block, rendered) {
+          block.host.classList.remove("is-loading", "is-error");
+          block.host.innerHTML = rendered.svg;
+
+          const svg = block.host.querySelector("svg");
+          if (svg) {
+            svg.setAttribute("role", "img");
+            svg.setAttribute("aria-label", "Mermaid diagram");
+          }
+          ensureMermaidBlockActions(block.host);
+
+          if (rendered.bindFunctions) {
+            rendered.bindFunctions(block.host);
+          }
+        }
+
+        function applyMermaidRenderError(block, error) {
+          block.host.className = "mermaid-block is-error";
+          block.host.innerHTML = buildMermaidFallback(
+            block.source,
+            "Diagram could not be rendered. Showing source instead.",
+            error && error.message ? error.message : String(error),
+          );
+        }
+
+        async function renderMermaidBlockCollection(blocks, generation, options) {
+          options = options || {};
+          const keepExistingOnError = Boolean(options.keepExistingOnError);
           if (!blocks.length) return;
 
           try {
@@ -15808,47 +15853,34 @@ Return JSON only.`;
 
             for (const block of blocks) {
               const normalizedSource = normalizeMermaidSource(block.source);
+              const hadExistingContent = Boolean(block.host.innerHTML.trim());
               try {
                 const rendered = await mermaid.render(
                   "markv-mermaid-" + generation + "-" + block.index,
                   normalizedSource,
                 );
                 if (generation !== state.previewRenderGeneration) return;
-
-                block.host.classList.remove("is-loading", "is-error");
-                block.host.innerHTML = rendered.svg;
-
-                const svg = block.host.querySelector("svg");
-                if (svg) {
-                  svg.setAttribute("role", "img");
-                  svg.setAttribute("aria-label", "Mermaid diagram");
-                }
-                ensureMermaidBlockActions(block.host);
-
-                if (rendered.bindFunctions) {
-                  rendered.bindFunctions(block.host);
-                }
+                applyRenderedMermaidSvg(block, rendered);
               } catch (_error) {
                 if (generation !== state.previewRenderGeneration) return;
-                block.host.className = "mermaid-block is-error";
-                block.host.innerHTML = buildMermaidFallback(
-                  block.source,
-                  "Diagram could not be rendered. Showing source instead.",
-                  _error && _error.message ? _error.message : String(_error),
-                );
+                if (keepExistingOnError && hadExistingContent) continue;
+                applyMermaidRenderError(block, _error);
               }
             }
           } catch (_error) {
             if (generation !== state.previewRenderGeneration) return;
             blocks.forEach(function (block) {
-              block.host.className = "mermaid-block is-error";
-              block.host.innerHTML = buildMermaidFallback(
-                block.source,
-                "Mermaid is unavailable. Showing source instead.",
-                _error && _error.message ? _error.message : String(_error),
-              );
+              const hadExistingContent = Boolean(block.host.innerHTML.trim());
+              if (keepExistingOnError && hadExistingContent) return;
+              applyMermaidRenderError(block, _error);
             });
           }
+        }
+
+        async function renderMermaidBlocks(generation) {
+          const blocks = collectMermaidBlocks();
+          if (!blocks.length) return;
+          await renderMermaidBlockCollection(blocks, generation);
         }
 
         // ── highlight.js lazy loader ──────────────────────────────
@@ -17581,12 +17613,90 @@ Return JSON only.`;
           window.matchMedia("(prefers-color-scheme: dark)").matches;
         applyTheme(savedTheme || (systemDark ? "dark" : "light"));
 
-        function schedulePreviewRerender() {
+        function runAfterNextPaint(callback) {
+          if (typeof requestAnimationFrame !== "function") {
+            window.setTimeout(callback, 0);
+            return;
+          }
+          requestAnimationFrame(function () {
+            requestAnimationFrame(callback);
+          });
+        }
+
+        function scheduleThemeDependentRefresh(token) {
           window.clearTimeout(state.themeMermaidRenderTimer);
           state.themeMermaidRenderTimer = window.setTimeout(function () {
             state.themeMermaidRenderTimer = null;
-            render("force");
-          }, 90);
+            if (token !== state.themeRefreshToken) return;
+
+            swapHljsTheme();
+
+            const blocks = collectRenderedMermaidBlocks();
+            if (!blocks.length) return;
+
+            const generation = state.previewRenderGeneration + 1;
+            state.previewRenderGeneration = generation;
+            renderMermaidBlockCollection(blocks, generation, {
+              keepExistingOnError: true,
+            });
+          }, 0);
+        }
+
+        function queueThemeDependentRefreshAfter(transition, token) {
+          const schedule = function () {
+            if (token !== state.themeRefreshToken) return;
+            runAfterNextPaint(function () {
+              scheduleThemeDependentRefresh(token);
+            });
+          };
+
+          if (
+            transition &&
+            transition.finished &&
+            typeof transition.finished.finally === "function"
+          ) {
+            transition.finished.finally(schedule);
+            return;
+          }
+
+          schedule();
+        }
+
+        function animateThemeReveal(transition, originX, originY, endRadius) {
+          if (
+            !transition ||
+            !transition.ready ||
+            typeof transition.ready.then !== "function"
+          ) {
+            return;
+          }
+
+          transition.ready
+            .then(function () {
+              document.documentElement.animate(
+                {
+                  clipPath: [
+                    "circle(0px at " + originX + "px " + originY + "px)",
+                    "circle(" +
+                      endRadius +
+                      "px at " +
+                      originX +
+                      "px " +
+                      originY +
+                      "px)",
+                  ],
+                },
+                {
+                  duration: 520,
+                  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                  pseudoElement: "::view-transition-new(root)",
+                },
+              );
+            })
+            .catch(function () {
+              // If the custom pseudo-element animation fails, keep the
+              // default view transition instead of breaking theme toggle.
+            });
         }
 
         themeBtn.addEventListener("click", function (event) {
@@ -17608,20 +17718,19 @@ Return JSON only.`;
             "--vt-origin-y",
             originY + "px",
           );
+          const maxDx = Math.max(originX, window.innerWidth - originX);
+          const maxDy = Math.max(originY, window.innerHeight - originY);
+          const endRadius = Math.hypot(maxDx, maxDy);
+          document.documentElement.style.setProperty(
+            "--vt-end-radius",
+            endRadius + "px",
+          );
+          const refreshToken = state.themeRefreshToken + 1;
+          state.themeRefreshToken = refreshToken;
 
           const commitTheme = function () {
             applyTheme(next);
             writeStorage(window.localStorage, THEME_KEY, next);
-            swapHljsTheme();
-            schedulePreviewRerender();
-            const mmViewer = document.getElementById("mindmapViewer");
-            if (
-              mmViewer &&
-              mmViewer.getAttribute("aria-hidden") === "false" &&
-              mindmapState.laid
-            ) {
-              renderMindmap(mindmapState.laid);
-            }
           };
 
           // Progressive enhancement: browsers that implement the
@@ -17636,9 +17745,12 @@ Return JSON only.`;
             !reduceMotion &&
             typeof document.startViewTransition === "function"
           ) {
-            document.startViewTransition(commitTheme);
+            const transition = document.startViewTransition(commitTheme);
+            animateThemeReveal(transition, originX, originY, endRadius);
+            queueThemeDependentRefreshAfter(transition, refreshToken);
           } else {
             commitTheme();
+            queueThemeDependentRefreshAfter(null, refreshToken);
           }
         });
 
