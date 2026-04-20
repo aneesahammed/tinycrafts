@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-xGouB095Bdwiq5JE2GlQB1k7hT3RWEFzcLWunfBZeZQ=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-EfVJwwuPmvnmk35uiAeBc0KK4KhuqHPGWz/CpRNlK/A=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -490,6 +490,47 @@
         to {
           clip-path: circle(150% at var(--vt-origin-x, 50%) var(--vt-origin-y, 50%));
         }
+      }
+
+      /* ── Reading progress gutter ─────────────────────────────
+         A 2px vertical thread pinned to the left viewport edge that
+         fills from top as the reader scrolls. Ambient presence, no
+         labels, no numbers — just a quiet "how far in" signal.
+         GPU-only: animates scaleY on an inner fill, transform-origin
+         top. Hidden when the user is at the very top (nothing to
+         show yet) and in edit mode (chrome distraction). */
+      #readingProgressGutter {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        pointer-events: none;
+        z-index: 5;
+        opacity: 0;
+        transition: opacity var(--motion-small) var(--ease-calm);
+      }
+      #readingProgressGutter.is-active {
+        opacity: 1;
+      }
+      #readingProgressGutter::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--border-soft);
+      }
+      #readingProgressGutter .fill {
+        position: absolute;
+        inset: 0;
+        background: color-mix(in srgb, var(--accent-fg) 55%, transparent);
+        transform-origin: top;
+        transform: scaleY(var(--progress, 0));
+        will-change: transform;
+      }
+      body.edit-mode-active #readingProgressGutter,
+      body.mindmap-open #readingProgressGutter,
+      body.library-open #readingProgressGutter {
+        opacity: 0 !important;
       }
 
       /* Mirror the contrast icon horizontally in dark mode. In light
@@ -1318,6 +1359,260 @@
         color: var(--fg-default);
         margin: 1.5em 0 0.45em;
         font-variation-settings: "opsz" 36;
+      }
+
+      /* ── Heading anchor links ────────────────────────────────
+         A subtle `#` link appears to the left of each heading on
+         hover, enabling deep-linking without visual noise. Uses
+         absolute positioning so it never shifts the heading text.
+         Anchor is a real <a> (wired up in JS) so it works with
+         keyboard, middle-click, and copy-link-address. */
+      .preview-pane .markdown-body :is(h1, h2, h3, h4, h5, h6) {
+        position: relative;
+      }
+      .heading-anchor {
+        position: absolute;
+        left: -1.15em;
+        top: 0;
+        display: inline-flex;
+        align-items: baseline;
+        color: var(--fg-subtle);
+        font-family: var(--font-sans);
+        font-weight: 400;
+        font-size: 0.7em;
+        text-decoration: none;
+        opacity: 0;
+        transform: translateX(4px);
+        transition:
+          opacity var(--motion-small) var(--ease-calm),
+          transform var(--motion-small) var(--ease-out),
+          color var(--motion-micro) var(--ease-calm);
+        line-height: inherit;
+        padding: 0 0.25em;
+        border-radius: 4px;
+      }
+      .preview-pane
+        .markdown-body
+        :is(h1, h2, h3, h4, h5, h6):hover
+        .heading-anchor,
+      .heading-anchor:focus-visible {
+        opacity: 0.7;
+        transform: translateX(0);
+      }
+      .heading-anchor:hover {
+        opacity: 1 !important;
+        color: var(--accent-fg);
+      }
+      .heading-anchor:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 2px;
+      }
+      /* Small viewports: park the anchor inline at the end of the
+         heading rather than floating in a missing left margin. */
+      @media (max-width: 900px) {
+        .heading-anchor {
+          position: static;
+          display: inline-block;
+          margin-left: 0.35em;
+          transform: none;
+        }
+      }
+
+      /* ── Code block chrome (language label + copy) ───────────
+         A floating pill in the top-right of each <pre> that shows
+         the language and a Copy button. Both hidden by default,
+         fade/slide in on hover or keyboard focus within the block.
+         Positioned so it never overlaps the first line of code. */
+      .preview-pane .markdown-body pre {
+        position: relative;
+      }
+      .code-chrome {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        opacity: 0;
+        transform: translateX(6px);
+        pointer-events: none;
+        transition:
+          opacity var(--motion-small) var(--ease-calm),
+          transform var(--motion-small) var(--ease-out);
+      }
+      .preview-pane .markdown-body pre:hover .code-chrome,
+      .preview-pane .markdown-body pre:focus-within .code-chrome {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+      .code-lang-badge {
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        font-family: var(--font-sans);
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--fg-muted);
+        background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
+        border: 1px solid var(--border-soft);
+        border-radius: 6px;
+        text-transform: lowercase;
+        letter-spacing: 0.03em;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      .code-copy-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 22px;
+        padding: 0;
+        color: var(--fg-muted);
+        background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
+        border: 1px solid var(--border-soft);
+        border-radius: 6px;
+        cursor: pointer;
+        transition:
+          color var(--motion-micro) var(--ease-calm),
+          background var(--motion-micro) var(--ease-calm);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+      }
+      .code-copy-btn:hover {
+        color: var(--fg-default);
+        background: color-mix(in srgb, var(--bg-raised) 100%, transparent);
+      }
+      .code-copy-btn:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 1px;
+      }
+      .code-copy-btn svg {
+        width: 12px;
+        height: 12px;
+      }
+      .code-copy-btn.is-copied {
+        color: var(--accent-fg);
+      }
+
+      /* ── Reading breadcrumb ──────────────────────────────────
+         Quiet "where am I" signal. Updates as the user scrolls
+         through sections. Sits directly under the toolbar, fades
+         in only once the user has scrolled past the first heading.
+         Hidden in edit/library/mindmap modes (chrome noise). */
+      #readingBreadcrumb {
+        position: fixed;
+        top: calc(var(--toolbar-h, 52px) + 4px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-4px);
+        z-index: 4;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: min(720px, calc(100vw - 48px));
+        padding: 6px 12px;
+        font-family: var(--font-sans);
+        font-size: 11.5px;
+        color: var(--fg-muted);
+        background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+        border: 1px solid var(--border-soft);
+        border-radius: 999px;
+        box-shadow: var(--shadow-sm);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity var(--motion-small) var(--ease-calm),
+          transform var(--motion-small) var(--ease-out);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #readingBreadcrumb.is-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      #readingBreadcrumb .sep {
+        color: var(--fg-subtle);
+        margin: 0 2px;
+      }
+      #readingBreadcrumb .crumb {
+        color: var(--fg-muted);
+      }
+      #readingBreadcrumb .crumb:last-child {
+        color: var(--fg-default);
+      }
+      body.edit-mode-active #readingBreadcrumb,
+      body.mindmap-open #readingBreadcrumb,
+      body.library-open #readingBreadcrumb {
+        opacity: 0 !important;
+      }
+
+      /* ── Link preview card ───────────────────────────────────
+         Appears on long hover (~500ms) of an <a> inside the doc.
+         For internal anchors, surfaces the target heading and
+         first paragraph. For external, shows the domain + path.
+         Positioned near the hovered link; JS handles placement
+         to keep it in-viewport. */
+      .link-preview {
+        position: fixed;
+        z-index: 50;
+        max-width: 340px;
+        padding: 12px 14px;
+        font-family: var(--font-sans);
+        font-size: 12.5px;
+        line-height: 1.45;
+        color: var(--fg-default);
+        background: var(--bg-raised);
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        box-shadow: var(--shadow-md);
+        opacity: 0;
+        transform: translateY(4px) scale(0.98);
+        pointer-events: none;
+        transition:
+          opacity var(--motion-small) var(--ease-calm),
+          transform var(--motion-small) var(--ease-out);
+      }
+      .link-preview.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      .link-preview .lp-title {
+        font-weight: 600;
+        color: var(--fg-default);
+        margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .link-preview .lp-excerpt {
+        color: var(--fg-muted);
+        font-size: 11.5px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .link-preview .lp-url {
+        margin-top: 6px;
+        font-family: var(--font-mono, ui-monospace, monospace);
+        font-size: 10.5px;
+        color: var(--fg-subtle);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .link-preview .lp-kind {
+        display: inline-block;
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--fg-subtle);
+        margin-bottom: 4px;
       }
 
       /* Scroll-reveal for headings — only applies when JS wires up
@@ -17784,6 +18079,398 @@ Return JSON only.`;
           mo.observe(previewRoot, { childList: true, subtree: true });
 
           document.documentElement.classList.add("js-scroll-reveal");
+        })();
+
+        // ── Comprehension micro-features ─────────────────────────
+        // Groups #1 progress gutter, #2 heading anchors,
+        // #3 code-block chrome, #4 link previews, #5 breadcrumb.
+        // Global prefers-reduced-motion reset collapses transitions
+        // in CSS; JS logic still runs but transitions become
+        // instantaneous, which is correct: users still get the
+        // feature (copy, preview, progress) without motion.
+        (function setupComprehensionFeatures() {
+          const previewRoot = document.querySelector(".preview-pane");
+          if (!previewRoot) return;
+
+          // Small helper for building SVG icons without touching
+          // innerHTML (stays XSS-safe and satisfies security scan).
+          function makeSvg(pathSpec) {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("viewBox", "0 0 16 16");
+            svg.setAttribute("fill", "none");
+            svg.setAttribute("stroke", "currentColor");
+            svg.setAttribute("stroke-linecap", "round");
+            svg.setAttribute("stroke-linejoin", "round");
+            svg.setAttribute("aria-hidden", "true");
+            pathSpec.forEach(function (p) {
+              const el = document.createElementNS(svgNS, p.tag);
+              Object.keys(p.attrs).forEach(function (k) {
+                el.setAttribute(k, p.attrs[k]);
+              });
+              svg.appendChild(el);
+            });
+            return svg;
+          }
+          function copyIconSvg() {
+            const svg = makeSvg([
+              { tag: "rect", attrs: { x: "4", y: "4", width: "9", height: "9", rx: "1.5" } },
+              { tag: "path", attrs: { d: "M10 4V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1" } },
+            ]);
+            svg.setAttribute("stroke-width", "1.5");
+            return svg;
+          }
+          function checkIconSvg() {
+            const svg = makeSvg([
+              { tag: "path", attrs: { d: "M3 8.5 L6.5 12 L13 4.5" } },
+            ]);
+            svg.setAttribute("stroke-width", "2");
+            return svg;
+          }
+
+          // ---------- #1 Reading progress gutter ----------
+          const gutter = document.createElement("div");
+          gutter.id = "readingProgressGutter";
+          gutter.setAttribute("aria-hidden", "true");
+          const gutterFill = document.createElement("div");
+          gutterFill.className = "fill";
+          gutter.appendChild(gutterFill);
+          document.body.appendChild(gutter);
+
+          // ---------- #5 Breadcrumb trail ----------
+          // Publish the toolbar's rendered height as --toolbar-h so
+          // the breadcrumb can sit just below it. Narrow viewports
+          // wrap the toolbar (44×44px tap targets, status row on a
+          // new line); a fixed `top` would then hide behind it.
+          const toolbarEl = document.querySelector(".toolbar");
+          if (toolbarEl) {
+            const syncToolbarHeight = function () {
+              document.documentElement.style.setProperty(
+                "--toolbar-h",
+                toolbarEl.offsetHeight + "px"
+              );
+            };
+            syncToolbarHeight();
+            // Listen on both: ResizeObserver catches content-driven size
+            // changes (status row toggling, font load) without a viewport
+            // change; resize covers breakpoint transitions and
+            // environments where RO delivery is flaky.
+            if (typeof ResizeObserver !== "undefined") {
+              new ResizeObserver(syncToolbarHeight).observe(toolbarEl);
+            }
+            window.addEventListener("resize", syncToolbarHeight, { passive: true });
+          }
+
+          const breadcrumb = document.createElement("div");
+          breadcrumb.id = "readingBreadcrumb";
+          breadcrumb.setAttribute("aria-hidden", "true");
+          document.body.appendChild(breadcrumb);
+
+          function renderBreadcrumb(headings, activeHeading) {
+            if (!activeHeading) {
+              breadcrumb.classList.remove("is-visible");
+              return;
+            }
+            // Walk up the heading levels: for the active H3, find the
+            // nearest preceding H2 and H1. Gives a contextual trail.
+            const levels = { 1: null, 2: null, 3: null };
+            const activeLevel = Number(activeHeading.tagName[1]);
+            for (const h of headings) {
+              if (h === activeHeading) break;
+              const l = Number(h.tagName[1]);
+              if (l >= 1 && l <= 3) {
+                levels[l] = h;
+                for (let k = l + 1; k <= 3; k++) levels[k] = null;
+              }
+            }
+            levels[activeLevel] = activeHeading;
+            const chain = [];
+            for (let l = 1; l <= activeLevel; l++) {
+              if (levels[l]) chain.push(levels[l]);
+            }
+            // Rebuild via DOM methods (no innerHTML).
+            while (breadcrumb.firstChild) breadcrumb.removeChild(breadcrumb.firstChild);
+            chain.forEach(function (h, i) {
+              if (i > 0) {
+                const sep = document.createElement("span");
+                sep.className = "sep";
+                sep.textContent = "›";
+                breadcrumb.appendChild(sep);
+              }
+              const c = document.createElement("span");
+              c.className = "crumb";
+              const text = h.textContent.replace(/^#\s*/, "").trim();
+              c.textContent = text.length > 50 ? text.slice(0, 48) + "…" : text;
+              breadcrumb.appendChild(c);
+            });
+            breadcrumb.classList.add("is-visible");
+          }
+
+          // Update progress + breadcrumb on scroll. rAF-coalesced so
+          // rapid wheel/flick events never stall the main thread.
+          let scrollScheduled = false;
+          function updateOnScroll() {
+            if (scrollScheduled) return;
+            scrollScheduled = true;
+            window.requestAnimationFrame(function () {
+              scrollScheduled = false;
+
+              // Progress
+              const maxY = Math.max(
+                0,
+                document.documentElement.scrollHeight - window.innerHeight,
+              );
+              const progress = maxY > 0 ? window.scrollY / maxY : 0;
+              gutter.style.setProperty("--progress", progress.toFixed(4));
+              gutter.classList.toggle(
+                "is-active",
+                window.scrollY > 40 && maxY > window.innerHeight * 0.4,
+              );
+
+              // Breadcrumb — find the heading closest above the
+              // viewport top threshold.
+              const headings = Array.from(
+                previewRoot.querySelectorAll(
+                  ".markdown-body :is(h1, h2, h3)",
+                ),
+              );
+              if (!headings.length) {
+                breadcrumb.classList.remove("is-visible");
+                return;
+              }
+              const threshold = 120;
+              let active = null;
+              for (const h of headings) {
+                const top = h.getBoundingClientRect().top;
+                if (top <= threshold) active = h;
+                else break;
+              }
+              if (
+                active &&
+                (active !== headings[0] ||
+                  headings[0].getBoundingClientRect().top < -20)
+              ) {
+                renderBreadcrumb(headings, active);
+              } else {
+                breadcrumb.classList.remove("is-visible");
+              }
+            });
+          }
+          window.addEventListener("scroll", updateOnScroll, { passive: true });
+          window.addEventListener("resize", updateOnScroll, { passive: true });
+          updateOnScroll();
+
+          // ---------- #2 Heading anchors ----------
+          function addHeadingAnchors() {
+            const headings = previewRoot.querySelectorAll(
+              ".markdown-body :is(h1, h2, h3, h4, h5, h6)[id]:not([data-anchor-ready])",
+            );
+            headings.forEach(function (h) {
+              h.setAttribute("data-anchor-ready", "");
+              const a = document.createElement("a");
+              a.className = "heading-anchor";
+              a.href = "#" + h.id;
+              a.setAttribute("aria-label", "Link to " + h.textContent.trim());
+              a.textContent = "#";
+              h.insertBefore(a, h.firstChild);
+            });
+          }
+          addHeadingAnchors();
+
+          // ---------- #3 Code block chrome ----------
+          function addCodeChrome() {
+            const pres = previewRoot.querySelectorAll(
+              ".markdown-body pre:not([data-chrome-ready])",
+            );
+            pres.forEach(function (pre) {
+              pre.setAttribute("data-chrome-ready", "");
+              const code = pre.querySelector("code");
+              if (!code) return;
+              const lang = (code.className.match(/language-(\w+)/) || [])[1];
+              const chrome = document.createElement("div");
+              chrome.className = "code-chrome";
+              if (lang) {
+                const badge = document.createElement("span");
+                badge.className = "code-lang-badge";
+                badge.textContent = lang;
+                chrome.appendChild(badge);
+              }
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "code-copy-btn";
+              btn.setAttribute("aria-label", "Copy code");
+              btn.title = "Copy code";
+              btn.appendChild(copyIconSvg());
+              btn.addEventListener("click", function () {
+                const text = code.textContent || "";
+                const done = function () {
+                  btn.classList.add("is-copied");
+                  while (btn.firstChild) btn.removeChild(btn.firstChild);
+                  btn.appendChild(checkIconSvg());
+                  btn.setAttribute("aria-label", "Copied");
+                  btn.title = "Copied";
+                  window.clearTimeout(btn.__copyTimer);
+                  btn.__copyTimer = window.setTimeout(function () {
+                    btn.classList.remove("is-copied");
+                    while (btn.firstChild) btn.removeChild(btn.firstChild);
+                    btn.appendChild(copyIconSvg());
+                    btn.setAttribute("aria-label", "Copy code");
+                    btn.title = "Copy code";
+                  }, 1400);
+                };
+                const fail = function () {
+                  btn.setAttribute("aria-label", "Copy failed");
+                  btn.title = "Copy failed";
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(text).then(done).catch(fail);
+                } else {
+                  try {
+                    const ta = document.createElement("textarea");
+                    ta.value = text;
+                    ta.setAttribute("readonly", "");
+                    ta.style.position = "fixed";
+                    ta.style.opacity = "0";
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(ta);
+                    done();
+                  } catch (e) {
+                    fail();
+                  }
+                }
+              });
+              chrome.appendChild(btn);
+              pre.appendChild(chrome);
+            });
+          }
+          addCodeChrome();
+
+          // Re-run anchor + chrome wiring when preview content changes.
+          const contentMo = new MutationObserver(function () {
+            addHeadingAnchors();
+            addCodeChrome();
+          });
+          contentMo.observe(previewRoot, { childList: true, subtree: true });
+
+          // ---------- #4 Link preview on long hover ----------
+          const preview = document.createElement("div");
+          preview.className = "link-preview";
+          preview.setAttribute("role", "tooltip");
+          preview.setAttribute("aria-hidden", "true");
+          document.body.appendChild(preview);
+
+          function buildPreviewCard(kindText) {
+            while (preview.firstChild) preview.removeChild(preview.firstChild);
+            const kind = document.createElement("span");
+            kind.className = "lp-kind";
+            kind.textContent = kindText;
+            preview.appendChild(kind);
+            const title = document.createElement("div");
+            title.className = "lp-title";
+            preview.appendChild(title);
+            return { kind: kind, title: title };
+          }
+
+          let hoverTimer = 0;
+          let activeLink = null;
+
+          function positionPreview(link) {
+            const linkRect = link.getBoundingClientRect();
+            const cardW = Math.min(340, window.innerWidth - 24);
+            let left = Math.max(
+              12,
+              Math.min(linkRect.left, window.innerWidth - cardW - 12),
+            );
+            let top = linkRect.bottom + 8;
+            const approxH = 120;
+            if (top + approxH > window.innerHeight - 12) {
+              top = linkRect.top - approxH - 8;
+              if (top < 12) top = 12;
+            }
+            preview.style.left = left + "px";
+            preview.style.top = top + "px";
+            preview.style.maxWidth = cardW + "px";
+          }
+
+          function hidePreview() {
+            preview.classList.remove("is-visible");
+            preview.setAttribute("aria-hidden", "true");
+          }
+
+          function showInternalPreview(link, targetId) {
+            const target = document.getElementById(targetId);
+            if (!target) return showExternalPreview(link);
+            const titleText = target.textContent.replace(/^#\s*/, "").trim();
+            let excerptText = "";
+            let next = target.nextElementSibling;
+            while (next && /^H[1-6]$/.test(next.tagName)) {
+              next = next.nextElementSibling;
+            }
+            if (next) {
+              excerptText = (next.textContent || "").trim().slice(0, 200);
+            }
+            const refs = buildPreviewCard("Section");
+            refs.title.textContent = titleText;
+            const excerpt = document.createElement("div");
+            excerpt.className = "lp-excerpt";
+            excerpt.textContent = excerptText;
+            preview.appendChild(excerpt);
+            positionPreview(link);
+            preview.classList.add("is-visible");
+            preview.setAttribute("aria-hidden", "false");
+          }
+
+          function showExternalPreview(link) {
+            let url;
+            try {
+              url = new URL(link.href, location.href);
+            } catch (e) {
+              return;
+            }
+            const domain = url.hostname;
+            const path = (url.pathname + url.search).replace(/\/$/, "");
+            const label = link.textContent.trim();
+            const refs = buildPreviewCard("External link");
+            refs.title.textContent = label || domain;
+            const urlEl = document.createElement("div");
+            urlEl.className = "lp-url";
+            urlEl.textContent = domain + (path || "");
+            preview.appendChild(urlEl);
+            positionPreview(link);
+            preview.classList.add("is-visible");
+            preview.setAttribute("aria-hidden", "false");
+          }
+
+          previewRoot.addEventListener("mouseover", function (e) {
+            const link = e.target.closest("a[href]");
+            if (!link || !previewRoot.contains(link)) return;
+            if (link.classList.contains("heading-anchor")) return;
+            activeLink = link;
+            window.clearTimeout(hoverTimer);
+            hoverTimer = window.setTimeout(function () {
+              if (activeLink !== link) return;
+              const href = link.getAttribute("href") || "";
+              const hashMatch = href.match(/#([^\s?]+)$/);
+              const sameDoc =
+                href.startsWith("#") ||
+                link.pathname === location.pathname;
+              if (hashMatch && sameDoc) {
+                showInternalPreview(link, hashMatch[1]);
+              } else if (link.href && !sameDoc) {
+                showExternalPreview(link);
+              }
+            }, 500);
+          });
+          previewRoot.addEventListener("mouseout", function (e) {
+            const link = e.target.closest("a[href]");
+            if (!link) return;
+            if (activeLink === link) activeLink = null;
+            window.clearTimeout(hoverTimer);
+            hidePreview();
+          });
+          window.addEventListener("scroll", hidePreview, { passive: true });
         })();
       })();
     </script>
