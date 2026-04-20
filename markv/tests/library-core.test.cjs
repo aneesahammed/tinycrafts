@@ -331,3 +331,73 @@ test("describes authoring chrome for preview and edit states", () => {
     },
   );
 });
+
+test("creates a versioned share fragment and parses it back", async () => {
+  const fragment = await core.createShareSnapshotFragment?.({
+    text: "# Shared snapshot\n\nHello world.",
+    name: "notes.md",
+    view: "preview",
+  });
+
+  assert.match(fragment, /^#mkv=v1\.[gp]\.[A-Za-z0-9_-]+$/);
+
+  const parsed = await core.parseShareSnapshotFragment?.(fragment);
+  assert.deepEqual(parsed, {
+    version: 1,
+    codec: parsed.codec,
+    payload: {
+      name: "notes.md",
+      text: "# Shared snapshot\n\nHello world.",
+      view: "preview",
+    },
+  });
+});
+
+test("ignores malformed or unrelated share fragments", async () => {
+  assert.equal(await core.parseShareSnapshotFragment?.(""), null);
+  assert.equal(await core.parseShareSnapshotFragment?.("#section-1"), null);
+  assert.equal(await core.parseShareSnapshotFragment?.("#mkv=v1"), null);
+  assert.equal(await core.parseShareSnapshotFragment?.("#mkv=v2.g.abc"), null);
+});
+
+test("describes share request state for empty, small, and large docs", () => {
+  assert.deepEqual(
+    core.getShareSnapshotState?.({
+      text: "",
+      currentName: "",
+    }),
+    {
+      canShare: false,
+      reason: "empty",
+      estimatedPlainBytes: 0,
+      mayTakeTime: false,
+    },
+  );
+
+  assert.deepEqual(
+    core.getShareSnapshotState?.({
+      text: "# Hello\n\nSmall doc.",
+      currentName: "small.md",
+    }),
+    {
+      canShare: true,
+      reason: "ok",
+      estimatedPlainBytes: 64,
+      mayTakeTime: false,
+    },
+  );
+
+  const hugeText = "A".repeat(12000);
+  assert.deepEqual(
+    core.getShareSnapshotState?.({
+      text: hugeText,
+      currentName: "huge.md",
+    }),
+    {
+      canShare: true,
+      reason: "ok",
+      estimatedPlainBytes: 12042,
+      mayTakeTime: true,
+    },
+  );
+});

@@ -8,9 +8,239 @@
   "use strict";
 
   const SUPPORTED_EXTENSIONS = [".md", ".markdown", ".mdown", ".mkdn", ".txt"];
+  const SHARE_FRAGMENT_PREFIX = "#mkv=";
+  const SHARE_FORMAT_VERSION = "v1";
+  const SHARE_CODEC_GZIP = "g";
+  const SHARE_CODEC_PLAIN = "p";
+  const SHARE_PROGRESS_THRESHOLD_BYTES = 12000;
 
   function toLower(value) {
     return String(value || "").toLowerCase();
+  }
+
+  function getTextEncoder() {
+    return typeof TextEncoder === "function" ? new TextEncoder() : null;
+  }
+
+  function getTextDecoder() {
+    return typeof TextDecoder === "function" ? new TextDecoder() : null;
+  }
+
+  function getUtf8Bytes(value) {
+    const text = String(value || "");
+    const encoder = getTextEncoder();
+    if (encoder) {
+      return encoder.encode(text);
+    }
+
+    if (
+      typeof Buffer !== "undefined" &&
+      typeof Buffer.from === "function"
+    ) {
+      return new Uint8Array(Buffer.from(text, "utf8"));
+    }
+
+    throw new Error("TextEncoder is unavailable in this browser.");
+  }
+
+  function normalizeShareSnapshotPayload(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const rawName =
+      typeof source.name === "string"
+        ? source.name
+        : typeof source.currentName === "string"
+          ? source.currentName
+          : "";
+    const view = source.view === "edit" ? "edit" : "preview";
+
+    return {
+      name: rawName.trim(),
+      text: String(source.text || ""),
+      view: view,
+    };
+  }
+
+  function createShareSnapshotEnvelope(input) {
+    const payload = normalizeShareSnapshotPayload(input);
+    return {
+      v: 1,
+      n: payload.name,
+      t: payload.text,
+      w: payload.view,
+    };
+  }
+
+  function encodeShareSnapshotPayloadBytes(input) {
+    return getUtf8Bytes(JSON.stringify(createShareSnapshotEnvelope(input)));
+  }
+
+  function encodeBase64Url(bytes) {
+    if (
+      typeof Buffer !== "undefined" &&
+      typeof Buffer.from === "function"
+    ) {
+      return Buffer.from(bytes)
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+    }
+
+    let binary = "";
+    const list = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    for (let index = 0; index < list.length; index += 1) {
+      binary += String.fromCharCode(list[index]);
+    }
+
+    return btoa(binary)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  function decodeBase64Url(value) {
+    const normalized = String(value || "")
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const padded =
+      normalized + "===".slice((normalized.length + 3) % 4);
+
+    if (
+      typeof Buffer !== "undefined" &&
+      typeof Buffer.from === "function"
+    ) {
+      return new Uint8Array(Buffer.from(padded, "base64"));
+    }
+
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+
+  async function compressShareBytes(bytes) {
+    if (typeof CompressionStream !== "function") return null;
+    const source = new Blob([bytes]);
+    const stream = source.stream().pipeThrough(new CompressionStream("gzip"));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
+  async function decompressShareBytes(bytes, codec) {
+    if (codec === SHARE_CODEC_PLAIN) {
+      return bytes;
+    }
+
+    if (codec !== SHARE_CODEC_GZIP || typeof DecompressionStream !== "function") {
+      throw new Error("Unsupported share snapshot codec");
+    }
+    const source = new Blob([bytes]);
+    const stream = source.stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+
+  async function createShareSnapshotFragment(input) {
+    const plainBytes = encodeShareSnapshotPayloadBytes(input);
+
+    let codec = SHARE_CODEC_PLAIN;
+    let finalBytes = plainBytes;
+
+    try {
+      const compressedBytes = await compressShareBytes(plainBytes);
+      if (compressedBytes && compressedBytes.length < plainBytes.length) {
+        codec = SHARE_CODEC_GZIP;
+        finalBytes = compressedBytes;
+      }
+    } catch (_error) {}
+
+    return (
+      SHARE_FRAGMENT_PREFIX +
+      SHARE_FORMAT_VERSION +
+      "." +
+      codec +
+      "." +
+      encodeBase64Url(finalBytes)
+    );
+  }
+
+  function getShareSnapshotState(input) {
+    const payload = normalizeShareSnapshotPayload(input);
+    if (!payload.text.trim()) {
+      return {
+        canShare: false,
+        reason: "empty",
+        estimatedPlainBytes: 0,
+        mayTakeTime: false,
+      };
+    }
+
+    let estimatedPlainBytes = 0;
+    try {
+      estimatedPlainBytes = encodeShareSnapshotPayloadBytes(payload).length;
+    } catch (_error) {
+      return {
+        canShare: false,
+        reason: "unsupported",
+        estimatedPlainBytes: 0,
+        mayTakeTime: false,
+      };
+    }
+
+    return {
+      canShare: true,
+      reason: "ok",
+      estimatedPlainBytes: estimatedPlainBytes,
+      mayTakeTime: estimatedPlainBytes >= SHARE_PROGRESS_THRESHOLD_BYTES,
+    };
+  }
+
+  async function parseShareSnapshotFragment(fragment) {
+    const raw = String(fragment || "").trim();
+    const hashIndex = raw.indexOf("#");
+    const normalized = hashIndex >= 0 ? raw.slice(hashIndex) : raw;
+    if (!normalized.startsWith(SHARE_FRAGMENT_PREFIX)) return null;
+
+    const body = normalized.slice(SHARE_FRAGMENT_PREFIX.length);
+    const parts = body.split(".");
+    if (parts.length !== 3) return null;
+
+    const version = parts[0];
+    const codec = parts[1];
+    const encoded = parts[2];
+
+    if (
+      version !== SHARE_FORMAT_VERSION ||
+      (codec !== SHARE_CODEC_GZIP && codec !== SHARE_CODEC_PLAIN) ||
+      !encoded
+    ) {
+      return null;
+    }
+
+    try {
+      const decoder = getTextDecoder();
+      if (!decoder) return null;
+
+      const bytes = decodeBase64Url(encoded);
+      const restoredBytes = await decompressShareBytes(bytes, codec);
+      const parsed = JSON.parse(decoder.decode(restoredBytes));
+
+      if (!parsed || Number(parsed.v) !== 1 || typeof parsed.t !== "string") {
+        return null;
+      }
+
+      return {
+        version: 1,
+        codec: codec,
+        payload: {
+          name: typeof parsed.n === "string" ? parsed.n : "",
+          text: parsed.t,
+          view: parsed.w === "edit" ? "edit" : "preview",
+        },
+      };
+    } catch (_error) {
+      return null;
+    }
   }
 
   function isSupportedLibraryFile(name) {
@@ -334,9 +564,12 @@
 
   return {
     SUPPORTED_EXTENSIONS: SUPPORTED_EXTENSIONS.slice(),
+    SHARE_FRAGMENT_PREFIX,
     compareLibraryNames,
+    createShareSnapshotFragment,
     createDirectoryNode,
     createFileNode,
+    getShareSnapshotState,
     getClearedLibraryCollectionState,
     getFolderConflict,
     getReaderAuthoringState,
@@ -345,6 +578,7 @@
     isSupportedLibraryFile,
     normalizeLibraryMeta,
     normalizePathKey,
+    parseShareSnapshotFragment,
     prepareImportedLibraryEntries,
     shapeLibraryTree,
     shouldAutoRestoreLastFile,

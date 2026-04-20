@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-tp3BgFeLTRW4PF6huXyVkf/jPtdt7E0TuABd9w/CQ4U=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-01yvRcstTtbxQciBDydrNw5KepgJtT8PzWA/en1WCyg=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -496,6 +496,25 @@
         opacity: 0.35;
         cursor: not-allowed;
       }
+      #shareBtn {
+        min-width: 96px;
+        justify-content: center;
+      }
+      .btn.is-busy {
+        color: var(--fg-default);
+        background: var(--bg-subtle);
+        border-color: var(--border-strong);
+      }
+      .btn.is-busy::before {
+        content: "";
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        border: 1.5px solid currentColor;
+        border-right-color: transparent;
+        opacity: 0.68;
+        animation: btn-spin 720ms linear infinite;
+      }
       .btn:focus-visible,
       .chat-fab:focus-visible,
       .chat-header-btn:focus-visible,
@@ -776,6 +795,23 @@
         max-width: 420px;
         overflow: visible;
         white-space: normal;
+      }
+      .status[data-kind="progress"] {
+        color: var(--fg-muted);
+        max-width: 420px;
+        overflow: visible;
+        white-space: normal;
+      }
+
+      @keyframes btn-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .btn.is-busy::before {
+          animation: none;
+        }
       }
 
       /* ---------- Empty state ---------- */
@@ -4189,7 +4225,7 @@
         ></div>
         <div class="spacer"></div>
 
-        <!-- ── Cluster: File — Open · Library · Save ─────────────
+        <!-- ── Cluster: File — Open · Library · Save · Share ─────
              Save auto-hides in preview mode via existing CSS
              `body.preview-mode #saveBtn { display: none !important }`. -->
         <div class="tb-group" role="group" aria-label="File">
@@ -4249,6 +4285,16 @@
             hidden
           >
             Save
+          </button>
+
+          <button
+            id="shareBtn"
+            type="button"
+            class="btn"
+            title="Share a snapshot link for the current markdown"
+            disabled
+          >
+            Share
           </button>
         </div>
 
@@ -8728,6 +8774,8 @@ Drop a .md file anywhere on the page, or open one with the Open button."
           maxFolders: 12,
           yieldEvery: 40,
         });
+        const MAX_SHARE_URL_LENGTH = 32768;
+        const LONG_SHARE_URL_WARNING_LENGTH = 12000;
         const LIBRARY_IGNORED_NAMES = new Set([
           ".git",
           "node_modules",
@@ -10662,6 +10710,7 @@ Return JSON only.`;
           preview: document.getElementById("preview"),
           openFileBtn: document.getElementById("openFileBtn"),
           saveBtn: document.getElementById("saveBtn"),
+          shareBtn: document.getElementById("shareBtn"),
           modeToggleBtn: document.getElementById("modeToggleBtn"),
           libraryToggleBtn: document.getElementById("libraryToggleBtn"),
           reloadBtn: document.getElementById("reloadBtn"),
@@ -10809,6 +10858,9 @@ Return JSON only.`;
           mermaidViewerLastFocused: null,
           mermaidViewerDrag: null,
           hasSessionDraft: false,
+          sharedSnapshotMeta: null,
+          shareInFlight: false,
+          sharePendingMayTakeTime: false,
           libraryRestorePending: false,
           libraryDbPromise: null,
           libraryDrawerLastFocused: null,
@@ -13565,6 +13617,274 @@ Return JSON only.`;
           if (options.announce) announce(message);
         }
 
+        function waitForNextPaint() {
+          return new Promise(function (resolve) {
+            if (typeof requestAnimationFrame !== "function") {
+              window.setTimeout(resolve, 0);
+              return;
+            }
+            requestAnimationFrame(function () {
+              requestAnimationFrame(resolve);
+            });
+          });
+        }
+
+        function getSnapshotBaseUrl() {
+          const url = new URL(window.location.href);
+          url.hash = "";
+          return url.toString();
+        }
+
+        function updateAddressBarHash(hash) {
+          const nextHash = String(hash || "");
+          const url = new URL(window.location.href);
+          url.hash = nextHash ? nextHash.slice(1) : "";
+          history.replaceState(null, "", url.toString());
+        }
+
+        function clearSnapshotHashIfPresent() {
+          const prefix =
+            typeof libraryCore.SHARE_FRAGMENT_PREFIX === "string"
+              ? libraryCore.SHARE_FRAGMENT_PREFIX
+              : "#mkv=";
+          if (!String(window.location.hash || "").startsWith(prefix)) return;
+          updateAddressBarHash("");
+        }
+
+        function detachSharedSnapshotContext(options) {
+          options = options || {};
+          state.sharedSnapshotMeta = null;
+          if (!options.preserveHash) {
+            clearSnapshotHashIfPresent();
+          }
+        }
+
+        function legacyCopyText(text) {
+          const input = document.createElement("textarea");
+          input.value = text;
+          input.setAttribute("readonly", "readonly");
+          input.style.position = "fixed";
+          input.style.left = "-9999px";
+          input.style.top = "0";
+          document.body.appendChild(input);
+          input.focus();
+          input.select();
+
+          let copied = false;
+          try {
+            copied = document.execCommand("copy");
+          } catch (_error) {
+            copied = false;
+          }
+
+          input.remove();
+          return copied;
+        }
+
+        async function copyTextToClipboard(text) {
+          if (
+            navigator.clipboard &&
+            typeof navigator.clipboard.writeText === "function" &&
+            window.isSecureContext
+          ) {
+            try {
+              await navigator.clipboard.writeText(text);
+              return true;
+            } catch (_error) {}
+          }
+
+          return legacyCopyText(text);
+        }
+
+        async function buildSnapshotShareUrl() {
+          const text = String(els.editor.value || "");
+          if (!text.trim()) {
+            throw new Error("There is no markdown to share yet.");
+          }
+
+          if (typeof libraryCore.createShareSnapshotFragment !== "function") {
+            throw new Error("Snapshot sharing is unavailable in this build.");
+          }
+
+          const fragment = await libraryCore.createShareSnapshotFragment({
+            text: text,
+            name: state.currentName,
+            view: isEditModeActive() ? "edit" : "preview",
+          });
+          const shareUrl = getSnapshotBaseUrl() + fragment;
+
+          if (shareUrl.length > MAX_SHARE_URL_LENGTH) {
+            throw new Error(
+              "This document is too large for link sharing. Use Save or Download instead.",
+            );
+          }
+
+          return {
+            fragment: fragment,
+            url: shareUrl,
+          };
+        }
+
+        async function applySharedSnapshotPayload(payload) {
+          const next = payload && typeof payload === "object" ? payload : null;
+          if (!next || typeof next.text !== "string") return false;
+
+          stopAutoRefresh();
+          els.autoRefreshToggle.checked = false;
+
+          state.fileHandle = null;
+          state.sourceMode = "editor";
+          state.currentName = String(next.name || "").trim();
+          state.baseHref = getSnapshotBaseUrl();
+          state.dirty = false;
+          state.hasSessionDraft = true;
+          detachSharedSnapshotContext({ preserveHash: true });
+          state.sharedSnapshotMeta = {
+            loadedAt: Date.now(),
+            view: next.view === "edit" ? "edit" : "preview",
+          };
+
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: true,
+          });
+
+          els.editor.value = next.text;
+          updateUiState();
+          render("editor");
+          setMode(state.sharedSnapshotMeta.view);
+
+          setStatus(
+            (state.currentName || "Shared snapshot") +
+              " • loaded from shared link • use Share to create a fresh link",
+            { announce: true },
+          );
+          return true;
+        }
+
+        async function shareCurrentSnapshot() {
+          if (state.shareInFlight) return;
+
+          const shareState =
+            typeof libraryCore.getShareSnapshotState === "function"
+              ? libraryCore.getShareSnapshotState({
+                  text: els.editor.value || "",
+                  currentName: state.currentName,
+                  view: isEditModeActive() ? "edit" : "preview",
+                })
+              : {
+                  canShare: Boolean((els.editor.value || "").trim()),
+                  reason: (els.editor.value || "").trim() ? "ok" : "empty",
+                  mayTakeTime: false,
+                };
+
+          if (!shareState.canShare) {
+            setStatus(
+              shareState.reason === "unsupported"
+                ? "Share failed • snapshot sharing is unavailable in this browser."
+                : "Share failed • There is no markdown to share yet.",
+              { announce: true, kind: "error" },
+            );
+            return;
+          }
+
+          state.shareInFlight = true;
+          state.sharePendingMayTakeTime = Boolean(shareState.mayTakeTime);
+          updateUiState();
+          setStatus(
+            shareState.mayTakeTime
+              ? "Preparing snapshot link for a large document..."
+              : "Preparing snapshot link...",
+            {
+              announce: true,
+              kind: "progress",
+            },
+          );
+
+          try {
+            if (shareState.mayTakeTime) {
+              await waitForNextPaint();
+            }
+
+            const snapshot = await buildSnapshotShareUrl();
+            const isLongShareUrl =
+              snapshot.url.length > LONG_SHARE_URL_WARNING_LENGTH;
+            updateAddressBarHash(snapshot.fragment);
+
+            const shareData = {
+              title: state.currentName || "MarkV snapshot",
+              text: "Open this markdown snapshot in MarkV",
+              url: snapshot.url,
+            };
+            let canUseNativeShare = Boolean(navigator.share);
+            if (canUseNativeShare && typeof navigator.canShare === "function") {
+              try {
+                canUseNativeShare =
+                  navigator.canShare({ url: snapshot.url }) ||
+                  navigator.canShare(shareData);
+              } catch (_error) {
+                canUseNativeShare = false;
+              }
+            }
+
+            if (canUseNativeShare) {
+              try {
+                await navigator.share(shareData);
+                setStatus(
+                  (isLongShareUrl
+                    ? "Long snapshot link shared"
+                    : "Snapshot link shared") +
+                    " • " +
+                    nowString(),
+                  {
+                    announce: true,
+                  },
+                );
+                return;
+              } catch (error) {
+                if (error && error.name === "AbortError") {
+                  setStatus("Share cancelled • " + nowString(), {
+                    announce: true,
+                  });
+                  return;
+                }
+              }
+            }
+
+            const copied = await copyTextToClipboard(snapshot.url);
+            if (!copied) {
+              throw new Error("Clipboard access is unavailable in this browser.");
+            }
+
+            setStatus(
+              (isLongShareUrl
+                ? "Long snapshot link copied"
+                : "Snapshot link copied • share again after edits") +
+                " • " +
+                nowString(),
+              {
+                announce: true,
+              },
+            );
+          } catch (error) {
+            if (error && error.name === "AbortError") {
+              setStatus("Share cancelled • " + nowString(), {
+                announce: true,
+              });
+              return;
+            }
+            setStatus(
+              "Share failed • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true, kind: "error" },
+            );
+          } finally {
+            state.shareInFlight = false;
+            state.sharePendingMayTakeTime = false;
+            updateUiState();
+          }
+        }
+
         function closeGlobalSettingsSurface() {
           const drawer = document.getElementById("globalSettingsDrawer");
           const overlay = document.getElementById("globalSettingsOverlay");
@@ -13965,6 +14285,7 @@ Return JSON only.`;
 
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
+          detachSharedSnapshotContext();
 
           state.fileHandle = null;
           state.libraryCurrentFileHandle = node.handle;
@@ -14332,7 +14653,8 @@ Return JSON only.`;
           const saveState = getReaderSaveState();
           const authoringState = getReaderAuthoringState();
           const editModeActive = isEditModeActive();
-          const canOpenMindmap = Boolean((els.editor.value || "").trim());
+          const hasContent = Boolean((els.editor.value || "").trim());
+          const canOpenMindmap = hasContent;
           els.reloadBtn.disabled = !refreshState.canReload;
           const reloadLabel =
             refreshState.reloadAction === "file-handle"
@@ -14354,6 +14676,30 @@ Return JSON only.`;
           const saveLabel = "Save current document (Ctrl/Cmd+S)";
           els.saveBtn.title = saveLabel;
           els.saveBtn.setAttribute("aria-label", saveLabel);
+
+          if (els.shareBtn) {
+            const shareSupported =
+              typeof libraryCore.createShareSnapshotFragment === "function";
+            const shareBusy = state.shareInFlight;
+            const shareTitle = shareBusy
+              ? state.sharePendingMayTakeTime
+                ? "Preparing a snapshot link for this large markdown document"
+                : "Preparing a snapshot link for the current markdown"
+              : !shareSupported
+                ? "Snapshot sharing is unavailable in this build"
+                : hasContent
+                  ? "Share a snapshot link for the current markdown"
+                  : "Add markdown content before sharing";
+            els.shareBtn.disabled = !shareSupported || !hasContent || shareBusy;
+            els.shareBtn.textContent = shareBusy ? "Preparing..." : "Share";
+            els.shareBtn.classList.toggle("is-busy", shareBusy);
+            els.shareBtn.setAttribute("aria-busy", shareBusy ? "true" : "false");
+            els.shareBtn.title = shareTitle;
+            els.shareBtn.setAttribute(
+              "aria-label",
+              shareTitle,
+            );
+          }
 
           if (els.modeToggleBtn) {
             els.modeToggleBtn.classList.toggle(
@@ -15411,6 +15757,7 @@ Return JSON only.`;
 
           const file = await state.fileHandle.getFile();
           const markdown = await file.text();
+          detachSharedSnapshotContext();
 
           state.sourceMode = "handle";
           state.currentName = file.name;
@@ -15441,6 +15788,7 @@ Return JSON only.`;
 
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
+          detachSharedSnapshotContext();
 
           state.fileHandle = null;
           state.sourceMode = "file";
@@ -15731,6 +16079,7 @@ Return JSON only.`;
         async function clearAll() {
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
+          detachSharedSnapshotContext();
           dismissSelectionUi();
           hideHighlightUndoToast();
 
@@ -16131,6 +16480,7 @@ Return JSON only.`;
 
         els.openFileBtn.addEventListener("click", openFile);
         els.saveBtn.addEventListener("click", saveCurrentDocument);
+        els.shareBtn.addEventListener("click", shareCurrentSnapshot);
         els.reloadBtn.addEventListener("click", reloadCurrent);
         els.clearBtn.addEventListener("click", clearAll);
         els.autoRefreshToggle.addEventListener("change", startAutoRefresh);
@@ -16446,6 +16796,20 @@ Return JSON only.`;
           }
         });
 
+        async function readSharedSnapshotFromLocation() {
+          if (
+            typeof libraryCore.parseShareSnapshotFragment !== "function" ||
+            !window.location.hash
+          ) {
+            return null;
+          }
+
+          const parsed = await libraryCore.parseShareSnapshotFragment(
+            window.location.hash,
+          );
+          return parsed && parsed.payload ? parsed.payload : null;
+        }
+
         async function init() {
           const sessionMeta = readSessionMeta();
           const savedContent = readStorage(
@@ -16453,11 +16817,20 @@ Return JSON only.`;
             SESSION_CONTENT_KEY,
             "",
           );
+          const sharedSnapshot = await readSharedSnapshotFromLocation();
 
           state.hasSessionDraft = Boolean(sessionMeta.hasSessionDraft);
           applyReadingSettings(readReadingSettings());
           renderLibraryDrawer();
           updateUiState();
+
+          if (sharedSnapshot) {
+            await applySharedSnapshotPayload(sharedSnapshot);
+            await restoreLibraryFromStorage({
+              hasSessionDraft: true,
+            });
+            return;
+          }
 
           els.editor.value = savedContent || "";
           render("force");
