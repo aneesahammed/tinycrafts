@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-EfVJwwuPmvnmk35uiAeBc0KK4KhuqHPGWz/CpRNlK/A=' 'sha256-dtLnLIBXI/yUjNX+9j6M+kCnAJY/YlRXuhkn1IjVtTk=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-UIqA7C2WlX6bkrfk6wjXtH+QjfsJz75ZzUoF0SMwQAs=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <title>Markdown Viewer</title>
 
@@ -9395,6 +9395,17 @@ Drop a .md file anywhere on the page, or open one with the Open button."
       (function () {
         "use strict";
 
+        // Respects OS-level reduced-motion preference when invoking
+        // programmatic smooth scrolls. Browser UAs are inconsistent
+        // about honoring this for `scrollIntoView({behavior:"smooth"})`,
+        // so we downgrade explicitly.
+        function prefersReducedMotion() {
+          return !!(
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          );
+        }
+
         const SESSION_CONTENT_KEY = "fast-md-viewer-session-content";
         const SESSION_META_KEY = "fast-md-viewer-session-meta";
         const READING_SETTINGS_KEY = "md-viewer-reading";
@@ -10613,7 +10624,10 @@ Paste markdown on the left, open a local file, or drag one into the page.
           if (!target) return;
 
           closeMindmapViewer();
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.scrollIntoView({
+            behavior: prefersReducedMotion() ? "auto" : "smooth",
+            block: "start",
+          });
           target.classList.add("mm-jump-flash");
           setTimeout(() => target.classList.remove("mm-jump-flash"), 1800);
         }
@@ -11557,6 +11571,44 @@ Return JSON only.`;
             storage.removeItem(key);
           } catch (_error) {}
         }
+
+        // Session-content persistence is a best-effort restore buffer:
+        // writing the whole editor string on every debounced render
+        // was hot on the typing path for long docs. Defer to idle time,
+        // cancelling the previous scheduled write so only the newest
+        // snapshot lands. `pagehide` flushes synchronously if a write
+        // is still pending when the tab is closing.
+        var __pendingSessionWrite = null;
+        var __latestSessionContent = null;
+        function __flushSessionContent() {
+          if (__latestSessionContent == null) return;
+          writeStorage(
+            window.sessionStorage,
+            SESSION_CONTENT_KEY,
+            __latestSessionContent
+          );
+          __latestSessionContent = null;
+          __pendingSessionWrite = null;
+        }
+        function scheduleSessionContentWrite(markdown) {
+          __latestSessionContent = markdown;
+          if (__pendingSessionWrite != null) {
+            if (window.cancelIdleCallback) {
+              window.cancelIdleCallback(__pendingSessionWrite);
+            } else {
+              clearTimeout(__pendingSessionWrite);
+            }
+          }
+          if (window.requestIdleCallback) {
+            __pendingSessionWrite = window.requestIdleCallback(
+              __flushSessionContent,
+              { timeout: 1500 }
+            );
+          } else {
+            __pendingSessionWrite = setTimeout(__flushSessionContent, 250);
+          }
+        }
+        window.addEventListener("pagehide", __flushSessionContent);
 
         function canUsePersistentLibrary() {
           return Boolean(
@@ -15427,7 +15479,10 @@ Return JSON only.`;
                 var target =
                   els.preview.querySelector("#" + CSS.escape(targetId));
                 if (target) {
-                  target.scrollIntoView({ behavior: "smooth", block: "start" });
+                  target.scrollIntoView({
+                    behavior: prefersReducedMotion() ? "auto" : "smooth",
+                    block: "start",
+                  });
                 }
               });
             } else if (/^(https?:)?\/\//i.test(href)) {
@@ -16351,7 +16406,7 @@ Return JSON only.`;
 
           state.lastRenderedText = markdown;
           state.lastRenderedDocumentToken = documentToken;
-          writeStorage(window.sessionStorage, SESSION_CONTENT_KEY, markdown);
+          scheduleSessionContentWrite(markdown);
           writeSessionMeta();
           updateUiState();
 
@@ -18480,6 +18535,13 @@ Return JSON only.`;
       (function () {
         "use strict";
 
+        function prefersReducedMotion() {
+          return !!(
+            window.matchMedia &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          );
+        }
+
         // ── Constants ────────────────────────────────────────────────────────
         var EXCLUDED_SELECTOR =
           "pre, code, .raw-html, .blocked-resource, .mermaid-block";
@@ -19155,7 +19217,7 @@ Return JSON only.`;
               });
               if (section && section.headingElement) {
                 section.headingElement.scrollIntoView({
-                  behavior: "smooth",
+                  behavior: prefersReducedMotion() ? "auto" : "smooth",
                   block: "start",
                 });
               }
@@ -19200,7 +19262,10 @@ Return JSON only.`;
               s.classList.remove("ont-term-flash");
             }, 1200);
           });
-          spans[0].scrollIntoView({ behavior: "smooth", block: "nearest" });
+          spans[0].scrollIntoView({
+            behavior: prefersReducedMotion() ? "auto" : "smooth",
+            block: "nearest",
+          });
         }
 
         // ── Preview Hints ─────────────────────────────────────────────────────
@@ -19368,6 +19433,15 @@ Return JSON only.`;
           panelOpen = true;
           if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "true");
 
+          // While the panel was closed, the render listener skipped
+          // the section/term build. Rebuild now so the UI reflects
+          // the current document.
+          if (sections.length === 0 || classifyStale) {
+            buildSectionModel();
+            extractTerms();
+            lastTextHash = computeDocumentTextHash();
+          }
+
           renderPanel();
           applyPreviewHints();
 
@@ -19473,6 +19547,15 @@ Return JSON only.`;
             }
           }
 
+          // When the panel is closed, skip walking/tokenizing the
+          // whole preview on every keystroke — the data only feeds
+          // the ontology UI. Mark stale so the next `showPanel()`
+          // rebuilds from current DOM.
+          if (!panelOpen) {
+            classifyStale = true;
+            return;
+          }
+
           buildSectionModel();
           extractTerms();
 
@@ -19483,11 +19566,9 @@ Return JSON only.`;
           }
           lastTextHash = newHash;
 
-          if (panelOpen) {
-            removePreviewHints();
-            renderPanel();
-            applyPreviewHints();
-          }
+          removePreviewHints();
+          renderPanel();
+          applyPreviewHints();
         });
 
         // ── Initial build (the first markv:render-complete fires before this script loads) ──
