@@ -425,6 +425,17 @@
         flex: 0 0 auto;
       }
 
+      /* ── Legacy theme icons (sun + moon) ───────────────────────
+         Hidden by default; the state-neutral contrast icon replaces
+         them. Left in the DOM so reverting is a one-line change —
+         just remove this rule (or delete the wrapper span in the
+         themeToggleBtn markup). The JS applyTheme() still targets
+         #themeIconSun / #themeIconMoon, so toggling works instantly
+         on re-enable. */
+      .theme-icons-legacy {
+        display: none;
+      }
+
       /* ── Destructive affordance: Clear ──────────────────────────
          Kept in the toolbar (no feature removal) but muted by default
          and tinted red on hover so the caution reads without shouting. */
@@ -4625,6 +4636,35 @@
           title="Toggle theme"
           aria-label="Toggle theme"
         >
+          <!-- Active: state-neutral "contrast" icon. Reads as
+               "theme toggle" regardless of current mode, following the
+               iOS/macOS/Material `contrast` convention. -->
+          <svg
+            id="themeIconContrast"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+            />
+            <path
+              d="M12 3 A9 9 0 0 1 12 21 Z"
+              fill="currentColor"
+            />
+          </svg>
+          <!-- Legacy sun/moon icons preserved for easy revert.
+               Remove this wrapper (or delete the `.theme-icons-legacy`
+               CSS rule) to restore the state-aware icon swap. The JS
+               in applyTheme() continues to toggle their inline display
+               so swapping back is truly one-line. -->
+          <span class="theme-icons-legacy" aria-hidden="true">
           <svg
             id="themeIconSun"
             width="14"
@@ -4650,6 +4690,7 @@
               d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"
             />
           </svg>
+          </span>
         </button>
         </div>
 
