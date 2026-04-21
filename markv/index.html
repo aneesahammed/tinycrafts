@@ -6,11 +6,26 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-fmkKuS/4aZOJC8zmFLYAzE4Fsl+2apsSwVMsn9GdUfg=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-ornVVQl57jXC/kJ/EOr7nDQThwfPyZRYhuTBKy8+GY4=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+    />
+    <meta
+      name="theme-color"
+      content="#fafaf9"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#161616"
+      media="(prefers-color-scheme: dark)"
     />
     <title>Markdown Viewer</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
 
     <script src="assets/library-core.js"></script>
+    <script src="assets/pwa.js"></script>
     <script>
       (function () {
         "use strict";
@@ -764,6 +779,124 @@
         background: var(--fg-muted);
         color: var(--bg-canvas);
         border-color: transparent;
+      }
+
+      /* ── PWA update note ───────────────────────────────────────
+         Quiet, temporary, and editorial: the update should feel like
+         a slip tucked onto the desk, not part of the toolbar chrome. */
+      .pwa-update-toast {
+        position: fixed;
+        top: calc(var(--toolbar-h, 72px) + 18px);
+        right: 20px;
+        z-index: 30;
+        width: min(360px, calc(100vw - 32px));
+        padding: 14px 14px 13px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--border-default);
+        background:
+          linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--bg-raised) 94%, transparent),
+            color-mix(in srgb, var(--bg-subtle) 90%, transparent)
+          );
+        box-shadow:
+          0 18px 42px rgba(0, 0, 0, 0.12),
+          0 1px 0 rgba(255, 255, 255, 0.08) inset;
+        -webkit-backdrop-filter: saturate(1.1) blur(16px);
+        backdrop-filter: saturate(1.1) blur(16px);
+        opacity: 0;
+        transform: translateY(-8px) translateX(10px) scale(0.985);
+        pointer-events: none;
+        transition:
+          opacity var(--motion-small) var(--ease-out),
+          transform var(--motion-small) var(--ease-out);
+      }
+      .pwa-update-toast::before {
+        content: "";
+        position: absolute;
+        left: 14px;
+        top: 12px;
+        bottom: 12px;
+        width: 1px;
+        border-radius: 999px;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--accent-fg) 78%, white 22%),
+          color-mix(in srgb, var(--accent-fg) 18%, transparent)
+        );
+        opacity: 0.9;
+      }
+      .pwa-update-toast.is-visible {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1);
+        pointer-events: auto;
+      }
+      .pwa-update-toast__body {
+        position: relative;
+        padding-left: 10px;
+        min-width: 0;
+      }
+      .pwa-update-toast__eyebrow {
+        margin: 0 0 4px;
+        color: var(--fg-muted);
+        font-family: var(--font-serif);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .pwa-update-toast__title {
+        margin: 0;
+        color: var(--fg-default);
+        font-family: var(--font-serif);
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1.22;
+      }
+      .pwa-update-toast__copy {
+        margin: 5px 0 0;
+        color: var(--fg-muted);
+        font-size: 12.5px;
+        line-height: 1.45;
+      }
+      .pwa-update-toast__actions {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 8px;
+        align-self: center;
+      }
+      .pwa-update-toast__actions .btn {
+        height: 30px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+      .pwa-update-toast__dismiss {
+        min-width: 34px;
+        padding: 0;
+        justify-content: center;
+      }
+      .pwa-update-toast__dismiss svg {
+        width: 12px;
+        height: 12px;
+      }
+      @media (max-width: 768px) {
+        .pwa-update-toast {
+          top: auto;
+          right: 16px;
+          left: 16px;
+          bottom: 16px;
+          width: auto;
+          grid-template-columns: 1fr;
+          gap: 12px;
+          transform: translateY(10px) scale(0.985);
+        }
+        .pwa-update-toast__actions {
+          justify-content: flex-end;
+        }
       }
 
       .auto-refresh {
@@ -5354,6 +5487,54 @@
           hidden
         />
       </header>
+
+      <div
+        id="pwaUpdateToast"
+        class="pwa-update-toast"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        hidden
+      >
+        <div class="pwa-update-toast__body">
+          <p class="pwa-update-toast__eyebrow">MarkV</p>
+          <p id="pwaUpdateToastTitle" class="pwa-update-toast__title">
+            A newer build is ready.
+          </p>
+          <p class="pwa-update-toast__copy">
+            Refresh when you're ready to pick up the latest shell.
+          </p>
+        </div>
+        <div class="pwa-update-toast__actions">
+          <button
+            id="pwaUpdateToastAction"
+            type="button"
+            class="btn btn-primary"
+            title="Refresh MarkV to apply the latest update"
+          >
+            Refresh
+          </button>
+          <button
+            id="pwaUpdateToastDismiss"
+            type="button"
+            class="btn pwa-update-toast__dismiss"
+            title="Dismiss update notice"
+            aria-label="Dismiss update notice"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M3.5 3.5 12.5 12.5"></path>
+              <path d="M12.5 3.5 3.5 12.5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
 
       <main class="main" id="main">
         <section class="editor-pane" aria-labelledby="editorLabel">
@@ -11898,38 +12079,42 @@ Return JSON only.`;
           ];
         }
 
+        async function queryWritableHandlePermission(handle) {
+          if (!handle || typeof handle.createWritable !== "function") {
+            return "denied";
+          }
+
+          if (typeof handle.queryPermission !== "function") {
+            return "granted";
+          }
+
+          try {
+            return await handle.queryPermission({ mode: "readwrite" });
+          } catch (_error) {
+            return "prompt";
+          }
+        }
+
         async function ensureWritableHandle(handle) {
           if (!handle || typeof handle.createWritable !== "function") {
             return false;
           }
 
-          if (typeof handle.queryPermission === "function") {
-            let permission = "prompt";
+          let permission = await queryWritableHandlePermission(handle);
+          if (
+            permission !== "granted" &&
+            typeof handle.requestPermission === "function"
+          ) {
             try {
-              permission = await handle.queryPermission({ mode: "readwrite" });
+              permission = await handle.requestPermission({
+                mode: "readwrite",
+              });
             } catch (_error) {
-              permission = "prompt";
-            }
-
-            if (
-              permission !== "granted" &&
-              typeof handle.requestPermission === "function"
-            ) {
-              try {
-                permission = await handle.requestPermission({
-                  mode: "readwrite",
-                });
-              } catch (_error) {
-                permission = "denied";
-              }
-            }
-
-            if (permission !== "granted") {
-              return false;
+              permission = "denied";
             }
           }
 
-          return true;
+          return permission === "granted";
         }
 
         async function writeMarkdownToHandle(handle, markdown) {
@@ -11954,13 +12139,81 @@ Return JSON only.`;
           }, 1000);
         }
 
-        function markDocumentSaved(nextSourceMode) {
+        function syncPrimaryFileHandlePersistence(handle) {
+          if (
+            !window.MarkVPWA ||
+            typeof window.MarkVPWA.rememberPrimaryFileHandle !== "function" ||
+            typeof window.MarkVPWA.forgetPrimaryFileHandle !== "function"
+          ) {
+            return;
+          }
+
+          if (handle) {
+            window.MarkVPWA.rememberPrimaryFileHandle(handle);
+          } else {
+            window.MarkVPWA.forgetPrimaryFileHandle();
+          }
+        }
+
+        function setPrimaryFileHandle(handle, options) {
+          state.fileHandle = handle || null;
+          if (!(options && options.skipPersistence)) {
+            syncPrimaryFileHandlePersistence(state.fileHandle);
+          }
+        }
+
+        function getWritableSaveTarget(saveState) {
+          if (saveState.saveAction === "overwrite-handle" && state.fileHandle) {
+            return {
+              handle: state.fileHandle,
+              sourceMode: "handle",
+            };
+          }
+
+          if (
+            saveState.saveAction === "overwrite-library-handle" &&
+            state.libraryCurrentFileHandle
+          ) {
+            return {
+              handle: state.libraryCurrentFileHandle,
+              sourceMode: "library",
+            };
+          }
+
+          return null;
+        }
+
+        async function flushWritableHandleIfPermitted() {
+          const saveState = getReaderSaveState();
+          const target = getWritableSaveTarget(saveState);
+          if (!target || (!state.dirty && !state.hasSessionDraft)) {
+            return false;
+          }
+
+          const permission = await queryWritableHandlePermission(target.handle);
+          if (permission !== "granted") {
+            return false;
+          }
+
+          await writeMarkdownToHandle(target.handle, els.editor.value || "");
+          state.currentName = target.handle.name || state.currentName;
+          markDocumentSaved(target.sourceMode, { rerender: false });
+          return true;
+        }
+
+        function markDocumentSaved(nextSourceMode, options) {
+          options = options || {};
           if (nextSourceMode) {
             state.sourceMode = nextSourceMode;
           }
           state.dirty = false;
           state.hasSessionDraft = false;
           updateUiState();
+
+          if (options.rerender === false) {
+            writeSessionMeta();
+            return;
+          }
 
           if (nextSourceMode === "handle" || nextSourceMode === "library") {
             state.lastRenderedText = null;
@@ -14322,6 +14575,7 @@ Return JSON only.`;
 
         function getSnapshotBaseUrl() {
           const url = new URL(window.location.href);
+          url.search = "";
           url.hash = "";
           return url.toString();
         }
@@ -14423,7 +14677,7 @@ Return JSON only.`;
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
 
-          state.fileHandle = null;
+          setPrimaryFileHandle(null);
           state.sourceMode = "editor";
           state.currentName = String(next.name || "").trim();
           state.baseHref = getSnapshotBaseUrl();
@@ -14448,6 +14702,61 @@ Return JSON only.`;
           setStatus(
             (state.currentName || "Shared snapshot") +
               " • loaded from shared link • use Share to create a fresh link",
+            { announce: true },
+          );
+          return true;
+        }
+
+        function clearLocationSearch() {
+          const url = new URL(window.location.href);
+          if (!url.search) return;
+          url.search = "";
+          history.replaceState(null, "", url.toString());
+        }
+
+        async function applySharedIncomingContent(payload) {
+          const next = payload && typeof payload === "object" ? payload : null;
+          if (!next) return false;
+
+          const title =
+            typeof next.title === "string" ? String(next.title).trim() : "";
+          const text = typeof next.text === "string" ? next.text : "";
+          const sharedUrl =
+            typeof next.url === "string" ? String(next.url).trim() : "";
+          if (!title && !text && !sharedUrl) return false;
+
+          const sections = [];
+          if (title) sections.push("# " + title);
+          if (text) sections.push(text);
+          if (sharedUrl) sections.push("<" + sharedUrl + ">");
+
+          const markdown = sections.join("\n\n").trim();
+          if (!markdown) return false;
+
+          stopAutoRefresh();
+          els.autoRefreshToggle.checked = false;
+          detachSharedSnapshotContext();
+
+          setPrimaryFileHandle(null);
+          state.sourceMode = "editor";
+          state.currentName = title || "Shared note";
+          state.baseHref = getSnapshotBaseUrl();
+          state.dirty = false;
+          state.hasSessionDraft = true;
+
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: true,
+          });
+
+          els.editor.value = markdown;
+          updateUiState();
+          render("editor");
+          clearLocationSearch();
+          setStatus(
+            (state.currentName || "Shared note") +
+              " • loaded from share target • " +
+              nowString(),
             { announce: true },
           );
           return true;
@@ -14978,7 +15287,7 @@ Return JSON only.`;
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
 
-          state.fileHandle = null;
+          setPrimaryFileHandle(null);
           state.libraryCurrentFileHandle = node.handle;
           state.libraryCurrentFolderHandle = folder.handle || null;
           state.libraryActiveFolderId = folder.id;
@@ -16532,7 +16841,7 @@ Return JSON only.`;
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
 
-          state.fileHandle = null;
+          setPrimaryFileHandle(null);
           state.sourceMode = "file";
           state.currentName = file.name;
           state.baseHref = window.location.href;
@@ -16651,7 +16960,7 @@ Return JSON only.`;
                 stopAutoRefresh();
                 els.autoRefreshToggle.checked = false;
 
-                state.fileHandle = handles[0];
+                setPrimaryFileHandle(handles[0]);
                 state.sourceMode = "handle";
                 state.currentName = handles[0].name;
                 state.baseHref = window.location.href;
@@ -16787,7 +17096,7 @@ Return JSON only.`;
                 await writeMarkdownToHandle(handle, markdown);
                 stopAutoRefresh();
                 els.autoRefreshToggle.checked = false;
-                state.fileHandle = handle;
+                setPrimaryFileHandle(handle);
                 state.currentName = handle.name || suggestedName;
                 state.baseHref = window.location.href;
                 await clearActiveLibrarySelection({
@@ -16825,7 +17134,7 @@ Return JSON only.`;
           dismissSelectionUi();
           hideHighlightUndoToast();
 
-          state.fileHandle = null;
+          setPrimaryFileHandle(null);
           state.sourceMode = "editor";
           state.currentName = "";
           state.baseHref = window.location.href;
@@ -17523,7 +17832,7 @@ Return JSON only.`;
             els.autoRefreshToggle.checked = false;
             state.sourceMode = "editor";
             state.currentName = "";
-            state.fileHandle = null;
+            setPrimaryFileHandle(null);
             state.baseHref = window.location.href;
             state.dirty = false;
             state.hasSessionDraft = true;
@@ -17559,12 +17868,30 @@ Return JSON only.`;
             SESSION_CONTENT_KEY,
             "",
           );
+          const pendingSharedContent =
+            window.MarkVPWA &&
+            typeof window.MarkVPWA.consumePendingSharedContent === "function"
+              ? window.MarkVPWA.consumePendingSharedContent()
+              : null;
+          const hasPendingPrimaryHandle =
+            window.MarkVPWA &&
+            typeof window.MarkVPWA.shouldRestorePrimaryFileHandle === "function"
+              ? window.MarkVPWA.shouldRestorePrimaryFileHandle()
+              : false;
           const sharedSnapshot = await readSharedSnapshotFromLocation();
 
           state.hasSessionDraft = Boolean(sessionMeta.hasSessionDraft);
           applyReadingSettings(readReadingSettings());
           renderLibraryDrawer();
           updateUiState();
+
+          if (pendingSharedContent) {
+            await applySharedIncomingContent(pendingSharedContent);
+            await restoreLibraryFromStorage({
+              hasSessionDraft: true,
+            });
+            return;
+          }
 
           if (sharedSnapshot) {
             await applySharedSnapshotPayload(sharedSnapshot);
@@ -17582,14 +17909,52 @@ Return JSON only.`;
           if (
             state.sourceMode !== "library" &&
             !state.hasSessionDraft &&
-            !els.editor.value.trim()
+            !els.editor.value.trim() &&
+            !hasPendingPrimaryHandle
           ) {
             els.editor.value = await loadDefaultSample();
             render("force");
           }
         }
 
-        init();
+        window.markvPWAHooks = {
+          restorePrimaryFileHandle: function (handle) {
+            if (
+              !handle ||
+              state.fileHandle ||
+              state.libraryCurrentFileHandle ||
+              state.sourceMode === "library"
+            ) {
+              return false;
+            }
+
+            setPrimaryFileHandle(handle, { skipPersistence: true });
+            if (!state.currentName) {
+              state.currentName = handle.name || "";
+            }
+            updateUiState();
+            return true;
+          },
+          flushSessionDraft: function () {
+            __flushSessionContent();
+          },
+          flushPendingWrites: function () {
+            return flushWritableHandleIfPermitted();
+          },
+        };
+
+        init()
+          .catch(function (error) {
+            console.warn("[markv] init failed", error);
+            setStatus(
+              "Startup failed • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true },
+            );
+          })
+          .finally(function () {
+            document.dispatchEvent(new CustomEvent("markv:ready"));
+          });
 
         // ---------- Theme toggle ----------
         const themeBtn = document.getElementById("themeToggleBtn");
