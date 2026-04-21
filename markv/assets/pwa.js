@@ -208,10 +208,6 @@
     window.addEventListener("pagehide", function () {
       requestLifecycleFlush("pagehide");
     });
-
-    window.addEventListener("beforeunload", function () {
-      requestLifecycleFlush("beforeunload");
-    });
   }
 
   function getUpdateToast() {

@@ -72,14 +72,10 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const shell = await caches.open(SHELL_CACHE);
-      for (const url of SHELL_ASSETS) {
-        await safeAdd(shell, url);
-      }
+      await Promise.all(SHELL_ASSETS.map((url) => safeAdd(shell, url)));
 
       const runtime = await caches.open(RUNTIME_CACHE);
-      for (const url of RUNTIME_ASSETS) {
-        await safeAdd(runtime, url);
-      }
+      await Promise.all(RUNTIME_ASSETS.map((url) => safeAdd(runtime, url)));
     })(),
   );
 });
