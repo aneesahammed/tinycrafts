@@ -1405,6 +1405,7 @@
         }
       } finally {
         uploading = false;
+        updateQueueStatus();
       }
     }
 
@@ -1666,7 +1667,7 @@
       if (inFlight > 0) {
         const done = total - inFlight;
         setStatus(`Uploading ${done + 1} of ${total}...`, "");
-      } else if (statusTimer === 0) {
+      } else {
         setStatus("");
       }
     }
