@@ -1,0 +1,1446 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <link rel="shortcut icon" href="/images/favicon.ico">
+  <title>Pichub</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-soft: #fafafa;
+      --text-strong: #1f2025;
+      --text-body: #444;
+      --text-muted: #888;
+      --border: #eaeaea;
+      --border-strong: #d4d4d4;
+      --accent: #1f6fb8;
+      --accent-strong: #195a98;
+      --accent-soft: #e8f1fa;
+      --ok: #2f8f5d;
+      --warn: #b06f00;
+      --error: #b3392b;
+      --shadow-soft: 0 1px 2px rgba(20, 25, 35, 0.04);
+      --shadow-lift: 0 12px 32px rgba(20, 25, 35, 0.08);
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { background: var(--bg); color: var(--text-body); margin: 0; }
+    body { min-height: 100vh; }
+    form { margin: 0; }
+
+    button, input, select, textarea { font: inherit; color: inherit; }
+
+    button {
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 8px 14px;
+      background: transparent;
+      color: var(--text-strong);
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    button:disabled { cursor: not-allowed; opacity: 0.45; }
+
+    input[type="text"],
+    input[type="url"],
+    input[type="password"],
+    select {
+      width: 100%;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    input:focus, select:focus, button:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(31, 111, 184, 0.16);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    label > input,
+    label > select {
+      margin-top: 6px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 14px;
+      color: var(--text-strong);
+      font-weight: 400;
+    }
+
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 48px 24px 96px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid rgba(20, 25, 35, 0.06);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow:
+        0 1px 2px rgba(20, 25, 35, 0.04),
+        0 12px 32px rgba(20, 25, 35, 0.05);
+    }
+
+    .panel-results {
+      display: flex;
+      flex-direction: column;
+      min-height: 380px;
+      position: sticky;
+      top: 24px;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .panel-results .results { margin-top: 0; }
+
+    .results-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #fff, var(--surface-soft));
+    }
+
+    .results-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-strong);
+      letter-spacing: 0;
+    }
+
+    .results-subtitle {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .results-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .empty-state svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--border-strong);
+      opacity: 0.7;
+    }
+
+    .empty-state p {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+
+    .results:not(:empty) ~ .empty-state { display: none; }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .panel-results { position: static; min-height: 0; }
+      .panel-results:has(.results:empty) { display: none; }
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text-strong);
+      letter-spacing: -0.01em;
+    }
+
+    .lead { margin: 0; color: var(--text-muted); font-size: 15px; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge .dot { width: 6px; height: 6px; background: var(--ok); border-radius: 999px; }
+
+    section.connect { display: grid; gap: 20px; margin-bottom: 24px; }
+
+    .field-token { position: relative; }
+
+    .input-icon { position: relative; margin-top: 6px; }
+
+    .input-icon input { padding-right: 42px; }
+
+    .input-icon-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      background: transparent;
+      border: 0;
+      border-radius: 4px;
+      transition: color 160ms ease, background 160ms ease;
+    }
+
+    .input-icon-btn:hover { color: var(--text-body); background: var(--surface-soft); }
+
+    .input-icon-btn svg { width: 16px; height: 16px; }
+
+    .helper {
+      margin: 8px 0 0;
+      font-size: 12px;
+      color: var(--text-muted);
+      min-height: 18px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 200ms ease;
+    }
+
+    .helper[data-state="ok"] { color: var(--ok); }
+    .helper[data-state="error"] { color: var(--error); }
+    .helper[data-state="loading"] { color: var(--text-muted); }
+    .helper svg { width: 12px; height: 12px; flex: none; }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 1.5px solid rgba(31, 111, 184, 0.18);
+      border-top-color: var(--accent);
+      border-radius: 999px;
+      animation: spin 700ms linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .dropzone {
+      position: relative;
+      display: grid;
+      gap: 6px;
+      place-items: center;
+      align-content: center;
+      min-height: 200px;
+      padding: 28px 24px;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      text-align: center;
+      cursor: pointer;
+      color: var(--text-body);
+      transition: border-color 200ms ease, background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+    }
+
+    .dropzone.is-empty:not(.is-drag) { animation: breathe 4.5s ease-in-out infinite; }
+
+    @keyframes breathe { 0%, 100% { opacity: 0.94; } 50% { opacity: 1; } }
+
+    .dropzone.is-drag {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      transform: scale(1.02);
+      box-shadow: var(--shadow-lift);
+    }
+
+    .dropzone strong { font-size: 16px; font-weight: 600; color: var(--text-strong); }
+    .dropzone span { color: var(--text-muted); font-size: 13px; }
+    .dropzone .arrow { width: 22px; height: 22px; stroke: var(--text-muted); transition: stroke 160ms ease; margin-bottom: 4px; }
+    .dropzone.is-drag .arrow { stroke: var(--accent); }
+    .dropzone input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+    .global-status {
+      margin: 12px 2px 0;
+      font-size: 12px;
+      min-height: 18px;
+      color: var(--text-muted);
+      transition: color 200ms ease;
+    }
+
+    .global-status[data-tone="warn"] { color: var(--warn); }
+    .global-status[data-tone="error"] { color: var(--error); }
+    .global-status[data-tone="ok"] { color: var(--ok); }
+
+    details.advanced { margin-top: 28px; border-top: 1px solid var(--border); padding-top: 16px; }
+
+    details.advanced summary {
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      list-style: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+      transition: color 160ms ease;
+    }
+
+    details.advanced summary::-webkit-details-marker { display: none; }
+
+    details.advanced summary::before {
+      content: "";
+      display: inline-block;
+      width: 0;
+      height: 0;
+      border-left: 4px solid currentColor;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+      transition: transform 160ms ease;
+    }
+
+    details.advanced[open] summary::before { transform: rotate(90deg); }
+    details.advanced summary:hover { color: var(--text-body); }
+
+    .advanced-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .advanced-grid .full { grid-column: 1 / -1; }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-body);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .check-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      margin: 0;
+    }
+
+    .reset-row { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+    .text-link {
+      background: none;
+      border: 0;
+      padding: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-decoration: underline;
+      text-decoration-color: var(--border-strong);
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .text-link:hover { color: var(--accent-strong); text-decoration-color: var(--accent-strong); }
+
+    .dropzone.is-received { animation: dropFlash 420ms ease-out; }
+
+    @keyframes dropFlash {
+      0%   { background: var(--accent-soft); border-color: var(--accent); }
+      100% { background: var(--surface-soft); border-color: var(--border-strong); }
+    }
+
+    section.results {
+      display: grid;
+      gap: 0;
+      min-width: 0;
+    }
+    section.results:empty { margin-top: 0; }
+
+    .card {
+      min-width: 0;
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: var(--surface);
+      padding: 16px 18px 18px;
+      box-shadow: none;
+      animation: cardIn 260ms ease-out both;
+    }
+
+    @keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card.flash { animation: cardIn 260ms ease-out, successRing 900ms ease-out; }
+
+    @keyframes successRing {
+      0%   { box-shadow: 0 0 0 4px rgba(47, 143, 93, 0.22); }
+      100% { box-shadow: var(--shadow-soft); }
+    }
+
+    .progress {
+      height: 3px;
+      background: var(--border-soft, #f0f0f0);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress-bar {
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: progressShimmer 1.4s ease-in-out infinite;
+    }
+
+    @keyframes progressShimmer {
+      0%   { margin-left: -40%; }
+      100% { margin-left: 100%; }
+    }
+
+    .card-head {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 24px;
+    }
+
+    .card-name {
+      min-width: 0;
+      font-weight: 600;
+      color: var(--text-strong);
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-meta { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--border-strong);
+      flex: none;
+      transition: background 200ms ease;
+    }
+
+    .card[data-state="uploading"] .status-dot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    .card[data-state="success"]   .status-dot { background: var(--ok); }
+    .card[data-state="error"]     .status-dot { background: var(--error); }
+
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    .card-action {
+      background: transparent;
+      border: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .card-action:hover:not(:disabled) { color: var(--accent-strong); background: var(--accent-soft); }
+
+    .card-output {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .seg {
+      display: inline-flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+      background: var(--surface-soft);
+      width: max-content;
+    }
+
+    .seg button {
+      border: 0;
+      background: transparent;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-radius: 4px;
+      transition: background 160ms ease, color 160ms ease;
+    }
+
+    .seg button:hover { color: var(--text-body); }
+
+    .seg button[aria-selected="true"] {
+      background: var(--surface);
+      color: var(--accent-strong);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .snippet {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12.5px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin: 0;
+      max-width: 100%;
+      overflow: auto;
+      color: var(--text-strong);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .card-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .card-foot .text-link {
+      min-width: 0;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .copy {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text-strong);
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .copy:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+    .copy.is-copied {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent-strong);
+    }
+
+    .copy svg { width: 12px; height: 12px; }
+
+    .error-text { color: var(--error); font-size: 12px; margin: 8px 0 0; }
+
+    @media (max-width: 520px) {
+      main { padding: 32px 14px 64px; }
+      .panel { padding: 20px; border-radius: 12px; }
+      .panel-results { padding: 0; }
+      .results-head { padding: 16px; }
+      .card { padding: 14px 16px 16px; }
+      .card-head { grid-template-columns: auto minmax(0, 1fr) auto; }
+      .card-meta { display: none; }
+      .card-foot { align-items: stretch; flex-direction: column; }
+      .card-foot .text-link { max-width: 100%; }
+      .copy { justify-content: center; }
+      .topbar { display: grid; margin-bottom: 24px; }
+      .advanced-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>Pichub</h1>
+        <p class="lead">Drop an image, get a URL.</p>
+      </div>
+      <span class="badge"><span class="dot"></span> Browser only</span>
+    </header>
+
+    <div class="grid">
+    <form class="panel panel-controls" id="controlsForm">
+    <section class="connect">
+      <div class="field-token">
+        <label for="tokenInput">GitHub token</label>
+        <div class="input-icon">
+          <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
+          <button class="input-icon-btn" type="button" id="toggleToken" aria-label="Show token" aria-pressed="false"></button>
+        </div>
+        <p class="helper" id="tokenHelper" data-state="idle"><span>Fine-grained PAT with repo contents read &amp; write. Stays in memory.</span></p>
+      </div>
+
+      <div>
+        <label for="repoInput">Repository</label>
+        <input id="repoInput" type="text" list="repoList" autocomplete="off" spellcheck="false" placeholder="owner/repo" style="margin-top:6px;">
+        <datalist id="repoList"></datalist>
+      </div>
+    </form>
+
+    <div class="dropzone is-empty" id="dropzone">
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 16V4M12 4l-5 5M12 4l5 5M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+      </svg>
+      <strong>Drop image</strong>
+      <span>or click to choose</span>
+      <input type="file" id="fileInput" accept="image/*" multiple aria-label="Select images">
+    </div>
+
+    <p class="global-status" id="globalStatus"></p>
+
+    <details class="advanced" id="advanced">
+      <summary>Advanced</summary>
+      <div class="advanced-grid">
+        <label>Branch
+          <input id="branchInput" type="text" spellcheck="false" value="main">
+        </label>
+        <label>Folder
+          <input id="folderInput" type="text" spellcheck="false" value="static/uploads">
+        </label>
+        <label class="full">Blog base URL
+          <input id="baseUrlInput" type="url" spellcheck="false" value="https://aneesahammed.github.io/">
+        </label>
+        <label>Markdown URL
+          <select id="urlMode">
+            <option value="site">Blog URL when possible</option>
+            <option value="raw">Raw GitHub URL</option>
+          </select>
+        </label>
+        <label>Commit message
+          <input id="messageInput" type="text" value="Add blog image">
+        </label>
+        <label class="full">Alt text
+          <input id="altInput" type="text" placeholder="Defaults to file name">
+        </label>
+        <label class="check-row full">
+          <input id="renameInput" type="checkbox" checked>
+          Prefix file names with date and time
+        </label>
+        <label class="check-row full">
+          <input id="overwriteInput" type="checkbox">
+          Replace files when the path already exists
+        </label>
+      </div>
+      <div class="reset-row">
+        <button class="text-link" type="button" id="resetButton">Reset to defaults</button>
+      </div>
+    </details>
+    </section>
+
+    <section class="panel panel-results">
+      <div class="results-head">
+        <div>
+          <h2 class="results-title">Generated links</h2>
+          <p class="results-subtitle">Copy Markdown, URL, or HTML for each image.</p>
+        </div>
+        <span class="results-count" id="resultsCount">0</span>
+      </div>
+      <section class="results" id="results" aria-live="polite"></section>
+      <div class="empty-state" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2.5"/>
+          <circle cx="9" cy="9" r="1.6"/>
+          <path d="M21 15l-5-5L5 21"/>
+        </svg>
+        <p>Your image URLs appear here.</p>
+      </div>
+    </section>
+    </div>
+  </main>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const apiRoot = "https://api.github.com";
+    const settingsKey = "github-image-uploader-settings";
+    const maxFileBytes = 25 * 1024 * 1024;
+
+    const state = {
+      cards: [],
+      repos: [],
+      verifyToken: "",
+      verifyState: "idle",
+      verifyTimer: 0,
+      verifyAbort: 0
+    };
+
+    const els = {
+      token: document.getElementById("tokenInput"),
+      controlsForm: document.getElementById("controlsForm"),
+      toggleToken: document.getElementById("toggleToken"),
+      tokenHelper: document.getElementById("tokenHelper"),
+      repo: document.getElementById("repoInput"),
+      repoList: document.getElementById("repoList"),
+      branch: document.getElementById("branchInput"),
+      folder: document.getElementById("folderInput"),
+      baseUrl: document.getElementById("baseUrlInput"),
+      urlMode: document.getElementById("urlMode"),
+      message: document.getElementById("messageInput"),
+      alt: document.getElementById("altInput"),
+      rename: document.getElementById("renameInput"),
+      overwrite: document.getElementById("overwriteInput"),
+      reset: document.getElementById("resetButton"),
+      dropzone: document.getElementById("dropzone"),
+      fileInput: document.getElementById("fileInput"),
+      results: document.getElementById("results"),
+      resultsCount: document.getElementById("resultsCount"),
+      globalStatus: document.getElementById("globalStatus")
+    };
+
+    /* settings -------------------------------------------------------- */
+
+    function readSettings() {
+      let saved;
+      try { saved = JSON.parse(localStorage.getItem(settingsKey) || "{}"); }
+      catch { localStorage.removeItem(settingsKey); return; }
+      if (saved.repo) els.repo.value = saved.repo;
+      if (saved.branch) els.branch.value = saved.branch;
+      if (saved.folder) els.folder.value = saved.folder;
+      if (saved.baseUrl) els.baseUrl.value = saved.baseUrl;
+      if (saved.urlMode) els.urlMode.value = saved.urlMode;
+      if (saved.message) els.message.value = saved.message;
+      if (typeof saved.rename === "boolean") els.rename.checked = saved.rename;
+      if (typeof saved.overwrite === "boolean") els.overwrite.checked = saved.overwrite;
+    }
+
+    function writeSettings() {
+      localStorage.setItem(settingsKey, JSON.stringify({
+        repo: els.repo.value.trim(),
+        branch: els.branch.value.trim(),
+        folder: els.folder.value.trim(),
+        baseUrl: els.baseUrl.value.trim(),
+        urlMode: els.urlMode.value,
+        message: els.message.value.trim(),
+        rename: els.rename.checked,
+        overwrite: els.overwrite.checked
+      }));
+    }
+
+    function resetSettings() {
+      localStorage.removeItem(settingsKey);
+      els.repo.value = "";
+      els.branch.value = "main";
+      els.folder.value = "static/uploads";
+      els.baseUrl.value = "https://aneesahammed.github.io/";
+      els.urlMode.value = "site";
+      els.message.value = "Add blog image";
+      els.alt.value = "";
+      els.rename.checked = true;
+      els.overwrite.checked = false;
+      flashStatus("Defaults restored.", "ok");
+    }
+
+    /* status ---------------------------------------------------------- */
+
+    let statusTimer = 0;
+    function setStatus(text, tone = "") {
+      els.globalStatus.textContent = text;
+      els.globalStatus.dataset.tone = tone;
+    }
+    function flashStatus(text, tone = "") {
+      setStatus(text, tone);
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => setStatus(""), 3500);
+    }
+
+    function setHelper(text, stateName) {
+      els.tokenHelper.dataset.state = stateName;
+      els.tokenHelper.replaceChildren();
+      if (stateName === "loading") els.tokenHelper.append(makeSpinner());
+      else if (stateName === "ok") els.tokenHelper.append(svgCheck());
+      const span = document.createElement("span");
+      span.textContent = text;
+      els.tokenHelper.append(span);
+    }
+
+    function makeSpinner() {
+      const s = document.createElement("span");
+      s.className = "spinner";
+      return s;
+    }
+
+    function svgCheck() {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("viewBox", "0 0 16 16");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "2.2");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("d", "M3 8.5l3.5 3.5L13 4");
+      svg.appendChild(p);
+      return svg;
+    }
+
+    function svgEye(closed) {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "1.6");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+      if (closed) {
+        const p1 = document.createElementNS(ns, "path");
+        p1.setAttribute("d", "M3 12s3.5-7 10-7c2.1 0 3.9.6 5.4 1.6M21 12s-3.5 7-10 7c-2.1 0-3.9-.6-5.4-1.6");
+        const p2 = document.createElementNS(ns, "path");
+        p2.setAttribute("d", "M3 3l18 18");
+        svg.append(p1, p2);
+      } else {
+        const p1 = document.createElementNS(ns, "path");
+        p1.setAttribute("d", "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z");
+        const c = document.createElementNS(ns, "circle");
+        c.setAttribute("cx", "12"); c.setAttribute("cy", "12"); c.setAttribute("r", "3");
+        svg.append(p1, c);
+      }
+      return svg;
+    }
+
+    function svgCopy() {
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("viewBox", "0 0 16 16");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "1.6");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+      const r = document.createElementNS(ns, "rect");
+      r.setAttribute("x", "5"); r.setAttribute("y", "5"); r.setAttribute("width", "9"); r.setAttribute("height", "9"); r.setAttribute("rx", "1.5");
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("d", "M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5");
+      svg.append(r, p);
+      return svg;
+    }
+
+    /* github ---------------------------------------------------------- */
+
+    async function github(token, path, options = {}) {
+      const response = await fetch(`${apiRoot}${path}`, {
+        ...options,
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${token}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+          ...(options.headers || {})
+        }
+      });
+      const text = await response.text();
+      let data = null;
+      if (text) {
+        try { data = JSON.parse(text); }
+        catch { data = { message: text }; }
+      }
+      if (!response.ok) {
+        const error = new Error(data && data.message ? data.message : `GitHub returned ${response.status}`);
+        error.status = response.status;
+        error.data = data;
+        throw error;
+      }
+      return data;
+    }
+
+    /* token verify ---------------------------------------------------- */
+
+    function scheduleVerify() {
+      clearTimeout(state.verifyTimer);
+      const token = els.token.value.trim();
+      if (!token) {
+        state.verifyToken = "";
+        state.verifyState = "idle";
+        setHelper("Fine-grained PAT with repo contents read & write. Stays in memory.", "idle");
+        return;
+      }
+      if (token === state.verifyToken && state.verifyState === "ok") return;
+      state.verifyTimer = setTimeout(() => verifyToken(token), 500);
+    }
+
+    async function verifyToken(token) {
+      if (!token || token !== els.token.value.trim()) return;
+      if (token === state.verifyToken && state.verifyState === "ok") return;
+      const ticket = ++state.verifyAbort;
+      state.verifyToken = token;
+      state.verifyState = "loading";
+      setHelper("Checking token...", "loading");
+      try {
+        const user = await github(token, "/user");
+        if (ticket !== state.verifyAbort) return;
+        state.verifyState = "ok";
+        const label = user && user.login ? `Verified as ${user.login}` : "Verified";
+        setHelper(label, "ok");
+        loadRepos(token, ticket).catch(() => {});
+      } catch (error) {
+        if (ticket !== state.verifyAbort) return;
+        state.verifyState = "error";
+        const msg = (error.status === 401 || error.status === 403)
+          ? "Token is invalid or missing repo permissions."
+          : (error.message || "Could not verify token.");
+        setHelper(msg, "error");
+      }
+    }
+
+    async function loadRepos(token, ticket) {
+      const repos = [];
+      for (let page = 1; page < 10; page += 1) {
+        const batch = await github(token, `/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator,organization_member`);
+        if (ticket !== state.verifyAbort) return;
+        repos.push(...batch);
+        if (batch.length < 100) break;
+      }
+      state.repos = repos
+        .filter((r) => r.permissions && r.permissions.push)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+      els.repoList.replaceChildren();
+      for (const r of state.repos) {
+        const opt = document.createElement("option");
+        opt.value = r.full_name;
+        if (r.default_branch) opt.label = `default: ${r.default_branch}`;
+        els.repoList.appendChild(opt);
+      }
+
+      if (state.verifyState === "ok") {
+        const n = state.repos.length;
+        setHelper(`Verified · ${n} writable repo${n === 1 ? "" : "s"}`, "ok");
+      }
+
+      // sync branch if currently selected repo matches one we just loaded
+      syncBranchFromRepo();
+    }
+
+    function repoMatch() {
+      const v = els.repo.value.trim();
+      return state.repos.find((r) => r.full_name === v);
+    }
+
+    function syncBranchFromRepo() {
+      const m = repoMatch();
+      if (m && m.default_branch) {
+        if (els.branch.value !== m.default_branch) {
+          els.branch.value = m.default_branch;
+          writeSettings();
+        }
+      }
+    }
+
+    /* file intake ----------------------------------------------------- */
+
+    function intakeFiles(fileList) {
+      const all = Array.from(fileList || []);
+      const images = all.filter((f) => f.type.startsWith("image/"));
+      const skippedType = all.length - images.length;
+      const tooLarge = images.filter((f) => f.size > maxFileBytes);
+      const accepted = images.filter((f) => f.size <= maxFileBytes);
+
+      const config = currentConfig();
+      const validation = validateConfig(config);
+      if (validation) {
+        flashStatus(validation, "warn");
+        return;
+      }
+
+      if (!accepted.length) {
+        if (tooLarge.length) flashStatus(`${tooLarge.length} file${tooLarge.length === 1 ? "" : "s"} over ${formatSize(maxFileBytes)}.`, "warn");
+        else if (skippedType) flashStatus(`${skippedType} non-image file${skippedType === 1 ? "" : "s"} ignored.`, "warn");
+        else flashStatus("Choose an image to upload.", "warn");
+        return;
+      }
+
+      const skips = [];
+      if (tooLarge.length) skips.push(`${tooLarge.length} over ${formatSize(maxFileBytes)}`);
+      if (skippedType) skips.push(`${skippedType} non-image`);
+      if (skips.length) flashStatus(`Skipped: ${skips.join(", ")}.`, "warn");
+      else setStatus("");
+
+      const baseIndex = state.cards.length;
+      accepted.forEach((file, i) => {
+        const card = {
+          id: `c${Date.now()}-${state.cards.length}`,
+          file,
+          path: targetPath(file, baseIndex + i, config, accepted.length + baseIndex),
+          status: "queued",
+          result: null,
+          error: null,
+          format: "markdown"
+        };
+        state.cards.push(card);
+        renderCard(card);
+      });
+      updateResultsCount();
+
+      uploadQueue(config).catch(() => {});
+    }
+
+    let uploading = false;
+    async function uploadQueue(config) {
+      if (uploading) return;
+      uploading = true;
+      try {
+        for (const card of state.cards) {
+          if (card.status !== "queued") continue;
+          card.status = "uploading";
+          updateCard(card);
+          try {
+            card.result = await uploadOne(card, config);
+            card.status = "success";
+          } catch (error) {
+            card.status = "error";
+            card.error = error.message || "Upload failed.";
+          }
+          updateCard(card);
+        }
+      } finally {
+        uploading = false;
+      }
+    }
+
+    /* upload helpers -------------------------------------------------- */
+
+    function currentConfig() {
+      const repo = els.repo.value.trim();
+      const slash = repo.indexOf("/");
+      const owner = slash > 0 ? repo.slice(0, slash) : "";
+      const name = slash > 0 ? repo.slice(slash + 1) : "";
+      return {
+        token: els.token.value.trim(),
+        owner,
+        repo: name,
+        branch: els.branch.value.trim() || "main",
+        folder: cleanFolder(els.folder.value),
+        baseUrl: els.baseUrl.value.trim(),
+        urlMode: els.urlMode.value,
+        message: els.message.value.trim() || "Add blog image",
+        alt: els.alt.value.trim(),
+        rename: els.rename.checked,
+        overwrite: els.overwrite.checked
+      };
+    }
+
+    function validateConfig(config) {
+      if (!config.token) return "Add a GitHub token first.";
+      if (!config.owner || !config.repo) return "Pick a repository as owner/repo.";
+      if (!config.branch) return "Branch is required.";
+      return "";
+    }
+
+    function cleanFolder(value) {
+      return (value || "").trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "").replace(/\/{2,}/g, "/");
+    }
+
+    function slugifyFileName(name) {
+      const lastDot = name.lastIndexOf(".");
+      const base = lastDot > 0 ? name.slice(0, lastDot) : name;
+      const ext = lastDot > 0 ? name.slice(lastDot + 1) : "";
+      const cleanBase = base
+        .normalize("NFKD")
+        .replace(/[̀-ͯ]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "image";
+      const cleanExt = ext
+        .normalize("NFKD")
+        .replace(/[̀-ͯ]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "") || "png";
+      return `${cleanBase}.${cleanExt}`;
+    }
+
+    function timestamp() {
+      const now = new Date();
+      const pad = (v) => String(v).padStart(2, "0");
+      return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    }
+
+    function targetPath(file, index, config, batchTotal) {
+      const slug = slugifyFileName(file.name);
+      const prefix = config.rename
+        ? `${timestamp()}${batchTotal > 1 ? `-${index + 1}` : ""}-`
+        : "";
+      return [config.folder, `${prefix}${slug}`].filter(Boolean).join("/");
+    }
+
+    function encodePath(path) {
+      return path.split("/").map(encodeURIComponent).join("/");
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 0x8000;
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+      return btoa(binary);
+    }
+
+    async function existingSha(config, path) {
+      try {
+        const data = await github(config.token, `/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${encodePath(path)}?ref=${encodeURIComponent(config.branch)}`);
+        if (Array.isArray(data)) throw new Error(`${path} is an existing directory in this repo.`);
+        return data.sha || null;
+      } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+      }
+    }
+
+    async function uploadOne(card, config) {
+      const path = card.path;
+      const sha = await existingSha(config, path);
+      if (sha && !config.overwrite) {
+        throw new Error(`${path} already exists. Enable replace, rename, or pick a new folder.`);
+      }
+      const buffer = await card.file.arrayBuffer();
+      const body = { message: config.message, content: arrayBufferToBase64(buffer), branch: config.branch };
+      if (sha) body.sha = sha;
+      const response = await github(
+        config.token,
+        `/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${encodePath(path)}`,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      );
+      return buildResult(card.file, path, config, response);
+    }
+
+    function buildResult(file, path, config, response) {
+      const rawUrl = response.content && response.content.download_url
+        ? response.content.download_url
+        : `https://raw.githubusercontent.com/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/${encodePath(config.branch)}/${encodePath(path)}`;
+      const siteUrl = toSiteUrl(path, config);
+      const selectedUrl = config.urlMode === "site" && siteUrl ? siteUrl : rawUrl;
+      const alt = config.alt || file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+      return {
+        path,
+        rawUrl,
+        siteUrl,
+        selectedUrl,
+        alt,
+        markdown: `![${escapeMarkdownAlt(alt)}](${selectedUrl})`,
+        html: `<img src="${escapeHtml(selectedUrl)}" alt="${escapeHtml(alt)}">`
+      };
+    }
+
+    function toSiteUrl(path, config) {
+      if (!config.baseUrl || !path.startsWith("static/")) return "";
+      const base = config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`;
+      return `${base}${path.replace(/^static\//, "")}`;
+    }
+
+    function escapeMarkdownAlt(value) {
+      return value.replace(/\\/g, "\\\\").replace(/]/g, "\\]");
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function snippetFor(card) {
+      if (!card.result) return "";
+      if (card.format === "url") return card.result.selectedUrl;
+      if (card.format === "html") return card.result.html;
+      return card.result.markdown;
+    }
+
+    /* render ---------------------------------------------------------- */
+
+    function renderCard(card) {
+      if (card.dom) return;
+      const article = document.createElement("article");
+      article.className = "card";
+      article.dataset.state = card.status;
+      article.dataset.id = card.id;
+
+      const head = document.createElement("div");
+      head.className = "card-head";
+      const dot = document.createElement("span"); dot.className = "status-dot";
+      const name = document.createElement("span"); name.className = "card-name"; name.textContent = card.file.name;
+      const meta = document.createElement("span"); meta.className = "card-meta"; meta.textContent = formatSize(card.file.size);
+      const action = document.createElement("button");
+      action.type = "button"; action.className = "card-action"; action.textContent = "Remove";
+      action.addEventListener("click", () => removeCard(card));
+      head.append(dot, name, meta, action);
+
+      const progress = document.createElement("div");
+      progress.className = "progress";
+      progress.hidden = true;
+      const progressBar = document.createElement("div");
+      progressBar.className = "progress-bar";
+      progress.appendChild(progressBar);
+
+      const output = document.createElement("div");
+      output.className = "card-output";
+      output.hidden = true;
+
+      const seg = document.createElement("div");
+      seg.className = "seg"; seg.setAttribute("role", "tablist");
+      ["markdown", "url", "html"].forEach((fmt) => {
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.dataset.fmt = fmt;
+        btn.textContent = fmt === "markdown" ? "Markdown" : fmt === "url" ? "URL" : "HTML";
+        btn.setAttribute("aria-selected", fmt === card.format ? "true" : "false");
+        btn.addEventListener("click", () => { card.format = fmt; updateCard(card); });
+        seg.appendChild(btn);
+      });
+
+      const snippet = document.createElement("pre"); snippet.className = "snippet";
+
+      const foot = document.createElement("div");
+      foot.className = "card-foot";
+      const link = document.createElement("a");
+      link.className = "text-link";
+      link.target = "_blank"; link.rel = "noreferrer";
+      link.textContent = "Open image";
+      const copy = document.createElement("button");
+      copy.type = "button"; copy.className = "copy";
+      const copyLabel = document.createTextNode("Copy");
+      copy.append(svgCopy(), copyLabel);
+      copy.addEventListener("click", () => doCopy(card, copy, copyLabel));
+      foot.append(link, copy);
+
+      const errorText = document.createElement("p");
+      errorText.className = "error-text"; errorText.hidden = true;
+
+      output.append(seg, snippet, foot);
+      article.append(head, progress, output, errorText);
+
+      card.dom = { article, dot, action, progress, output, seg, snippet, link, copy, copyLabel, errorText };
+      els.results.prepend(article);
+    }
+
+    function updateCard(card) {
+      if (!card.dom) renderCard(card);
+      const dom = card.dom;
+      const prevState = dom.article.dataset.state;
+      dom.article.dataset.state = card.status;
+
+      if (card.status === "queued") {
+        dom.action.textContent = "Remove";
+        dom.action.disabled = false;
+        dom.progress.hidden = true;
+        dom.output.hidden = true;
+        dom.errorText.hidden = true;
+      } else if (card.status === "uploading") {
+        dom.action.textContent = "Uploading";
+        dom.action.disabled = true;
+        dom.progress.hidden = false;
+        dom.output.hidden = true;
+        dom.errorText.hidden = true;
+      } else if (card.status === "success" && card.result) {
+        dom.action.textContent = "Dismiss";
+        dom.action.disabled = false;
+        dom.progress.hidden = true;
+        dom.output.hidden = false;
+        dom.errorText.hidden = true;
+        dom.snippet.textContent = snippetFor(card);
+        dom.link.href = card.result.selectedUrl;
+        dom.seg.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", b.dataset.fmt === card.format ? "true" : "false"));
+        if (prevState !== "success") {
+          dom.article.classList.remove("flash");
+          // force reflow so the animation re-fires
+          void dom.article.offsetWidth;
+          dom.article.classList.add("flash");
+        }
+      } else if (card.status === "error") {
+        dom.action.textContent = "Remove";
+        dom.action.disabled = false;
+        dom.progress.hidden = true;
+        dom.output.hidden = true;
+        dom.errorText.hidden = false;
+        dom.errorText.textContent = card.error || "Upload failed.";
+      }
+
+      updateQueueStatus();
+    }
+
+    function updateQueueStatus() {
+      const inFlight = state.cards.filter((c) => c.status === "queued" || c.status === "uploading").length;
+      const total = state.cards.length;
+      if (inFlight > 0) {
+        const done = total - inFlight;
+        setStatus(`Uploading ${done + 1} of ${total}...`, "");
+      } else if (statusTimer === 0) {
+        setStatus("");
+      }
+    }
+
+    function updateResultsCount() {
+      const count = state.cards.length;
+      els.resultsCount.textContent = String(count);
+      els.resultsCount.setAttribute("aria-label", `${count} image${count === 1 ? "" : "s"}`);
+    }
+
+    function removeCard(card) {
+      const idx = state.cards.indexOf(card);
+      if (idx >= 0) state.cards.splice(idx, 1);
+      if (card.dom && card.dom.article && card.dom.article.parentNode) {
+        card.dom.article.parentNode.removeChild(card.dom.article);
+      }
+      els.dropzone.classList.toggle("is-empty", state.cards.length === 0);
+      updateResultsCount();
+    }
+
+    async function doCopy(card, button, labelNode) {
+      const text = snippetFor(card);
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+      }
+      button.classList.add("is-copied");
+      labelNode.nodeValue = "Copied";
+      setTimeout(() => {
+        button.classList.remove("is-copied");
+        labelNode.nodeValue = "Copy";
+      }, 1200);
+    }
+
+    /* events ---------------------------------------------------------- */
+
+    function bind() {
+      els.controlsForm.addEventListener("submit", (e) => e.preventDefault());
+
+      els.token.addEventListener("input", scheduleVerify);
+      els.token.addEventListener("blur", () => verifyToken(els.token.value.trim()));
+
+      els.toggleToken.replaceChildren(svgEye(false));
+
+      els.toggleToken.addEventListener("click", () => {
+        const showing = els.token.type === "text";
+        els.token.type = showing ? "password" : "text";
+        els.toggleToken.setAttribute("aria-pressed", showing ? "false" : "true");
+        els.toggleToken.setAttribute("aria-label", showing ? "Show token" : "Hide token");
+        els.toggleToken.replaceChildren(svgEye(!showing));
+      });
+
+      els.repo.addEventListener("change", () => { syncBranchFromRepo(); writeSettings(); });
+      els.repo.addEventListener("input", writeSettings);
+
+      [els.branch, els.folder, els.baseUrl, els.urlMode, els.message, els.rename, els.overwrite].forEach((el) => {
+        el.addEventListener("input", writeSettings);
+        el.addEventListener("change", writeSettings);
+      });
+
+      els.reset.addEventListener("click", resetSettings);
+
+      els.fileInput.addEventListener("change", (e) => {
+        intakeFiles(e.target.files);
+        e.target.value = "";
+        els.dropzone.classList.toggle("is-empty", state.cards.length === 0);
+      });
+
+      ["dragenter", "dragover"].forEach((evt) => {
+        els.dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          els.dropzone.classList.add("is-drag");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        els.dropzone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          els.dropzone.classList.remove("is-drag");
+        });
+      });
+      els.dropzone.addEventListener("drop", (e) => {
+        const fileList = e.dataTransfer && e.dataTransfer.files;
+        if (fileList && fileList.length) {
+          els.dropzone.classList.remove("is-received");
+          void els.dropzone.offsetWidth;
+          els.dropzone.classList.add("is-received");
+          setTimeout(() => els.dropzone.classList.remove("is-received"), 450);
+        }
+        intakeFiles(fileList);
+        els.dropzone.classList.toggle("is-empty", state.cards.length === 0);
+      });
+    }
+
+    /* init ------------------------------------------------------------ */
+
+    readSettings();
+    bind();
+    updateResultsCount();
+    setStatus("");
+  })();
+  </script>
+</body>
+</html>
