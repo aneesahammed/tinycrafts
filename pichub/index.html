@@ -950,6 +950,40 @@
 
     .error-text { color: var(--error); font-size: 12px; margin: 8px 0 0; }
 
+    .footer {
+      margin-top: auto;
+      padding: 28px 24px 36px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .footer-credit {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: 12.5px;
+      letter-spacing: 0.01em;
+      color: var(--fg-subtle);
+      text-align: center;
+    }
+
+    .footer-credit a {
+      color: var(--fg-muted);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border-default);
+      padding-bottom: 1px;
+      transition:
+        color var(--motion-micro) var(--ease-calm),
+        border-color var(--motion-micro) var(--ease-calm);
+    }
+
+    .footer-credit a:hover,
+    .footer-credit a:focus-visible {
+      color: var(--accent-strong);
+      border-bottom-color: var(--accent);
+      outline: none;
+    }
+
     @media (max-width: 520px) {
       main { padding: 32px 14px 64px; }
       .panel { padding: 20px; border-radius: 12px; }
@@ -1101,6 +1135,12 @@
         </section>
       </div>
     </main>
+
+    <footer class="footer" role="contentinfo">
+      <p class="footer-credit">
+        Built by <a href="https://anees.xyz" target="_blank" rel="noopener noreferrer">Anees</a>
+      </p>
+    </footer>
   </div>
 
   <script src="./assets/pwa.js"></script>
@@ -1343,7 +1383,7 @@
 
       if (state.verifyState === "ok") {
         const n = state.repos.length;
-        setHelper(`Verified · ${n} writable repo${n === 1 ? "" : "s"}`, "ok");
+        setHelper(`Verified. ${n} repo${n === 1 ? "" : "s"} available`, "ok");
       }
 
       // sync branch if currently selected repo matches one we just loaded
