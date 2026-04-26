@@ -295,9 +295,7 @@
       .tool-desc {
         font-size: 0.8125rem;
         color: var(--text-muted);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        line-height: 1.5;
       }
 
       .tool-status {
@@ -484,8 +482,9 @@
             <div class="tool-info">
               <div class="tool-name">sentinel</div>
               <div class="tool-desc">
-                Error tracking that works with your existing logs — no SDK, no
-                cloud
+                Error tracking that reads the logs you already write. No SDK to
+                install, no third-party cloud — point it at a file and it
+                surfaces what broke.
               </div>
             </div>
           </div>
@@ -498,8 +497,24 @@
             <div class="tool-info">
               <div class="tool-name">markV</div>
               <div class="tool-desc">
-                Drag-and-drop Markdown viewer with Mermaid diagrams and reading
-                mode
+                Drag-and-drop Markdown viewer with Mermaid diagrams, reading
+                mode, and document insights. Pure browser — your files never
+                leave the page.
+              </div>
+            </div>
+          </div>
+          <span class="tool-status live">live</span>
+        </a>
+
+        <a href="pichub/" class="tool-card">
+          <div class="tool-card-left">
+            <div class="tool-dot"></div>
+            <div class="tool-info">
+              <div class="tool-name">PicHub</div>
+              <div class="tool-desc">
+                Drop an image, get a public URL. Uploads straight to your own
+                GitHub repo with a fine-grained token — browser only, nothing
+                routes through a third-party.
               </div>
             </div>
           </div>
