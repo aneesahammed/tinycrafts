@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v8";
 const SHELL_CACHE = `pichub-shell-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
 

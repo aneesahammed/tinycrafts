@@ -96,7 +96,14 @@
 
     * { box-sizing: border-box; }
 
-    html, body { background: var(--bg); color: var(--text-body); margin: 0; }
+    html {
+      scrollbar-gutter: stable;
+      background: var(--bg);
+      color: var(--text-body);
+      margin: 0;
+    }
+
+    body { background: var(--bg); color: var(--text-body); margin: 0; }
     body {
       min-height: 100vh;
       font-family: var(--font-sans);
@@ -166,9 +173,10 @@
     }
 
     main {
-      max-width: 1120px;
+      max-width: 1160px;
       margin: 0 auto;
       padding: 40px 24px 96px;
+      width: 100%;
     }
 
     .app {
@@ -179,9 +187,10 @@
 
     .grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      grid-template-columns: minmax(0, 500px) minmax(0, 560px);
       gap: 20px;
       align-items: start;
+      justify-content: center;
     }
 
     .panel {
@@ -272,7 +281,7 @@
 
     .results:not(:empty) ~ .empty-state { display: none; }
 
-    @media (max-width: 960px) {
+    @media (max-width: 1127px) {
       .grid { grid-template-columns: 1fr; }
       .panel-results { position: static; min-height: 0; }
       .panel-results:has(.results:empty) { display: none; }
@@ -709,24 +718,6 @@
 
     .advanced-grid .full { grid-column: 1 / -1; }
 
-    .check-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 12.5px;
-      font-weight: 500;
-      color: var(--text-body);
-      text-transform: none;
-      letter-spacing: 0;
-    }
-
-    .check-row input[type="checkbox"] {
-      width: 15px;
-      height: 15px;
-      accent-color: var(--accent);
-      margin: 0;
-    }
-
     .reset-row { display: flex; justify-content: flex-end; margin-top: 12px; }
 
     .text-link {
@@ -1045,40 +1036,20 @@
           <p class="global-status" id="globalStatus"></p>
 
           <details class="advanced" id="advanced">
-            <summary>Advanced</summary>
+            <summary>Upload settings</summary>
             <div class="advanced-grid">
-              <label>Branch
-                <input id="branchInput" type="text" spellcheck="false" value="main">
-              </label>
               <label>Folder
                 <input id="folderInput" type="text" spellcheck="false" value="static/uploads">
               </label>
-              <label class="full">Blog base URL
-                <input id="baseUrlInput" type="url" spellcheck="false" value="https://aneesahammed.github.io/">
-              </label>
-              <label>Markdown URL
-                <select id="urlMode">
-                  <option value="site">Blog URL when possible</option>
-                  <option value="raw">Raw GitHub URL</option>
-                </select>
-              </label>
-              <label>Commit message
-                <input id="messageInput" type="text" value="Add blog image">
+              <label>Branch
+                <input id="branchInput" type="text" spellcheck="false" value="main">
               </label>
               <label class="full">Alt text
                 <input id="altInput" type="text" placeholder="Defaults to file name">
               </label>
-              <label class="check-row full">
-                <input id="renameInput" type="checkbox" checked>
-                Prefix file names with date and time
-              </label>
-              <label class="check-row full">
-                <input id="overwriteInput" type="checkbox">
-                Replace files when the path already exists
-              </label>
             </div>
             <div class="reset-row">
-              <button class="text-link" type="button" id="resetButton">Reset to defaults</button>
+              <button class="text-link" type="button" id="resetButton">Reset upload settings</button>
             </div>
           </details>
         </form>
@@ -1133,12 +1104,7 @@
       repoList: document.getElementById("repoList"),
       branch: document.getElementById("branchInput"),
       folder: document.getElementById("folderInput"),
-      baseUrl: document.getElementById("baseUrlInput"),
-      urlMode: document.getElementById("urlMode"),
-      message: document.getElementById("messageInput"),
       alt: document.getElementById("altInput"),
-      rename: document.getElementById("renameInput"),
-      overwrite: document.getElementById("overwriteInput"),
       reset: document.getElementById("resetButton"),
       dropzone: document.getElementById("dropzone"),
       fileInput: document.getElementById("fileInput"),
@@ -1156,38 +1122,23 @@
       if (saved.repo) els.repo.value = saved.repo;
       if (saved.branch) els.branch.value = saved.branch;
       if (saved.folder) els.folder.value = saved.folder;
-      if (saved.baseUrl) els.baseUrl.value = saved.baseUrl;
-      if (saved.urlMode) els.urlMode.value = saved.urlMode;
-      if (saved.message) els.message.value = saved.message;
-      if (typeof saved.rename === "boolean") els.rename.checked = saved.rename;
-      if (typeof saved.overwrite === "boolean") els.overwrite.checked = saved.overwrite;
     }
 
     function writeSettings() {
       localStorage.setItem(settingsKey, JSON.stringify({
         repo: els.repo.value.trim(),
         branch: els.branch.value.trim(),
-        folder: els.folder.value.trim(),
-        baseUrl: els.baseUrl.value.trim(),
-        urlMode: els.urlMode.value,
-        message: els.message.value.trim(),
-        rename: els.rename.checked,
-        overwrite: els.overwrite.checked
+        folder: els.folder.value.trim()
       }));
     }
 
     function resetSettings() {
-      localStorage.removeItem(settingsKey);
-      els.repo.value = "";
-      els.branch.value = "main";
+      const matchedRepo = repoMatch();
+      els.branch.value = matchedRepo && matchedRepo.default_branch ? matchedRepo.default_branch : "main";
       els.folder.value = "static/uploads";
-      els.baseUrl.value = "https://aneesahammed.github.io/";
-      els.urlMode.value = "site";
-      els.message.value = "Add blog image";
       els.alt.value = "";
-      els.rename.checked = true;
-      els.overwrite.checked = false;
-      flashStatus("Defaults restored.", "ok");
+      writeSettings();
+      flashStatus("Upload settings restored.", "ok");
     }
 
     /* status ---------------------------------------------------------- */
@@ -1470,12 +1421,9 @@
         repo: name,
         branch: els.branch.value.trim() || "main",
         folder: cleanFolder(els.folder.value),
-        baseUrl: els.baseUrl.value.trim(),
-        urlMode: els.urlMode.value,
-        message: els.message.value.trim() || "Add blog image",
+        message: "Add image",
         alt: els.alt.value.trim(),
-        rename: els.rename.checked,
-        overwrite: els.overwrite.checked
+        overwrite: false
       };
     }
 
@@ -1518,9 +1466,7 @@
 
     function targetPath(file, index, config, batchTotal) {
       const slug = slugifyFileName(file.name);
-      const prefix = config.rename
-        ? `${timestamp()}${batchTotal > 1 ? `-${index + 1}` : ""}-`
-        : "";
+      const prefix = `${timestamp()}${batchTotal > 1 ? `-${index + 1}` : ""}-`;
       return [config.folder, `${prefix}${slug}`].filter(Boolean).join("/");
     }
 
@@ -1553,7 +1499,7 @@
       const path = card.path;
       const sha = await existingSha(config, path);
       if (sha && !config.overwrite) {
-        throw new Error(`${path} already exists. Enable replace, rename, or pick a new folder.`);
+        throw new Error(`${path} already exists. Try again, or choose a different folder.`);
       }
       const buffer = await card.file.arrayBuffer();
       const body = { message: config.message, content: arrayBufferToBase64(buffer), branch: config.branch };
@@ -1570,24 +1516,16 @@
       const rawUrl = response.content && response.content.download_url
         ? response.content.download_url
         : `https://raw.githubusercontent.com/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/${encodePath(config.branch)}/${encodePath(path)}`;
-      const siteUrl = toSiteUrl(path, config);
-      const selectedUrl = config.urlMode === "site" && siteUrl ? siteUrl : rawUrl;
+      const selectedUrl = rawUrl;
       const alt = config.alt || file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
       return {
         path,
         rawUrl,
-        siteUrl,
         selectedUrl,
         alt,
         markdown: `![${escapeMarkdownAlt(alt)}](${selectedUrl})`,
         html: `<img src="${escapeHtml(selectedUrl)}" alt="${escapeHtml(alt)}">`
       };
-    }
-
-    function toSiteUrl(path, config) {
-      if (!config.baseUrl || !path.startsWith("static/")) return "";
-      const base = config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`;
-      return `${base}${path.replace(/^static\//, "")}`;
     }
 
     function escapeMarkdownAlt(value) {
@@ -1789,7 +1727,7 @@
       els.repo.addEventListener("change", () => { syncBranchFromRepo(); writeSettings(); });
       els.repo.addEventListener("input", writeSettings);
 
-      [els.branch, els.folder, els.baseUrl, els.urlMode, els.message, els.rename, els.overwrite].forEach((el) => {
+      [els.branch, els.folder].forEach((el) => {
         el.addEventListener("input", writeSettings);
         el.addEventListener("change", writeSettings);
       });
