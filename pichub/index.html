@@ -254,6 +254,30 @@
       font-weight: 600;
     }
 
+    .results-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: none;
+    }
+
+    .clear-results {
+      height: 26px;
+      padding: 0 9px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .clear-results[hidden] { display: none; }
+    .clear-results:hover:not(:disabled) {
+      color: var(--accent-strong);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
     .empty-state {
       flex: 1;
       display: flex;
@@ -1060,7 +1084,10 @@
               <h2 class="results-title">Generated links</h2>
               <p class="results-subtitle">Copy Markdown, URL, or HTML for each image.</p>
             </div>
-            <span class="results-count" id="resultsCount">0</span>
+            <div class="results-tools">
+              <button class="clear-results" type="button" id="clearResultsButton" hidden disabled>Clear</button>
+              <span class="results-count" id="resultsCount">0</span>
+            </div>
           </div>
           <section class="results" id="results" aria-live="polite"></section>
           <div class="empty-state" aria-hidden="true">
@@ -1109,6 +1136,7 @@
       dropzone: document.getElementById("dropzone"),
       fileInput: document.getElementById("fileInput"),
       results: document.getElementById("results"),
+      clearResults: document.getElementById("clearResultsButton"),
       resultsCount: document.getElementById("resultsCount"),
       globalStatus: document.getElementById("globalStatus")
     };
@@ -1662,7 +1690,7 @@
     }
 
     function updateQueueStatus() {
-      const inFlight = state.cards.filter((c) => c.status === "queued" || c.status === "uploading").length;
+      const inFlight = activeUploadCount();
       const total = state.cards.length;
       if (inFlight > 0) {
         const done = total - inFlight;
@@ -1670,12 +1698,26 @@
       } else {
         setStatus("");
       }
+      updateClearResultsButton();
+    }
+
+    function activeUploadCount() {
+      return state.cards.filter((c) => c.status === "queued" || c.status === "uploading").length;
     }
 
     function updateResultsCount() {
       const count = state.cards.length;
       els.resultsCount.textContent = String(count);
       els.resultsCount.setAttribute("aria-label", `${count} image${count === 1 ? "" : "s"}`);
+      updateClearResultsButton();
+    }
+
+    function updateClearResultsButton() {
+      const count = state.cards.length;
+      const hasActiveUploads = activeUploadCount() > 0;
+      els.clearResults.hidden = count === 0;
+      els.clearResults.disabled = count === 0 || hasActiveUploads;
+      els.clearResults.title = hasActiveUploads ? "Uploads in progress" : "Clear generated links";
     }
 
     function removeCard(card) {
@@ -1686,6 +1728,16 @@
       }
       els.dropzone.classList.toggle("is-empty", state.cards.length === 0);
       updateResultsCount();
+      updateQueueStatus();
+    }
+
+    function clearResults() {
+      if (activeUploadCount() > 0) return;
+      state.cards = [];
+      els.results.replaceChildren();
+      els.dropzone.classList.add("is-empty");
+      updateResultsCount();
+      updateQueueStatus();
     }
 
     async function doCopy(card, button, labelNode) {
@@ -1734,6 +1786,7 @@
       });
 
       els.reset.addEventListener("click", resetSettings);
+      els.clearResults.addEventListener("click", clearResults);
 
       els.fileInput.addEventListener("change", (e) => {
         intakeFiles(e.target.files);
