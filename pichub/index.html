@@ -423,6 +423,79 @@
       justify-content: center;
     }
 
+    .support-popover {
+      position: fixed;
+      inset: calc(var(--toolbar-h, 52px) + 12px) 20px auto auto;
+      width: min(360px, calc(100vw - 32px));
+      margin: 0;
+      padding: 16px;
+      border: 1px solid var(--border-default);
+      border-radius: 14px;
+      background: var(--surface);
+      color: var(--text-body);
+      box-shadow: var(--shadow-lift);
+    }
+
+    .support-popover::backdrop { background: transparent; }
+
+    .support-popover__head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .support-popover__close {
+      width: 28px;
+      height: 28px;
+      min-width: 0;
+      padding: 0;
+      border-radius: 50%;
+      flex: none;
+    }
+
+    .support-popover__close svg {
+      width: 11px;
+      height: 11px;
+    }
+
+    .support-popover h2 {
+      margin: 0;
+      color: var(--text-strong);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .support-popover p,
+    .support-popover ol {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .support-popover ol {
+      display: grid;
+      gap: 6px;
+      padding-left: 18px;
+      margin-top: 12px;
+    }
+
+    .support-popover a,
+    .helper a {
+      color: var(--accent-strong);
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--accent-strong) 45%, transparent);
+      text-underline-offset: 3px;
+    }
+
+    .support-popover a:hover,
+    .helper a:hover {
+      color: var(--accent);
+      text-decoration-color: var(--accent);
+    }
+
     .btn-primary {
       background: var(--fg-default);
       color: var(--bg-canvas);
@@ -1030,6 +1103,13 @@
       </div>
       <div class="spacer"></div>
       <span class="badge"><span class="dot"></span> Browser only</span>
+      <button id="supportButton" type="button" class="btn btn-icon" title="Token setup help" aria-label="Token setup help" popovertarget="supportPopover">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M9.8 9a2.4 2.4 0 0 1 4.5 1.2c0 1.8-2.3 2-2.3 3.6"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      </button>
       <button id="themeToggleBtn" type="button" class="btn btn-icon" title="Toggle theme" aria-label="Toggle theme">
         <svg id="themeIconContrast" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="9" fill="none" stroke="var(--fg-muted)" stroke-width="1.75"></circle>
@@ -1037,6 +1117,28 @@
         </svg>
       </button>
     </header>
+
+    <div id="supportPopover" class="support-popover" popover>
+      <div class="support-popover__head">
+        <div>
+          <h2>GitHub token setup</h2>
+          <p>Use a fine-grained token limited to the repository that stores your images.</p>
+        </div>
+        <button class="btn btn-icon support-popover__close" type="button" title="Close help" aria-label="Close help" popovertarget="supportPopover" popovertargetaction="hide">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M3.5 3.5 12.5 12.5"></path>
+            <path d="M12.5 3.5 3.5 12.5"></path>
+          </svg>
+        </button>
+      </div>
+      <ol>
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Fine-grained PAT</a>.</li>
+        <li>Under Repository access, choose Only select repositories and select your target repository.</li>
+        <li>Under Repository permissions, add Contents.</li>
+        <li>Set Contents to Read and write.</li>
+        <li>Generate the token, then paste it into PicHub.</li>
+      </ol>
+    </div>
 
     <div
       id="pwaUpdateToast"
@@ -1072,7 +1174,7 @@
                 <input id="tokenInput" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
                 <button class="input-icon-btn" type="button" id="toggleToken" aria-label="Show token" aria-pressed="false"></button>
               </div>
-              <p class="helper" id="tokenHelper" data-state="idle"><span>Fine-grained PAT with repo contents read &amp; write. Stays in memory.</span></p>
+              <p class="helper" id="tokenHelper" data-state="idle"><span><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Fine-grained PAT</a> with repo contents read &amp; write. Stays in memory.</span></p>
             </div>
 
             <div>
@@ -1152,6 +1254,7 @@
     const apiRoot = "https://api.github.com";
     const settingsKey = "github-image-uploader-settings";
     const maxFileBytes = 25 * 1024 * 1024;
+    const tokenGuideUrl = "https://github.com/settings/personal-access-tokens/new";
 
     const state = {
       cards: [],
@@ -1230,6 +1333,18 @@
       const span = document.createElement("span");
       span.textContent = text;
       els.tokenHelper.append(span);
+    }
+
+    function setTokenGuideHelper() {
+      const span = document.createElement("span");
+      const link = document.createElement("a");
+      link.href = tokenGuideUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Fine-grained PAT";
+      span.append(link, " with repo contents read & write. Stays in memory.");
+      els.tokenHelper.dataset.state = "idle";
+      els.tokenHelper.replaceChildren(span);
     }
 
     function makeSpinner() {
@@ -1330,7 +1445,7 @@
       if (!token) {
         state.verifyToken = "";
         state.verifyState = "idle";
-        setHelper("Fine-grained PAT with repo contents read & write. Stays in memory.", "idle");
+        setTokenGuideHelper();
         return;
       }
       if (token === state.verifyToken && state.verifyState === "ok") return;
