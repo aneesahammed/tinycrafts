@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PicHub">
+  <rect width="512" height="512" fill="#161616"/>
+  <rect x="112" y="116" width="288" height="244" rx="36" fill="#1f1f1f"/>
+  <path d="M130 311L221 226L276 278L315 243L382 311V335H130Z" fill="#e4e3e0"/>
+  <path d="M130 311L221 226L276 278L315 243L382 311V335H130Z" fill="#161616" opacity="0.18"/>
+  <circle cx="326" cy="181" r="24" fill="#88bead"/>
+  <rect x="242" y="264" width="28" height="132" rx="14" fill="#88bead"/>
+  <path d="M256 240L314 298H198Z" fill="#88bead"/>
+</svg>
