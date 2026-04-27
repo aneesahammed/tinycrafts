@@ -50,12 +50,12 @@ export function mountEmpty(el, store, handlers) {
           <div class="h"><span>Recent</span><button class="clear" id="recClear" type="button">Clear</button></div>
           ${recents
             .map(
-              (r) => `
-            <div class="row">
+              (r, index) => `
+            <button class="row" type="button" data-recent-index="${index}" aria-label="Open ${esc(r.name)}">
               <span class="name">${esc(r.name)}</span>
               <span class="meta">${esc(formatSize(r.size))}</span>
               <span class="when">${esc(relativeTime(r.openedAt))}</span>
-            </div>
+            </button>
           `,
             )
             .join('')}
@@ -79,6 +79,12 @@ export function mountEmpty(el, store, handlers) {
       </div>
     `);
     empty.querySelector('#emptyDrop').addEventListener('click', handlers.onPickFiles);
+    empty.querySelectorAll('[data-recent-index]').forEach((row) => {
+      row.addEventListener('click', () => {
+        const recent = recents[Number(row.dataset.recentIndex)];
+        if (recent) handlers.onOpenRecent?.(recent.name);
+      });
+    });
     empty.querySelector('#recClear')?.addEventListener('click', async () => {
       await clearRecents();
       render();

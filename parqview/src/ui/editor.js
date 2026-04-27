@@ -8,7 +8,9 @@ export function mountEditor(el, store, handlers) {
   wrap.className = 'editor';
   setHtml(wrap, `
     <div class="tabs">
-      <div class="tab on">Query</div>
+      <button class="tab on" type="button" data-editor-tab="query" aria-selected="true">Query</button>
+      <button class="tab" type="button" data-editor-tab="schema" aria-selected="false" disabled>Schema</button>
+      <button class="tab" type="button" data-editor-tab="sample" aria-selected="false" disabled>Sample</button>
       <div class="grow"></div>
       <div class="right" id="eRight">SELECT</div>
     </div>
@@ -16,7 +18,7 @@ export function mountEditor(el, store, handlers) {
       <div class="ln" id="eLn">1</div>
       <div class="stack">
         <pre class="hl" id="eHl" aria-hidden="true"></pre>
-        <textarea id="eSql" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+        <textarea id="eSql" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off"></textarea>
       </div>
     </div>
     <div class="foot">
@@ -28,11 +30,57 @@ export function mountEditor(el, store, handlers) {
   `);
   el.appendChild(wrap);
 
+  const resizer = document.createElement('div');
+  resizer.className = 'editor-resizer';
+  resizer.setAttribute('role', 'separator');
+  resizer.setAttribute('aria-label', 'Resize query editor');
+  resizer.setAttribute('aria-orientation', 'horizontal');
+  resizer.setAttribute('aria-valuemin', '140');
+  resizer.setAttribute('aria-valuemax', '560');
+  resizer.setAttribute('aria-valuenow', '280');
+  resizer.tabIndex = 0;
+  el.appendChild(resizer);
+  setupEditorResize(el, resizer);
+
   const ta = wrap.querySelector('#eSql');
   const hl = wrap.querySelector('#eHl');
   const ln = wrap.querySelector('#eLn');
   const right = wrap.querySelector('#eRight');
+  const tabButtons = Array.from(wrap.querySelectorAll('[data-editor-tab]'));
+  let activeTab = 'query';
+  let queryDraft = DEFAULT_SQL;
   ta.value = DEFAULT_SQL;
+
+  const getActiveTable = () => store.state?.activeTable || null;
+
+  const tabSql = (tab) => {
+    const table = getActiveTable();
+    if (!table) return queryDraft;
+    if (tab === 'schema') return `DESCRIBE SELECT *\nFROM ${table};`;
+    if (tab === 'sample') return `SELECT *\nFROM ${table}\nORDER BY random()\nLIMIT 100;`;
+    return queryDraft;
+  };
+
+  const updateTabs = () => {
+    const hasActiveTable = Boolean(getActiveTable());
+    for (const button of tabButtons) {
+      const tab = button.dataset.editorTab;
+      button.classList.toggle('on', tab === activeTab);
+      button.setAttribute('aria-selected', String(tab === activeTab));
+      button.disabled = tab !== 'query' && !hasActiveTable;
+    }
+  };
+
+  const selectTab = (tab) => {
+    if (tab !== 'query' && !getActiveTable()) return;
+    if (activeTab === 'query') queryDraft = ta.value;
+    activeTab = tab;
+    ta.value = tabSql(tab);
+    updateTabs();
+    update();
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  };
 
   const update = () => {
     setHtml(hl, highlightSql(ta.value) + '\n');
@@ -42,10 +90,20 @@ export function mountEditor(el, store, handlers) {
     if (firstWord) right.textContent = firstWord;
   };
 
+  for (const button of tabButtons) {
+    button.addEventListener('click', () => selectTab(button.dataset.editorTab));
+  }
+
   ta.addEventListener('input', update);
+  ta.addEventListener('input', () => {
+    activeTab = 'query';
+    queryDraft = ta.value;
+    updateTabs();
+  });
   ta.addEventListener('scroll', () => {
     hl.scrollTop = ta.scrollTop;
     hl.scrollLeft = ta.scrollLeft;
+    ln.scrollTop = ta.scrollTop;
   });
   ta.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -77,20 +135,84 @@ export function mountEditor(el, store, handlers) {
       setHtml(icon, '●');
       icon.style.color = 'var(--accent)';
     }
+    if (activeTab !== 'query') {
+      ta.value = tabSql(activeTab);
+      update();
+    }
+    updateTabs();
   });
 
+  updateTabs();
   update();
 
   return {
     getSql: () => ta.value,
     setSql: (v) => {
+      activeTab = 'query';
       ta.value = v;
+      queryDraft = v;
+      updateTabs();
       update();
       ta.focus();
       ta.setSelectionRange(v.length, v.length);
     },
     focus: () => ta.focus(),
   };
+}
+
+export function setupEditorResize(work, resizer) {
+  const minHeight = 140;
+  const defaultMaxHeight = 560;
+  const minResultHeight = 160;
+
+  const applyHeight = (height) => {
+    const box = work.getBoundingClientRect();
+    const maxHeight = Math.max(minHeight, Math.min(defaultMaxHeight, box.height - minResultHeight));
+    const next = Math.round(Math.min(Math.max(height, minHeight), maxHeight));
+    work.style.setProperty('--editor-height', `${next}px`);
+    resizer.setAttribute('aria-valuenow', String(next));
+  };
+
+  const resizeFromViewportY = (clientY) => {
+    const box = work.getBoundingClientRect();
+    applyHeight(clientY - box.top);
+  };
+
+  resizer.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    resizer.setPointerCapture?.(event.pointerId);
+    document.body.classList.add('is-resizing-editor');
+
+    const onMove = (moveEvent) => resizeFromViewportY(moveEvent.clientY);
+    const onEnd = () => {
+      document.body.classList.remove('is-resizing-editor');
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+    };
+
+    resizeFromViewportY(event.clientY);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+  });
+
+  resizer.addEventListener('keydown', (event) => {
+    const current = Number(resizer.getAttribute('aria-valuenow')) || 280;
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      applyHeight(current - 24);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      applyHeight(current + 24);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      applyHeight(minHeight);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      applyHeight(defaultMaxHeight);
+    }
+  });
 }
 
 function toggleComment(ta) {

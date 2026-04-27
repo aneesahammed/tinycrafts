@@ -10,6 +10,7 @@ import { mountResult } from './ui/result.js';
 import { mountStatus } from './ui/status.js';
 import { mountEmpty } from './ui/empty.js';
 import { mountPalette } from './ui/palette.js';
+import { getRecentFile } from './state/recents.js';
 
 restoreTheme();
 
@@ -40,7 +41,10 @@ mountRail(rail, store, {
 const editor = mountEditor(work, store, { onRun: runActiveQuery });
 mountResult(work, store);
 mountStatus(work, store);
-mountEmpty(work, store, { onPickFiles: () => fileInput.click() });
+mountEmpty(work, store, {
+  onPickFiles: () => fileInput.click(),
+  onOpenRecent: openRecentFile,
+});
 
 work.dataset.state = 'empty';
 store.subscribe((s) => {
@@ -73,6 +77,20 @@ async function openFiles(files) {
     } finally {
       store.setBusy(false);
     }
+  }
+}
+
+async function openRecentFile(name) {
+  try {
+    const file = await getRecentFile(name);
+    if (!file) {
+      showToast(`Choose ${name} again to grant browser access.`, 'error');
+      fileInput.click();
+      return;
+    }
+    await openFiles([file]);
+  } catch (error) {
+    showToast(toErrorMessage(error), 'error');
   }
 }
 

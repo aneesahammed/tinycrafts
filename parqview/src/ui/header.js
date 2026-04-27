@@ -4,10 +4,10 @@ import { setHtml } from '../util/dom.js';
 export function mountHeader(el, store, handlers) {
   setHtml(el, `
     <a class="brand" href="./" aria-label="ParqView home">
-      <span class="mark">P</span><span class="word">ParqView</span>
+      <span class="mark">Pq</span><span class="word">ParqView</span>
     </a>
-    <div class="crumb">
-      <span class="file" id="hCrumbFile">No file</span>
+    <div class="crumb" hidden>
+      <span class="file" id="hCrumbFile"></span>
       <span class="sep" id="hCrumbSep" hidden>·</span>
       <span id="hCrumbMeta"></span>
     </div>
@@ -23,10 +23,12 @@ export function mountHeader(el, store, handlers) {
   el.querySelector('#hPalette').addEventListener('click', handlers.onOpenPalette);
 
   store.subscribe((s) => {
+    const crumb = el.querySelector('.crumb');
     const file = el.querySelector('#hCrumbFile');
     const sep = el.querySelector('#hCrumbSep');
     const meta = el.querySelector('#hCrumbMeta');
     if (s.activeTable) {
+      crumb.hidden = false;
       file.textContent = s.activeTable;
       sep.hidden = false;
       const rec = s.files.get(s.activeTable);
@@ -36,7 +38,8 @@ export function mountHeader(el, store, handlers) {
       const sizeText = rec?.size ? ` · ${formatBytes(rec.size)}` : '';
       meta.textContent = `${rowsText}${cols} cols${sizeText}`;
     } else {
-      file.textContent = 'No file';
+      crumb.hidden = true;
+      file.textContent = '';
       sep.hidden = true;
       meta.textContent = '';
     }

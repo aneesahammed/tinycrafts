@@ -80,17 +80,21 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 30;
 }
-.head .brand { display: flex; align-items: baseline; gap: 8px; text-decoration: none; color: inherit; }
+.head .brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 30px; padding: 0 2px;
+  text-decoration: none; color: inherit;
+}
 .head .brand .mark {
-  width: 18px; height: 18px; border-radius: var(--r-sm);
+  width: 23px; height: 23px; border-radius: 6px;
   background: var(--ink); color: var(--bg);
   display: grid; place-items: center;
-  font-family: var(--serif); font-weight: 600; font-size: 11px;
-  transform: translateY(2px);
+  font-family: var(--mono); font-weight: 800; font-size: 10px;
+  letter-spacing: -0.06em;
 }
 .head .brand .word {
-  font-family: var(--serif); font-size: 15px; font-weight: 500;
-  letter-spacing: -0.015em;
+  font-family: var(--sans); font-size: 14px; font-weight: 650;
+  letter-spacing: -0.01em; line-height: 1;
 }
 .head .crumb { color: var(--ink-3); font-size: 12px; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .head .crumb .file {
@@ -219,9 +223,10 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 /* Editorial credit line — modeled on pichub's pattern */
 .footer-credit {
   margin: 0;
-  font-family: var(--serif);
-  font-size: 12.5px;
-  letter-spacing: 0.01em;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.015em;
   color: var(--ink-3);
   text-align: center;
 }
@@ -247,12 +252,20 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 
 /* Work area */
 .work {
-  display: grid; grid-template-rows: auto 1fr;
+  --editor-height: min(34vh, 320px);
+  display: grid;
+  grid-template-rows: minmax(140px, var(--editor-height)) 7px minmax(0, 1fr);
   min-height: 0; min-width: 0;
   background: var(--surface); position: relative;
 }
 
-.editor { background: var(--surface); border-bottom: 1px solid var(--line); }
+.editor {
+  min-height: 0;
+  background: var(--surface);
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr) 28px;
+  overflow: hidden;
+}
 .editor .tabs {
   display: flex; align-items: center;
   padding: 0 14px; height: 32px;
@@ -264,33 +277,40 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   display: inline-flex; align-items: center;
   border-bottom: 1.5px solid transparent;
   margin-bottom: -1px; cursor: pointer;
+  color: inherit;
 }
 .editor .tab.on { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+.editor .tab:disabled {
+  color: var(--ink-4);
+  cursor: not-allowed;
+}
+.editor .tab:not(.on):not(:disabled):hover { color: var(--ink-2); }
 .editor .tabs .grow { flex: 1; }
 .editor .tabs .right { color: var(--ink-3); font-family: var(--mono); font-size: 10.5px; }
 
 .editor .body {
   display: grid; grid-template-columns: 28px 1fr;
   gap: 0; padding: 14px 14px 14px 0;
-  position: relative;
+  position: relative; min-height: 0; overflow: hidden;
 }
 .editor .ln {
   color: var(--ink-4); text-align: right; user-select: none;
   font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
   white-space: pre; padding: 0 8px 0 0;
+  min-height: 0; overflow: hidden;
 }
-.editor .stack { position: relative; min-height: 7em; }
+.editor .stack { position: relative; min-height: 0; overflow: hidden; }
 .editor textarea {
   position: absolute; inset: 0; width: 100%; height: 100%;
   resize: none; border: 0; outline: none; background: transparent;
   color: transparent; caret-color: var(--ink);
   font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
-  padding: 0; white-space: pre-wrap; word-break: break-word;
+  padding: 0; white-space: pre; overflow: auto;
 }
 .editor .hl {
-  margin: 0; min-height: 7em;
+  margin: 0; min-height: 100%; height: 100%; overflow: hidden;
   font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
-  white-space: pre-wrap; word-break: break-word;
+  white-space: pre;
   pointer-events: none; color: var(--ink);
 }
 .editor .hl .kw { color: var(--accent); font-weight: 600; }
@@ -311,6 +331,39 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   padding: 0 7px; height: 18px; border-radius: 4px;
   background: var(--bg); color: var(--ink-2);
   font-family: var(--mono); font-size: 10.5px;
+}
+
+.editor-resizer {
+  position: relative;
+  min-height: 7px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(to bottom, var(--surface), var(--surface-2));
+  cursor: row-resize;
+}
+.editor-resizer::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 140ms, background 140ms;
+}
+.editor-resizer:hover::before,
+.editor-resizer:focus-visible::before,
+body.is-resizing-editor .editor-resizer::before {
+  opacity: 1;
+  background: var(--accent);
+}
+body.is-resizing-editor {
+  cursor: row-resize;
+  user-select: none;
 }
 
 /* Result */
@@ -358,6 +411,7 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 
 /* Work area variant when no file is loaded — only the empty hero shows */
 .work[data-state="empty"] > .editor,
+.work[data-state="empty"] > .editor-resizer,
 .work[data-state="empty"] > .result,
 .work[data-state="empty"] > .status { display: none !important; }
 .work[data-state="empty"] { grid-template-rows: 1fr; }
@@ -419,11 +473,20 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   text-transform: none; letter-spacing: 0; font-weight: 500;
 }
 .empty .recent .row {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
   display: grid; grid-template-columns: 1fr auto auto;
   gap: 12px; padding: 10px 14px;
   border-bottom: 1px solid var(--line); align-items: center;
+  cursor: pointer;
+  transition: background 140ms ease;
 }
 .empty .recent .row:last-child { border-bottom: 0; }
+.empty .recent .row:hover,
+.empty .recent .row:focus-visible { background: var(--surface-2); }
 .empty .recent .row .name { font-family: var(--mono); font-size: 12px; color: var(--ink); }
 .empty .recent .row .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
 .empty .recent .row .when { font-size: 11px; color: var(--ink-3); }

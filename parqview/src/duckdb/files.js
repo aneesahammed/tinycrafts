@@ -40,7 +40,7 @@ export async function openFileInto(store, file) {
 
   store.addFile(tableName, { virtualName, file, size: file.size, profile, summary });
   await rebindLegacyAlias(store);
-  await recordRecent({ name: file.name, size: file.size }).catch(() => {});
+  await recordRecent({ name: file.name, size: file.size, file }).catch(() => {});
   return tableName;
 }
 
