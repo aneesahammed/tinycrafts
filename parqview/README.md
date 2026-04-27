@@ -64,7 +64,14 @@ The Vite base is set to `./`, so the built app can be hosted under a subpath suc
 https://tinycrafts.ai/parqview/
 ```
 
-Upload the contents of `dist/` into the `parqview` directory on the site.
+The repository deploys through GitHub Actions. The Pages workflow runs the shared site builder from the repository root:
+
+```bash
+node scripts/build-pages.mjs
+node scripts/verify-pages-build.mjs
+```
+
+That builds ParqView and publishes the generated `dist/` contents into `parqview/` inside the Pages artifact. Do not commit `dist/` directly.
 
 ## Default SQL
 

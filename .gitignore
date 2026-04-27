@@ -140,6 +140,7 @@ vite.config.ts.timestamp-*
 .DS_Store
 markv/.DS_Store
 /output
+/.pages-build
 /markv/docs
 /.playwright-mcp
 /markv/.claude

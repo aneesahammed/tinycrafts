@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const rootStaticAssets = ['manifest.json', 'sw.js', 'icon.svg', 'icon-192.png', 'icon-512.png'];
@@ -21,9 +21,35 @@ function copyRootStaticAssets() {
   };
 }
 
+function preserveRootPwaLinks() {
+  return {
+    name: 'preserve-root-pwa-links',
+    enforce: 'post',
+    generateBundle(_, bundle) {
+      const index = bundle['index.html'];
+      if (!index || index.type !== 'asset' || typeof index.source !== 'string') return;
+
+      index.source = pinPwaLinks(index.source);
+    },
+    writeBundle(options) {
+      const indexPath = resolve(process.cwd(), options.dir || 'dist', 'index.html');
+      if (!existsSync(indexPath)) return;
+
+      writeFileSync(indexPath, pinPwaLinks(readFileSync(indexPath, 'utf8')));
+    },
+  };
+}
+
+function pinPwaLinks(html) {
+  return html
+    .replace(/href="\.\/assets\/manifest-[^"]+\.json"/, 'href="./manifest.json"')
+    .replace(/href="\.\/assets\/icon-[^"]+\.svg"/, 'href="./icon.svg"')
+    .replace(/href="\.\/assets\/icon-192-[^"]+\.png"/, 'href="./icon-192.png"');
+}
+
 export default defineConfig({
   base: './',
-  plugins: [copyRootStaticAssets()],
+  plugins: [copyRootStaticAssets(), preserveRootPwaLinks()],
   build: {
     sourcemap: true,
     target: 'es2022',
