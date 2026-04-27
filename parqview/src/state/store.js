@@ -8,6 +8,7 @@ export function createStore() {
     page: 0,
     pageSize: 100,
     isBusy: false,
+    busyLabel: null,
     paletteOpen: false,
   };
 
@@ -51,8 +52,9 @@ export function createStore() {
       state.page = 0;
       emit();
     },
-    setBusy(busy) {
+    setBusy(busy, label = null) {
       state.isBusy = busy;
+      state.busyLabel = label;
       emit();
     },
     setPaletteOpen(open) {

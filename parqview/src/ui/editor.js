@@ -1,5 +1,5 @@
 import { highlightSql } from '../sql/highlight.js';
-import { setHtml } from '../util/dom.js';
+import { setHtml, spinner } from '../util/dom.js';
 
 const DEFAULT_SQL = `SELECT *\nFROM parquet_file\nLIMIT 500;`;
 
@@ -20,7 +20,7 @@ export function mountEditor(el, store, handlers) {
       </div>
     </div>
     <div class="foot">
-      <span class="ok">●</span><span id="eStatus">Ready</span>
+      <span id="eIcon" class="ok">●</span><span id="eStatus">Ready</span>
       <span class="grow"></span>
       <span class="pill">⌘↩ run</span>
       <span class="pill">⌘/ comment</span>
@@ -67,12 +67,15 @@ export function mountEditor(el, store, handlers) {
 
   store.subscribe((s) => {
     const status = wrap.querySelector('#eStatus');
+    const icon = wrap.querySelector('#eIcon');
     if (s.isBusy) {
-      status.textContent = 'Running…';
-      wrap.querySelector('.foot .ok').style.color = 'var(--num)';
+      status.textContent = s.busyLabel || 'Working…';
+      setHtml(icon, spinner());
+      icon.style.color = 'var(--accent)';
     } else {
       status.textContent = s.activeTable ? 'Ready' : 'Open a file';
-      wrap.querySelector('.foot .ok').style.color = 'var(--accent)';
+      setHtml(icon, '●');
+      icon.style.color = 'var(--accent)';
     }
   });
 

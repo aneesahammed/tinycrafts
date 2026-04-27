@@ -1,4 +1,3 @@
-import '../styles.css';
 import { restoreTheme, toggleTheme } from './ui/theme.js';
 import { createStore } from './state/store.js';
 import { getEngine, query } from './duckdb/engine.js';
@@ -62,17 +61,25 @@ mountPalette(paletteScrim, store, {
   },
 });
 
-fileInput.addEventListener('change', async () => {
-  const files = Array.from(fileInput.files || []);
-  fileInput.value = '';
+async function openFiles(files) {
   for (const file of files) {
+    if (!/\.(parquet|parq)$/i.test(file.name)) continue;
+    store.setBusy(true, `Opening ${file.name}`);
     try {
       const table = await openFileInto(store, file);
       editor.setSql(`SELECT *\nFROM ${table}\nLIMIT 500;`);
     } catch (error) {
       showToast(toErrorMessage(error), 'error');
+    } finally {
+      store.setBusy(false);
     }
   }
+}
+
+fileInput.addEventListener('change', async () => {
+  const files = Array.from(fileInput.files || []);
+  fileInput.value = '';
+  await openFiles(files);
 });
 
 window.addEventListener('keydown', (event) => {
@@ -113,13 +120,7 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener('drop', async (event) => {
   event.preventDefault();
   const files = Array.from(event.dataTransfer?.files || []).filter(looksLikeParquet);
-  for (const file of files) {
-    try {
-      await openFileInto(store, file);
-    } catch (error) {
-      showToast(toErrorMessage(error), 'error');
-    }
-  }
+  await openFiles(files);
 });
 
 async function runActiveQuery() {
@@ -129,7 +130,7 @@ async function runActiveQuery() {
     showToast('Enter a SQL query first.', 'error');
     return;
   }
-  store.setBusy(true);
+  store.setBusy(true, 'Running query');
   const startedAt = performance.now();
   try {
     await getEngine();

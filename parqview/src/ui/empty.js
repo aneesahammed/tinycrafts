@@ -1,5 +1,5 @@
 import { listRecents, clearRecents } from '../state/recents.js';
-import { setHtml, esc } from '../util/dom.js';
+import { setHtml, esc, spinner } from '../util/dom.js';
 
 function formatSize(n) {
   if (!n) return '–';
@@ -27,6 +27,22 @@ export function mountEmpty(el, store, handlers) {
   el.appendChild(empty);
 
   async function render() {
+    const s = store.state;
+    if (s.isBusy && s.busyLabel) {
+      setHtml(empty, `
+        <div class="hero">
+          <h1>${esc(s.busyLabel)}</h1>
+          <p>This may take a moment for large files. Don't close the tab.</p>
+          <div class="loading">
+            ${spinner('lg')}
+            <div class="label">Working…</div>
+            <div class="sub">Reading metadata, schema, and column statistics</div>
+          </div>
+          <p class="footnote">Local-first · works offline · install as a PWA</p>
+        </div>
+      `);
+      return;
+    }
     const recents = await listRecents().catch(() => []);
     const recentBlock = recents.length
       ? `

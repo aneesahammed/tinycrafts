@@ -1,6 +1,6 @@
 import { formatNumber } from '../util/format.js';
 import { toCsv, downloadBlob } from '../util/csv.js';
-import { setHtml } from '../util/dom.js';
+import { setHtml, spinner } from '../util/dom.js';
 
 export function mountStatus(el, store) {
   const pill = document.createElement('div');
@@ -8,7 +8,7 @@ export function mountStatus(el, store) {
   pill.hidden = true;
   pill.id = 'statusPill';
   setHtml(pill, `
-    <span class="dot"></span>
+    <span id="sIcon"><span class="dot"></span></span>
     <span id="sRows"></span>
     <span class="sep">·</span>
     <span id="sMs"></span>
@@ -19,6 +19,11 @@ export function mountStatus(el, store) {
     <span class="sep">·</span>
     <button class="btn" id="sExport" type="button" title="Export CSV">⤓ CSV</button>
   `);
+
+  function setIcon(busy) {
+    const slot = pill.querySelector('#sIcon');
+    setHtml(slot, busy ? spinner() : '<span class="dot"></span>');
+  }
   el.appendChild(pill);
 
   pill.querySelector('#sPrev').addEventListener('click', () => store.setPage(Math.max(0, store.state.page - 1)));
@@ -35,13 +40,19 @@ export function mountStatus(el, store) {
   });
 
   store.subscribe((s) => {
-    pill.hidden = !s.resultColumns.length;
+    pill.hidden = !s.resultColumns.length && !s.isBusy;
     if (pill.hidden) return;
-    pill.querySelector('#sRows').textContent = `${formatNumber(s.resultRows.length)} rows`;
-    pill.querySelector('#sMs').textContent = `${s.queryElapsedMs ?? 0} ms`;
+    setIcon(s.isBusy);
+    pill.querySelector('#sRows').textContent = s.isBusy
+      ? (s.busyLabel || 'Working')
+      : `${formatNumber(s.resultRows.length)} rows`;
+    pill.querySelector('#sMs').textContent = s.isBusy
+      ? '—'
+      : `${s.queryElapsedMs ?? 0} ms`;
     const pageCount = Math.max(1, Math.ceil(s.resultRows.length / s.pageSize));
-    pill.querySelector('#sPage').textContent = `${s.page + 1}/${pageCount}`;
-    pill.querySelector('#sPrev').disabled = s.page === 0;
-    pill.querySelector('#sNext').disabled = s.page >= pageCount - 1;
+    pill.querySelector('#sPage').textContent = s.resultRows.length ? `${s.page + 1}/${pageCount}` : '';
+    pill.querySelector('#sPrev').disabled = s.isBusy || s.page === 0;
+    pill.querySelector('#sNext').disabled = s.isBusy || s.page >= pageCount - 1;
+    pill.querySelector('#sExport').disabled = s.isBusy || !s.resultColumns.length;
   });
 }

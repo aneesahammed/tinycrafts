@@ -26,3 +26,12 @@ const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'":
 export function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
 }
+
+/**
+ * iOS-style segmented activity spinner markup. Pair with `.spin` CSS class.
+ * Use `size = 'lg'` for the larger 26px variant.
+ */
+export function spinner(size = '') {
+  const cls = `spin${size ? ` ${size}` : ''}`;
+  return `<span class="${cls}" role="status" aria-label="Loading"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>`;
+}
