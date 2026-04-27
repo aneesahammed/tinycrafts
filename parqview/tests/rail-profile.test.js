@@ -53,7 +53,7 @@ describe('rail column profiling handoff', () => {
     };
 
     mountRail(rail, store, handlers);
-    store.emit(store.state);
+    store.emit();
     rail.querySelector('[data-col="amount"]').click();
 
     expect(handlers.onColClick).toHaveBeenCalledWith({

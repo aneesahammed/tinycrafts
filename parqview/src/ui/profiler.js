@@ -1,8 +1,10 @@
 import { setHtml, esc, spinner } from '../util/dom.js';
 import { abbreviateCount, formatNumber, valueToDisplay } from '../util/format.js';
+import { HISTOGRAM_BUCKETS } from '../duckdb/profile-constants.js';
 import { quoteIdentifier } from '../util/sql-quote.js';
+import { closeRightPanel, ensureRightPanel, openRightPanel } from './right-panel.js';
 
-const DEFAULT_BUCKETS = 18;
+const DEFAULT_BUCKETS = HISTOGRAM_BUCKETS;
 const SVG_WIDTH = 240;
 const SVG_HEIGHT = 68;
 
@@ -22,11 +24,8 @@ export function buildHistogramBars(rows = [], bucketCount = DEFAULT_BUCKETS) {
 }
 
 export function mountProfiler(el, store, handlers) {
-  const drawer = document.createElement('aside');
-  drawer.className = 'profile-drawer';
-  drawer.hidden = true;
+  const drawer = ensureRightPanel(el, store);
   drawer.setAttribute('aria-label', 'Column profile');
-  el.appendChild(drawer);
 
   let activeRequest = 0;
   let current = null;
@@ -34,15 +33,14 @@ export function mountProfiler(el, store, handlers) {
   const close = () => {
     current = null;
     activeRequest += 1;
-    drawer.hidden = true;
-    setHtml(drawer, '');
+    closeRightPanel(el, store);
   };
 
   const open = async (payload) => {
-    const requestId = activeRequest + 1;
-    activeRequest = requestId;
+    activeRequest += 1;
+    const requestId = activeRequest;
     current = payload;
-    drawer.hidden = false;
+    openRightPanel(el, store, { type: 'profile', payload });
     renderLoading(drawer, payload, close);
 
     try {
@@ -56,12 +54,21 @@ export function mountProfiler(el, store, handlers) {
     }
   };
 
-  store.subscribe((state) => {
+  const unsubscribe = store.subscribe((state) => {
     if (!current) return;
+    if (state.rightPanel && state.rightPanel.type !== 'profile') {
+      current = null;
+      return;
+    }
     if (!state.activeTable || current.table !== state.activeTable || !state.files.has(current.table)) close();
   });
 
-  return { open, close };
+  const destroy = () => {
+    unsubscribe?.();
+    close();
+  };
+
+  return { open, close, destroy };
 }
 
 function renderLoading(drawer, payload, close) {
@@ -83,6 +90,7 @@ function renderLoading(drawer, payload, close) {
 
 function renderProfile(drawer, profile, handlers, close) {
   const chart = profile.kind === 'histogram' ? renderHistogram(profile.bins) : renderTopValues(profile.values);
+  const stats = renderStats(profile);
   setHtml(drawer, `
     <div class="profile-head">
       <div class="profile-heading">
@@ -91,16 +99,13 @@ function renderProfile(drawer, profile, handlers, close) {
       </div>
       <button class="profile-close" type="button" data-profile-action="close" aria-label="Close column profile">×</button>
     </div>
-    <div class="profile-stats">
-      ${statCell('Rows', formatNumber(profile.stats?.rowCount))}
-      ${statCell('Distinct', formatNumber(profile.stats?.distinct))}
-      ${statCell('Nulls', formatNulls(profile.stats))}
-      ${statCell('Range', formatRange(profile.stats))}
+    <div class="profile-stats" data-count="${stats.length}">
+      ${stats.join('')}
     </div>
     <div class="profile-chart-wrap">
       <div class="profile-chart-head">
         <span>${profile.kind === 'histogram' ? 'Distribution' : 'Top values'}</span>
-        <b>${profile.kind === 'histogram' ? 'SVG histogram' : `${profile.values?.length || 0} values`}</b>
+        <b>${esc(profileSummary(profile))}</b>
       </div>
       ${chart}
     </div>
@@ -117,7 +122,7 @@ function renderProfile(drawer, profile, handlers, close) {
   });
   drawer.querySelector('[data-profile-action="group"]').addEventListener('click', () => {
     handlers.setSql(
-      `SELECT ${quoteIdentifier(profile.column)}, COUNT(*) AS rows\nFROM ${quoteIdentifier(profile.table)}\nGROUP BY 1\nORDER BY rows DESC\nLIMIT 100;`,
+      `SELECT ${quoteIdentifier(profile.column)}, COUNT(*) AS row_count\nFROM ${quoteIdentifier(profile.table)}\nGROUP BY 1\nORDER BY row_count DESC\nLIMIT 100;`,
     );
   });
   drawer.querySelector('[data-profile-action="filter"]').addEventListener('click', () => {
@@ -148,9 +153,20 @@ function statCell(label, value) {
   return `<div class="profile-stat"><span>${esc(label)}</span><b>${esc(value || '-')}</b></div>`;
 }
 
+function renderStats(profile) {
+  const cells = [
+    statCell('Rows', formatNumber(profile.stats?.rowCount)),
+    statCell('Distinct', formatNumber(profile.stats?.distinct)),
+    statCell('Nulls', formatNulls(profile.stats)),
+  ];
+  if (profile.kind === 'histogram') cells.push(statCell('Range', formatRange(profile.stats)));
+  return cells;
+}
+
 function renderHistogram(rows = []) {
   const bucketCount = Math.max(DEFAULT_BUCKETS, maxBucket(rows) + 1);
   const bars = buildHistogramBars(rows, bucketCount);
+  if (!bars.some((bar) => bar.count > 0)) return '<p class="profile-empty">No non-null values found.</p>';
   const gap = 2;
   const barWidth = (SVG_WIDTH - gap * (bars.length - 1)) / bars.length;
   const rects = bars
@@ -198,7 +214,8 @@ function formatRange(stats = {}) {
 }
 
 function formatNulls(stats = {}) {
-  if (stats.nullPercentage != null) return `${formatNumber(round(Number(stats.nullPercentage), 2))}%`;
+  const nullPercentage = normalizePercentage(stats.nullPercentage);
+  if (nullPercentage != null) return `${formatNumber(round(nullPercentage, 2))}%`;
   if (stats.nullCount != null) return formatNumber(stats.nullCount);
   if (stats.nulls == null) return '-';
   const nullValue = Number(stats.nulls);
@@ -214,6 +231,25 @@ function normalizeCount(value) {
   if (typeof value === 'bigint') return Number(value);
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+function profileSummary(profile) {
+  if (profile.kind === 'histogram') {
+    const total = (profile.bins || []).reduce((sum, row) => sum + normalizeCount(row.count), 0);
+    return total ? `${abbreviateCount(total)} rows` : 'No non-null values';
+  }
+  const count = profile.values?.length || 0;
+  if (!count) return 'No non-null values';
+  return count === 1 ? '1 value' : `${count} values`;
+}
+
+function normalizePercentage(value) {
+  if (value == null) return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return null;
+  if (number <= 100) return number;
+  if (number <= 10_000) return number / 100;
+  return null;
 }
 
 function round(value, decimals = 2) {

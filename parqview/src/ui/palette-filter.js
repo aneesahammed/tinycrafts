@@ -43,6 +43,25 @@ export function buildCommands(state, actions) {
       },
     });
   }
+  const snapshots = (state.querySnapshots || []).slice(0, 5);
+  if (snapshots.length) {
+    for (const snapshot of snapshots) {
+      list.push({
+        group: 'Runs',
+        icon: '↻',
+        title: snapshot.title,
+        sub: `${snapshot.activeTable || 'query'} · ${snapshot.rowCount ?? 0} rows`,
+        run: () => actions.setSql(snapshot.sql),
+      });
+    }
+    list.push({
+      group: 'Runs',
+      icon: '▣',
+      title: 'Show all query snapshots',
+      sub: `${state.querySnapshots.length} saved`,
+      run: () => actions.openSnapshots?.(),
+    });
+  }
   let i = 0;
   for (const [name] of state.files) {
     i += 1;

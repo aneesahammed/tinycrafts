@@ -1,0 +1,2 @@
+export const HISTOGRAM_BUCKETS = 18;
+export const HISTOGRAM_SAMPLE_ROWS = 250_000;

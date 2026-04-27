@@ -10,6 +10,8 @@ export function createStore() {
     isBusy: false,
     busyLabel: null,
     paletteOpen: false,
+    querySnapshots: [],
+    rightPanel: null,
   };
 
   const listeners = new Set();
@@ -59,6 +61,27 @@ export function createStore() {
     },
     setPaletteOpen(open) {
       state.paletteOpen = open;
+      emit();
+    },
+    setQuerySnapshots(snapshots) {
+      state.querySnapshots = Array.isArray(snapshots) ? [...snapshots] : [];
+      emit();
+    },
+    addQuerySnapshot(snapshot) {
+      if (!snapshot) return;
+      state.querySnapshots = [snapshot, ...state.querySnapshots.filter((item) => item.id !== snapshot.id)];
+      emit();
+    },
+    updateQuerySnapshot(id, patch) {
+      state.querySnapshots = state.querySnapshots.map((item) => (item.id === id ? { ...item, ...patch } : item));
+      emit();
+    },
+    removeQuerySnapshot(id) {
+      state.querySnapshots = state.querySnapshots.filter((item) => item.id !== id);
+      emit();
+    },
+    setRightPanel(panel) {
+      state.rightPanel = panel;
       emit();
     },
     setPage(page) {

@@ -1,8 +1,7 @@
 import { query } from './engine.js';
+import { isNumericSqlType, isTemporalSqlType } from './sql-types.js';
 import { quoteIdentifier } from '../util/sql-quote.js';
 
-const RX_NUM = /^(TINY|SMALL|BIG|HUGE)?INT(EGER)?$|^DECIMAL|^DOUBLE|^FLOAT|^REAL|^NUMERIC/i;
-const RX_TIME = /^DATE$|^TIME(STAMP)?(\s|$)|^INTERVAL$/i;
 const RX_BOOL = /^BOOLEAN$|^BOOL$/i;
 const RX_STRUCT = /^STRUCT/i;
 const RX_LIST = /\[\]$|^LIST\(/i;
@@ -13,8 +12,8 @@ export function typeIcon(sqlType) {
   if (RX_LIST.test(t)) return '[]';
   if (RX_STRUCT.test(t)) return '{}';
   if (RX_BOOL.test(t)) return 'B';
-  if (RX_NUM.test(t)) return '#';
-  if (RX_TIME.test(t)) return '⏱';
+  if (isNumericSqlType(t)) return '#';
+  if (isTemporalSqlType(t)) return '⏱';
   if (RX_TEXT.test(t)) return 'T';
   return '?';
 }
@@ -32,13 +31,16 @@ export async function summarizeTable(tableName) {
   for (const row of result.rows) {
     const name = row.column_name;
     if (!name) continue;
+    const rowCount = pickNumber(row.count);
+    const nullPercentage = pickPercentage(row.null_percentage);
+    const nullCount = pickNumber(row.null_count) ?? inferNullCount(nullPercentage, rowCount);
     map.set(name, {
       type: row.column_type,
       distinct: pickNumber(row.approx_unique),
-      nullPercentage: pickNumber(row.null_percentage),
-      nullCount: pickNumber(row.null_count),
-      nulls: pickNumber(row.null_percentage) ?? pickNumber(row.null_count),
-      rowCount: pickNumber(row.count),
+      nullPercentage,
+      nullCount,
+      nulls: nullPercentage ?? nullCount,
+      rowCount,
       min: row.min,
       max: row.max,
     });
@@ -51,4 +53,17 @@ function pickNumber(value) {
   if (typeof value === 'bigint') return Number(value);
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function pickPercentage(value) {
+  const n = pickNumber(value);
+  if (n == null || n < 0) return null;
+  if (n <= 100) return n;
+  if (n <= 10_000) return n / 100;
+  return null;
+}
+
+function inferNullCount(nullPercentage, rowCount) {
+  if (nullPercentage == null || rowCount == null) return null;
+  return Math.round((rowCount * nullPercentage) / 100);
 }
