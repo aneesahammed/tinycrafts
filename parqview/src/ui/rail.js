@@ -23,6 +23,9 @@ export function mountRail(el, store, handlers) {
       <div class="label"><span>Metadata of <span style="color:var(--accent);" id="rMetaName"></span></span></div>
     </div>
     <div class="meta-rows" id="rMeta"></div>
+    <div class="rail-foot">
+      <p class="footer-credit">Built by <a href="https://anees.xyz" target="_blank" rel="noopener noreferrer">Anees</a></p>
+    </div>
   `);
   el.querySelector('#rAdd').addEventListener('click', handlers.onPickFiles);
 
