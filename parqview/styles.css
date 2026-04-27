@@ -15,13 +15,15 @@
   --fn: #7a4cb3;
   --danger: #c44a3a;
 
+  /* Typography — JetBrains Mono + Inter, matching the studio catalogue. */
   --serif: ui-serif, "New York", "Charter", "Iowan Old Style", Georgia, serif;
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --r-sm: 5px;
-  --r-md: 7px;
-  --r-lg: 12px;
+  /* Sharp catalogue edges — much smaller radii than before. */
+  --r-sm: 2px;
+  --r-md: 3px;
+  --r-lg: 4px;
   --r-pill: 999px;
 
   --shadow-pill: 0 8px 24px -6px rgba(0, 0, 0, 0.25);
@@ -52,11 +54,22 @@
 html, body {
   margin: 0;
   height: 100vh;
-  background: var(--bg);
+  background:
+    linear-gradient(rgba(17, 17, 17, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.016) 1px, transparent 1px),
+    var(--bg);
+  background-size: 36px 36px;
   color: var(--ink);
-  font-family: var(--sans);
+  font-family: var(--mono);
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
+}
+[data-theme="dark"] body {
+  background:
+    linear-gradient(rgba(232, 230, 227, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 230, 227, 0.016) 1px, transparent 1px),
+    var(--bg);
+  background-size: 36px 36px;
 }
 body { overflow: hidden; }
 
