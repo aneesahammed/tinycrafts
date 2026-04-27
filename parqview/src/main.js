@@ -11,6 +11,8 @@ import { mountStatus } from './ui/status.js';
 import { mountEmpty } from './ui/empty.js';
 import { mountPalette } from './ui/palette.js';
 import { getRecentFile } from './state/recents.js';
+import { mountProfiler } from './ui/profiler.js';
+import { profileColumn } from './duckdb/column-profile.js';
 
 restoreTheme();
 
@@ -27,18 +29,19 @@ mountHeader(head, store, {
   onOpenPalette: () => store.setPaletteOpen(true),
 });
 
+const editor = mountEditor(work, store, { onRun: runActiveQuery });
+const profiler = mountProfiler(work, store, {
+  loadProfile: profileColumn,
+  setSql: (sql) => editor.setSql(sql),
+});
+
 mountRail(rail, store, {
   onPickFiles: () => fileInput.click(),
   onClose: (table) => closeFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
   onSwitch: (table) => setActiveFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
-  onColClick: (col) => {
-    const active = store.state.activeTable;
-    if (!active) return;
-    editor.setSql(`SELECT ${col}\nFROM ${active}\nLIMIT 500;`);
-  },
+  onColClick: (payload) => profiler.open(payload),
 });
 
-const editor = mountEditor(work, store, { onRun: runActiveQuery });
 mountResult(work, store);
 mountStatus(work, store);
 mountEmpty(work, store, {

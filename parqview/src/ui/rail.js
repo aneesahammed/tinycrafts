@@ -106,7 +106,17 @@ function render(el, s, handlers, filterText) {
   }).join(''));
 
   colsEl.querySelectorAll('.col').forEach((row) => {
-    row.addEventListener('click', () => handlers.onColClick(row.dataset.col));
+    row.addEventListener('click', () => {
+      const name = row.dataset.col;
+      const schemaRow = schema.find((item) => (item.column_name || item.name) === name) || {};
+      handlers.onColClick({
+        table: s.activeTable,
+        column: name,
+        type: schemaRow.column_type || schemaRow.type || '',
+        stats: summary.get(name) || {},
+        totalRows,
+      });
+    });
   });
 
   const codec = (active.profile?.codecs || []).map((c) => c.compression).filter(Boolean).join(', ');

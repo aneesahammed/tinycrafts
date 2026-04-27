@@ -35,6 +35,8 @@ export async function summarizeTable(tableName) {
     map.set(name, {
       type: row.column_type,
       distinct: pickNumber(row.approx_unique),
+      nullPercentage: pickNumber(row.null_percentage),
+      nullCount: pickNumber(row.null_count),
       nulls: pickNumber(row.null_percentage) ?? pickNumber(row.null_count),
       rowCount: pickNumber(row.count),
       min: row.min,
