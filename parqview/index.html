@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1f2a29" />
+    <meta
+      name="description"
+      content="ParqView is a local-first Parquet viewer PWA powered by DuckDB-WASM. Open, inspect, query, and export Parquet files without uploads."
+    />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <title>ParqView</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar" aria-label="Application header">
+        <a class="brand" href="./" aria-label="ParqView home">
+          <span class="brand-mark" aria-hidden="true">Pq</span>
+          <span>
+            <strong>ParqView</strong>
+            <small>Local Parquet viewer</small>
+          </span>
+        </a>
+
+        <div class="top-actions">
+          <span id="engineStatus" class="status-pill" aria-live="polite">Ready</span>
+          <button id="openFileButton" class="button primary" type="button">Open</button>
+          <button id="installButton" class="button ghost hidden" type="button">Install</button>
+          <button id="themeButton" class="button icon-button" type="button" aria-label="Toggle theme">◐</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar" aria-label="File and schema panel">
+          <section id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Open or drop a Parquet file">
+            <input id="fileInput" class="sr-only" type="file" accept=".parquet,.parq,application/octet-stream" />
+            <div class="drop-icon" aria-hidden="true">⌁</div>
+            <h1>Open a Parquet file</h1>
+            <p>Drag, drop, or choose a local file. Data stays in this browser.</p>
+            <span class="drop-hint">.parquet</span>
+          </section>
+
+          <section class="panel file-panel" aria-label="File details">
+            <div class="panel-header">
+              <h2>File</h2>
+              <button id="clearButton" class="quiet-button" type="button" disabled>Clear</button>
+            </div>
+            <dl class="facts">
+              <div>
+                <dt>Name</dt>
+                <dd id="fileName">No file</dd>
+              </div>
+              <div>
+                <dt>Size</dt>
+                <dd id="fileSize">-</dd>
+              </div>
+              <div>
+                <dt>Rows</dt>
+                <dd id="rowCount">-</dd>
+              </div>
+              <div>
+                <dt>Columns</dt>
+                <dd id="columnCount">-</dd>
+              </div>
+              <div>
+                <dt>Row groups</dt>
+                <dd id="rowGroupCount">-</dd>
+              </div>
+              <div>
+                <dt>Compression</dt>
+                <dd id="compression">-</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="panel schema-panel" aria-label="Schema summary">
+            <div class="panel-header">
+              <h2>Schema</h2>
+              <button id="copySchemaButton" class="quiet-button" type="button" disabled>Copy SQL</button>
+            </div>
+            <label class="search-label">
+              <span class="sr-only">Filter schema columns</span>
+              <input id="schemaSearch" type="search" placeholder="Filter columns" autocomplete="off" disabled />
+            </label>
+            <div id="schemaList" class="schema-list empty-state">Open a file to view columns.</div>
+          </section>
+        </aside>
+
+        <section class="main-panel" aria-label="Query and result panel">
+          <section class="query-card panel">
+            <div class="panel-header query-header">
+              <div>
+                <h2>Query</h2>
+                <p>Use <code>parquet_file</code> as the table name.</p>
+              </div>
+              <div class="query-actions">
+                <button id="sampleQueryButton" class="button ghost" type="button" disabled>Sample</button>
+                <button id="runQueryButton" class="button primary" type="button" disabled>Run</button>
+              </div>
+            </div>
+            <textarea id="sqlEditor" spellcheck="false" aria-label="SQL editor">SELECT *
+FROM parquet_file
+LIMIT 500;</textarea>
+            <div class="query-footer">
+              <span>Ctrl or Cmd + Enter to run</span>
+              <span id="queryRuntime">No query yet</span>
+            </div>
+          </section>
+
+          <section class="panel result-panel" aria-label="Query results">
+            <div class="panel-header result-header">
+              <div>
+                <h2>Results</h2>
+                <p id="resultSummary">Open a Parquet file to preview rows.</p>
+              </div>
+              <div class="result-actions">
+                <label class="compact-field">
+                  <span>Page</span>
+                  <select id="pageSizeSelect" disabled>
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
+                  </select>
+                </label>
+                <input id="resultSearch" class="compact-search" type="search" placeholder="Search result" disabled />
+                <button id="exportButton" class="button ghost" type="button" disabled>Export CSV</button>
+              </div>
+            </div>
+
+            <div id="tableWrap" class="table-wrap empty-table">
+              <div class="empty-state spacious">
+                <strong>No rows loaded</strong>
+                <span>Choose a file and run a limited query.</span>
+              </div>
+            </div>
+
+            <div class="pagination" aria-label="Result pagination">
+              <button id="prevPageButton" class="quiet-button" type="button" disabled>Previous</button>
+              <span id="pageInfo">Page 0 of 0</span>
+              <button id="nextPageButton" class="quiet-button" type="button" disabled>Next</button>
+            </div>
+          </section>
+
+          <section class="insights-grid" aria-label="Parquet insights">
+            <section class="panel metadata-panel">
+              <div class="panel-header">
+                <h2>Metadata</h2>
+                <button id="refreshMetadataButton" class="quiet-button" type="button" disabled>Refresh</button>
+              </div>
+              <div id="metadataList" class="metadata-list empty-state">Metadata appears after a file is opened.</div>
+            </section>
+
+            <section class="panel rowgroup-panel">
+              <div class="panel-header">
+                <h2>Row groups</h2>
+                <span id="rowGroupSummary" class="muted-text">-</span>
+              </div>
+              <div id="rowGroupTable" class="mini-table-wrap empty-state">No row group details.</div>
+            </section>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
