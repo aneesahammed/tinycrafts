@@ -13,13 +13,16 @@
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
     <title>ParqView</title>
-    <link rel="stylesheet" href="./styles.css?v=9" />
+    <link rel="stylesheet" href="./styles.css?v=16" />
   </head>
   <body>
     <div class="app" id="app">
       <header class="head" id="head"></header>
       <div class="stage" id="stage">
         <aside class="rail" id="rail"></aside>
+        <div class="rail-resizer-track">
+          <div class="rail-resizer" id="railResizer" role="separator" aria-orientation="vertical" aria-label="Resize file rail" tabindex="0"></div>
+        </div>
         <main class="work" id="work"></main>
       </div>
     </div>

@@ -14,6 +14,7 @@ import { getRecentFile } from './state/recents.js';
 import { mountProfiler } from './ui/profiler.js';
 import { profileColumn } from './duckdb/column-profile.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
+import { setupRailResize } from './ui/rail-resizer.js';
 import {
   clearQuerySnapshots,
   createQuerySnapshot,
@@ -64,6 +65,8 @@ mountRail(rail, store, {
   onSwitch: (table) => setActiveFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
   onColClick: (payload) => profiler.open(payload),
 });
+
+setupRailResize(stage, document.querySelector('#railResizer'));
 
 mountResult(work, store);
 mountStatus(work, store, { onOpenSnapshots: toggleSnapshotsPanel });

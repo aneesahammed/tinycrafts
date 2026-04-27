@@ -30,8 +30,11 @@ export function mountEditor(el, store, handlers) {
   `);
   el.appendChild(wrap);
 
+  const resizerTrack = document.createElement('div');
+  resizerTrack.className = 'editor-resizer-track';
   const resizer = document.createElement('div');
   resizer.className = 'editor-resizer';
+  resizer.id = 'editorResizer';
   resizer.setAttribute('role', 'separator');
   resizer.setAttribute('aria-label', 'Resize query editor');
   resizer.setAttribute('aria-orientation', 'horizontal');
@@ -39,7 +42,8 @@ export function mountEditor(el, store, handlers) {
   resizer.setAttribute('aria-valuemax', '560');
   resizer.setAttribute('aria-valuenow', '280');
   resizer.tabIndex = 0;
-  el.appendChild(resizer);
+  resizerTrack.appendChild(resizer);
+  el.appendChild(resizerTrack);
   setupEditorResize(el, resizer);
 
   const ta = wrap.querySelector('#eSql');
