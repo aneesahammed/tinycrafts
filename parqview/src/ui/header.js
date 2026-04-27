@@ -48,6 +48,8 @@ export function mountHeader(el, store, handlers) {
       meta.textContent = '';
     }
     el.querySelector('#hRun').disabled = !s.activeTable || s.isBusy;
-    el.querySelector('#hSnapshots').hidden = !(s.querySnapshots?.length);
+    const snapshotsBtn = el.querySelector('#hSnapshots');
+    snapshotsBtn.hidden = !(s.querySnapshots?.length);
+    snapshotsBtn.setAttribute('aria-pressed', s.rightPanel?.type === 'snapshots' ? 'true' : 'false');
   });
 }

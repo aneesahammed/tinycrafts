@@ -41,7 +41,7 @@ mountHeader(head, store, {
   onRun: () => runActiveQuery(),
   onToggleTheme: () => toggleTheme(),
   onOpenPalette: () => store.setPaletteOpen(true),
-  onOpenSnapshots: () => snapshotsPanel.open(),
+  onOpenSnapshots: toggleSnapshotsPanel,
 });
 
 const editor = mountEditor(work, store, { onRun: runActiveQuery });
@@ -66,7 +66,7 @@ mountRail(rail, store, {
 });
 
 mountResult(work, store);
-mountStatus(work, store, { onOpenSnapshots: () => snapshotsPanel.open() });
+mountStatus(work, store, { onOpenSnapshots: toggleSnapshotsPanel });
 mountEmpty(work, store, {
   onPickFiles: () => fileInput.click(),
   onOpenRecent: openRecentFile,
@@ -298,6 +298,11 @@ function clearSnapshotsWithUndo() {
       replaceQuerySnapshots(previous).catch((error) => showToast(toErrorMessage(error), 'error'));
     },
   });
+}
+
+function toggleSnapshotsPanel() {
+  if (store.state.rightPanel?.type === 'snapshots') snapshotsPanel.close();
+  else snapshotsPanel.open();
 }
 
 let snapshotStorageNoticeShown = false;
