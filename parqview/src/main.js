@@ -32,6 +32,7 @@ restoreTheme();
 const store = createStore();
 const head = document.querySelector('#head');
 const rail = document.querySelector('#rail');
+const stage = document.querySelector('#stage');
 const work = document.querySelector('#work');
 const fileInput = document.querySelector('#fileInput');
 const paletteScrim = document.querySelector('#paletteScrim');
@@ -44,11 +45,11 @@ mountHeader(head, store, {
 });
 
 const editor = mountEditor(work, store, { onRun: runActiveQuery });
-const profiler = mountProfiler(work, store, {
+const profiler = mountProfiler(stage, store, {
   loadProfile: profileColumn,
   setSql: (sql) => editor.setSql(sql),
 });
-const snapshotsPanel = mountQuerySnapshots(work, store, {
+const snapshotsPanel = mountQuerySnapshots(stage, store, {
   onRestore: restoreSnapshot,
   onRerun: rerunSnapshot,
   onTogglePin: toggleSnapshotPin,

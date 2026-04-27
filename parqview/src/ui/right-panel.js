@@ -31,6 +31,7 @@ export function openRightPanel(el, store, panel) {
   host.hidden = false;
   host.dataset.panel = panel?.type || '';
   host.setAttribute('aria-label', panelLabel(panel));
+  setStageOpen(el, true);
   store?.setRightPanel?.(panel || null);
   return host;
 }
@@ -41,7 +42,15 @@ export function closeRightPanel(el, store) {
   host.dataset.panel = '';
   setHtml(host, '');
   host.setAttribute('aria-label', 'Right panel');
+  setStageOpen(el, false);
   store?.setRightPanel?.(null);
+}
+
+function setStageOpen(el, open) {
+  const stage = el?.classList?.contains('stage') ? el : el?.closest?.('.stage');
+  if (!stage) return;
+  if (open) stage.dataset.rightOpen = 'true';
+  else delete stage.dataset.rightOpen;
 }
 
 function panelLabel(panel) {

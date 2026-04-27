@@ -391,22 +391,94 @@ body.is-resizing-editor {
 .result td.null { color: var(--ink-4); }
 .result tr:hover td { background: var(--surface-2); }
 
-/* Column profiler */
+/* Right-side docked panel (column profiler / query snapshots).
+   Sits as a sibling of .work inside .stage, pushes content rather than
+   overlaying. Same elevation as the rail, edge-to-edge top to bottom. */
 .profile-drawer {
-  position: absolute;
-  top: 42px;
-  right: 14px;
-  left: max(14px, calc(100% - 344px));
   box-sizing: border-box;
-  width: auto;
-  max-width: calc(100% - 28px);
-  max-height: calc(100% - 70px);
+  min-height: 0;
+  min-width: 0;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
   overflow: auto;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-lg);
-  background: color-mix(in srgb, var(--surface) 96%, transparent);
-  box-shadow: var(--shadow-modal);
-  z-index: 16;
+}
+.profile-drawer[hidden] { display: none; }
+
+/* Three-track grid so the third column can interpolate from 0 → panel width.
+   Without this the layout would jump on open/close instead of easing. */
+.stage { grid-template-columns: 256px 1fr 0; transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.stage[data-right-open="true"] { grid-template-columns: 256px 1fr min(420px, 36vw); }
+.stage > .profile-drawer { height: 100%; }
+.stage > .profile-drawer > .profile-head,
+.stage > .profile-drawer > .snapshot-head {
+  position: sticky; top: 0; z-index: 2;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+/* Panel slide-and-fade in when the host becomes visible. */
+@keyframes panel-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.stage > .profile-drawer:not([hidden]) {
+  animation: panel-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Stage section content slips in just behind the panel for cohesion. */
+@keyframes panel-content-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stage > .profile-drawer:not([hidden]) > .profile-stats,
+.stage > .profile-drawer:not([hidden]) > .profile-chart-wrap,
+.stage > .profile-drawer:not([hidden]) > .profile-actions,
+.stage > .profile-drawer:not([hidden]) > .snapshot-tools,
+.stage > .profile-drawer:not([hidden]) > .snapshot-list {
+  animation: panel-content-in 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: 60ms;
+}
+
+/* Snapshot rows: gentle background transition and clearer focus ring. */
+.snapshot-row { transition: background-color 130ms ease, transform 130ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.snapshot-row:active { transform: scale(0.995); }
+.snapshot-row:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 22%, transparent); outline-offset: -1px; }
+
+/* Action chips: slide in on hover, tactile press feedback, ease their hover state. */
+.snapshot-actions { transform: translateX(4px); transition: opacity 140ms ease, max-height 140ms ease, transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.snapshot-row:hover .snapshot-actions,
+.snapshot-row:focus-within .snapshot-actions { transform: translateX(0); }
+.snapshot-actions button { transition: background-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.snapshot-actions button:active { transform: scale(0.92); }
+.snapshot-actions button[data-snapshot-action="pin"] { transition: background-color 130ms ease, color 130ms ease, transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.snapshot-actions button[data-snapshot-action="pin"]:active { transform: scale(1.18) rotate(-4deg); }
+
+/* Close button: smooth hover/press, never jarring. */
+.profile-close { transition: background-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.profile-close:active { transform: scale(0.92); }
+
+/* Search input: soft focus ring instead of the default browser blue. */
+.snapshot-search { transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease; }
+.snapshot-search:focus,
+.snapshot-search:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--ink) 35%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.snapshot-clear { transition: background-color 130ms ease, color 130ms ease, opacity 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.snapshot-clear:not(:disabled):active { transform: scale(0.96); }
+
+/* Honor the user's motion preference. */
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .stage > .profile-drawer:not([hidden]),
+  .stage > .profile-drawer:not([hidden]) > * ,
+  .snapshot-row,
+  .snapshot-actions,
+  .snapshot-actions button,
+  .profile-close,
+  .snapshot-search,
+  .snapshot-clear { transition: none !important; animation: none !important; }
 }
 .profile-head {
   display: grid;
@@ -754,7 +826,6 @@ body.is-resizing-editor {
 .work[data-state="empty"] > .editor-resizer,
 .work[data-state="empty"] > .result,
 .work[data-state="empty"] > .status { display: none !important; }
-.work[data-state="empty"] > .profile-drawer[data-panel="profile"] { display: none !important; }
 .work[data-state="empty"] { grid-template-rows: 1fr; }
 
 /* Empty state — fills its grid cell, hero centered */
@@ -992,13 +1063,18 @@ body.is-resizing-editor {
 
 /* Responsive */
 @media (max-width: 980px) {
-  .stage { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; height: calc(100vh - 44px); }
+  .stage,
+  .stage[data-right-open="true"] { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; height: calc(100vh - 44px); }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); }
-  .profile-drawer {
-    top: 40px;
-    right: 10px;
-    left: max(10px, calc(100% - 350px));
-    width: auto;
-    max-height: calc(100% - 54px);
+  /* On narrow viewports the docked panel becomes a right-edge overlay
+     so the editor and results below remain at full width. */
+  .stage > .profile-drawer {
+    position: fixed;
+    inset: 44px 0 0 auto;
+    width: min(420px, 100vw);
+    height: auto;
+    border-left: 1px solid var(--line);
+    box-shadow: var(--shadow-modal);
+    z-index: 16;
   }
 }
