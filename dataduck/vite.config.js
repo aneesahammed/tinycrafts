@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -49,7 +50,7 @@ function pinPwaLinks(html) {
 
 export default defineConfig({
   base: './',
-  plugins: [copyRootStaticAssets(), preserveRootPwaLinks()],
+  plugins: [react(), copyRootStaticAssets(), preserveRootPwaLinks()],
   server: {
     forwardConsole: false,
   },

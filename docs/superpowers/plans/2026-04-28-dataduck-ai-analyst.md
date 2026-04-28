@@ -45,18 +45,18 @@ Default privacy mode:
 
 ## Task List
 
-- [ ] React island scaffold and dependency setup.
-- [ ] Right panel integration and global shortcut guard.
-- [ ] Groq client, secure key store, privacy constants.
-- [ ] Redacted dataset context and fingerprint.
-- [ ] Zod analysis plan schema and prompt builder.
-- [ ] Safe query compiler.
-- [ ] Analyst orchestration.
-- [ ] Assistant UI and charts.
-- [ ] Aggregate narrative opt-in.
-- [ ] Thread store.
-- [ ] Bundle budget and service-worker update.
-- [ ] Documentation and final verification.
+- [x] React island scaffold and dependency setup.
+- [x] Right panel integration and global shortcut guard.
+- [x] Groq client, secure key store, privacy constants.
+- [x] Redacted dataset context and fingerprint.
+- [x] Zod analysis plan schema and prompt builder.
+- [x] Safe query compiler.
+- [x] Analyst orchestration.
+- [x] Assistant UI and charts.
+- [x] Aggregate narrative opt-in.
+- [x] Thread store.
+- [x] Bundle budget and service-worker update.
+- [x] Documentation and final verification.
 
 ## Acceptance Criteria
 

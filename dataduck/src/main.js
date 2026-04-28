@@ -24,6 +24,7 @@ import { profileColumn } from './duckdb/column-profile.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
 import { setupRailResize } from './ui/rail-resizer.js';
 import { setupServiceWorker } from './service-worker.js';
+import { mountAiAssistant } from './assistant/mount.jsx';
 import {
   clearQuerySnapshots,
   createQuerySnapshot,
@@ -54,6 +55,7 @@ mountHeader(head, store, {
   onToggleTheme: () => toggleTheme(),
   onOpenPalette: () => store.setPaletteOpen(true),
   onOpenSnapshots: toggleSnapshotsPanel,
+  onOpenAssistant: () => assistant.open(),
 });
 
 const editor = mountEditor(work, store, { onRun: runActiveQuery });
@@ -68,6 +70,11 @@ const snapshotsPanel = mountQuerySnapshots(stage, store, {
   onCopy: copySnapshotSql,
   onDelete: deleteSnapshotWithUndo,
   onClear: clearSnapshotsWithUndo,
+});
+const assistant = mountAiAssistant(stage, store, {
+  query,
+  setSql: (sql) => editor.setSql(sql),
+  showToast,
 });
 
 mountRail(rail, store, {
@@ -99,6 +106,7 @@ mountPalette(paletteScrim, store, {
   run: runActiveQuery,
   exportCsv: () => document.querySelector('#sExport')?.click(),
   openSnapshots: () => snapshotsPanel.open(),
+  openAssistant: () => assistant.open(),
   toggleTheme,
   closeAll: async () => {
     for (const t of [...store.state.files.keys()]) {
@@ -165,7 +173,16 @@ fileInput.addEventListener('change', async () => {
   await openFiles(files);
 });
 
+function isTypingTarget(target) {
+  return Boolean(
+    target?.closest?.(
+      'input, textarea, select, [contenteditable="true"], .assistant-panel, .assistant-composer',
+    ),
+  );
+}
+
 window.addEventListener('keydown', (event) => {
+  if (isTypingTarget(event.target)) return;
   const meta = event.ctrlKey || event.metaKey;
   if (!meta) return;
   if (event.key === 'Enter') {

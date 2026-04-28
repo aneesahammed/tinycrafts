@@ -358,6 +358,26 @@ Each `ui/` module exports `mount(element, store)` and subscribes to store change
 
 Unchanged behavior. Service worker continues to cache the shell + DuckDB-WASM assets. Recent-files names live in IndexedDB. Install button stays where it is in the header overflow (when `beforeinstallprompt` fires).
 
+## 8.1 Ask DataDuck
+
+Ask DataDuck is the only React island in the app. The rest of DataDuck remains vanilla modules. The assistant mounts into the existing right-panel host, so it shares Escape handling, docked/mobile layout, and panel replacement semantics with column profiles and query snapshots.
+
+AI requests are plan-first, not SQL-first:
+
+1. Build a redacted schema/profile context for the active file.
+2. Ask Groq for a structured JSON analysis plan.
+3. Validate the plan with Zod.
+4. Compile safe SQL locally against `active_file`.
+5. Execute in DuckDB-WASM.
+6. Render the local result table and Recharts chart.
+
+Privacy rules:
+
+- Default prompts exclude source rows, current result rows, sample rows, top values, text min/max, file contents, and API keys.
+- Aggregate row uploads are an explicit second action with a visible preview and hard caps.
+- Stored threads keep message text, analysis artifacts, table labels, and dataset fingerprints; they never store Groq keys.
+- If a restored thread's dataset fingerprint differs from the active file, the UI marks it historical and new questions use the current file.
+
 ## 9. Out of scope (v1)
 
 The following are NOT in this redesign and will be tracked as follow-ups:

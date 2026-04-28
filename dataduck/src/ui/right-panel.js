@@ -40,10 +40,10 @@ export function closeRightPanel(el, store) {
   const host = ensureRightPanel(el, store);
   host.hidden = true;
   host.dataset.panel = '';
+  store?.setRightPanel?.(null);
   setHtml(host, '');
   host.setAttribute('aria-label', 'Right panel');
   setStageOpen(el, false);
-  store?.setRightPanel?.(null);
 }
 
 function setStageOpen(el, open) {
@@ -56,5 +56,6 @@ function setStageOpen(el, open) {
 function panelLabel(panel) {
   if (panel?.type === 'profile') return 'Column profile';
   if (panel?.type === 'snapshots') return 'Query snapshots';
+  if (panel?.type === 'assistant') return 'Data assistant';
   return 'Right panel';
 }

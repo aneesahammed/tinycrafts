@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dataduck-shell-v2';
+const CACHE_NAME = 'dataduck-shell-v3';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 const LOCAL_DEV_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 const IS_LOCAL_DEV_SERVER = LOCAL_DEV_HOSTS.has(self.location.hostname);

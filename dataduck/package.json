@@ -8,12 +8,20 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "vitest run --environment jsdom"
+    "test": "vitest run --environment jsdom",
+    "check:bundle": "node scripts/check-dataduck-bundle.mjs"
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "1.30.0"
+    "@assistant-ui/react": "^0.12.26",
+    "@duckdb/duckdb-wasm": "1.30.0",
+    "lucide-react": "^1.12.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "recharts": "^3.8.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^2.1.9",
     "jsdom": "^25.0.1",
     "sql-formatter": "^15.7.3",

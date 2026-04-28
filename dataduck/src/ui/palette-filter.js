@@ -9,6 +9,13 @@ export function buildCommands(state, actions) {
   if (state.activeTable) {
     list.push(
       {
+        group: 'AI',
+        icon: '?',
+        title: 'Ask DataDuck',
+        sub: `Ask questions about ${state.activeTable}`,
+        run: () => actions.openAssistant?.(),
+      },
+      {
         group: 'Queries',
         icon: 'Σ',
         title: 'SUMMARIZE active file',
