@@ -104,7 +104,7 @@ describe('query snapshot model', () => {
   });
 
   it('persists snapshots in a query-specific store and prunes unpinned records', async () => {
-    expect(DB_NAME).toBe('parqview-query-snapshots');
+    expect(DB_NAME).toBe('dataduck-query-snapshots');
 
     for (let i = 0; i < MAX_UNPINNED_SNAPSHOTS + 5; i += 1) {
       await recordQuerySnapshot(baseSnapshot({ id: `u${i}`, ranAt: i }));

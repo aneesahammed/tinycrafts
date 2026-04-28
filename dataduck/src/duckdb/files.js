@@ -18,7 +18,7 @@ export { isSupportedFile };
 function virtualNameFor(originalName) {
   const safe = originalName.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+/, '') || 'data';
   const id = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `parqview_${id}_${safe}`;
+  return `dataduck_${id}_${safe}`;
 }
 
 export async function openFileInto(store, file, options = {}) {

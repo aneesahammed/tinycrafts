@@ -1,6 +1,6 @@
 {
-  "name": "ParqView",
-  "short_name": "ParqView",
+  "name": "DataDuck",
+  "short_name": "DataDuck",
   "description": "Open, inspect, query, and export Parquet and CSV files locally in the browser.",
   "start_url": ".",
   "scope": ".",

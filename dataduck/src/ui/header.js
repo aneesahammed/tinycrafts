@@ -11,8 +11,8 @@ export function mountHeader(el, store, handlers) {
   const [modKey, actionKey] = commandShortcut();
   const shortcutText = `${modKey} ${actionKey}`;
   setHtml(el, `
-    <a class="brand" href="./" aria-label="ParqView home">
-      <span class="mark">Pq</span><span class="word">ParqView</span>
+    <a class="brand" href="./" aria-label="DataDuck home">
+      <span class="mark">Dd</span><span class="word">DataDuck</span>
     </a>
     <div class="crumb" hidden>
       <span class="file" id="hCrumbFile"></span>

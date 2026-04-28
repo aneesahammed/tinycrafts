@@ -17,23 +17,23 @@ const requiredFiles = [
   'pichub/index.html',
   'pichub/manifest.webmanifest',
   'pichub/sw.js',
-  'parqview/index.html',
-  'parqview/manifest.json',
-  'parqview/sw.js',
-  'parqview/icon.svg',
-  'parqview/icon-192.png',
-  'parqview/icon-512.png',
+  'dataduck/index.html',
+  'dataduck/manifest.json',
+  'dataduck/sw.js',
+  'dataduck/icon.svg',
+  'dataduck/icon-192.png',
+  'dataduck/icon-512.png',
 ];
 
 const forbiddenFiles = [
-  'parqview/app.js',
-  'parqview/styles.css',
-  'parqview/package.json',
-  'parqview/package-lock.json',
-  'parqview/vite.config.js',
+  'dataduck/app.js',
+  'dataduck/styles.css',
+  'dataduck/package.json',
+  'dataduck/package-lock.json',
+  'dataduck/vite.config.js',
 ];
 
-const forbiddenDirs = ['parqview/node_modules', 'parqview/dist'];
+const forbiddenDirs = ['dataduck/node_modules', 'dataduck/dist', 'parqview'];
 
 const failures = [];
 
@@ -54,13 +54,13 @@ for (const dir of forbiddenDirs) {
   assertMissing(dir);
 }
 
-assertHasAsset('parqview/assets', /\.js$/);
-assertHasAsset('parqview/assets', /\.css$/);
-assertHasAsset('parqview/assets', /\.wasm$/);
-assertHasAsset('parqview/assets', /worker.*\.js$/);
+assertHasAsset('dataduck/assets', /\.js$/);
+assertHasAsset('dataduck/assets', /\.css$/);
+assertHasAsset('dataduck/assets', /\.wasm$/);
+assertHasAsset('dataduck/assets', /worker.*\.js$/);
 
-assertParqViewHtml();
-assertParqViewManifest();
+assertDataDuckHtml();
+assertDataDuckManifest();
 assertNoMacMetadata(pagesDir);
 
 if (failures.length > 0) {
@@ -102,17 +102,17 @@ function assertHasAsset(relativeDir, pattern) {
   }
 }
 
-function assertParqViewHtml() {
-  const htmlPath = join(pagesDir, 'parqview/index.html');
+function assertDataDuckHtml() {
+  const htmlPath = join(pagesDir, 'dataduck/index.html');
   if (!existsSync(htmlPath)) return;
 
   const html = readFileSync(htmlPath, 'utf8');
   const expectations = [
-    ['href="./manifest.json"', 'ParqView should link the root manifest'],
-    ['href="./icon.svg"', 'ParqView should link the root SVG icon'],
-    ['href="./icon-192.png"', 'ParqView should link the root touch icon'],
-    ['src="./assets/', 'ParqView should load built JS from assets'],
-    ['href="./assets/', 'ParqView should load built CSS from assets'],
+    ['href="./manifest.json"', 'DataDuck should link the root manifest'],
+    ['href="./icon.svg"', 'DataDuck should link the root SVG icon'],
+    ['href="./icon-192.png"', 'DataDuck should link the root touch icon'],
+    ['src="./assets/', 'DataDuck should load built JS from assets'],
+    ['href="./assets/', 'DataDuck should load built CSS from assets'],
   ];
 
   for (const [needle, message] of expectations) {
@@ -122,18 +122,18 @@ function assertParqViewHtml() {
   }
 
   if (html.includes('src="./app.js"') || html.includes('href="./styles.css"')) {
-    failures.push('ParqView HTML should not reference unbuilt source assets');
+    failures.push('DataDuck HTML should not reference unbuilt source assets');
   }
 }
 
-function assertParqViewManifest() {
-  const manifestPath = join(pagesDir, 'parqview/manifest.json');
+function assertDataDuckManifest() {
+  const manifestPath = join(pagesDir, 'dataduck/manifest.json');
   if (!existsSync(manifestPath)) return;
 
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   for (const icon of manifest.icons || []) {
     const iconPath = icon.src?.replace(/^\.\//, '');
-    if (!iconPath || !existsSync(join(pagesDir, 'parqview', iconPath))) {
+    if (!iconPath || !existsSync(join(pagesDir, 'dataduck', iconPath))) {
       failures.push(`Manifest references missing icon: ${icon.src}`);
     }
   }

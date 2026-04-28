@@ -1,4 +1,4 @@
-# ParqView Redesign — Design Spec
+# DataDuck Redesign — Design Spec
 
 **Date:** 2026-04-27
 **Status:** Approved (visual rounds), pending spec review
@@ -11,7 +11,7 @@
 
 ## 1. Why redesign
 
-The current ParqView is a working Codex-generated PWA — DuckDB-WASM under the hood, single Parquet file at a time, six floating cards on a warm-beige background. It works, but visually it does not earn its quality bar:
+The current DataDuck is a working Codex-generated PWA — DuckDB-WASM under the hood, single Parquet file at a time, six floating cards on a warm-beige background. It works, but visually it does not earn its quality bar:
 
 - **No hierarchy.** Six cards (file, schema, query, results, metadata, row groups) all share identical chrome and weight. The eye has nowhere to land.
 - **Empty states everywhere on first load.** "No file", "—", "No row group details" greet a brand-new user. The app reads as broken before they have done anything.
@@ -92,7 +92,7 @@ This is a hard preference for the user across all tinycrafts UI work. Any contri
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  P  ParqView   events · 78,231 rows · 12 cols · 1.2 MB           │
+│  P  DataDuck   events · 78,231 rows · 12 cols · 1.2 MB           │
 │                                  [Search ⌘K]  [◐]   Run ⌘↩       │  44px
 ├──────────────┬───────────────────────────────────────────────────┤
 │ search…      │ Query  Schema  Sample                             │
@@ -208,7 +208,7 @@ Switching is instant; no cached schema/summary is recomputed unless invalidated.
 - Height 44px, full-width, sticky-top, `position: sticky; top: 0; z-index: 30`.
 - Background: `color-mix(in srgb, var(--bg) 78%, transparent)` + `backdrop-filter: blur(14px)`.
 - Bottom border: 1px `var(--line)`.
-- Left: brand mark (18px ink square with serif "P" reversed) + serif "ParqView" wordmark + crumb (active table · row/col/size).
+- Left: brand mark (18px ink square with serif "P" reversed) + serif "DataDuck" wordmark + crumb (active table · row/col/size).
 - Right: ⌘K search-hint kbd (22px tall, 5px radius), theme icon-button (26px square, 6px radius), Run button (26px tall, ink fill, white text, ⌘↩ shown in right-side opacity-60 mono).
 
 ### 5.2 Rail
@@ -303,7 +303,7 @@ When `state.files.size === 0`:
 
 ## 7. File structure changes
 
-The current source layout in `parqview/`:
+The current source layout in `dataduck/`:
 
 ```
 app.js          26.9 KB    — single file, all logic
@@ -319,7 +319,7 @@ package.json
 After redesign, `app.js` is split into focused modules. ES modules, Vite handles bundling:
 
 ```
-parqview/
+dataduck/
   index.html
   styles.css                — tokens + base + layout (no italics anywhere)
   src/

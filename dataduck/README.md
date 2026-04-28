@@ -1,4 +1,4 @@
-# ParqView
+# DataDuck
 
 A minimal local-first Parquet and CSV viewer PWA powered by DuckDB-WASM.
 
@@ -17,7 +17,7 @@ No backend is required. Files are not uploaded.
 ## Project structure
 
 ```text
-/parquet-viewer
+/dataduck
   index.html
   styles.css
   app.js
@@ -61,7 +61,7 @@ dist/
 The Vite base is set to `./`, so the built app can be hosted under a subpath such as:
 
 ```text
-https://tinycrafts.ai/parqview/
+https://tinycrafts.ai/dataduck/
 ```
 
 The repository deploys through GitHub Actions. The Pages workflow runs the shared site builder from the repository root:
@@ -71,7 +71,7 @@ node scripts/build-pages.mjs
 node scripts/verify-pages-build.mjs
 ```
 
-That builds ParqView and publishes the generated `dist/` contents into `parqview/` inside the Pages artifact. Do not commit `dist/` directly.
+That builds DataDuck and publishes the generated `dist/` contents into `dataduck/` inside the Pages artifact. Do not commit `dist/` directly.
 
 ## Default SQL
 

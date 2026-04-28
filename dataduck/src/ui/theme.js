@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'parqview-theme';
+const STORAGE_KEY = 'dataduck-theme';
 
 export function restoreTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);

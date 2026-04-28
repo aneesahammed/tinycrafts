@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'parqview:rail-w';
+const STORAGE_KEY = 'dataduck:rail-w';
 const MIN_PX = 200;
 const MAX_PX = 480;
 const DEFAULT_PX = 256;

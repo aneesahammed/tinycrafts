@@ -1,4 +1,4 @@
-export const DB_NAME = 'parqview-query-snapshots';
+export const DB_NAME = 'dataduck-query-snapshots';
 export const STORE = 'snapshots';
 export const DB_VERSION = 1;
 export const MAX_UNPINNED_SNAPSHOTS = 20;

@@ -38,7 +38,7 @@ export function mountStatus(el, store, handlers = {}) {
     if (!s.resultColumns.length) return;
     const csv = toCsv(s.resultColumns, s.resultRows);
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `parqview-${stamp}.csv`);
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `dataduck-${stamp}.csv`);
   });
   pill.querySelector('#sSnapshots').addEventListener('click', () => handlers.onOpenSnapshots?.());
 

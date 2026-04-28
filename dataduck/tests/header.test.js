@@ -14,6 +14,21 @@ function createStore() {
 }
 
 describe('header empty state', () => {
+  it('renders the DataDuck brand', () => {
+    const header = document.createElement('header');
+    const store = createStore();
+
+    mountHeader(header, store, {
+      onRun: vi.fn(),
+      onToggleTheme: vi.fn(),
+      onOpenPalette: vi.fn(),
+    });
+
+    expect(header.querySelector('.mark').textContent).toBe('Dd');
+    expect(header.querySelector('.word').textContent).toBe('DataDuck');
+    expect(header.querySelector('.brand').getAttribute('aria-label')).toBe('DataDuck home');
+  });
+
   it('does not show redundant no-file crumb before a file is opened', () => {
     const header = document.createElement('header');
     const store = createStore();

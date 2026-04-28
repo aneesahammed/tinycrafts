@@ -1,10 +1,10 @@
-# ParqView Redesign Implementation Plan
+# DataDuck Redesign Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild ParqView's chrome and architecture per [parqview/DESIGN.md](../../../parqview/DESIGN.md) — Editorial Minimal visual language, multi-file support with DuckDB-style column rail, ⌘K palette, no italics anywhere, while keeping the DuckDB-WASM engine and PWA shell.
+**Goal:** Rebuild DataDuck's chrome and architecture per [dataduck/DESIGN.md](../../../dataduck/DESIGN.md) — Editorial Minimal visual language, multi-file support with DuckDB-style column rail, ⌘K palette, no italics anywhere, while keeping the DuckDB-WASM engine and PWA shell.
 
-**Architecture:** Split the monolithic `parqview/app.js` into focused ES modules under `parqview/src/{duckdb,state,sql,ui}/`. Replace the single-file state with a `Map<tableName, FileRecord>` and an `activeTable` pointer. Re-skin everything with a token-driven CSS rewrite. Keep DuckDB-WASM 1.30, Vite, and the existing PWA service worker untouched.
+**Architecture:** Split the monolithic `dataduck/app.js` into focused ES modules under `dataduck/src/{duckdb,state,sql,ui}/`. Replace the single-file state with a `Map<tableName, FileRecord>` and an `activeTable` pointer. Re-skin everything with a token-driven CSS rewrite. Keep DuckDB-WASM 1.30, Vite, and the existing PWA service worker untouched.
 
 **Tech Stack:** Vite 8, DuckDB-WASM 1.30, vanilla ES modules (no framework), Vitest + jsdom for tests, `sql-formatter` (lazy-loaded) for the format command. No new runtime deps beyond `sql-formatter`.
 
@@ -20,14 +20,14 @@ Apply these to every task in this plan:
 - **No italics ever.** Never write `font-style: italic`, `<em>`, `<i>` (HTML emphasis), or italic-serif glyph icons. Pre-commit hook in Phase 9 enforces this.
 - **Keep the app runnable between tasks.** No broken intermediate states. If a refactor must temporarily break a feature, do it in one atomic task, not split across commits.
 - **Use safe shell APIs.** Always prefer `execFileSync` / `spawn` over `exec` / `execSync` — pass argv arrays, never string-interpolate user data into shell commands.
-- **Spec is the source of truth.** When in doubt about a token value, layout dimension, or behavior, read [parqview/DESIGN.md](../../../parqview/DESIGN.md). Do not invent variants.
+- **Spec is the source of truth.** When in doubt about a token value, layout dimension, or behavior, read [dataduck/DESIGN.md](../../../dataduck/DESIGN.md). Do not invent variants.
 
 ## File Structure (target)
 
-After this plan completes, `parqview/` looks like this:
+After this plan completes, `dataduck/` looks like this:
 
 ```
-parqview/
+dataduck/
   index.html                      # New skeleton matching DESIGN.md §3 layout
   styles.css                      # Token-driven, no italics, full rewrite
   src/
@@ -87,7 +87,7 @@ parqview/
   README.md                       # Updated for multi-file in Phase 9
 ```
 
-The old `parqview/app.js` is deleted at the end of Phase 3 once `src/main.js` covers everything it did.
+The old `dataduck/app.js` is deleted at the end of Phase 3 once `src/main.js` covers everything it did.
 
 ---
 
@@ -98,14 +98,14 @@ Goal of phase: get the new design language on screen with new tokens and HTML sk
 ### Task 1.1: Add Vitest + jsdom
 
 **Files:**
-- Modify: `parqview/package.json`
-- Create: `parqview/vitest.config.js`
-- Create: `parqview/tests/smoke.test.js`
+- Modify: `dataduck/package.json`
+- Create: `dataduck/vitest.config.js`
+- Create: `dataduck/tests/smoke.test.js`
 
 - [ ] **Step 1: Install dev dependencies**
 
 ```bash
-cd parqview && npm install --save-dev vitest@2 @vitest/coverage-v8@2 jsdom@25 sql-formatter@15
+cd dataduck && npm install --save-dev vitest@2 @vitest/coverage-v8@2 jsdom@25 sql-formatter@15
 ```
 
 - [ ] **Step 2: Replace scripts in package.json**
@@ -142,7 +142,7 @@ export default defineConfig({
 
 - [ ] **Step 4: Smoke test**
 
-`parqview/tests/smoke.test.js`:
+`dataduck/tests/smoke.test.js`:
 
 ```js
 import { describe, it, expect } from 'vitest';
@@ -157,7 +157,7 @@ describe('test runner', () => {
 - [ ] **Step 5: Run tests**
 
 ```bash
-cd parqview && npm test
+cd dataduck && npm test
 ```
 
 Expected: 1 file, 1 test passed.
@@ -165,7 +165,7 @@ Expected: 1 file, 1 test passed.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add parqview/package.json parqview/package-lock.json parqview/vitest.config.js parqview/tests/smoke.test.js
+git add dataduck/package.json dataduck/package-lock.json dataduck/vitest.config.js dataduck/tests/smoke.test.js
 git commit -m "chore: add vitest + jsdom test infrastructure"
 ```
 
@@ -174,13 +174,13 @@ git commit -m "chore: add vitest + jsdom test infrastructure"
 ### Task 1.2: Rewrite styles.css with the design token system
 
 **Files:**
-- Replace: `parqview/styles.css`
+- Replace: `dataduck/styles.css`
 
 Full token system per DESIGN.md §2. The new file replaces the existing one entirely.
 
-- [ ] **Step 1: Replace `parqview/styles.css`**
+- [ ] **Step 1: Replace `dataduck/styles.css`**
 
-Use the CSS in [parqview/DESIGN.md §2.1–§2.4 + §5 component specs] expanded to a complete sheet. Key blocks: `:root` and `[data-theme="dark"]` token sets, `.app/.head/.stage/.rail/.work/.editor/.result/.status/.empty/.palette/.toast` selectors per the mockups in `.superpowers/brainstorm/29682-1777300943/content/`.
+Use the CSS in [dataduck/DESIGN.md §2.1–§2.4 + §5 component specs] expanded to a complete sheet. Key blocks: `:root` and `[data-theme="dark"]` token sets, `.app/.head/.stage/.rail/.work/.editor/.result/.status/.empty/.palette/.toast` selectors per the mockups in `.superpowers/brainstorm/29682-1777300943/content/`.
 
 The full CSS body is too long to inline here — copy verbatim from [working-state-v1.html](../../../.superpowers/brainstorm/29682-1777300943/content/working-state-v1.html) and [dark-mode-and-cmd-k.html](../../../.superpowers/brainstorm/29682-1777300943/content/dark-mode-and-cmd-k.html) `<style>` blocks, lifting the `.pv-mock`/`.pv-dark` prefixes off so the rules apply globally. Keep the dark-mode token block under `[data-theme="dark"]`. **Verify zero `font-style: italic` and zero italic-serif type-icons before commit.**
 
@@ -191,7 +191,7 @@ The HTML still uses old IDs in this commit — that's expected. Background shoul
 - [ ] **Step 3: Commit**
 
 ```bash
-git add parqview/styles.css
+git add dataduck/styles.css
 git commit -m "style: rewrite styles.css with token-driven Editorial Minimal design system"
 ```
 
@@ -200,7 +200,7 @@ git commit -m "style: rewrite styles.css with token-driven Editorial Minimal des
 ### Task 1.3: Rewrite index.html as component mount-point skeleton
 
 **Files:**
-- Replace: `parqview/index.html`
+- Replace: `dataduck/index.html`
 
 - [ ] **Step 1: Replace index.html**
 
@@ -212,11 +212,11 @@ git commit -m "style: rewrite styles.css with token-driven Editorial Minimal des
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0d0e0f" media="(prefers-color-scheme: dark)" />
-    <meta name="description" content="ParqView is a local-first Parquet viewer PWA powered by DuckDB-WASM. Open, inspect, query, and join multiple Parquet files without uploads." />
+    <meta name="description" content="DataDuck is a local-first Parquet viewer PWA powered by DuckDB-WASM. Open, inspect, query, and join multiple Parquet files without uploads." />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
-    <title>ParqView</title>
+    <title>DataDuck</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -240,7 +240,7 @@ git commit -m "style: rewrite styles.css with token-driven Editorial Minimal des
 - [ ] **Step 2: Commit**
 
 ```bash
-git add parqview/index.html
+git add dataduck/index.html
 git commit -m "refactor: rewrite index.html as component mount-point skeleton"
 ```
 
@@ -249,15 +249,15 @@ git commit -m "refactor: rewrite index.html as component mount-point skeleton"
 ### Task 1.4: src/main.js bootstrap stub + theme module
 
 **Files:**
-- Create: `parqview/src/main.js`
-- Create: `parqview/src/ui/theme.js`
+- Create: `dataduck/src/main.js`
+- Create: `dataduck/src/ui/theme.js`
 
 The stub keeps the build green while we extract the legacy app.
 
 - [ ] **Step 1: Write theme.js**
 
 ```js
-const STORAGE_KEY = 'parqview-theme';
+const STORAGE_KEY = 'dataduck-theme';
 
 export function restoreTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -297,7 +297,7 @@ import('../app.js').catch((error) => console.error('Failed to load legacy app.js
 - [ ] **Step 3: Verify build**
 
 ```bash
-cd parqview && npm run build
+cd dataduck && npm run build
 ```
 
 The runtime is broken because `app.js` looks for old DOM IDs that no longer exist — that's expected. The build itself must succeed.
@@ -305,7 +305,7 @@ The runtime is broken because `app.js` looks for old DOM IDs that no longer exis
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/main.js parqview/src/ui/theme.js
+git add dataduck/src/main.js dataduck/src/ui/theme.js
 git commit -m "refactor: add src/main.js bootstrap + extract theme module"
 ```
 
@@ -318,12 +318,12 @@ Goal of phase: pull every reusable utility out of `app.js` into focused modules 
 ### Task 2.1: Extract format helpers (TDD)
 
 **Files:**
-- Create: `parqview/src/util/format.js`
-- Create: `parqview/tests/util/format.test.js`
+- Create: `dataduck/src/util/format.js`
+- Create: `dataduck/tests/util/format.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
-`parqview/tests/util/format.test.js`:
+`dataduck/tests/util/format.test.js`:
 
 ```js
 import { describe, it, expect } from 'vitest';
@@ -384,7 +384,7 @@ describe('valueToDisplay', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd parqview && npm test -- format
+cd dataduck && npm test -- format
 ```
 
 Expected: import error.
@@ -446,7 +446,7 @@ export function formatBytes(value) {
 - [ ] **Step 4: Run tests — pass**
 
 ```bash
-cd parqview && npm test -- format
+cd dataduck && npm test -- format
 ```
 
 Expected: 11 tests passed.
@@ -454,7 +454,7 @@ Expected: 11 tests passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add parqview/src/util/format.js parqview/tests/util/format.test.js
+git add dataduck/src/util/format.js dataduck/tests/util/format.test.js
 git commit -m "refactor: extract format helpers to src/util/format.js with TDD coverage"
 ```
 
@@ -463,8 +463,8 @@ git commit -m "refactor: extract format helpers to src/util/format.js with TDD c
 ### Task 2.2: Extract CSV helpers (TDD)
 
 **Files:**
-- Create: `parqview/src/util/csv.js`
-- Create: `parqview/tests/util/csv.test.js`
+- Create: `dataduck/src/util/csv.js`
+- Create: `dataduck/tests/util/csv.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -528,7 +528,7 @@ export function downloadBlob(blob, name) {
 - [ ] **Step 3: Run tests — pass**
 
 ```bash
-cd parqview && npm test -- csv
+cd dataduck && npm test -- csv
 ```
 
 Expected: 5 tests passed.
@@ -536,7 +536,7 @@ Expected: 5 tests passed.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/util/csv.js parqview/tests/util/csv.test.js
+git add dataduck/src/util/csv.js dataduck/tests/util/csv.test.js
 git commit -m "refactor: extract CSV helpers with TDD coverage"
 ```
 
@@ -545,9 +545,9 @@ git commit -m "refactor: extract CSV helpers with TDD coverage"
 ### Task 2.3: Extract trivial utilities (sql-quote, pick, arrow)
 
 **Files:**
-- Create: `parqview/src/util/sql-quote.js`
-- Create: `parqview/src/util/pick.js`
-- Create: `parqview/src/util/arrow.js`
+- Create: `dataduck/src/util/sql-quote.js`
+- Create: `dataduck/src/util/pick.js`
+- Create: `dataduck/src/util/arrow.js`
 
 These are literal ports — no behavior change, no tests required (they're trivial wrappers used by tested modules).
 
@@ -599,13 +599,13 @@ export function arrowTableToObjects(table) {
 - [ ] **Step 4: Verify build**
 
 ```bash
-cd parqview && npm run build && npm test
+cd dataduck && npm run build && npm test
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add parqview/src/util/sql-quote.js parqview/src/util/pick.js parqview/src/util/arrow.js
+git add dataduck/src/util/sql-quote.js dataduck/src/util/pick.js dataduck/src/util/arrow.js
 git commit -m "refactor: extract sql-quote, pick, arrow utilities"
 ```
 
@@ -614,8 +614,8 @@ git commit -m "refactor: extract sql-quote, pick, arrow utilities"
 ### Task 2.4: Extract DuckDB engine + toast modules
 
 **Files:**
-- Create: `parqview/src/duckdb/engine.js`
-- Create: `parqview/src/ui/toast.js`
+- Create: `dataduck/src/duckdb/engine.js`
+- Create: `dataduck/src/ui/toast.js`
 
 - [ ] **Step 1: src/duckdb/engine.js**
 
@@ -697,13 +697,13 @@ export function toErrorMessage(error) {
 - [ ] **Step 3: Verify build**
 
 ```bash
-cd parqview && npm run build
+cd dataduck && npm run build
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/duckdb/engine.js parqview/src/ui/toast.js
+git add dataduck/src/duckdb/engine.js dataduck/src/ui/toast.js
 git commit -m "refactor: extract DuckDB engine init + toast module"
 ```
 
@@ -716,8 +716,8 @@ Goal of phase: introduce sanitization, observable store, files orchestrator, and
 ### Task 3.1: Sanitize module (TDD)
 
 **Files:**
-- Create: `parqview/src/duckdb/sanitize.js`
-- Create: `parqview/tests/duckdb/sanitize.test.js`
+- Create: `dataduck/src/duckdb/sanitize.js`
+- Create: `dataduck/tests/duckdb/sanitize.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -748,7 +748,7 @@ describe('uniqueTableName', () => {
 - [ ] **Step 2: Run — fail**
 
 ```bash
-cd parqview && npm test -- sanitize
+cd dataduck && npm test -- sanitize
 ```
 
 - [ ] **Step 3: Implement src/duckdb/sanitize.js**
@@ -780,7 +780,7 @@ export function uniqueTableName(base, takenSet) {
 - [ ] **Step 4: Run — pass**
 
 ```bash
-cd parqview && npm test -- sanitize
+cd dataduck && npm test -- sanitize
 ```
 
 Expected: 13 tests passed.
@@ -788,7 +788,7 @@ Expected: 13 tests passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add parqview/src/duckdb/sanitize.js parqview/tests/duckdb/sanitize.test.js
+git add dataduck/src/duckdb/sanitize.js dataduck/tests/duckdb/sanitize.test.js
 git commit -m "feat: add sanitizeTableName + uniqueTableName"
 ```
 
@@ -797,8 +797,8 @@ git commit -m "feat: add sanitizeTableName + uniqueTableName"
 ### Task 3.2: Observable store (TDD)
 
 **Files:**
-- Create: `parqview/src/state/store.js`
-- Create: `parqview/tests/state/store.test.js`
+- Create: `dataduck/src/state/store.js`
+- Create: `dataduck/tests/state/store.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -925,7 +925,7 @@ export function createStore() {
 - [ ] **Step 3: Run — pass**
 
 ```bash
-cd parqview && npm test -- store
+cd dataduck && npm test -- store
 ```
 
 Expected: 7 tests passed.
@@ -933,7 +933,7 @@ Expected: 7 tests passed.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/state/store.js parqview/tests/state/store.test.js
+git add dataduck/src/state/store.js dataduck/tests/state/store.test.js
 git commit -m "feat: add observable store with multi-file Map state"
 ```
 
@@ -942,8 +942,8 @@ git commit -m "feat: add observable store with multi-file Map state"
 ### Task 3.3: profile.js + files.js orchestrator
 
 **Files:**
-- Create: `parqview/src/duckdb/profile.js`
-- Create: `parqview/src/duckdb/files.js`
+- Create: `dataduck/src/duckdb/profile.js`
+- Create: `dataduck/src/duckdb/files.js`
 
 - [ ] **Step 1: src/duckdb/profile.js**
 
@@ -1004,7 +1004,7 @@ export function looksLikeParquet(file) { return PARQUET_EXT.test(file.name); }
 function virtualNameFor(originalName) {
   const safe = originalName.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+/, '') || 'data.parquet';
   const id = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  return `parqview_${id}_${safe}`;
+  return `dataduck_${id}_${safe}`;
 }
 
 export async function openFileInto(store, file) {
@@ -1055,13 +1055,13 @@ async function rebindLegacyAlias(store) {
 - [ ] **Step 3: Verify build**
 
 ```bash
-cd parqview && npm run build
+cd dataduck && npm run build
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/duckdb/profile.js parqview/src/duckdb/files.js
+git add dataduck/src/duckdb/profile.js dataduck/src/duckdb/files.js
 git commit -m "feat: files.js + profile.js orchestrate multi-file open/close/switch"
 ```
 
@@ -1070,14 +1070,14 @@ git commit -m "feat: files.js + profile.js orchestrate multi-file open/close/swi
 ### Task 3.4: Cutover — replace app.js with modular wiring
 
 **Files:**
-- Replace: `parqview/src/main.js`
-- Create: `parqview/src/ui/header.js`
-- Create: `parqview/src/ui/rail.js` (stub — Phase 4 enriches)
-- Create: `parqview/src/ui/editor.js` (stub — Phase 5 enriches)
-- Create: `parqview/src/ui/result.js` (stub — Phase 6 enriches)
-- Create: `parqview/src/ui/status.js` (stub — Phase 6 enriches)
-- Create: `parqview/src/ui/empty.js` (stub — Phase 8 enriches)
-- Delete: `parqview/app.js`
+- Replace: `dataduck/src/main.js`
+- Create: `dataduck/src/ui/header.js`
+- Create: `dataduck/src/ui/rail.js` (stub — Phase 4 enriches)
+- Create: `dataduck/src/ui/editor.js` (stub — Phase 5 enriches)
+- Create: `dataduck/src/ui/result.js` (stub — Phase 6 enriches)
+- Create: `dataduck/src/ui/status.js` (stub — Phase 6 enriches)
+- Create: `dataduck/src/ui/empty.js` (stub — Phase 8 enriches)
+- Delete: `dataduck/app.js`
 
 This task is a single atomic cutover. After it: app uses the new architecture with minimal UI; subsequent phases enrich each component in place.
 
@@ -1086,8 +1086,8 @@ This task is a single atomic cutover. After it: app uses the new architecture wi
 ```js
 export function mountHeader(el, store, handlers) {
   el.innerHTML = `
-    <a class="brand" href="./" aria-label="ParqView home">
-      <span class="mark">P</span><span class="word">ParqView</span>
+    <a class="brand" href="./" aria-label="DataDuck home">
+      <span class="mark">P</span><span class="word">DataDuck</span>
     </a>
     <div class="crumb"><span class="file" id="hCrumbFile">No file</span><span class="sep" id="hCrumbSep" hidden>·</span><span id="hCrumbMeta"></span></div>
     <div class="grow"></div>
@@ -1371,13 +1371,13 @@ if ('serviceWorker' in navigator) {
 - [ ] **Step 8: Delete legacy app.js**
 
 ```bash
-git rm parqview/app.js
+git rm dataduck/app.js
 ```
 
 - [ ] **Step 9: Build, dev, smoke test**
 
 ```bash
-cd parqview && npm run build && npm run dev
+cd dataduck && npm run build && npm run dev
 ```
 
 Open the dev URL. Verify:
@@ -1388,8 +1388,8 @@ Open the dev URL. Verify:
 - [ ] **Step 10: Commit**
 
 ```bash
-git add parqview/src/main.js parqview/src/ui/header.js parqview/src/ui/rail.js parqview/src/ui/editor.js parqview/src/ui/result.js parqview/src/ui/status.js parqview/src/ui/empty.js
-git rm parqview/app.js
+git add dataduck/src/main.js dataduck/src/ui/header.js dataduck/src/ui/rail.js dataduck/src/ui/editor.js dataduck/src/ui/result.js dataduck/src/ui/status.js dataduck/src/ui/empty.js
+git rm dataduck/app.js
 git commit -m "refactor: cut over from monolithic app.js to modular src/main.js with multi-file wiring"
 ```
 
@@ -1400,10 +1400,10 @@ git commit -m "refactor: cut over from monolithic app.js to modular src/main.js 
 ### Task 4.1: SUMMARIZE-based column profiling + type icons
 
 **Files:**
-- Create: `parqview/src/duckdb/summarize.js`
-- Create: `parqview/tests/duckdb/summarize-types.test.js`
-- Modify: `parqview/src/duckdb/files.js`
-- Modify: `parqview/src/ui/rail.js`
+- Create: `dataduck/src/duckdb/summarize.js`
+- Create: `dataduck/tests/duckdb/summarize-types.test.js`
+- Modify: `dataduck/src/duckdb/files.js`
+- Modify: `dataduck/src/ui/rail.js`
 
 - [ ] **Step 1: Write the failing type-icon tests**
 
@@ -1507,14 +1507,14 @@ function pickNumber(value) {
 - [ ] **Step 3: Run — pass**
 
 ```bash
-cd parqview && npm test -- summarize-types
+cd dataduck && npm test -- summarize-types
 ```
 
 Expected: 7 passed.
 
 - [ ] **Step 4: Wire SUMMARIZE into files.js openFileInto**
 
-In `parqview/src/duckdb/files.js`, add the import:
+In `dataduck/src/duckdb/files.js`, add the import:
 
 ```js
 import { summarizeTable } from './summarize.js';
@@ -1536,7 +1536,7 @@ store.addFile(tableName, { virtualName, file, size: file.size, profile, summary 
 
 - [ ] **Step 5: Update rail.js to render type icons + bars**
 
-Replace the column-row rendering block in `parqview/src/ui/rail.js`:
+Replace the column-row rendering block in `dataduck/src/ui/rail.js`:
 
 ```js
 import { typeIcon, iconClass } from '../duckdb/summarize.js';
@@ -1567,7 +1567,7 @@ el.querySelector('#rCols').innerHTML = schema.map((row) => {
 - [ ] **Step 7: Commit**
 
 ```bash
-git add parqview/src/duckdb/summarize.js parqview/src/duckdb/files.js parqview/src/ui/rail.js parqview/tests/duckdb/summarize-types.test.js
+git add dataduck/src/duckdb/summarize.js dataduck/src/duckdb/files.js dataduck/src/ui/rail.js dataduck/tests/duckdb/summarize-types.test.js
 git commit -m "feat: SUMMARIZE-based column profiling with type icons + cardinality bars"
 ```
 
@@ -1576,8 +1576,8 @@ git commit -m "feat: SUMMARIZE-based column profiling with type icons + cardinal
 ### Task 4.2: Click-column-to-insert-SQL
 
 **Files:**
-- Modify: `parqview/src/main.js`
-- Modify: `parqview/src/ui/rail.js`
+- Modify: `dataduck/src/main.js`
+- Modify: `dataduck/src/ui/rail.js`
 
 - [ ] **Step 1: Add onColClick handler to mountRail call in main.js**
 
@@ -1611,7 +1611,7 @@ el.querySelector('#rCols').querySelectorAll('.col').forEach((row) => {
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/main.js parqview/src/ui/rail.js
+git add dataduck/src/main.js dataduck/src/ui/rail.js
 git commit -m "feat: clicking a column inserts SELECT col template into editor"
 ```
 
@@ -1622,8 +1622,8 @@ git commit -m "feat: clicking a column inserts SELECT col template into editor"
 ### Task 5.1: SQL highlighter (TDD)
 
 **Files:**
-- Create: `parqview/src/sql/highlight.js`
-- Create: `parqview/tests/sql/highlight.test.js`
+- Create: `dataduck/src/sql/highlight.js`
+- Create: `dataduck/tests/sql/highlight.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1673,14 +1673,14 @@ export function highlightSql(sql) {
 - [ ] **Step 3: Run — pass**
 
 ```bash
-cd parqview && npm test -- highlight
+cd dataduck && npm test -- highlight
 ```
 
 Expected: 5 passed.
 
 - [ ] **Step 4: Wire highlighter into editor.js**
 
-Replace `parqview/src/ui/editor.js`:
+Replace `dataduck/src/ui/editor.js`:
 
 ```js
 import { highlightSql } from '../sql/highlight.js';
@@ -1739,7 +1739,7 @@ function toggleComment(ta) {
 - [ ] **Step 6: Commit**
 
 ```bash
-git add parqview/src/sql/highlight.js parqview/src/ui/editor.js parqview/tests/sql/highlight.test.js
+git add dataduck/src/sql/highlight.js dataduck/src/ui/editor.js dataduck/tests/sql/highlight.test.js
 git commit -m "feat: DuckDB SQL highlighter + ⌘/ comment toggle"
 ```
 
@@ -1748,8 +1748,8 @@ git commit -m "feat: DuckDB SQL highlighter + ⌘/ comment toggle"
 ### Task 5.2: Sample query templates
 
 **Files:**
-- Create: `parqview/src/sql/templates.js`
-- Create: `parqview/tests/sql/templates.test.js`
+- Create: `dataduck/src/sql/templates.js`
+- Create: `dataduck/tests/sql/templates.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1759,7 +1759,7 @@ import { sampleQueries } from '../../src/sql/templates.js';
 
 describe('sampleQueries', () => {
   it('returns templates for a given table', () => {
-    const q = sampleQueries('events', 'parqview_xyz_events.parquet');
+    const q = sampleQueries('events', 'dataduck_xyz_events.parquet');
     expect(q.find((t) => t.label === 'SELECT *').sql).toContain('SELECT *');
     expect(q.find((t) => t.label === 'SELECT *').sql).toContain('events');
     expect(q.find((t) => t.label === 'DESCRIBE').sql).toBe('DESCRIBE SELECT *\nFROM events;');
@@ -1788,13 +1788,13 @@ export function sampleQueries(tableName, virtualFileName) {
 - [ ] **Step 3: Run — pass**
 
 ```bash
-cd parqview && npm test -- templates
+cd dataduck && npm test -- templates
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/sql/templates.js parqview/tests/sql/templates.test.js
+git add dataduck/src/sql/templates.js dataduck/tests/sql/templates.test.js
 git commit -m "feat: sample query templates module"
 ```
 
@@ -1805,8 +1805,8 @@ git commit -m "feat: sample query templates module"
 ### Task 6.1: Floating status pill with pagination + CSV export
 
 **Files:**
-- Modify: `parqview/src/ui/status.js`
-- Modify: `parqview/src/ui/result.js`
+- Modify: `dataduck/src/ui/status.js`
+- Modify: `dataduck/src/ui/result.js`
 
 - [ ] **Step 1: Replace status.js**
 
@@ -1840,7 +1840,7 @@ export function mountStatus(el, store) {
     if (!s.resultColumns.length) return;
     const csv = toCsv(s.resultColumns, s.resultRows);
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `parqview-${stamp}.csv`);
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `dataduck-${stamp}.csv`);
   });
 
   store.subscribe((s) => {
@@ -1895,7 +1895,7 @@ function escape(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/ui/status.js parqview/src/ui/result.js
+git add dataduck/src/ui/status.js dataduck/src/ui/result.js
 git commit -m "feat: floating status pill with pagination, timing, CSV export"
 ```
 
@@ -1906,8 +1906,8 @@ git commit -m "feat: floating status pill with pagination, timing, CSV export"
 ### Task 7.1: Palette filter + command builder (TDD)
 
 **Files:**
-- Create: `parqview/src/ui/palette-filter.js`
-- Create: `parqview/tests/ui/palette-filter.test.js`
+- Create: `dataduck/src/ui/palette-filter.js`
+- Create: `dataduck/tests/ui/palette-filter.test.js`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2000,13 +2000,13 @@ export function buildCommands(state, actions) {
 - [ ] **Step 3: Run — pass**
 
 ```bash
-cd parqview && npm test -- palette-filter
+cd dataduck && npm test -- palette-filter
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/ui/palette-filter.js parqview/tests/ui/palette-filter.test.js
+git add dataduck/src/ui/palette-filter.js dataduck/tests/ui/palette-filter.test.js
 git commit -m "feat: palette filter + command builder logic"
 ```
 
@@ -2015,8 +2015,8 @@ git commit -m "feat: palette filter + command builder logic"
 ### Task 7.2: Palette UI module
 
 **Files:**
-- Create: `parqview/src/ui/palette.js`
-- Modify: `parqview/src/main.js`
+- Create: `dataduck/src/ui/palette.js`
+- Modify: `dataduck/src/main.js`
 
 - [ ] **Step 1: src/ui/palette.js**
 
@@ -2139,7 +2139,7 @@ mountPalette(document.querySelector('#paletteScrim'), store, {
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/src/ui/palette.js parqview/src/main.js
+git add dataduck/src/ui/palette.js dataduck/src/main.js
 git commit -m "feat: ⌘K command palette modal with arrow-key navigation"
 ```
 
@@ -2150,14 +2150,14 @@ git commit -m "feat: ⌘K command palette modal with arrow-key navigation"
 ### Task 8.1: IndexedDB recents
 
 **Files:**
-- Create: `parqview/src/state/recents.js`
-- Modify: `parqview/src/duckdb/files.js`
-- Modify: `parqview/src/ui/empty.js`
+- Create: `dataduck/src/state/recents.js`
+- Modify: `dataduck/src/duckdb/files.js`
+- Modify: `dataduck/src/ui/empty.js`
 
 - [ ] **Step 1: src/state/recents.js**
 
 ```js
-const DB_NAME = 'parqview';
+const DB_NAME = 'dataduck';
 const STORE = 'recents';
 const MAX_RECENTS = 5;
 
@@ -2205,7 +2205,7 @@ export async function clearRecents() {
 
 - [ ] **Step 2: Wire into files.js**
 
-Add the import to `parqview/src/duckdb/files.js`:
+Add the import to `dataduck/src/duckdb/files.js`:
 
 ```js
 import { recordRecent } from '../state/recents.js';
@@ -2219,7 +2219,7 @@ await recordRecent({ name: file.name, size: file.size }).catch(() => {});
 
 - [ ] **Step 3: Update empty.js**
 
-Replace `parqview/src/ui/empty.js`:
+Replace `dataduck/src/ui/empty.js`:
 
 ```js
 import { listRecents, clearRecents } from '../state/recents.js';
@@ -2288,7 +2288,7 @@ Open a file, refresh, see it in the Recent list. Click Clear, list empties.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add parqview/src/state/recents.js parqview/src/duckdb/files.js parqview/src/ui/empty.js
+git add dataduck/src/state/recents.js dataduck/src/duckdb/files.js dataduck/src/ui/empty.js
 git commit -m "feat: IndexedDB-backed recent file list on empty state"
 ```
 
@@ -2299,12 +2299,12 @@ git commit -m "feat: IndexedDB-backed recent file list on empty state"
 ### Task 9.1: No-italics CI guard
 
 **Files:**
-- Create: `parqview/scripts/check-no-italics.mjs`
-- Modify: `parqview/package.json`
+- Create: `dataduck/scripts/check-no-italics.mjs`
+- Modify: `dataduck/package.json`
 
 - [ ] **Step 1: Write the guard script**
 
-`parqview/scripts/check-no-italics.mjs`:
+`dataduck/scripts/check-no-italics.mjs`:
 
 ```js
 #!/usr/bin/env node
@@ -2355,7 +2355,7 @@ console.log('No-italics check passed.');
 
 - [ ] **Step 2: Wire into npm test**
 
-Update `parqview/package.json` scripts:
+Update `dataduck/package.json` scripts:
 
 ```json
 "scripts": {
@@ -2372,7 +2372,7 @@ Update `parqview/package.json` scripts:
 - [ ] **Step 3: Run — pass**
 
 ```bash
-cd parqview && npm test
+cd dataduck && npm test
 ```
 
 Expected: vitest green + "No-italics check passed."
@@ -2380,7 +2380,7 @@ Expected: vitest green + "No-italics check passed."
 - [ ] **Step 4: Commit**
 
 ```bash
-git add parqview/scripts/check-no-italics.mjs parqview/package.json
+git add dataduck/scripts/check-no-italics.mjs dataduck/package.json
 git commit -m "chore: add CI guard preventing italic typography in source"
 ```
 
@@ -2389,12 +2389,12 @@ git commit -m "chore: add CI guard preventing italic typography in source"
 ### Task 9.2: Update README
 
 **Files:**
-- Replace: `parqview/README.md`
+- Replace: `dataduck/README.md`
 
 - [ ] **Step 1: Replace README**
 
 ```markdown
-# ParqView
+# DataDuck
 
 A local-first Parquet viewer PWA powered by DuckDB-WASM. Open multiple `.parquet` files, query with SQL (cross-file joins supported), inspect schema and column distributions, export results — all in the browser, nothing uploaded.
 
@@ -2445,7 +2445,7 @@ SELECT * FROM events JOIN orders USING (user_id);
 - [ ] **Step 2: Commit**
 
 ```bash
-git add parqview/README.md
+git add dataduck/README.md
 git commit -m "docs: update README for multi-file support, ⌘K, redesign"
 ```
 
@@ -2458,7 +2458,7 @@ git commit -m "docs: update README for multi-file support, ⌘K, redesign"
 - [ ] **Step 1: Full test suite**
 
 ```bash
-cd parqview && npm test
+cd dataduck && npm test
 ```
 
 Expected: every test green, italics guard passes.
@@ -2466,7 +2466,7 @@ Expected: every test green, italics guard passes.
 - [ ] **Step 2: Production build**
 
 ```bash
-cd parqview && npm run build
+cd dataduck && npm run build
 ```
 
 Inspect `dist/` size — should be within ~30KB of pre-redesign (DuckDB-WASM dwarfs everything).
@@ -2496,7 +2496,7 @@ Expected: nothing to commit.
 
 ## Self-review
 
-**Spec coverage** — every section in [DESIGN.md](../../../parqview/DESIGN.md) maps to a task:
+**Spec coverage** — every section in [DESIGN.md](../../../dataduck/DESIGN.md) maps to a task:
 
 - §2 design language → Task 1.2 (CSS), §2.5 no-italics → Task 9.1 (CI guard)
 - §3 layout → Task 1.3 (skeleton)

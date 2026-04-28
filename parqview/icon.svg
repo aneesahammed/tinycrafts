@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ParqView icon">
-  <rect width="512" height="512" rx="112" fill="#f5f1e8"/>
-  <rect x="84" y="84" width="344" height="344" rx="76" fill="#fffdf8" stroke="#cfc6b8" stroke-width="10"/>
-  <path d="M156 172h105c57 0 94 33 94 84s-37 83-94 83h-41v72h-64V172Zm64 132h35c31 0 50-16 50-43s-19-43-50-43h-35v86Z" fill="#173d38"/>
-  <path d="M324 292c0-47 34-82 80-82 16 0 30 4 42 12v59c-11-11-23-17-38-17-23 0-39 16-39 39 0 22 16 39 39 39 16 0 29-6 39-18v58c-13 9-28 14-46 14-45 0-77-34-77-84v-20Z" fill="#275f56" opacity="0.92"/>
-</svg>

@@ -1,4 +1,4 @@
-const DB_NAME = 'parqview';
+const DB_NAME = 'dataduck';
 const STORE = 'recents';
 const MAX_RECENTS = 5;
 
