@@ -1,7 +1,14 @@
 import { formatNumber, formatBytes } from '../util/format.js';
 import { setHtml } from '../util/dom.js';
 
+function commandShortcut() {
+  const platform = globalThis.navigator?.platform || '';
+  return /Mac|iPhone|iPad|iPod/i.test(platform) ? ['⌘', 'K'] : ['Ctrl', 'K'];
+}
+
 export function mountHeader(el, store, handlers) {
+  const [modKey, actionKey] = commandShortcut();
+  const shortcutText = `${modKey} ${actionKey}`;
   setHtml(el, `
     <a class="brand" href="./" aria-label="ParqView home">
       <span class="mark">Pq</span><span class="word">ParqView</span>
@@ -12,7 +19,13 @@ export function mountHeader(el, store, handlers) {
       <span id="hCrumbMeta"></span>
     </div>
     <div class="grow"></div>
-    <button class="kbd" id="hPalette" type="button" title="Command palette"><span>Search</span><span class="k">⌘K</span></button>
+    <button class="cmd-trigger" id="hPalette" type="button" aria-label="Open command menu" title="Open command menu (${shortcutText})">
+      <span class="cmd-trigger-icon" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="m4 7 5 5-5 5"/><path d="M12 17h8"/></svg>
+      </span>
+      <span class="cmd-trigger-label">Commands</span>
+      <span class="cmd-trigger-shortcut" aria-hidden="true"><kbd>${modKey}</kbd><kbd>${actionKey}</kbd></span>
+    </button>
     <button class="icon-btn runs-btn" id="hSnapshots" type="button" aria-label="Open query snapshots" title="Runs" hidden>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
     </button>

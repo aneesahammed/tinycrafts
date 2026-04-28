@@ -28,6 +28,24 @@ describe('header empty state', () => {
     expect(header.querySelector('.crumb').hidden).toBe(true);
   });
 
+  it('shows the command palette trigger as a command button, not a fake search field', () => {
+    const header = document.createElement('header');
+    const store = createStore();
+
+    mountHeader(header, store, {
+      onRun: vi.fn(),
+      onToggleTheme: vi.fn(),
+      onOpenPalette: vi.fn(),
+    });
+
+    const trigger = header.querySelector('#hPalette');
+    expect(trigger.classList.contains('cmd-trigger')).toBe(true);
+    expect(trigger.getAttribute('aria-label')).toBe('Open command menu');
+    expect(trigger.textContent).toContain('Commands');
+    expect(trigger.textContent).not.toContain('Search');
+    expect(trigger.querySelectorAll('kbd')).toHaveLength(2);
+  });
+
   it('shows the active file crumb after a file is opened', () => {
     const header = document.createElement('header');
     const store = createStore();
