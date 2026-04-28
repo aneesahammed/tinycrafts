@@ -94,6 +94,16 @@ export function mountEditor(el, store, handlers) {
     if (firstWord) right.textContent = firstWord;
   };
 
+  // Lock the editor when there's no active table. The Run button is already
+  // gated by store state in header.js — here we mirror that on the textarea
+  // so the surface communicates "you cannot run this yet" honestly.
+  const updateLock = (active) => {
+    const locked = !active;
+    wrap.classList.toggle('is-locked', locked);
+    ta.disabled = locked;
+    ta.setAttribute('aria-disabled', String(locked));
+  };
+
   for (const button of tabButtons) {
     button.addEventListener('click', () => selectTab(button.dataset.editorTab));
   }
@@ -144,10 +154,12 @@ export function mountEditor(el, store, handlers) {
       update();
     }
     updateTabs();
+    updateLock(s.activeTable);
   });
 
   updateTabs();
   update();
+  updateLock(store.state?.activeTable);
 
   return {
     getSql: () => ta.value,

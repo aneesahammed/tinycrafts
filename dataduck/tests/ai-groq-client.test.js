@@ -68,6 +68,30 @@ describe('Groq client', () => {
       .rejects.toMatchObject({ code: 'RATE_LIMITED', retryAfter: '7' });
   });
 
+  it('backs off and retries transient 429 responses', async () => {
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: new Headers(),
+      clone: () => ({ json: async () => ({ error: { message: 'slow down' } }) }),
+      text: async () => '',
+    };
+    const good = {
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"mode":"clarify"}' } }] }),
+    };
+    const fetchImpl = vi.fn().mockResolvedValueOnce(rateLimited).mockResolvedValueOnce(good);
+    const sleep = vi.fn(async () => {});
+
+    const result = await callGroqJson({ apiKey: 'gsk', messages: [], fetchImpl, sleep });
+
+    expect(result).toEqual({ mode: 'clarify' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(250);
+    expect(dailyRequestCount()).toBe(2);
+  });
+
   it('normalizes network failures without leaking the key', async () => {
     await expect(callGroqJson({
       apiKey: 'gsk_secret',

@@ -2,7 +2,7 @@ import { query as duckdbQuery } from '../duckdb/engine.js';
 import { buildDatasetContext } from './context.js';
 import { activeDatasetFingerprint } from './dataset-fingerprint.js';
 import { callGroqJson } from './groq-client.js';
-import { compileAnalysisPlan, PlanCompileError } from './query-compiler.js';
+import { compileParsedAnalysisPlan, PlanCompileError } from './query-compiler.js';
 import { parseAnalysisPlan, ANALYSIS_PLAN_JSON_SCHEMA } from './plan-schema.js';
 import { buildPlannerMessages } from './prompts.js';
 import { DEFAULT_GROQ_MODEL, GROQ_LIMITS } from './privacy.js';
@@ -55,7 +55,7 @@ export async function answerDataQuestion({
 
   let compiled;
   try {
-    compiled = compileAnalysisPlan(plan, context);
+    compiled = compileParsedAnalysisPlan(plan, context);
   } catch (error) {
     if (error instanceof PlanCompileError && error.code === 'CLARIFY') {
       return systemAnswer({

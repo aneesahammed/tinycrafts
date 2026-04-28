@@ -13,6 +13,10 @@ export class PlanCompileError extends Error {
 
 export function compileAnalysisPlan(rawPlan, context) {
   const plan = parseAnalysisPlan(rawPlan);
+  return compileParsedAnalysisPlan(plan, context);
+}
+
+export function compileParsedAnalysisPlan(plan, context) {
   if (plan.mode !== 'analysis') {
     return {
       mode: plan.mode,

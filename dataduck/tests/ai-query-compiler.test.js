@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { compileAnalysisPlan, escapeLike, PlanCompileError } from '../src/ai/query-compiler.js';
+import {
+  compileAnalysisPlan,
+  compileParsedAnalysisPlan,
+  escapeLike,
+  PlanCompileError,
+} from '../src/ai/query-compiler.js';
 
 const context = {
   hasDataset: true,
@@ -35,6 +40,13 @@ describe('AI query compiler', () => {
     expect(compiled.sql).toContain('GROUP BY "product"');
     expect(compiled.sql).toContain('ORDER BY "units" DESC');
     expect(compiled.sql).toContain('LIMIT 5;');
+  });
+
+  it('compiles an already-validated plan without requiring another parse pass', () => {
+    const compiled = compileParsedAnalysisPlan(basePlan(), context);
+
+    expect(compiled.sql).toContain('FROM active_file');
+    expect(compiled.title).toBe('Top products');
   });
 
   it('escapes contains wildcards', () => {

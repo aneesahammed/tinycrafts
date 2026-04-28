@@ -3,6 +3,9 @@ import { DEFAULT_GROQ_MODEL, GROQ_DAILY_REQUEST_KEY, GROQ_LIMITS } from './priva
 
 const GROQ_CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const STRICT_STRUCTURED_MODELS = new Set(['openai/gpt-oss-20b', 'openai/gpt-oss-120b']);
+const RATE_LIMIT_RETRY_LIMIT = 2;
+const RATE_LIMIT_BACKOFF_MS = 250;
+const MAX_RATE_LIMIT_RETRY_AFTER_MS = 2_000;
 
 export class GroqError extends Error {
   constructor(message, details = {}) {
@@ -20,6 +23,7 @@ export async function callGroqJson({
   maxCompletionTokens = GROQ_LIMITS.maxCompletionTokens,
   abortSignal = null,
   fetchImpl = fetch,
+  sleep = delay,
 } = {}) {
   if (!String(apiKey || '').trim()) {
     throw new GroqError('Groq API key is missing. Add it in Ask DataDuck settings.', { code: 'MISSING_KEY' });
@@ -29,14 +33,13 @@ export async function callGroqJson({
   body.response_format = responseFormatForModel(model, jsonSchema);
 
   try {
-    incrementDailyRequestCount();
-    const response = await postGroq({ body, apiKey, abortSignal, fetchImpl });
+    const response = await postGroqWithRetry({ body, apiKey, abortSignal, fetchImpl, sleep });
     return parseGroqJsonContent(response);
   } catch (error) {
     if (shouldRetryWithJsonObject(error, body.response_format)) {
       const fallbackBody = baseRequestBody({ model, messages, maxCompletionTokens });
       fallbackBody.response_format = { type: 'json_object' };
-      const response = await postGroq({ body: fallbackBody, apiKey, abortSignal, fetchImpl });
+      const response = await postGroqWithRetry({ body: fallbackBody, apiKey, abortSignal, fetchImpl, sleep });
       return parseGroqJsonContent(response);
     }
     throw normalizeGroqError(error);
@@ -50,16 +53,17 @@ export async function callGroqText({
   maxCompletionTokens = GROQ_LIMITS.maxCompletionTokens,
   abortSignal = null,
   fetchImpl = fetch,
+  sleep = delay,
 } = {}) {
   if (!String(apiKey || '').trim()) {
     throw new GroqError('Groq API key is missing. Add it in Ask DataDuck settings.', { code: 'MISSING_KEY' });
   }
-  incrementDailyRequestCount();
-  const response = await postGroq({
+  const response = await postGroqWithRetry({
     body: baseRequestBody({ model, messages, maxCompletionTokens }),
     apiKey,
     abortSignal,
     fetchImpl,
+    sleep,
   });
   return parseGroqTextContent(response);
 }
@@ -134,6 +138,19 @@ async function postGroq({ body, apiKey, abortSignal, fetchImpl }) {
   return response;
 }
 
+async function postGroqWithRetry({ body, apiKey, abortSignal, fetchImpl, sleep }) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      incrementDailyRequestCount();
+      return await postGroq({ body, apiKey, abortSignal, fetchImpl });
+    } catch (error) {
+      const retryDelay = rateLimitRetryDelayMs(error, attempt);
+      if (retryDelay == null) throw error;
+      await sleep(retryDelay);
+    }
+  }
+}
+
 async function buildProviderError(response) {
   let message = '';
   try {
@@ -180,6 +197,25 @@ function shouldRetryWithJsonObject(error, responseFormat) {
   return error?.status === 400 && responseFormat?.type === 'json_schema';
 }
 
+function rateLimitRetryDelayMs(error, attempt) {
+  if (error?.code !== 'RATE_LIMITED') return null;
+  if (attempt >= RATE_LIMIT_RETRY_LIMIT) return null;
+  const retryAfterMs = parseRetryAfterMs(error.retryAfter);
+  const retryDelay = retryAfterMs ?? RATE_LIMIT_BACKOFF_MS * (2 ** attempt);
+  if (retryDelay > MAX_RATE_LIMIT_RETRY_AFTER_MS) return null;
+  return retryDelay;
+}
+
+function parseRetryAfterMs(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const seconds = Number(text);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000);
+  const dateMs = Date.parse(text);
+  if (!Number.isFinite(dateMs)) return null;
+  return Math.max(0, dateMs - Date.now());
+}
+
 function normalizeGroqError(error) {
   if (error instanceof GroqError || error?.name === 'AbortError') return error;
   return new GroqError(error?.message || 'Groq request failed.', { code: 'UNKNOWN', cause: error });
@@ -191,4 +227,8 @@ function safeLocalStorage() {
   } catch {
     return null;
   }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
