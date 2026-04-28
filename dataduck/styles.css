@@ -698,14 +698,24 @@ body.is-resizing-rail .stage { transition: none; }
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
-.assistant-popover-check {
+.assistant-popover label.assistant-popover-check {
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   font-size: 12px;
   color: var(--ink-2);
+  cursor: pointer;
 }
-.assistant-popover-check input { accent-color: var(--accent); }
+.assistant-popover label.assistant-popover-check input {
+  accent-color: var(--accent);
+  margin: 0;
+  flex-shrink: 0;
+}
+.assistant-popover label.assistant-popover-check span {
+  line-height: 1.4;
+}
 .assistant-muted {
   font-size: 11px;
   color: var(--ink-3);

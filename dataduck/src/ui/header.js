@@ -37,7 +37,7 @@ export function mountHeader(el, store, handlers) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
     </button>
     <button class="icon-btn ask-btn" id="hAssistant" type="button" aria-label="Ask DataDuck" title="Ask DataDuck">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M18.36 5.64l-2.12 2.12"/><path d="M21 12h-3"/><path d="M5.64 5.64l2.12 2.12"/><path d="M3 12h3"/><path d="M8 16a5 5 0 0 1 8 0"/><path d="M9 21h6"/><path d="M10 18h4"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.6 10.4 L22 12 L13.6 13.6 L12 22 L10.4 13.6 L2 12 L10.4 10.4 Z"/></svg>
     </button>
     <button class="icon-btn" id="hTheme" type="button" aria-label="Toggle theme" title="Toggle theme">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>

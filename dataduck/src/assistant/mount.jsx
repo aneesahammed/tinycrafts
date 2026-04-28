@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { ensureRightPanel, openRightPanel } from '../ui/right-panel.js';
+import { closeRightPanel, ensureRightPanel, openRightPanel } from '../ui/right-panel.js';
 import { AssistantApp } from './AssistantApp.jsx';
 
 export function mountAiAssistant(stage, store, options = {}) {
@@ -17,6 +17,7 @@ export function mountAiAssistant(stage, store, options = {}) {
         queryFn={options.query}
         setSql={options.setSql}
         showToast={options.showToast}
+        onClose={close}
       />,
     );
   }
@@ -24,6 +25,15 @@ export function mountAiAssistant(stage, store, options = {}) {
   function open() {
     host = openRightPanel(stage, store, { type: 'assistant' });
     render();
+  }
+
+  function close() {
+    closeRightPanel(stage, store);
+  }
+
+  function toggle() {
+    if (store?.state?.rightPanel?.type === 'assistant') close();
+    else open();
   }
 
   const unsubscribe = store.subscribe((state) => {
@@ -38,6 +48,8 @@ export function mountAiAssistant(stage, store, options = {}) {
 
   return {
     open,
+    close,
+    toggle,
     destroy() {
       unsubscribe?.();
       root?.unmount();

@@ -38,7 +38,7 @@ describe('assistant analysis rendering', () => {
     );
 
     act(() => {
-      container.querySelector('.assistant-aggregate > button').click();
+      container.querySelector('.analysis-aggregate-trigger').click();
     });
 
     expect(container.textContent).toContain('row-0');

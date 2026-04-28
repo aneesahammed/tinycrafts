@@ -10,5 +10,5 @@ export const GROQ_LIMITS = {
   dailyRequestWarning: 50,
 };
 
-export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b';
+export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
 export const GROQ_DAILY_REQUEST_KEY = 'dataduck:groq-daily-requests';

@@ -55,7 +55,7 @@ mountHeader(head, store, {
   onToggleTheme: () => toggleTheme(),
   onOpenPalette: () => store.setPaletteOpen(true),
   onOpenSnapshots: toggleSnapshotsPanel,
-  onOpenAssistant: () => assistant.open(),
+  onOpenAssistant: () => assistant.toggle(),
 });
 
 const editor = mountEditor(work, store, { onRun: runActiveQuery });

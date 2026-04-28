@@ -15,7 +15,7 @@ const SUGGESTIONS = [
   'Which columns have the most nulls?',
 ];
 
-export function AssistantApp({ store, queryFn, setSql, showToast }) {
+export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
   const state = useStoreState(store);
   const [settings, setSettings] = useState(() => readSettings());
   const [threads, setThreads] = useState([]);
@@ -213,7 +213,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
               type="button"
               className="assistant-icon-btn"
               aria-label="Close panel"
-              onClick={() => store.setRightPanel?.(null)}
+              onClick={() => onClose?.()}
               title="Close"
             >
               <Icon name="close" />
@@ -461,6 +461,8 @@ function useStoreState(store) {
   return store.state;
 }
 
+const LEGACY_DEFAULT_MODELS = new Set(['openai/gpt-oss-20b']);
+
 function readSettings() {
   let stored = {};
   try {
@@ -468,9 +470,11 @@ function readSettings() {
   } catch {
     stored = {};
   }
+  const storedModel = stored.model;
+  const model = !storedModel || LEGACY_DEFAULT_MODELS.has(storedModel) ? DEFAULT_GROQ_MODEL : storedModel;
   return {
     apiKey: '',
-    model: stored.model || DEFAULT_GROQ_MODEL,
+    model,
     rememberKey: Boolean(stored.rememberKey),
   };
 }

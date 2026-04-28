@@ -40,4 +40,27 @@ describe('assistant mount', () => {
 
     assistant.destroy();
   });
+
+  it('closes the shared right panel host when toggled off', () => {
+    const stage = document.createElement('div');
+    stage.className = 'stage';
+    const store = createStore();
+
+    const assistant = mountAiAssistant(stage, store, {
+      query: vi.fn(),
+      setSql: vi.fn(),
+      showToast: vi.fn(),
+    });
+
+    assistant.open();
+    assistant.close();
+
+    const host = stage.querySelector('.right-panel');
+    expect(store.state.rightPanel).toBeNull();
+    expect(stage.dataset.rightOpen).toBeUndefined();
+    expect(host.hidden).toBe(true);
+    expect(host.classList.contains('assistant-host')).toBe(false);
+
+    assistant.destroy();
+  });
 });
