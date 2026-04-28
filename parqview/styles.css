@@ -309,8 +309,8 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 12px;
-  height: 18px;
+  width: 9px;
+  height: 16px;
   border: 1px solid var(--line-strong);
   border-radius: 3px;
   background: var(--surface-2);
@@ -321,15 +321,18 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 .rail-resizer::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 11px;
+  transform: translate(-50%, -50%);
   background:
-    radial-gradient(circle at 4px 5px, var(--ink-2) 1.2px, transparent 1.35px),
-    radial-gradient(circle at 8px 5px, var(--ink-2) 1.2px, transparent 1.35px),
-    radial-gradient(circle at 4px 9px, var(--ink-2) 1.2px, transparent 1.35px),
-    radial-gradient(circle at 8px 9px, var(--ink-2) 1.2px, transparent 1.35px),
-    radial-gradient(circle at 4px 13px, var(--ink-2) 1.2px, transparent 1.35px),
-    radial-gradient(circle at 8px 13px, var(--ink-2) 1.2px, transparent 1.35px);
+    radial-gradient(circle at 1px 1px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 5px 1px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 1px 5.5px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 5px 5.5px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 1px 10px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 5px 10px, var(--ink-2) 1px, transparent 1.15px);
   pointer-events: none;
 }
 .rail-resizer:hover,
