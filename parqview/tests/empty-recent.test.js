@@ -39,4 +39,20 @@ describe('empty recent files', () => {
 
     expect(onOpenRecent).toHaveBeenCalledWith('cur.parquet');
   });
+
+  it('describes the empty state as a local data-file picker', async () => {
+    const host = document.createElement('main');
+    listRecents.mockResolvedValueOnce([]);
+
+    mountEmpty(host, createStore(), {
+      onPickFiles: vi.fn(),
+      onOpenRecent: vi.fn(),
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(host.textContent).toContain('Open a local data file');
+    expect(host.textContent).toContain('Parquet and CSV supported');
+    expect(host.textContent).not.toContain('Open a .parquet file');
+  });
 });

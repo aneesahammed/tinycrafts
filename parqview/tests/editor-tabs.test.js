@@ -16,6 +16,14 @@ function createStore(state) {
 }
 
 describe('editor helper tabs', () => {
+  it('uses the generic active_file alias before a file is opened', () => {
+    const work = document.createElement('main');
+    const store = createStore({ activeTable: null, files: new Map(), isBusy: false });
+    const editor = mountEditor(work, store, { onRun: vi.fn() });
+
+    expect(editor.getSql()).toBe('SELECT *\nFROM active_file\nLIMIT 500;');
+  });
+
   it('offers schema and sample tabs for the active table', () => {
     const work = document.createElement('main');
     const store = createStore({ activeTable: 'lab', files: new Map([['lab', {}]]), isBusy: false });

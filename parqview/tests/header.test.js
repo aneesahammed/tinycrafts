@@ -73,4 +73,32 @@ describe('header empty state', () => {
     expect(header.querySelector('#hCrumbFile').textContent).toBe('cur');
     expect(header.textContent).toContain('42 rows');
   });
+
+  it('uses normalized row counts when parquet metadata is unavailable', () => {
+    const header = document.createElement('header');
+    const store = createStore();
+
+    mountHeader(header, store, {
+      onRun: vi.fn(),
+      onToggleTheme: vi.fn(),
+      onOpenPalette: vi.fn(),
+    });
+    store.emit({
+      activeTable: 'sales',
+      files: new Map([
+        [
+          'sales',
+          {
+            size: 2048,
+            format: 'csv',
+            profile: { rowCount: 17, schema: [{ name: 'id' }, { name: 'name' }] },
+          },
+        ],
+      ]),
+      isBusy: false,
+    });
+
+    expect(header.textContent).toContain('17 rows');
+    expect(header.textContent).toContain('2 cols');
+  });
 });

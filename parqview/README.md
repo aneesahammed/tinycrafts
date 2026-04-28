@@ -1,13 +1,13 @@
 # ParqView
 
-A minimal local-first Parquet viewer PWA powered by DuckDB-WASM.
+A minimal local-first Parquet and CSV viewer PWA powered by DuckDB-WASM.
 
 ## What it does
 
-- Opens local `.parquet` and `.parq` files
+- Opens local `.parquet`, `.parq`, and `.csv` files
 - Registers the file with DuckDB-WASM in the browser
-- Creates a virtual table named `parquet_file`
-- Shows file facts, schema, metadata, row groups, and preview rows
+- Creates virtual tables named after each file, plus `active_file` and legacy `parquet_file` aliases
+- Shows file facts, schema, Parquet metadata where available, and query results
 - Runs SQL queries against the file
 - Exports the current result set to CSV
 - Works as an installable PWA after the first successful load
@@ -77,7 +77,7 @@ That builds ParqView and publishes the generated `dist/` contents into `parqview
 
 ```sql
 SELECT *
-FROM parquet_file
+FROM active_file
 LIMIT 500;
 ```
 
@@ -85,12 +85,14 @@ Useful queries:
 
 ```sql
 DESCRIBE SELECT *
-FROM parquet_file;
+FROM active_file;
 ```
 
 ```sql
-SUMMARIZE parquet_file;
+SUMMARIZE active_file;
 ```
+
+Parquet-only metadata queries:
 
 ```sql
 SELECT *
@@ -103,10 +105,11 @@ FROM parquet_metadata('your_registered_file.parquet')
 LIMIT 100;
 ```
 
-Use the Sample button after opening a file to insert these queries with the correct registered filename.
+The legacy `parquet_file` alias still follows the active file for existing queries. CSV files use DuckDB's auto-detected reader by default. If DuckDB cannot read an inferred CSV type, reopen the file as text columns from the recovery toast.
 
 ## Notes
 
 - Browser memory is still the hard limit. Keep preview queries limited for large files.
+- CSV files over 50 MB open without eager column statistics; run `SUMMARIZE` manually when needed.
 - The dependency uses DuckDB-WASM `1.30.0` exactly to avoid pulling unexpected dev or compromised versions.
 - Vite `8.0.10` requires Node.js `20.19.0` or newer.

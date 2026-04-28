@@ -1,6 +1,8 @@
 import { typeIcon, iconClass } from '../duckdb/summarize.js';
 import { abbreviateCount } from '../util/format.js';
 import { setHtml, esc } from '../util/dom.js';
+import { formatById } from '../duckdb/formats.js';
+import { rowCountFromProfile, rowCountFromSummary } from '../duckdb/profile-row-count.js';
 
 export function mountRail(el, store, handlers) {
   setHtml(el, `
@@ -47,7 +49,7 @@ function render(el, s, handlers, filterText) {
   for (const [name, rec] of s.files.entries()) {
     const row = document.createElement('div');
     row.className = `file${name === s.activeTable ? ' active' : ''}`;
-    const rows = rec.profile?.fileMeta?.num_rows;
+    const rows = rowCountFromProfile(rec.profile);
     const rowsAbbrev = rows != null ? abbreviateCount(Number(rows)) : '';
     setHtml(row, `
       <span class="dot"></span>
@@ -81,9 +83,7 @@ function render(el, s, handlers, filterText) {
 
   const schema = active.profile?.schema || [];
   const summary = active.summary || new Map();
-  const totalRows = active.profile?.fileMeta?.num_rows
-    ? Number(active.profile.fileMeta.num_rows)
-    : Math.max(1, ...[...summary.values()].map((v) => v.rowCount ?? 0));
+  const totalRows = rowCountFromProfile(active.profile) ?? rowCountFromSummary(summary) ?? 0;
 
   const visible = schema.filter((row) => {
     if (!filterText) return true;
@@ -119,10 +119,14 @@ function render(el, s, handlers, filterText) {
     });
   });
 
-  const codec = (active.profile?.codecs || []).map((c) => c.compression).filter(Boolean).join(', ');
+  const format = formatById(active.format || active.profile?.format);
+  const codec = format?.hasParquetMetadata
+    ? (active.profile?.codecs || []).map((c) => c.compression).filter(Boolean).join(', ')
+    : '';
   setHtml(metaEl, `
+    ${format ? `<div class="meta-row"><span>Format</span><b>${esc(format.label)}</b></div>` : ''}
     ${codec ? `<div class="meta-row"><span>Compression</span><b>${esc(codec)}</b></div>` : ''}
-    ${active.profile?.rowGroups?.length ? `<div class="meta-row"><span>Row groups</span><b>${active.profile.rowGroups.length}</b></div>` : ''}
-    ${active.profile?.fileMeta?.created_by ? `<div class="meta-row"><span>Created by</span><b>${esc(String(active.profile.fileMeta.created_by))}</b></div>` : ''}
+    ${format?.hasParquetMetadata && active.profile?.rowGroups?.length ? `<div class="meta-row"><span>Row groups</span><b>${active.profile.rowGroups.length}</b></div>` : ''}
+    ${format?.hasParquetMetadata && active.profile?.fileMeta?.created_by ? `<div class="meta-row"><span>Created by</span><b>${esc(String(active.profile.fileMeta.created_by))}</b></div>` : ''}
   `);
 }

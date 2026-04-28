@@ -64,4 +64,42 @@ describe('rail column profiling handoff', () => {
       totalRows: 100,
     });
   });
+
+  it('renders CSV format metadata and row counts without parquet-only fields', () => {
+    const rail = document.createElement('aside');
+    const store = createStore({
+      activeTable: 'sales',
+      files: new Map([
+        [
+          'sales',
+          {
+            format: 'csv',
+            profile: {
+              rowCount: 17,
+              schema: [{ column_name: 'name', column_type: 'VARCHAR' }],
+              codecs: [{ compression: 'SNAPPY' }],
+              rowGroups: [{ row_group_id: 0 }],
+              fileMeta: { created_by: 'parquet-writer' },
+            },
+            summary: new Map([['name', { rowCount: 17, distinct: 3 }]]),
+          },
+        ],
+      ]),
+    });
+
+    mountRail(rail, store, {
+      onPickFiles: vi.fn(),
+      onClose: vi.fn(),
+      onSwitch: vi.fn(),
+      onColClick: vi.fn(),
+    });
+    store.emit();
+
+    expect(rail.querySelector('.file .rows').textContent).toBe('17');
+    expect(rail.textContent).toContain('Format');
+    expect(rail.textContent).toContain('CSV');
+    expect(rail.textContent).not.toContain('Compression');
+    expect(rail.textContent).not.toContain('Row groups');
+    expect(rail.textContent).not.toContain('Created by');
+  });
 });

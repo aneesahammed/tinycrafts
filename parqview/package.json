@@ -2,7 +2,7 @@
   "name": "parqview",
   "version": "0.1.0",
   "private": true,
-  "description": "A local-first Parquet viewer PWA powered by DuckDB-WASM.",
+  "description": "A local-first Parquet and CSV viewer PWA powered by DuckDB-WASM.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

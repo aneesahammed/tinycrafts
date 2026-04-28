@@ -65,14 +65,14 @@ export function mountEmpty(el, store, handlers) {
 
     setHtml(empty, `
       <div class="hero">
-        <h1>Open a .parquet file</h1>
+        <h1>Open a local data file</h1>
         <p>Files stay in your browser. Nothing is uploaded — DuckDB-WASM does the work locally.</p>
         <button class="drop" type="button" id="emptyDrop">
           <div class="icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </div>
           <div class="label">Drop files here, or click to browse</div>
-          <div class="hint">Multiple files supported</div>
+          <div class="hint">Parquet and CSV supported</div>
         </button>
         ${recentBlock}
         <p class="footnote">Local-first · works offline · install as a PWA</p>

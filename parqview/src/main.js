@@ -1,7 +1,13 @@
 import { restoreTheme, toggleTheme } from './ui/theme.js';
 import { createStore } from './state/store.js';
 import { getEngine, query } from './duckdb/engine.js';
-import { openFileInto, closeFile, setActiveFile, looksLikeParquet } from './duckdb/files.js';
+import { openFileInto, closeFile, setActiveFile, isSupportedFile } from './duckdb/files.js';
+import {
+  csvAutoDetectionFailed,
+  detectFileFormat,
+  unsupportedFilesMessage,
+  unsupportedFileTypeMessage,
+} from './duckdb/formats.js';
 import { showToast, toErrorMessage } from './ui/toast.js';
 import { mountHeader } from './ui/header.js';
 import { mountRail } from './ui/rail.js';
@@ -105,19 +111,30 @@ listQuerySnapshots()
     showToast(`Query snapshots are session-only: ${toErrorMessage(error)}`, 'error');
   });
 
-async function openFiles(files) {
-  for (const file of files) {
-    if (!/\.(parquet|parq)$/i.test(file.name)) continue;
+async function openFiles(files, options = {}) {
+  const selected = Array.from(files || []);
+  const supported = selected.filter(isSupportedFile);
+  const unsupportedCount = selected.length - supported.length;
+
+  if (!supported.length) {
+    if (selected.length) showToast(unsupportedFileTypeMessage(), 'error');
+    return;
+  }
+
+  for (const file of supported) {
     store.setBusy(true, `Opening ${file.name}`);
     try {
-      const table = await openFileInto(store, file);
-      editor.setSql(`SELECT *\nFROM ${table}\nLIMIT 500;`);
+      const { tableName, warnings } = await openFileInto(store, file, options);
+      editor.setSql(`SELECT *\nFROM ${tableName}\nLIMIT 500;`);
+      for (const warning of warnings || []) showToast(warning);
     } catch (error) {
-      showToast(toErrorMessage(error), 'error');
+      if (!showCsvRecoveryToast(error, file, options)) showToast(toErrorMessage(error), 'error');
     } finally {
       store.setBusy(false);
     }
   }
+
+  if (unsupportedCount) showToast(unsupportedFilesMessage(unsupportedCount), 'error');
 }
 
 async function openRecentFile(name) {
@@ -177,7 +194,7 @@ window.addEventListener('keydown', (event) => {
 
 window.addEventListener('drop', async (event) => {
   event.preventDefault();
-  const files = Array.from(event.dataTransfer?.files || []).filter(looksLikeParquet);
+  const files = Array.from(event.dataTransfer?.files || []);
   await openFiles(files);
 });
 
@@ -201,9 +218,34 @@ async function runActiveQuery() {
     });
     captureQuerySnapshot({ sql, result, elapsedMs });
   } catch (error) {
-    showToast(toErrorMessage(error), 'error');
+    const active = store.state.activeTable;
+    const record = active ? store.state.files.get(active) : null;
+    if (!showCsvRecoveryToast(error, record?.file, { csvMode: record?.csvMode }, active)) {
+      showToast(toErrorMessage(error), 'error');
+    }
   } finally {
     store.setBusy(false);
+  }
+}
+
+function showCsvRecoveryToast(error, file, options = {}, replaceTable = null) {
+  if (!file || options.csvMode === 'text') return false;
+  if (detectFileFormat(file)?.id !== 'csv') return false;
+  if (!csvAutoDetectionFailed(error)) return false;
+
+  showToast('CSV auto-detection could not read this file.', 'error', {
+    label: 'Open as text',
+    run: () => reopenCsvAsText(file, replaceTable),
+  });
+  return true;
+}
+
+async function reopenCsvAsText(file, replaceTable = null) {
+  try {
+    if (replaceTable && store.state.files.has(replaceTable)) await closeFile(store, replaceTable);
+    await openFiles([file], { csvMode: 'text' });
+  } catch (error) {
+    showToast(toErrorMessage(error), 'error');
   }
 }
 

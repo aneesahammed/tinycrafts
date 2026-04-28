@@ -1,7 +1,7 @@
 import { highlightSql } from '../sql/highlight.js';
 import { setHtml, spinner } from '../util/dom.js';
 
-const DEFAULT_SQL = `SELECT *\nFROM parquet_file\nLIMIT 500;`;
+const DEFAULT_SQL = `SELECT *\nFROM active_file\nLIMIT 500;`;
 
 export function mountEditor(el, store, handlers) {
   const wrap = document.createElement('div');

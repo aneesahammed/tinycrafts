@@ -1,10 +1,11 @@
-const PARQUET_EXT = /\.(parquet|parq)$/i;
+import { stripSupportedExtension } from './formats.js';
+
 const INVALID = /[^a-z0-9_]+/g;
 const COLLAPSE = /_+/g;
 const TRIM = /^_+|_+$/g;
 
 export function sanitizeTableName(filename) {
-  const stem = String(filename).replace(PARQUET_EXT, '');
+  const stem = stripSupportedExtension(String(filename));
   const lowered = stem.toLowerCase();
   const replaced = lowered.replace(INVALID, '_');
   const collapsed = replaced.replace(COLLAPSE, '_').replace(TRIM, '');

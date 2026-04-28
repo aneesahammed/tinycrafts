@@ -1,5 +1,6 @@
 import { formatNumber, formatBytes } from '../util/format.js';
 import { setHtml } from '../util/dom.js';
+import { rowCountFromProfile } from '../duckdb/profile-row-count.js';
 
 function commandShortcut() {
   const platform = globalThis.navigator?.platform || '';
@@ -50,7 +51,7 @@ export function mountHeader(el, store, handlers) {
       sep.hidden = false;
       const rec = s.files.get(s.activeTable);
       const cols = rec?.profile?.schema?.length ?? 0;
-      const rowsRaw = rec?.profile?.fileMeta?.num_rows;
+      const rowsRaw = rowCountFromProfile(rec?.profile);
       const rowsText = rowsRaw != null ? `${formatNumber(rowsRaw)} rows · ` : '';
       const sizeText = rec?.size ? ` · ${formatBytes(rec.size)}` : '';
       meta.textContent = `${rowsText}${cols} cols${sizeText}`;

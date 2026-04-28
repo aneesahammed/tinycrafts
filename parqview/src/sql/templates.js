@@ -1,11 +1,16 @@
 import { quoteString } from '../util/sql-quote.js';
+import { formatById } from '../duckdb/formats.js';
 
-export function sampleQueries(tableName, virtualFileName) {
+export function sampleQueries(tableName, virtualFileName, formatId = 'parquet') {
   const file = quoteString(virtualFileName);
-  return [
+  const queries = [
     { label: 'SELECT *', sql: `SELECT *\nFROM ${tableName}\nLIMIT 500;` },
     { label: 'DESCRIBE', sql: `DESCRIBE SELECT *\nFROM ${tableName};` },
     { label: 'SUMMARIZE', sql: `SUMMARIZE ${tableName};` },
+  ];
+  if (!formatById(formatId)?.hasParquetMetadata) return queries;
+  return [
+    ...queries,
     { label: 'parquet_file_metadata', sql: `SELECT *\nFROM parquet_file_metadata(${file});` },
     {
       label: 'parquet_metadata',

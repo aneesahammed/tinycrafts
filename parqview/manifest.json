@@ -1,7 +1,7 @@
 {
   "name": "ParqView",
   "short_name": "ParqView",
-  "description": "Open, inspect, query, and export Parquet files locally in the browser.",
+  "description": "Open, inspect, query, and export Parquet and CSV files locally in the browser.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
