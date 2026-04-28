@@ -61,6 +61,7 @@ assertHasAsset('dataduck/assets', /worker.*\.js$/);
 
 assertDataDuckHtml();
 assertDataDuckManifest();
+assertDataDuckServiceWorkerRegistration();
 assertNoMacMetadata(pagesDir);
 
 if (failures.length > 0) {
@@ -136,6 +137,23 @@ function assertDataDuckManifest() {
     if (!iconPath || !existsSync(join(pagesDir, 'dataduck', iconPath))) {
       failures.push(`Manifest references missing icon: ${icon.src}`);
     }
+  }
+}
+
+function assertDataDuckServiceWorkerRegistration() {
+  const assetsDir = join(pagesDir, 'dataduck/assets');
+  if (!existsSync(assetsDir)) return;
+
+  const jsSources = readdirSync(assetsDir)
+    .filter((entry) => entry.endsWith('.js'))
+    .map((entry) => readFileSync(join(assetsDir, entry), 'utf8'));
+
+  if (jsSources.some((source) => source.includes('data:text/javascript'))) {
+    failures.push('DataDuck bundle should not inline the service worker as a data URL');
+  }
+
+  if (!jsSources.some((source) => source.includes('./sw.js'))) {
+    failures.push('DataDuck bundle should register the root service-worker script');
   }
 }
 

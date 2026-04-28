@@ -62,4 +62,19 @@ describe('service-worker setup', () => {
 
     expect(register).toHaveBeenCalledWith('/sw.js', { scope: './' });
   });
+
+  it('registers the root service-worker script by default in production', async () => {
+    const register = vi.fn(() => Promise.resolve());
+
+    await setupServiceWorker({
+      isDev: false,
+      navigatorRef: {
+        serviceWorker: {
+          register,
+        },
+      },
+    });
+
+    expect(register).toHaveBeenCalledWith('./sw.js', { scope: './' });
+  });
 });

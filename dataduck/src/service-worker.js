@@ -2,7 +2,7 @@ export async function setupServiceWorker({
   isDev = import.meta.env.DEV,
   navigatorRef = navigator,
   locationRef = globalThis.location,
-  serviceWorkerUrl = new URL('../sw.js', import.meta.url),
+  serviceWorkerUrl = './sw.js',
 } = {}) {
   const serviceWorker = navigatorRef?.serviceWorker;
   if (!serviceWorker) return;
