@@ -7,16 +7,40 @@ export function mountPalette(scrim, store, actions) {
   let commands = [];
   let filtered = [];
   let queryString = '';
+  let mounted = false;
+  let lastCommandKey = '';
 
-  function rebuild() {
-    commands = buildCommands(store.state, actions);
-    filtered = filterCommands(commands, queryString);
-    selected = 0;
-    render();
+  function buildShell() {
+    setHtml(root, `
+      <div class="p-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+        <input placeholder="Run command, jump to file…" />
+        <span class="badge">⌘K</span>
+      </div>
+      <div class="p-list"></div>
+      <div class="p-foot">
+        <span class="hint"><span>↑</span><span>↓</span> navigate</span>
+        <span class="hint"><span>↩</span> select</span>
+        <span class="hint"><span>esc</span> close</span>
+        <span class="grow"></span>
+        <span class="p-count"></span>
+      </div>
+    `);
+    const input = root.querySelector('input');
+    input.addEventListener('input', () => {
+      queryString = input.value;
+      filtered = filterCommands(commands, queryString);
+      selected = 0;
+      renderList();
+      const list = root.querySelector('.p-list');
+      if (list) list.scrollTop = 0;
+    });
+    mounted = true;
   }
 
-  function render() {
-    selected = Math.min(selected, Math.max(0, filtered.length - 1));
+  function renderList() {
+    const listEl = root.querySelector('.p-list');
+    if (!listEl) return;
     const groups = new Map();
     for (let i = 0; i < filtered.length; i += 1) {
       const c = filtered[i];
@@ -46,41 +70,62 @@ export function mountPalette(scrim, store, actions) {
     `,
       )
       .join('');
-
-    setHtml(root, `
-      <div class="p-search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
-        <input value="${esc(queryString)}" placeholder="Run command, jump to file…" />
-        <span class="badge">⌘K</span>
-      </div>
-      ${groupHtml}
-      <div class="p-foot">
-        <span class="hint"><span>↑</span><span>↓</span> navigate</span>
-        <span class="hint"><span>↩</span> select</span>
-        <span class="hint"><span>esc</span> close</span>
-        <span class="grow"></span>
-        <span>${filtered.length} result${filtered.length === 1 ? '' : 's'}</span>
-      </div>
-    `);
-    const input = root.querySelector('input');
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-    input.addEventListener('input', () => {
-      queryString = input.value;
-      filtered = filterCommands(commands, queryString);
-      selected = 0;
-      render();
+    setHtml(listEl, groupHtml);
+    listEl.querySelectorAll('.p-row').forEach((rowEl) => {
+      const idx = Number(rowEl.dataset.idx);
+      rowEl.addEventListener('mouseenter', () => updateSelection(idx, { scroll: false }));
+      rowEl.addEventListener('click', () => runCommand(filtered[idx]));
     });
-    root.querySelectorAll('.p-row').forEach((rowEl) => {
-      rowEl.addEventListener('mouseenter', () => {
-        selected = Number(rowEl.dataset.idx);
-        render();
-      });
-      rowEl.addEventListener('click', () => exec(filtered[Number(rowEl.dataset.idx)]));
-    });
+    const count = root.querySelector('.p-count');
+    if (count) count.textContent = `${filtered.length} result${filtered.length === 1 ? '' : 's'}`;
   }
 
-  function exec(cmd) {
+  function updateSelection(nextIdx, { scroll = false } = {}) {
+    if (!filtered.length) return;
+    const clamped = Math.max(0, Math.min(filtered.length - 1, nextIdx));
+    if (clamped === selected) return;
+    const oldRow = root.querySelector(`.p-row[data-idx="${selected}"]`);
+    if (oldRow) oldRow.classList.remove('on');
+    const newRow = root.querySelector(`.p-row[data-idx="${clamped}"]`);
+    if (newRow) newRow.classList.add('on');
+    selected = clamped;
+    if (scroll && newRow) newRow.scrollIntoView({ block: 'nearest' });
+  }
+
+  function commandsKey(list) {
+    return list.map((c) => c.id || `${c.group}::${c.title}::${c.sub || ''}`).join('|');
+  }
+
+  function rebuild() {
+    if (!mounted) buildShell();
+    commands = buildCommands(store.state, actions);
+    lastCommandKey = commandsKey(commands);
+    filtered = filterCommands(commands, queryString);
+    selected = 0;
+
+    const input = root.querySelector('input');
+    if (input) {
+      input.value = queryString;
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+    renderList();
+    const list = root.querySelector('.p-list');
+    if (list) list.scrollTop = 0;
+  }
+
+  function refreshCommandsIfChanged() {
+    const next = buildCommands(store.state, actions);
+    const nextKey = commandsKey(next);
+    if (nextKey === lastCommandKey) return;
+    commands = next;
+    lastCommandKey = nextKey;
+    filtered = filterCommands(commands, queryString);
+    selected = Math.min(selected, Math.max(0, filtered.length - 1));
+    renderList();
+  }
+
+  function runCommand(cmd) {
     if (!cmd) return;
     cmd.run();
     store.setPaletteOpen(false);
@@ -93,23 +138,30 @@ export function mountPalette(scrim, store, actions) {
       store.setPaletteOpen(false);
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
-      selected = Math.min(filtered.length - 1, selected + 1);
-      render();
+      updateSelection(selected + 1, { scroll: true });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      selected = Math.max(0, selected - 1);
-      render();
+      updateSelection(selected - 1, { scroll: true });
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      exec(filtered[selected]);
+      runCommand(filtered[selected]);
     }
   }
   window.addEventListener('keydown', onKey);
 
+  let wasOpen = false;
   store.subscribe((s) => {
-    scrim.hidden = !s.paletteOpen;
-    if (s.paletteOpen) rebuild();
-    else queryString = '';
+    const open = !!s.paletteOpen;
+    scrim.hidden = !open;
+    if (open && !wasOpen) {
+      rebuild();
+    } else if (!open && wasOpen) {
+      queryString = '';
+      mounted = false;
+    } else if (open) {
+      refreshCommandsIfChanged();
+    }
+    wasOpen = open;
   });
   scrim.addEventListener('click', (e) => {
     if (e.target === scrim) store.setPaletteOpen(false);
