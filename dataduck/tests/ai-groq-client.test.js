@@ -44,6 +44,39 @@ describe('Groq client', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it('surfaces 401 and 429 provider diagnostics', async () => {
+    const unauthorized = {
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      headers: new Headers(),
+      clone: () => ({ json: async () => ({ error: { message: 'bad key' } }) }),
+      text: async () => '',
+    };
+    await expect(callGroqJson({ apiKey: 'bad', messages: [], fetchImpl: vi.fn().mockResolvedValue(unauthorized) }))
+      .rejects.toMatchObject({ code: 'UNAUTHORIZED', status: 401 });
+
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: new Headers({ 'retry-after': '7' }),
+      clone: () => ({ json: async () => ({ error: { message: 'slow down' } }) }),
+      text: async () => '',
+    };
+    await expect(callGroqJson({ apiKey: 'gsk', messages: [], fetchImpl: vi.fn().mockResolvedValue(rateLimited) }))
+      .rejects.toMatchObject({ code: 'RATE_LIMITED', retryAfter: '7' });
+  });
+
+  it('normalizes network failures without leaking the key', async () => {
+    await expect(callGroqJson({
+      apiKey: 'gsk_secret',
+      messages: [],
+      fetchImpl: vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    })).rejects.toMatchObject({ code: 'NETWORK' });
+    expect(JSON.stringify(localStorage)).not.toContain('gsk_secret');
+  });
+
   it('tracks daily request counts without secrets', () => {
     expect(dailyRequestCount()).toBe(0);
   });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { activeDatasetFingerprint } from '../ai/dataset-fingerprint.js';
 import { answerDataQuestion } from '../ai/analyst.js';
 import { DEFAULT_GROQ_MODEL, GROQ_LIMITS } from '../ai/privacy.js';
@@ -16,6 +16,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [input, setInput] = useState('');
   const [running, setRunning] = useState(false);
+  const requestRef = useRef({ id: 0, controller: null });
 
   const currentFingerprint = activeDatasetFingerprint(state);
   const activeThread = threads.find((thread) => thread.id === activeThreadId) || threads[0] || null;
@@ -35,6 +36,11 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
     };
   }, []);
 
+  useEffect(() => () => {
+    requestRef.current.controller?.abort();
+    requestRef.current = { id: requestRef.current.id + 1, controller: null };
+  }, []);
+
   useEffect(() => {
     writeSettings(settings);
   }, [settings.model, settings.rememberKey]);
@@ -46,6 +52,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
   }
 
   async function startThread() {
+    cancelActiveRequest();
     const thread = createThread({
       title: 'New analysis',
       datasetFingerprint: currentFingerprint,
@@ -55,6 +62,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
   }
 
   async function removeThread(id) {
+    cancelActiveRequest();
     await deleteThread(id).catch(() => undefined);
     const next = threads.filter((thread) => thread.id !== id);
     setThreads(next);
@@ -74,19 +82,19 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
       return;
     }
 
-    const baseThread = activeThread || createThread({ datasetFingerprint: currentFingerprint, tableLabel: state.activeTable });
-    const userMessage = makeMessage('user', question);
-    const pendingThread = {
-      ...baseThread,
-      title: baseThread.messages.length ? baseThread.title : titleFromQuestion(question),
-      datasetFingerprint: baseThread.datasetFingerprint || currentFingerprint,
-      tableLabel: baseThread.tableLabel || state.activeTable,
-      messages: [...baseThread.messages, userMessage],
-      updatedAt: Date.now(),
-    };
+    const pendingThread = prepareQuestionThread({
+      activeThread,
+      currentFingerprint,
+      activeTable: state.activeTable,
+      question,
+    });
     setInput('');
     await persistThread(pendingThread);
     setRunning(true);
+    const controller = new AbortController();
+    const requestId = requestRef.current.id + 1;
+    requestRef.current = { id: requestId, controller };
+    const isCurrentRequest = () => requestRef.current.id === requestId && !controller.signal.aborted;
     try {
       const answer = await answerDataQuestion({
         question,
@@ -94,21 +102,34 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
         getStoreState: () => store.state,
         settings,
         queryFn,
+        abortSignal: controller.signal,
       });
+      if (!isCurrentRequest()) return;
       await persistThread({
         ...pendingThread,
         messages: [...pendingThread.messages, makeMessage('assistant', answer.text, answer.analysis)],
         updatedAt: Date.now(),
       });
     } catch (error) {
+      if (controller.signal.aborted || error?.name === 'AbortError') return;
+      if (!isCurrentRequest()) return;
       await persistThread({
         ...pendingThread,
         messages: [...pendingThread.messages, makeMessage('assistant', error?.message || 'Analysis failed.')],
         updatedAt: Date.now(),
       });
     } finally {
-      setRunning(false);
+      if (requestRef.current.id === requestId) {
+        requestRef.current = { id: requestId, controller: null };
+        setRunning(false);
+      }
     }
+  }
+
+  function cancelActiveRequest() {
+    requestRef.current.controller?.abort();
+    requestRef.current = { id: requestRef.current.id + 1, controller: null };
+    setRunning(false);
   }
 
   const runtimeSettings = useMemo(() => settings, [settings.apiKey, settings.model]);
@@ -128,7 +149,10 @@ export function AssistantApp({ store, queryFn, setSql, showToast }) {
                 type="button"
                 key={thread.id}
                 className={thread.id === activeThreadId ? 'is-active' : ''}
-                onClick={() => setActiveThreadId(thread.id)}
+                onClick={() => {
+                  cancelActiveRequest();
+                  setActiveThreadId(thread.id);
+                }}
               >
                 <span>{thread.title}</span>
                 <small>{thread.tableLabel || 'DataDuck'}</small>
@@ -212,8 +236,9 @@ function AssistantSettings({ settings, setSettings }) {
           </label>
           <label className="assistant-check">
             <input type="checkbox" checked={settings.rememberKey && supported} disabled={!supported} onChange={(event) => updateRemember(event.target.checked)} />
-            Remember key with encrypted browser storage
+            Remember key on this browser
           </label>
+          <p className="assistant-muted">Stored locally with WebCrypto/IndexedDB. This is not protection against same-origin script compromise.</p>
         </div>
       ) : null}
     </div>
@@ -257,13 +282,41 @@ async function maybeLoadRememberedKey() {
   return loadGroqKey().catch(() => '');
 }
 
-function makeMessage(role, text, analysis = null) {
+export function prepareQuestionThread({
+  activeThread = null,
+  currentFingerprint = null,
+  activeTable = null,
+  question = '',
+  now = () => Date.now(),
+  randomUUID = () => crypto?.randomUUID?.(),
+} = {}) {
+  const useExisting = activeThread && !threadIsHistorical(activeThread, currentFingerprint);
+  const baseThread = useExisting
+    ? activeThread
+    : createThread({
+        datasetFingerprint: currentFingerprint,
+        tableLabel: activeTable,
+        now,
+        randomUUID,
+      });
+  const userMessage = makeMessage('user', question, null, { now, randomUUID });
   return {
-    id: crypto?.randomUUID?.() || `msg_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    ...baseThread,
+    title: baseThread.messages.length ? baseThread.title : titleFromQuestion(question),
+    datasetFingerprint: useExisting ? baseThread.datasetFingerprint || currentFingerprint : currentFingerprint,
+    tableLabel: useExisting ? baseThread.tableLabel || activeTable : activeTable,
+    messages: [...(useExisting ? baseThread.messages : []), userMessage],
+    updatedAt: now(),
+  };
+}
+
+function makeMessage(role, text, analysis = null, { now = () => Date.now(), randomUUID = () => crypto?.randomUUID?.() } = {}) {
+  return {
+    id: randomUUID?.() || `msg_${now()}_${Math.random().toString(16).slice(2)}`,
     role,
     text,
     analysis,
-    createdAt: Date.now(),
+    createdAt: now(),
   };
 }
 

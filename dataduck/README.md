@@ -119,7 +119,7 @@ Privacy defaults:
 - Prompt context contains schema/profile metadata only.
 - Text, blob, list, and struct min/max values are redacted because they can contain real data.
 - Optional aggregate summaries require an explicit confirmation and send only the capped aggregate result preview shown in the assistant.
-- Groq API keys are never stored in localStorage. If "remember key" is enabled, the key is encrypted with WebCrypto and stored in IndexedDB.
+- Groq API keys are never stored in localStorage. "Remember key" is off by default; when enabled, the key is stored only in this browser using WebCrypto and IndexedDB. This protects against casual storage inspection, not same-origin script compromise.
 
 Limitations in v1:
 

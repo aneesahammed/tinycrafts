@@ -1,4 +1,5 @@
 export function buildPlannerMessages({ question, context }) {
+  const dataset = promptDatasetContext(context);
   return [
     {
       role: 'system',
@@ -16,8 +17,29 @@ export function buildPlannerMessages({ question, context }) {
       role: 'user',
       content: JSON.stringify({
         question,
-        dataset: context,
+        dataset,
       }),
     },
   ];
+}
+
+export function promptDatasetContext(context = {}) {
+  return {
+    hasDataset: Boolean(context.hasDataset),
+    table: 'active_file',
+    summaryStatus: context.summaryStatus || 'missing',
+    columns: (context.columns || []).map((column) => {
+      const safe = {
+        name: String(column.name || ''),
+        type: String(column.type || ''),
+        rowCount: column.rowCount ?? null,
+        nullCount: column.nullCount ?? null,
+        nullPercentage: column.nullPercentage ?? null,
+        distinct: column.distinct ?? null,
+      };
+      if (Object.prototype.hasOwnProperty.call(column, 'min')) safe.min = column.min;
+      if (Object.prototype.hasOwnProperty.call(column, 'max')) safe.max = column.max;
+      return safe;
+    }),
+  };
 }

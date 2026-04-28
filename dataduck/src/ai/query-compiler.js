@@ -1,4 +1,4 @@
-import { isNumericSqlType, isTemporalSqlType } from '../duckdb/sql-types.js';
+import { isNumericSqlType, isTemporalSqlType, normalizeSqlType } from '../duckdb/sql-types.js';
 import { quoteIdentifier, quoteString } from '../util/sql-quote.js';
 import { columnMap } from './context.js';
 import { parseAnalysisPlan } from './plan-schema.js';
@@ -104,6 +104,7 @@ function metricExpression(metric, columns) {
 function compileFilters(filters, columns) {
   return (filters || []).map((filter) => {
     const column = requireColumn(columns, filter.column);
+    validateFilter(filter, column);
     const id = quoteIdentifier(column.name);
     if (filter.op === 'is_null') return `${id} IS NULL`;
     if (filter.op === 'is_not_null') return `${id} IS NOT NULL`;
@@ -124,6 +125,73 @@ function compileFilters(filters, columns) {
     }
     return `${id} ${filter.op} ${literal(filter.value)}`;
   }).filter(Boolean).join(' AND ');
+}
+
+function validateFilter(filter, column) {
+  if (filter.op === 'is_null' || filter.op === 'is_not_null') return;
+  if (filter.op === 'contains') {
+    if (filter.value == null || Array.isArray(filter.value)) {
+      throw filterTypeError(column, 'contains needs a non-null scalar value');
+    }
+    return;
+  }
+  if (filter.op === 'between') {
+    if (!Array.isArray(filter.value) || filter.value.length !== 2) {
+      throw new PlanCompileError(`Between filter for "${column.name}" needs exactly two values.`);
+    }
+    for (const value of filter.value) validateScalarFilterValue(column, value, filter.op);
+    return;
+  }
+  if (filter.op === 'in') {
+    if (!Array.isArray(filter.value) || !filter.value.length) {
+      throw new PlanCompileError(`In filter for "${column.name}" needs at least one value.`);
+    }
+    for (const value of filter.value) validateScalarFilterValue(column, value, filter.op);
+    return;
+  }
+  if (Array.isArray(filter.value)) throw filterTypeError(column, `${filter.op} needs a scalar value`);
+  validateScalarFilterValue(column, filter.value, filter.op);
+}
+
+function validateScalarFilterValue(column, value, op) {
+  if (value == null) throw filterTypeError(column, 'use is_null or is_not_null for null checks');
+  if (isNumericSqlType(column.type)) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) throw filterTypeError(column, 'expected a finite number');
+    return;
+  }
+  if (isTemporalSqlType(column.type)) {
+    if (typeof value !== 'string' || !looksTemporalLiteral(value)) {
+      throw filterTypeError(column, 'expected an ISO date or timestamp string');
+    }
+    return;
+  }
+  if (isBooleanSqlType(column.type)) {
+    if (op !== '=' && op !== '!=' && op !== 'in') throw filterTypeError(column, 'booleans only support equality filters');
+    if (typeof value !== 'boolean') throw filterTypeError(column, 'expected a boolean');
+    return;
+  }
+  if (isTextSqlType(column.type)) {
+    if (op !== '=' && op !== '!=' && op !== 'in') throw filterTypeError(column, 'text columns only support equality, in, and contains filters');
+    if (typeof value !== 'string') throw filterTypeError(column, 'expected a string');
+    return;
+  }
+  throw filterTypeError(column, `unsupported filter type ${column.type || 'unknown'}`);
+}
+
+function filterTypeError(column, reason) {
+  return new PlanCompileError(`Filter for "${column.name}" is invalid: ${reason}.`, 'CLARIFY');
+}
+
+function isBooleanSqlType(sqlType) {
+  return normalizeSqlType(sqlType) === 'BOOLEAN' || normalizeSqlType(sqlType) === 'BOOL';
+}
+
+function isTextSqlType(sqlType) {
+  return /^(?:VARCHAR|CHAR|TEXT|STRING|UUID|ENUM)(?:\(|$)/i.test(normalizeSqlType(sqlType));
+}
+
+function looksTemporalLiteral(value) {
+  return /^\d{4}-\d{2}-\d{2}(?:[T\s]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(value.trim());
 }
 
 function compileOrderBy(plan, aliases) {

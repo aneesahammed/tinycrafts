@@ -362,6 +362,8 @@ Unchanged behavior. Service worker continues to cache the shell + DuckDB-WASM as
 
 Ask DataDuck is the only React island in the app. The rest of DataDuck remains vanilla modules. The assistant mounts into the existing right-panel host, so it shares Escape handling, docked/mobile layout, and panel replacement semantics with column profiles and query snapshots.
 
+Groq BYOK keys are session-only unless the user explicitly chooses "Remember key on this browser". Remembered keys use WebCrypto and IndexedDB browser storage, but this is not a server-grade secret boundary and does not protect against same-origin script compromise.
+
 AI requests are plan-first, not SQL-first:
 
 1. Build a redacted schema/profile context for the active file.

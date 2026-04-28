@@ -61,4 +61,19 @@ describe('AI query compiler', () => {
     }), context);
     expect(compiled.sql).toContain('SUM(CAST("units" AS DOUBLE) * CAST("price" AS DOUBLE)) AS "revenue"');
   });
+
+  it('rejects filters whose literal types do not match the column type', () => {
+    expect(() => compileAnalysisPlan(basePlan({
+      filters: [{ column: 'units', op: '>', value: 'ten' }],
+    }), context)).toThrow(PlanCompileError);
+    expect(() => compileAnalysisPlan(basePlan({
+      filters: [{ column: 'product', op: '>', value: 'A' }],
+    }), context)).toThrow(PlanCompileError);
+    expect(() => compileAnalysisPlan(basePlan({
+      filters: [{ column: 'created_at', op: 'between', value: [1, 2] }],
+    }), context)).toThrow(PlanCompileError);
+    expect(() => compileAnalysisPlan(basePlan({
+      filters: [{ column: 'product', op: 'contains', value: null }],
+    }), context)).toThrow(PlanCompileError);
+  });
 });

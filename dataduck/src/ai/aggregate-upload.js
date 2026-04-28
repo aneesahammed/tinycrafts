@@ -30,7 +30,13 @@ export function sanitizeAggregatePayload({ columns = [], rows = [] }, limits = A
 }
 
 export async function summarizeAggregateWithGroq({ apiKey, model, question, analysis, fetchImpl, abortSignal }) {
-  const payload = sanitizeAggregatePayload({ columns: analysis.columns, rows: analysis.rows });
+  const request = buildAggregateSummaryRequest({
+    question,
+    title: analysis.title,
+    columns: analysis.columns,
+    rows: analysis.rows,
+  });
+  const payload = request.aggregatePayload;
   const text = await callGroqText({
     apiKey,
     model,
@@ -44,11 +50,7 @@ export async function summarizeAggregateWithGroq({ apiKey, model, question, anal
       },
       {
         role: 'user',
-        content: JSON.stringify({
-          question,
-          title: analysis.title,
-          aggregatePayload: payload,
-        }),
+        content: JSON.stringify(request),
       },
     ],
   });
@@ -57,4 +59,50 @@ export async function summarizeAggregateWithGroq({ apiKey, model, question, anal
     payload,
     sentAt: new Date().toISOString(),
   };
+}
+
+export function buildAggregateSummaryRequest(
+  { question = '', title = '', columns = [], rows = [] },
+  limits = AGGREGATE_UPLOAD_LIMITS,
+) {
+  const payload = sanitizeAggregatePayload({ columns, rows }, limits);
+  const request = {
+    question: trimText(question, limits.maxCellChars),
+    title: trimText(title, 120),
+    aggregatePayload: payload,
+  };
+  trimSerializedRequest(request, limits.maxPayloadChars);
+  return request;
+}
+
+function trimSerializedRequest(request, maxChars) {
+  while (JSON.stringify(request).length > maxChars) {
+    request.aggregatePayload.truncated = true;
+    if (request.aggregatePayload.rows.length) {
+      request.aggregatePayload.rows.pop();
+      continue;
+    }
+    if (request.aggregatePayload.columns.length) {
+      const removed = request.aggregatePayload.columns.pop();
+      for (const row of request.aggregatePayload.rows) delete row[removed];
+      continue;
+    }
+    if (request.question.length) {
+      request.question = trimText(request.question, Math.max(0, Math.floor(request.question.length / 2)));
+      continue;
+    }
+    if (request.title.length) {
+      request.title = trimText(request.title, Math.max(0, Math.floor(request.title.length / 2)));
+      continue;
+    }
+    break;
+  }
+}
+
+function trimText(value, maxChars) {
+  const text = String(value || '');
+  if (maxChars <= 0) return '';
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 3) return text.slice(0, maxChars);
+  return `${text.slice(0, Math.max(0, maxChars - 3))}...`;
 }

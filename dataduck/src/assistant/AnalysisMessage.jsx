@@ -56,7 +56,7 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
         {previewOpen ? (
           <div className="assistant-preview">
             <p>Preview: {preview.rows.length} rows, {preview.columns.length} columns{preview.truncated ? ' (truncated)' : ''}.</p>
-            <TablePreview columns={preview.columns} rows={preview.rows} maxRows={5} />
+            <TablePreview columns={preview.columns} rows={preview.rows} maxRows={preview.rows.length} />
             <button type="button" disabled={busy || !settings.apiKey} onClick={sendAggregate}>
               {busy ? 'Sending aggregate rows' : 'Confirm and send aggregate rows'}
             </button>

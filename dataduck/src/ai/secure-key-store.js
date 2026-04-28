@@ -4,6 +4,8 @@ const STORE = 'secrets';
 const KEY_ID = 'aes-key';
 const GROQ_KEY_ID = 'groq-api-key';
 
+// Browser-local persistence only. The AES key lives in the same origin store, so this
+// avoids localStorage/plaintext exposure but is not an XSS or compromised-origin boundary.
 export function secureKeyStoreSupported(env = globalThis) {
   return Boolean(
     env.indexedDB &&
