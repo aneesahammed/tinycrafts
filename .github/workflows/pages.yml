@@ -6,7 +6,7 @@ on:
       - pages
     paths:
       - '.github/workflows/pages.yml'
-      - 'parqview/**'
+      - 'dataduck/**'
       - 'scripts/build-pages.mjs'
       - 'scripts/verify-pages-build.mjs'
   workflow_dispatch:
@@ -36,11 +36,11 @@ jobs:
         with:
           node-version: 20.19.0
           cache: npm
-          cache-dependency-path: parqview/package-lock.json
+          cache-dependency-path: dataduck/package-lock.json
 
-      - name: Install ParqView dependencies
+      - name: Install DataDuck dependencies
         run: npm ci
-        working-directory: parqview
+        working-directory: dataduck
 
       - name: Build Pages artifact
         run: node scripts/build-pages.mjs
