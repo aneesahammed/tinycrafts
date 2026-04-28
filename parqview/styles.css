@@ -1089,30 +1089,80 @@ body.is-resizing-rail .stage { transition: none; }
 }
 .palette-scrim[hidden] { display: none; }
 
-/* Toast */
+/* Toast — minimal status surface.
+   Severity is signaled by a left rail + indicator dot, NOT by recoloring
+   the body text. Body always renders in --ink so the message is readable. */
 .toast {
   position: fixed; right: 16px; bottom: 60px; z-index: 200;
-  max-width: min(26rem, calc(100vw - 32px));
-  padding: 10px 14px;
-  border: 1px solid var(--line); border-radius: var(--r-md);
-  background: var(--surface); color: var(--ink);
-  box-shadow: var(--shadow-modal);
-  transform: translateY(8px); opacity: 0; pointer-events: none;
-  transition: opacity 180ms, transform 180ms;
+  max-width: min(28rem, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 10px 13px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.4;
+  box-shadow: 0 6px 22px -8px rgba(0, 0, 0, 0.16);
+  transform: translateY(10px) scale(0.985); opacity: 0; pointer-events: none;
+  transition:
+    opacity 200ms ease,
+    transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.toast.show { transform: translateY(0); opacity: 1; }
-.toast.error {
-  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
-  color: var(--danger);
+.toast.show { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+
+.toast-indicator {
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  background: var(--ink-2);
+  align-self: center;
 }
+.toast-body {
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.toast.error { border-left-color: var(--danger); }
+.toast.error .toast-indicator {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+.toast.error .toast-body { color: var(--ink); }
+
+.toast-close {
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: var(--r-sm);
+  color: var(--ink-3);
+  font-size: 16px; line-height: 1;
+  transition: background-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.toast-close:hover { background: var(--surface-2); color: var(--ink); }
+.toast-close:active { transform: scale(0.92); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: none !important; }
+  .toast-close { transition: none !important; }
+}
+
 .toast-action {
-  margin-left: 8px;
-  padding: 2px 7px;
-  border-radius: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
   background: var(--ink);
   color: var(--bg);
+  font-family: var(--mono);
   font-size: 11px;
+  letter-spacing: 0.02em;
+  transition: background-color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+.toast-action:hover { background: var(--ink-2); }
+.toast-action:active { transform: scale(0.96); }
 
 /* iOS-style segmented activity spinner */
 .spin {
