@@ -119,14 +119,16 @@ function render(el, s, handlers, filterText) {
     });
   });
 
-  const format = formatById(active.format || active.profile?.format);
+  const format = formatById(active.format);
   const codec = format?.hasParquetMetadata
     ? (active.profile?.codecs || []).map((c) => c.compression).filter(Boolean).join(', ')
     : '';
   setHtml(metaEl, `
     ${format ? `<div class="meta-row"><span>Format</span><b>${esc(format.label)}</b></div>` : ''}
+    ${active.summaryStatus === 'deferred' ? '<button class="meta-action" id="rSummarize" type="button">Summarize now</button>' : ''}
     ${codec ? `<div class="meta-row"><span>Compression</span><b>${esc(codec)}</b></div>` : ''}
     ${format?.hasParquetMetadata && active.profile?.rowGroups?.length ? `<div class="meta-row"><span>Row groups</span><b>${active.profile.rowGroups.length}</b></div>` : ''}
     ${format?.hasParquetMetadata && active.profile?.fileMeta?.created_by ? `<div class="meta-row"><span>Created by</span><b>${esc(String(active.profile.fileMeta.created_by))}</b></div>` : ''}
   `);
+  metaEl.querySelector('#rSummarize')?.addEventListener('click', () => handlers.onSummarize?.(s.activeTable));
 }

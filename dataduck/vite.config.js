@@ -50,6 +50,9 @@ function pinPwaLinks(html) {
 export default defineConfig({
   base: './',
   plugins: [copyRootStaticAssets(), preserveRootPwaLinks()],
+  server: {
+    forwardConsole: false,
+  },
   build: {
     sourcemap: true,
     target: 'es2022',

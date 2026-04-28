@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerFile, unregisterFile, query, tryQuery } from '../src/duckdb/engine.js';
-import { openFileInto } from '../src/duckdb/files.js';
+import { closeFile, openFileInto } from '../src/duckdb/files.js';
 import { createStore } from '../src/state/store.js';
+import { recordRecent } from '../src/state/recents.js';
 
 vi.mock('../src/duckdb/engine.js', () => ({
   registerFile: vi.fn(),
@@ -38,6 +39,14 @@ function summarizeRows() {
   };
 }
 
+function mockSuccessfulCsvOpen() {
+  query.mockResolvedValueOnce({ rows: [] }); // create source view
+  query.mockResolvedValueOnce(describeRows());
+  query.mockResolvedValueOnce(summarizeRows());
+  query.mockResolvedValueOnce({ rows: [] }); // active_file alias
+  query.mockResolvedValueOnce({ rows: [] }); // parquet_file alias
+}
+
 describe('opening local files into DuckDB', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,25 +56,59 @@ describe('opening local files into DuckDB', () => {
   });
 
   it('opens CSV files through read_csv_auto and binds active aliases', async () => {
-    query.mockResolvedValueOnce({ rows: [] }); // create source view
-    query.mockResolvedValueOnce(describeRows());
-    query.mockResolvedValueOnce(summarizeRows());
-    query.mockResolvedValueOnce({ rows: [] }); // active_file alias
-    query.mockResolvedValueOnce({ rows: [] }); // parquet_file alias
+    mockSuccessfulCsvOpen();
 
     const store = createStore();
     const result = await openFileInto(store, csvFile());
+    const record = store.state.files.get('sales');
 
     expect(result.tableName).toBe('sales');
     expect(result.warnings).toEqual([]);
-    expect(store.state.files.get('sales')).toMatchObject({
+    expect(record).toMatchObject({
       format: 'csv',
       summaryStatus: 'ready',
       profile: { rowCount: 2 },
     });
+    expect(record.profile.format).toBeUndefined();
     expect(query).toHaveBeenCalledWith(expect.stringContaining("read_csv_auto('"));
     expect(query).toHaveBeenCalledWith('CREATE OR REPLACE VIEW active_file AS SELECT * FROM "sales";');
     expect(query).toHaveBeenCalledWith('CREATE OR REPLACE VIEW parquet_file AS SELECT * FROM "sales";');
+    expect(recordRecent).toHaveBeenCalledWith({
+      name: 'sales.csv',
+      size: 100,
+      file: expect.any(File),
+      format: 'csv',
+      csvMode: 'auto',
+    });
+  });
+
+  it('reserves active alias names when deriving table names from files', async () => {
+    mockSuccessfulCsvOpen();
+
+    const store = createStore();
+    const result = await openFileInto(store, csvFile('active_file.csv'));
+
+    expect(result.tableName).toBe('active_file_1');
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('CREATE OR REPLACE VIEW "active_file_1"'));
+    expect(query).toHaveBeenCalledWith('CREATE OR REPLACE VIEW active_file AS SELECT * FROM "active_file_1";');
+  });
+
+  it('drops both active aliases when the last file closes', async () => {
+    mockSuccessfulCsvOpen();
+
+    const store = createStore();
+    await openFileInto(store, csvFile());
+    query.mockClear();
+    query.mockResolvedValue({ rows: [] });
+    unregisterFile.mockClear();
+
+    await closeFile(store, 'sales');
+
+    expect(query).toHaveBeenCalledWith('DROP VIEW IF EXISTS "sales";');
+    expect(query).toHaveBeenCalledWith('DROP VIEW IF EXISTS active_file;');
+    expect(query).toHaveBeenCalledWith('DROP VIEW IF EXISTS parquet_file;');
+    expect(unregisterFile).toHaveBeenCalledTimes(1);
+    expect(store.state.activeTable).toBeNull();
   });
 
   it('keeps parquet files on read_parquet with metadata profiling', async () => {

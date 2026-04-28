@@ -31,4 +31,20 @@ describe('store query snapshot state', () => {
     store.setRightPanel(null);
     expect(store.state.rightPanel).toBeNull();
   });
+
+  it('patches file records without replacing the full files map', () => {
+    const store = createStore();
+    const states = [];
+    store.subscribe((state) => states.push(state.files.get('sales')));
+
+    store.addFile('sales', { format: 'csv', summaryStatus: 'deferred' });
+    store.updateFile('sales', { summaryStatus: 'ready', summary: new Map() });
+
+    expect(store.state.files.get('sales')).toMatchObject({
+      format: 'csv',
+      summaryStatus: 'ready',
+      summary: expect.any(Map),
+    });
+    expect(states).toHaveLength(2);
+  });
 });

@@ -1,6 +1,5 @@
 import { tryQuery, query } from './engine.js';
 import { quoteString, quoteIdentifier } from '../util/sql-quote.js';
-import { rowCountFromProfile } from './profile-row-count.js';
 
 export async function profileFile(virtualName, tableName, format) {
   const filePath = quoteString(virtualName);
@@ -35,12 +34,10 @@ export async function profileFile(virtualName, tableName, format) {
     ]);
   }
 
-  const profile = {
-    format: format?.id || 'unknown',
+  return {
     schema: schema.rows,
     fileMeta: fileMeta.rows[0] || null,
     codecs: codecs.rows,
     rowGroups: rowGroups.rows,
   };
-  return { ...profile, rowCount: rowCountFromProfile(profile) };
 }

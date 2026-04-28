@@ -3,12 +3,14 @@ import { createStore } from './state/store.js';
 import { getEngine, query } from './duckdb/engine.js';
 import { openFileInto, closeFile, setActiveFile, isSupportedFile } from './duckdb/files.js';
 import {
-  csvAutoDetectionFailed,
-  detectFileFormat,
+  applyAcceptExtensions,
   unsupportedFilesMessage,
   unsupportedFileTypeMessage,
 } from './duckdb/formats.js';
+import { summarizeTable } from './duckdb/summarize.js';
+import { withNormalizedRowCount } from './duckdb/profile-row-count.js';
 import { showToast, toErrorMessage } from './ui/toast.js';
+import { showCsvRecoveryToast } from './ui/csv-recovery.js';
 import { mountHeader } from './ui/header.js';
 import { mountRail } from './ui/rail.js';
 import { mountEditor } from './ui/editor.js';
@@ -16,11 +18,12 @@ import { mountResult } from './ui/result.js';
 import { mountStatus } from './ui/status.js';
 import { mountEmpty } from './ui/empty.js';
 import { mountPalette } from './ui/palette.js';
-import { getRecentFile } from './state/recents.js';
+import { getRecentFileRecord } from './state/recents.js';
 import { mountProfiler } from './ui/profiler.js';
 import { profileColumn } from './duckdb/column-profile.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
 import { setupRailResize } from './ui/rail-resizer.js';
+import { setupServiceWorker } from './service-worker.js';
 import {
   clearQuerySnapshots,
   createQuerySnapshot,
@@ -43,6 +46,8 @@ const stage = document.querySelector('#stage');
 const work = document.querySelector('#work');
 const fileInput = document.querySelector('#fileInput');
 const paletteScrim = document.querySelector('#paletteScrim');
+
+applyAcceptExtensions(fileInput);
 
 mountHeader(head, store, {
   onRun: () => runActiveQuery(),
@@ -70,6 +75,7 @@ mountRail(rail, store, {
   onClose: (table) => closeFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
   onSwitch: (table) => setActiveFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
   onColClick: (payload) => profiler.open(payload),
+  onSummarize: (table) => summarizeOpenFile(table),
 });
 
 setupRailResize(stage, document.querySelector('#railResizer'));
@@ -128,7 +134,9 @@ async function openFiles(files, options = {}) {
       editor.setSql(`SELECT *\nFROM ${tableName}\nLIMIT 500;`);
       for (const warning of warnings || []) showToast(warning);
     } catch (error) {
-      if (!showCsvRecoveryToast(error, file, options)) showToast(toErrorMessage(error), 'error');
+      if (!showCsvRecoveryToast({ error, file, csvMode: options.csvMode, showToast, reopen: reopenCsvAsText })) {
+        showToast(toErrorMessage(error), 'error');
+      }
     } finally {
       store.setBusy(false);
     }
@@ -139,13 +147,13 @@ async function openFiles(files, options = {}) {
 
 async function openRecentFile(name) {
   try {
-    const file = await getRecentFile(name);
-    if (!file) {
+    const recent = await getRecentFileRecord(name);
+    if (!recent?.file) {
       showToast(`Choose ${name} again to grant browser access.`, 'error');
       fileInput.click();
       return;
     }
-    await openFiles([file]);
+    await openFiles([recent.file], recent.csvMode ? { csvMode: recent.csvMode } : {});
   } catch (error) {
     showToast(toErrorMessage(error), 'error');
   }
@@ -220,24 +228,21 @@ async function runActiveQuery() {
   } catch (error) {
     const active = store.state.activeTable;
     const record = active ? store.state.files.get(active) : null;
-    if (!showCsvRecoveryToast(error, record?.file, { csvMode: record?.csvMode }, active)) {
+    if (
+      !showCsvRecoveryToast({
+        error,
+        file: record?.file,
+        csvMode: record?.csvMode,
+        replaceTable: active,
+        showToast,
+        reopen: reopenCsvAsText,
+      })
+    ) {
       showToast(toErrorMessage(error), 'error');
     }
   } finally {
     store.setBusy(false);
   }
-}
-
-function showCsvRecoveryToast(error, file, options = {}, replaceTable = null) {
-  if (!file || options.csvMode === 'text') return false;
-  if (detectFileFormat(file)?.id !== 'csv') return false;
-  if (!csvAutoDetectionFailed(error)) return false;
-
-  showToast('CSV auto-detection could not read this file.', 'error', {
-    label: 'Open as text',
-    run: () => reopenCsvAsText(file, replaceTable),
-  });
-  return true;
 }
 
 async function reopenCsvAsText(file, replaceTable = null) {
@@ -246,6 +251,28 @@ async function reopenCsvAsText(file, replaceTable = null) {
     await openFiles([file], { csvMode: 'text' });
   } catch (error) {
     showToast(toErrorMessage(error), 'error');
+  }
+}
+
+async function summarizeOpenFile(tableName) {
+  const record = store.state.files.get(tableName);
+  if (!record) return;
+
+  store.setBusy(true, `Summarizing ${tableName}`);
+  try {
+    const summary = await summarizeTable(tableName);
+    const current = store.state.files.get(tableName);
+    if (!current) return;
+    store.updateFile(tableName, {
+      summary,
+      summaryStatus: 'ready',
+      profile: withNormalizedRowCount(current.profile, summary),
+    });
+  } catch (error) {
+    if (store.state.files.has(tableName)) store.updateFile(tableName, { summaryStatus: 'failed' });
+    showToast(toErrorMessage(error), 'error');
+  } finally {
+    store.setBusy(false);
   }
 }
 
@@ -358,8 +385,4 @@ function notifySnapshotStorageIfNeeded() {
   showToast('Query snapshots are session-only in this browser mode.', 'error');
 }
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .register(new URL('../sw.js', import.meta.url), { scope: './' })
-    .catch((e) => console.warn('SW registration failed', e));
-}
+setupServiceWorker().catch((e) => console.warn('SW setup failed', e));

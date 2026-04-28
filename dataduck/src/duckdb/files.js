@@ -15,6 +15,8 @@ import { withNormalizedRowCount } from './profile-row-count.js';
 
 export { isSupportedFile };
 
+const RESERVED_TABLE_NAMES = new Set(['active_file', 'parquet_file']);
+
 function virtualNameFor(originalName) {
   const safe = originalName.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^_+/, '') || 'data';
   const id = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -25,7 +27,7 @@ export async function openFileInto(store, file, options = {}) {
   const format = detectFileFormat(file);
   if (!format) throw new Error(`${file.name} is not a supported file. Open .parquet, .parq, or .csv.`);
 
-  const taken = new Set(store.state.files.keys());
+  const taken = new Set([...store.state.files.keys(), ...RESERVED_TABLE_NAMES]);
   const tableName = uniqueTableName(sanitizeTableName(file.name), taken);
   const virtualName = virtualNameFor(file.name);
   let registered = false;
@@ -68,7 +70,13 @@ export async function openFileInto(store, file, options = {}) {
       summary,
     });
     await rebindActiveAliases(store);
-    await recordRecent({ name: file.name, size: file.size, file }).catch(() => {});
+    await recordRecent({
+      name: file.name,
+      size: file.size,
+      file,
+      format: format.id,
+      csvMode: format.id === 'csv' ? options.csvMode || 'auto' : null,
+    }).catch(() => {});
     return { tableName, warnings };
   } catch (error) {
     if (viewCreated) await query(`DROP VIEW IF EXISTS ${quoteIdentifier(tableName)};`).catch((e) => console.warn('drop view', e));

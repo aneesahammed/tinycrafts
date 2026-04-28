@@ -102,4 +102,39 @@ describe('rail column profiling handoff', () => {
     expect(rail.textContent).not.toContain('Row groups');
     expect(rail.textContent).not.toContain('Created by');
   });
+
+  it('offers an explicit summary action when CSV stats were deferred', () => {
+    const rail = document.createElement('aside');
+    const onSummarize = vi.fn();
+    const store = createStore({
+      activeTable: 'large',
+      files: new Map([
+        [
+          'large',
+          {
+            format: 'csv',
+            summaryStatus: 'deferred',
+            profile: {
+              schema: [{ column_name: 'id', column_type: 'BIGINT' }],
+            },
+            summary: new Map(),
+          },
+        ],
+      ]),
+    });
+
+    mountRail(rail, store, {
+      onPickFiles: vi.fn(),
+      onClose: vi.fn(),
+      onSwitch: vi.fn(),
+      onColClick: vi.fn(),
+      onSummarize,
+    });
+    store.emit();
+
+    const button = rail.querySelector('#rSummarize');
+    expect(button?.textContent).toBe('Summarize now');
+    button.click();
+    expect(onSummarize).toHaveBeenCalledWith('large');
+  });
 });

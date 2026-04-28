@@ -28,6 +28,11 @@ export function createStore() {
       if (state.activeTable == null) state.activeTable = tableName;
       emit();
     },
+    updateFile(tableName, patch) {
+      if (!state.files.has(tableName)) return;
+      state.files.set(tableName, { ...state.files.get(tableName), ...patch });
+      emit();
+    },
     removeFile(tableName) {
       state.files.delete(tableName);
       if (state.activeTable === tableName) {

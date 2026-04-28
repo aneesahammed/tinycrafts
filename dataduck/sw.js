@@ -1,7 +1,14 @@
-const CACHE_NAME = 'dataduck-shell-v1';
+const CACHE_NAME = 'dataduck-shell-v2';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
+const LOCAL_DEV_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+const IS_LOCAL_DEV_SERVER = LOCAL_DEV_HOSTS.has(self.location.hostname);
 
 self.addEventListener('install', (event) => {
+  if (IS_LOCAL_DEV_SERVER) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+
   event.waitUntil(
     caches
       .open(CACHE_NAME)
@@ -12,6 +19,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  if (IS_LOCAL_DEV_SERVER) {
+    event.waitUntil(unregisterLocalDevWorker());
+    return;
+  }
+
   event.waitUntil(
     caches
       .keys()
@@ -26,6 +38,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  if (isLocalDevServer(url)) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request, './index.html'));
@@ -45,6 +58,16 @@ async function cacheFirst(request) {
     cache.put(request, response.clone());
   }
   return response;
+}
+
+function isLocalDevServer(url) {
+  return LOCAL_DEV_HOSTS.has(url.hostname);
+}
+
+async function unregisterLocalDevWorker() {
+  await self.registration.unregister();
+  const clients = await self.clients.matchAll({ type: 'window' });
+  await Promise.all(clients.map((client) => client.navigate(client.url).catch(() => undefined)));
 }
 
 async function networkFirst(request, fallbackUrl) {

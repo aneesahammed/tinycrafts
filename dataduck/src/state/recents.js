@@ -25,18 +25,19 @@ function withDb(fn) {
   });
 }
 
-export async function recordRecent({ name, size, file = null }) {
+export async function recordRecent({ name, size, file = null, format = null, csvMode = null }) {
   const openedAt = Date.now();
+  const record = { name, size, openedAt, format, csvMode };
   if (file) {
     try {
-      await withDb((store) => store.put({ name, size, openedAt, file }));
+      await withDb((store) => store.put({ ...record, file }));
       return;
     } catch (error) {
       console.warn('Could not store recent file snapshot:', error);
     }
   }
 
-  await withDb((store) => store.put({ name, size, openedAt }));
+  await withDb((store) => store.put(record));
 }
 
 export async function listRecents() {
@@ -63,6 +64,10 @@ export async function clearRecents() {
 }
 
 export async function getRecentFile(name) {
+  return (await getRecentFileRecord(name))?.file || null;
+}
+
+export async function getRecentFileRecord(name) {
   const record = await withDb(
     (store) =>
       new Promise((resolve, reject) => {
@@ -73,6 +78,17 @@ export async function getRecentFile(name) {
   );
 
   if (!record?.file) return null;
+  return {
+    name: record.name,
+    size: record.size,
+    openedAt: record.openedAt,
+    format: record.format || null,
+    csvMode: record.csvMode || null,
+    file: normalizeStoredFile(record),
+  };
+}
+
+function normalizeStoredFile(record) {
   if (record.file instanceof File) return record.file;
   if (record.file instanceof Blob) {
     return new File([record.file], record.name, { type: record.file.type || 'application/octet-stream' });
