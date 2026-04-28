@@ -17,7 +17,7 @@ export async function getEngine() {
     dbPromise = (async () => {
       const bundle = await duckdb.selectBundle(BUNDLES);
       const worker = new Worker(bundle.mainWorker);
-      const logger = new duckdb.ConsoleLogger();
+      const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
       const conn = await db.connect();
