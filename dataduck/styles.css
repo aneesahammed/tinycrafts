@@ -98,12 +98,10 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   height: 30px; padding: 0 2px;
   text-decoration: none; color: inherit;
 }
-.head .brand .mark {
-  width: 23px; height: 23px; border-radius: 6px;
-  background: var(--ink); color: var(--bg);
-  display: grid; place-items: center;
-  font-family: var(--mono); font-weight: 800; font-size: 10px;
-  letter-spacing: -0.06em;
+.head .brand .brand-duck {
+  height: 22px; width: auto;
+  flex-shrink: 0;
+  color: var(--ink);
 }
 .head .brand .word {
   font-family: var(--sans); font-size: 14px; font-weight: 650;

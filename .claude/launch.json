@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "parqview",
+      "name": "dataduck",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "parqview"],
+      "runtimeArgs": ["run", "dev", "--prefix", "dataduck", "--", "--port", "5174", "--strictPort"],
       "port": 5174
     }
   ]

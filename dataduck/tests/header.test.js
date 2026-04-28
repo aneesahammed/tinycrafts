@@ -24,7 +24,7 @@ describe('header empty state', () => {
       onOpenPalette: vi.fn(),
     });
 
-    expect(header.querySelector('.mark').textContent).toBe('Dd');
+    expect(header.querySelector('.brand-duck')).toBeTruthy();
     expect(header.querySelector('.word').textContent).toBe('DataDuck');
     expect(header.querySelector('.brand').getAttribute('aria-label')).toBe('DataDuck home');
   });
