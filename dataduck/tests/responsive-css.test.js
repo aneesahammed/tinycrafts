@@ -16,6 +16,11 @@ describe('responsive CSS', () => {
     expect(css).toMatch(/\.head \.run \.k\s*\{[^}]*display:\s*none/s);
   });
 
+  it('collapses the left rail without reserving sidebar width', () => {
+    expect(css).toMatch(/\.stage\[data-rail-collapsed="true"\]\s*\{[^}]*grid-template-columns:\s*0 0 minmax\(0,\s*1fr\) 0/s);
+    expect(css).toMatch(/\.stage\[data-rail-collapsed="true"\] > \.rail\s*\{[^}]*visibility:\s*hidden/s);
+  });
+
   it('prevents long recent file names from widening the empty state', () => {
     expect(css).toMatch(/\.empty \.recent \.row \.name\s*\{[^}]*min-width:\s*0[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis[^}]*white-space:\s*nowrap/s);
   });

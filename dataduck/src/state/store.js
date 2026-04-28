@@ -12,6 +12,7 @@ export function createStore() {
     paletteOpen: false,
     querySnapshots: [],
     rightPanel: null,
+    railCollapsed: false,
   };
 
   const listeners = new Set();
@@ -87,6 +88,10 @@ export function createStore() {
     },
     setRightPanel(panel) {
       state.rightPanel = panel;
+      emit();
+    },
+    setRailCollapsed(collapsed) {
+      state.railCollapsed = Boolean(collapsed);
       emit();
     },
     setPage(page) {

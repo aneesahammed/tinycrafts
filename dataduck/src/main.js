@@ -38,6 +38,8 @@ import {
   sortQuerySnapshots,
 } from './state/query-snapshots.js';
 
+const RAIL_COLLAPSED_STORAGE_KEY = 'dataduck:rail-collapsed';
+
 restoreTheme();
 
 const store = createStore();
@@ -47,8 +49,13 @@ const stage = document.querySelector('#stage');
 const work = document.querySelector('#work');
 const fileInput = document.querySelector('#fileInput');
 const paletteScrim = document.querySelector('#paletteScrim');
+const railResizer = document.querySelector('#railResizer');
+const railResizerTrack = railResizer?.closest('.rail-resizer-track');
+
+let lastSyncedRailCollapsed = null;
 
 applyAcceptExtensions(fileInput);
+restoreRailCollapsed();
 
 mountHeader(head, store, {
   onRun: () => runActiveQuery(),
@@ -56,6 +63,7 @@ mountHeader(head, store, {
   onOpenPalette: () => store.setPaletteOpen(true),
   onOpenSnapshots: toggleSnapshotsPanel,
   onOpenAssistant: () => assistant.toggle(),
+  onToggleRail: toggleRailCollapsed,
 });
 
 const editor = mountEditor(work, store, { onRun: runActiveQuery });
@@ -85,7 +93,7 @@ mountRail(rail, store, {
   onSummarize: (table) => summarizeOpenFile(table),
 });
 
-setupRailResize(stage, document.querySelector('#railResizer'));
+setupRailResize(stage, railResizer);
 
 mountResult(work, store);
 mountStatus(work, store, { onOpenSnapshots: toggleSnapshotsPanel });
@@ -98,6 +106,8 @@ work.dataset.state = 'empty';
 store.subscribe((s) => {
   work.dataset.state = s.files.size > 0 ? 'loaded' : 'empty';
 });
+store.subscribe(syncRailCollapsed);
+syncRailCollapsed(store.state);
 
 mountPalette(paletteScrim, store, {
   setSql: (sql) => editor.setSql(sql),
@@ -191,6 +201,9 @@ window.addEventListener('keydown', (event) => {
   } else if (event.key.toLowerCase() === 'k') {
     event.preventDefault();
     store.setPaletteOpen(!store.state.paletteOpen);
+  } else if (event.key.toLowerCase() === 'b') {
+    event.preventDefault();
+    toggleRailCollapsed();
   } else if (event.key.toLowerCase() === 'o') {
     event.preventDefault();
     fileInput.click();
@@ -403,3 +416,37 @@ function notifySnapshotStorageIfNeeded() {
 }
 
 setupServiceWorker().catch((e) => console.warn('SW setup failed', e));
+
+function restoreRailCollapsed() {
+  try {
+    store.setRailCollapsed(localStorage.getItem(RAIL_COLLAPSED_STORAGE_KEY) === '1');
+  } catch {
+    store.setRailCollapsed(false);
+  }
+}
+
+function toggleRailCollapsed() {
+  store.setRailCollapsed(!store.state.railCollapsed);
+}
+
+function syncRailCollapsed(state) {
+  const collapsed = Boolean(state.railCollapsed);
+  if (collapsed) stage.dataset.railCollapsed = 'true';
+  else delete stage.dataset.railCollapsed;
+
+  rail.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+  rail.toggleAttribute('inert', collapsed);
+  railResizerTrack?.removeAttribute('hidden');
+  railResizerTrack?.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+  railResizer?.toggleAttribute('hidden', collapsed);
+  railResizer?.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+  if (railResizer) railResizer.tabIndex = collapsed ? -1 : 0;
+
+  if (lastSyncedRailCollapsed === collapsed) return;
+  lastSyncedRailCollapsed = collapsed;
+  try {
+    localStorage.setItem(RAIL_COLLAPSED_STORAGE_KEY, collapsed ? '1' : '0');
+  } catch {
+    // private mode
+  }
+}

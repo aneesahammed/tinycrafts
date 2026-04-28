@@ -7,9 +7,20 @@ function commandShortcut() {
   return /Mac|iPhone|iPad|iPod/i.test(platform) ? ['⌘', 'K'] : ['Ctrl', 'K'];
 }
 
+function sidebarShortcut() {
+  const platform = globalThis.navigator?.platform || '';
+  return /Mac|iPhone|iPad|iPod/i.test(platform) ? ['⌘', 'B'] : ['Ctrl', 'B'];
+}
+
+function ariaShortcut(modKey, actionKey) {
+  return `${modKey === '⌘' ? 'Meta' : 'Control'}+${actionKey}`;
+}
+
 export function mountHeader(el, store, handlers) {
   const [modKey, actionKey] = commandShortcut();
   const shortcutText = `${modKey} ${actionKey}`;
+  const [railModKey, railActionKey] = sidebarShortcut();
+  const railShortcutText = `${railModKey} ${railActionKey}`;
   setHtml(el, `
     <a class="brand" href="./" aria-label="DataDuck home">
       <svg class="brand-duck" height="22" viewBox="0 0 823 675" fill="none" aria-hidden="true">
@@ -20,9 +31,13 @@ export function mountHeader(el, store, handlers) {
       </svg>
       <span class="word">DataDuck</span>
     </a>
-    <div class="crumb" hidden>
-      <span class="file" id="hCrumbFile"></span>
-      <span class="sep" id="hCrumbSep" hidden>·</span>
+    <button class="icon-btn rail-toggle" id="hRailToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" aria-keyshortcuts="${ariaShortcut(railModKey, railActionKey)}" title="Collapse sidebar (${railShortcutText})">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
+        <path d="M9 4v16"></path>
+      </svg>
+    </button>
+    <div class="crumb" hidden aria-label="Active file summary">
       <span id="hCrumbMeta"></span>
     </div>
     <div class="grow"></div>
@@ -49,17 +64,15 @@ export function mountHeader(el, store, handlers) {
   el.querySelector('#hPalette').addEventListener('click', handlers.onOpenPalette);
   el.querySelector('#hSnapshots').addEventListener('click', () => handlers.onOpenSnapshots?.());
   el.querySelector('#hAssistant').addEventListener('click', () => handlers.onOpenAssistant?.());
+  el.querySelector('#hRailToggle').addEventListener('click', () => handlers.onToggleRail?.());
 
-  store.subscribe((s) => {
+  const render = (s = {}) => {
     const crumb = el.querySelector('.crumb');
-    const file = el.querySelector('#hCrumbFile');
-    const sep = el.querySelector('#hCrumbSep');
     const meta = el.querySelector('#hCrumbMeta');
+    const files = s.files || new Map();
     if (s.activeTable) {
       crumb.hidden = false;
-      file.textContent = s.activeTable;
-      sep.hidden = false;
-      const rec = s.files.get(s.activeTable);
+      const rec = files.get(s.activeTable);
       const cols = rec?.profile?.schema?.length ?? 0;
       const rowsRaw = rowCountFromProfile(rec?.profile);
       const rowsText = rowsRaw != null ? `${formatNumber(rowsRaw)} rows · ` : '';
@@ -67,14 +80,22 @@ export function mountHeader(el, store, handlers) {
       meta.textContent = `${rowsText}${cols} cols${sizeText}`;
     } else {
       crumb.hidden = true;
-      file.textContent = '';
-      sep.hidden = true;
       meta.textContent = '';
     }
     el.querySelector('#hRun').disabled = !s.activeTable || s.isBusy;
+    const railCollapsed = Boolean(s.railCollapsed);
+    const railToggle = el.querySelector('#hRailToggle');
+    const railAction = railCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    railToggle.setAttribute('aria-label', railAction);
+    railToggle.setAttribute('aria-expanded', railCollapsed ? 'false' : 'true');
+    railToggle.setAttribute('aria-pressed', railCollapsed ? 'true' : 'false');
+    railToggle.setAttribute('title', `${railAction} (${railShortcutText})`);
     const snapshotsBtn = el.querySelector('#hSnapshots');
     snapshotsBtn.hidden = !(s.querySnapshots?.length);
     snapshotsBtn.setAttribute('aria-pressed', s.rightPanel?.type === 'snapshots' ? 'true' : 'false');
     el.querySelector('#hAssistant').setAttribute('aria-pressed', s.rightPanel?.type === 'assistant' ? 'true' : 'false');
-  });
+  };
+
+  store.subscribe(render);
+  render(store.state || {});
 }

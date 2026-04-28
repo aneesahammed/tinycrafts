@@ -32,6 +32,21 @@ describe('store query snapshot state', () => {
     expect(store.state.rightPanel).toBeNull();
   });
 
+  it('tracks whether the left rail is collapsed', () => {
+    const store = createStore();
+    const states = [];
+    store.subscribe((state) => states.push(state.railCollapsed));
+
+    expect(store.state.railCollapsed).toBe(false);
+
+    store.setRailCollapsed(true);
+    expect(store.state.railCollapsed).toBe(true);
+
+    store.setRailCollapsed(false);
+    expect(store.state.railCollapsed).toBe(false);
+    expect(states).toEqual([true, false]);
+  });
+
   it('patches file records without replacing the full files map', () => {
     const store = createStore();
     const states = [];

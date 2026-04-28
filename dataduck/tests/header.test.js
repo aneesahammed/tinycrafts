@@ -61,7 +61,38 @@ describe('header empty state', () => {
     expect(trigger.querySelectorAll('kbd')).toHaveLength(2);
   });
 
-  it('shows the active file crumb after a file is opened', () => {
+  it('toggles the left sidebar from the header and reflects collapsed state', () => {
+    const header = document.createElement('header');
+    const store = createStore();
+    const onToggleRail = vi.fn();
+
+    mountHeader(header, store, {
+      onRun: vi.fn(),
+      onToggleTheme: vi.fn(),
+      onOpenPalette: vi.fn(),
+      onToggleRail,
+    });
+
+    const toggle = header.querySelector('#hRailToggle');
+    expect(toggle.getAttribute('aria-label')).toBe('Collapse sidebar');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+    toggle.click();
+    expect(onToggleRail).toHaveBeenCalledTimes(1);
+
+    store.emit({
+      activeTable: null,
+      files: new Map(),
+      isBusy: false,
+      railCollapsed: true,
+    });
+
+    expect(toggle.getAttribute('aria-label')).toBe('Expand sidebar');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('title')).toContain('Expand sidebar');
+  });
+
+  it('shows active file stats without duplicating the file name in the header', () => {
     const header = document.createElement('header');
     const store = createStore();
 
@@ -85,7 +116,8 @@ describe('header empty state', () => {
     });
 
     expect(header.querySelector('.crumb').hidden).toBe(false);
-    expect(header.querySelector('#hCrumbFile').textContent).toBe('cur');
+    expect(header.querySelector('#hCrumbMeta').textContent).toBe('42 rows · 1 cols · 1.00 KB');
+    expect(header.textContent).not.toContain('cur');
     expect(header.textContent).toContain('42 rows');
   });
 
