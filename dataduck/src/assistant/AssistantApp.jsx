@@ -4,12 +4,14 @@ import { answerDataQuestion } from '../ai/analyst.js';
 import { DEFAULT_GROQ_MODEL, GROQ_LIMITS } from '../ai/privacy.js';
 import { clearGroqKey, loadGroqKey, saveGroqKey, secureKeyStoreSupported } from '../ai/secure-key-store.js';
 import { createThread, deleteThread, listThreads, saveThread, threadIsHistorical } from '../ai/thread-store.js';
+import { isNumericSqlType, isTemporalSqlType } from '../duckdb/sql-types.js';
 import { DataDuckRuntimeProvider } from './DataDuckRuntime.jsx';
 import { AnalysisMessage } from './AnalysisMessage.jsx';
 
 const SETTINGS_KEY = 'dataduck-ai-settings';
+const PANEL_WIDE_KEY = 'dataduck-ai-panel-wide';
 
-const SUGGESTIONS = [
+export const FALLBACK_SUGGESTIONS = [
   'What are the main numeric columns and their ranges?',
   'Show me the top 10 rows by the largest numeric column',
   'Which columns have the most nulls?',
@@ -23,6 +25,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
   const [input, setInput] = useState('');
   const [running, setRunning] = useState(false);
   const [openPopover, setOpenPopover] = useState(null);
+  const [panelWide, setPanelWide] = useState(() => readPanelWide());
   const requestRef = useRef({ id: 0, controller: null });
   const messagesRef = useRef(null);
   const textareaRef = useRef(null);
@@ -54,6 +57,10 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
   useEffect(() => {
     writeSettings(settings);
   }, [settings.model, settings.rememberKey]);
+
+  useEffect(() => {
+    writePanelWide(panelWide);
+  }, [panelWide]);
 
   useEffect(() => {
     const el = messagesRef.current;
@@ -177,10 +184,11 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
   }
 
   const runtimeSettings = useMemo(() => settings, [settings.apiKey, settings.model]);
+  const suggestions = buildAssistantSuggestions(state);
 
   return (
     <DataDuckRuntimeProvider store={store} settings={runtimeSettings} queryFn={queryFn}>
-      <section className="assistant-panel" aria-label="Ask DataDuck">
+      <section className="assistant-panel" data-panel-size={panelWide ? 'wide' : 'compact'} aria-label="Ask DataDuck">
         <header className="assistant-head">
           <div className="assistant-head-title">
             <div className="assistant-head-text">
@@ -189,6 +197,16 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
             </div>
           </div>
           <div className="assistant-head-actions">
+            <button
+              type="button"
+              className="assistant-icon-btn"
+              aria-label={panelWide ? 'Use compact panel width' : 'Expand panel width'}
+              aria-pressed={panelWide}
+              onClick={() => setPanelWide((wide) => !wide)}
+              title={panelWide ? 'Use compact panel width' : 'Expand panel width'}
+            >
+              <Icon name={panelWide ? 'panelCompact' : 'panelWide'} />
+            </button>
             <button
               type="button"
               className={`assistant-icon-btn${openPopover === 'history' ? ' is-active' : ''}`}
@@ -250,7 +268,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
           {state.activeTable && messages.length === 0 ? (
             <div className="assistant-suggestions">
               <span className="assistant-suggestions-label">Try asking</span>
-              {SUGGESTIONS.map((text) => (
+              {suggestions.map((text) => (
                 <button key={text} type="button" className="assistant-suggestion" onClick={() => pickSuggestion(text)}>
                   {text}
                 </button>
@@ -446,6 +464,8 @@ function Icon({ name }) {
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
     close: <path d="M18 6 6 18M6 6l12 12" />,
     plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
+    panelCompact: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M15 5v14" /><path d="m9 9 3 3-3 3" /></>,
+    panelWide: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M13 5v14" /><path d="m17 9-3 3 3 3" /></>,
     send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
   };
   return (
@@ -490,10 +510,88 @@ function writeSettings(settings) {
   }
 }
 
+function readPanelWide() {
+  try {
+    return localStorage.getItem(PANEL_WIDE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writePanelWide(wide) {
+  try {
+    localStorage.setItem(PANEL_WIDE_KEY, wide ? '1' : '0');
+  } catch {
+    // ignore private mode quota errors
+  }
+}
+
 async function maybeLoadRememberedKey() {
   const settings = readSettings();
   if (!settings.rememberKey || !secureKeyStoreSupported()) return '';
   return loadGroqKey().catch(() => '');
+}
+
+export function buildAssistantSuggestions(state = {}) {
+  const record = state.activeTable ? state.files?.get?.(state.activeTable) : null;
+  const schema = Array.isArray(record?.profile?.schema) ? record.profile.schema : [];
+  const columns = schema
+    .map((row) => ({
+      name: String(row.column_name || row.name || '').trim(),
+      type: String(row.column_type || row.type || '').trim(),
+    }))
+    .filter((column) => column.name);
+  if (!columns.length) return FALLBACK_SUGGESTIONS;
+
+  const numeric = columns.filter((column) => isNumericSqlType(column.type));
+  const temporal = columns.filter((column) => isTemporalSqlType(column.type));
+  const categorical = columns.filter((column) => isCategoricalSqlType(column.type));
+  const summary = record?.summary instanceof Map ? record.summary : new Map();
+  const suggestions = [];
+
+  const metric = pickMetric(numeric);
+  const secondMetric = numeric.find((column) => column.name !== metric?.name);
+  const date = pickColumn(temporal, ['date', 'time', 'created', 'updated']);
+  const category = pickColumn(categorical, ['region', 'category', 'channel', 'status', 'segment', 'product']);
+  const nullable = columns
+    .map((column) => ({ ...column, nullCount: Number(summary.get(column.name)?.nullCount || 0) }))
+    .filter((column) => column.nullCount > 0)
+    .sort((a, b) => b.nullCount - a.nullCount);
+
+  if (category && metric) suggestions.push(`Which ${category.name} values have the highest average ${metric.name}?`);
+  if (date && metric) suggestions.push(`How does ${metric.name} change over ${date.name}?`);
+  if (nullable.length) suggestions.push(`Which columns have missing values, especially ${listNames(nullable.slice(0, 2))}?`);
+  if (metric && secondMetric) suggestions.push(`Compare the ranges and outliers for ${listNames([metric, secondMetric])}.`);
+  if (metric) suggestions.push(`Show the top 10 rows by ${metric.name}.`);
+
+  return withFallbackSuggestions(suggestions);
+}
+
+function withFallbackSuggestions(items) {
+  const unique = [];
+  for (const item of [...items, ...FALLBACK_SUGGESTIONS]) {
+    if (item && !unique.includes(item)) unique.push(item);
+    if (unique.length === 3) break;
+  }
+  return unique;
+}
+
+function isCategoricalSqlType(type) {
+  return /^(VARCHAR|TEXT|STRING|CHAR|BOOLEAN|BOOL)\b/i.test(type);
+}
+
+function pickColumn(columns, preferredTerms = []) {
+  return preferredTerms
+    .map((term) => columns.find((column) => column.name.toLowerCase().includes(term)))
+    .find(Boolean) || columns[0] || null;
+}
+
+function pickMetric(columns) {
+  return pickColumn(columns, ['total', 'amount', 'revenue', 'sales', 'price', 'quantity', 'count']) || columns[0] || null;
+}
+
+function listNames(columns) {
+  return columns.map((column) => column.name).join(' and ');
 }
 
 export function prepareQuestionThread({

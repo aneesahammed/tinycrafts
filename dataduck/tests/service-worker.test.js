@@ -6,7 +6,6 @@ describe('service-worker setup', () => {
     const unregister = vi.fn(() => Promise.resolve(true));
     const register = vi.fn();
     const reload = vi.fn();
-    const sessionStorage = new Map();
 
     await setupServiceWorker({
       isDev: true,
@@ -18,14 +17,33 @@ describe('service-worker setup', () => {
         },
       },
       locationRef: { reload },
-      sessionStorageRef: {
-        getItem: (key) => sessionStorage.get(key) || null,
-        setItem: (key, value) => sessionStorage.set(key, value),
-      },
     });
 
     expect(unregister).toHaveBeenCalledOnce();
     expect(register).not.toHaveBeenCalled();
+    expect(reload).toHaveBeenCalledOnce();
+  });
+
+  it('ignores stale cleanup markers after a successful dev unregister', async () => {
+    const unregister = vi.fn(() => Promise.resolve(true));
+    const reload = vi.fn();
+
+    await setupServiceWorker({
+      isDev: true,
+      navigatorRef: {
+        serviceWorker: {
+          controller: {},
+          getRegistrations: () => Promise.resolve([{ unregister }]),
+        },
+      },
+      locationRef: { reload },
+      sessionStorageRef: {
+        getItem: () => '1',
+        setItem: vi.fn(),
+      },
+    });
+
+    expect(unregister).toHaveBeenCalledOnce();
     expect(reload).toHaveBeenCalledOnce();
   });
 

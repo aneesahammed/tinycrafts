@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DataDuck icon">
-  <rect width="512" height="512" rx="112" fill="#f5f1e8"/>
-  <rect x="84" y="84" width="344" height="344" rx="76" fill="#fffdf8" stroke="#cfc6b8" stroke-width="10"/>
-  <text x="256" y="330" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="178" font-weight="800" letter-spacing="-10" fill="#173d38">Dd</text>
-  <path d="M362 164c28 5 52 19 71 41-34-5-61 0-82 15-10-20-26-39-47-57 19-3 38-3 58 1Z" fill="#f1b84b"/>
-</svg>

@@ -532,10 +532,12 @@ body.is-resizing-editor {
    Rail column is driven by the --rail-w custom property (drag-resizable). */
 .stage { grid-template-columns: var(--rail-w, 256px) 1px 1fr 0; transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
 .stage[data-right-open="true"] { grid-template-columns: var(--rail-w, 256px) 1px 1fr min(420px, 36vw); }
-.stage[data-right-open="true"]:has(.assistant-host) { grid-template-columns: var(--rail-w, 256px) 1px 1fr min(760px, 54vw); }
+.stage[data-right-open="true"]:has(.assistant-host) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) min(480px, 38vw); }
+.stage[data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) min(760px, 54vw); }
 .stage[data-rail-collapsed="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 0; }
 .stage[data-rail-collapsed="true"][data-right-open="true"] { grid-template-columns: 0 0 minmax(0, 1fr) min(420px, 36vw); }
-.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-host) { grid-template-columns: 0 0 minmax(0, 1fr) min(760px, 54vw); }
+.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-host) { grid-template-columns: 0 0 minmax(0, 1fr) min(480px, 38vw); }
+.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: 0 0 minmax(0, 1fr) min(760px, 54vw); }
 .stage[data-rail-collapsed="true"] > .rail {
   border-right: 0;
   pointer-events: none;
@@ -837,7 +839,12 @@ body.is-resizing-rail .stage { transition: none; }
 .assistant-historical strong { color: var(--ink); font-weight: 600; }
 
 /* Suggestions for empty conversation */
-.assistant-suggestions { display: grid; gap: 7px; }
+.assistant-suggestions {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+}
 .assistant-suggestions-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -850,6 +857,10 @@ body.is-resizing-rail .stage { transition: none; }
   text-align: left;
   font: inherit;
   font-size: 12.5px;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -857,6 +868,9 @@ body.is-resizing-rail .stage { transition: none; }
   color: var(--ink-2);
   cursor: pointer;
   line-height: 1.45;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   transition: background-color 130ms ease, color 130ms ease, border-color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .assistant-suggestion:hover {
@@ -2036,6 +2050,8 @@ body.is-resizing-rail .stage { transition: none; }
   .stage:has(.work[data-state="empty"]) { grid-template-rows: minmax(0, 1fr); }
   .stage:has(.work[data-state="empty"]) > .rail { display: none; }
   .stage:has(.work[data-state="empty"]) > .rail-resizer-track { display: none; }
+  .stage:not([data-rail-collapsed="true"]):has(.work[data-state="empty"]) { grid-template-rows: 220px 1fr; }
+  .stage:not([data-rail-collapsed="true"]):has(.work[data-state="empty"]) > .rail { display: flex; }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); }
   /* Drag-to-resize doesn't make sense on stacked layout. */
   .rail-resizer-track { display: none; }
@@ -2050,6 +2066,8 @@ body.is-resizing-rail .stage { transition: none; }
     box-shadow: var(--shadow-modal);
     z-index: 16;
   }
+  .stage > .profile-drawer.assistant-host { width: min(380px, 100vw); }
+  .stage > .profile-drawer.assistant-host:has(.assistant-panel[data-panel-size="wide"]) { width: min(760px, 100vw); }
 }
 
 @media (max-width: 760px) {
