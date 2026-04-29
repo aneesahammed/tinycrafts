@@ -74,11 +74,16 @@ export function mountEmpty(el, store, handlers) {
           <div class="label">Drop files here, or click to browse</div>
           <div class="hint">Parquet and CSV supported</div>
         </button>
+        <div class="sample-row">
+          <span class="or">or</span>
+          <button class="sample-btn" type="button" id="emptySample">Try sample data — 60 penguins</button>
+        </div>
         ${recentBlock}
         <p class="footnote">Local-first · works offline · install as a PWA</p>
       </div>
     `);
     empty.querySelector('#emptyDrop').addEventListener('click', handlers.onPickFiles);
+    empty.querySelector('#emptySample')?.addEventListener('click', () => handlers.onTrySample?.());
     empty.querySelectorAll('[data-recent-index]').forEach((row) => {
       row.addEventListener('click', () => {
         const recent = recents[Number(row.dataset.recentIndex)];

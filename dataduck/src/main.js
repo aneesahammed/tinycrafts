@@ -21,10 +21,12 @@ import { mountPalette } from './ui/palette.js';
 import { getRecentFileRecord } from './state/recents.js';
 import { mountProfiler } from './ui/profiler.js';
 import { profileColumn } from './duckdb/column-profile.js';
+import { mountChartPanel } from './ui/chart-panel.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
 import { setupRailResize } from './ui/rail-resizer.js';
 import { setupServiceWorker } from './service-worker.js';
 import { mountAiAssistant } from './assistant/mount.jsx';
+import sampleDatasetUrl from '../samples/penguins.csv?url';
 import {
   clearQuerySnapshots,
   createQuerySnapshot,
@@ -59,7 +61,6 @@ restoreRailCollapsed();
 
 mountHeader(head, store, {
   onRun: () => runActiveQuery(),
-  onToggleTheme: () => toggleTheme(),
   onOpenPalette: () => store.setPaletteOpen(true),
   onOpenSnapshots: toggleSnapshotsPanel,
   onOpenAssistant: () => assistant.toggle(),
@@ -71,6 +72,7 @@ const profiler = mountProfiler(stage, store, {
   loadProfile: profileColumn,
   setSql: (sql) => editor.setSql(sql),
 });
+const chartPanel = mountChartPanel(stage, store);
 const snapshotsPanel = mountQuerySnapshots(stage, store, {
   onRestore: restoreSnapshot,
   onRerun: rerunSnapshot,
@@ -96,10 +98,14 @@ mountRail(rail, store, {
 setupRailResize(stage, railResizer);
 
 mountResult(work, store);
-mountStatus(work, store, { onOpenSnapshots: toggleSnapshotsPanel });
+mountStatus(work, store, {
+  onOpenSnapshots: toggleSnapshotsPanel,
+  onOpenChart: toggleChartPanel,
+});
 mountEmpty(work, store, {
   onPickFiles: () => fileInput.click(),
   onOpenRecent: openRecentFile,
+  onTrySample: () => openSampleDataset(),
 });
 
 work.dataset.state = 'empty';
@@ -134,6 +140,22 @@ listQuerySnapshots()
   .catch((error) => {
     showToast(`Query snapshots are session-only: ${toErrorMessage(error)}`, 'error');
   });
+
+// Eagerly warm DuckDB-WASM so the user is not the first thing waiting on a
+// multi-MB WebAssembly download. Skip if a file is already opened (resumed
+// session). The empty hero re-uses the busyLabel state, so the boot is visible.
+warmDuckDb();
+async function warmDuckDb() {
+  if (store.state.files.size) return;
+  store.setBusy(true, 'Warming up the analytics engine');
+  try {
+    await getEngine();
+  } catch (error) {
+    showToast(toErrorMessage(error), 'error');
+  } finally {
+    if (!store.state.files.size) store.setBusy(false);
+  }
+}
 
 async function openFiles(files, options = {}) {
   const selected = Array.from(files || []);
@@ -406,6 +428,23 @@ function clearSnapshotsWithUndo() {
 function toggleSnapshotsPanel() {
   if (store.state.rightPanel?.type === 'snapshots') snapshotsPanel.close();
   else snapshotsPanel.open();
+}
+
+function toggleChartPanel() {
+  if (store.state.rightPanel?.type === 'chart') chartPanel.close();
+  else chartPanel.open();
+}
+
+async function openSampleDataset() {
+  try {
+    const response = await fetch(sampleDatasetUrl);
+    if (!response.ok) throw new Error(`Sample data is unavailable (HTTP ${response.status}).`);
+    const blob = await response.blob();
+    const file = new File([blob], 'penguins.csv', { type: 'text/csv' });
+    await openFiles([file]);
+  } catch (error) {
+    showToast(toErrorMessage(error), 'error');
+  }
 }
 
 let snapshotStorageNoticeShown = false;

@@ -59,6 +59,7 @@ export async function openFileInto(store, file, options = {}) {
     }
 
     profile = withNormalizedRowCount(profile, summary);
+    const now = Date.now();
     store.addFile(tableName, {
       virtualName,
       file,
@@ -68,6 +69,8 @@ export async function openFileInto(store, file, options = {}) {
       summaryStatus,
       profile,
       summary,
+      openedAt: now,
+      lastUsedAt: now,
     });
     await rebindActiveAliases(store);
     await recordRecent({
@@ -96,6 +99,9 @@ export async function closeFile(store, tableName) {
 
 export async function setActiveFile(store, tableName) {
   store.setActive(tableName);
+  if (store.state.files.has(tableName)) {
+    store.updateFile(tableName, { lastUsedAt: Date.now() });
+  }
   await rebindActiveAliases(store);
 }
 

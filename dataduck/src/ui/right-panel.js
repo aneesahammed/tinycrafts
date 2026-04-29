@@ -57,5 +57,6 @@ function panelLabel(panel) {
   if (panel?.type === 'profile') return 'Column profile';
   if (panel?.type === 'snapshots') return 'Query snapshots';
   if (panel?.type === 'assistant') return 'Data assistant';
+  if (panel?.type === 'chart') return 'Chart';
   return 'Right panel';
 }

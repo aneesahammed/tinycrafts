@@ -17,6 +17,8 @@ export function mountStatus(el, store, handlers = {}) {
     <span id="sPage"></span>
     <button class="btn" id="sNext" type="button" title="Next page">▶</button>
     <span class="sep">·</span>
+    <button class="btn chart-btn" id="sChart" type="button" title="Chart this result">Chart</button>
+    <span class="sep">·</span>
     <button class="btn" id="sSnapshots" type="button" title="Query snapshots" hidden>Runs</button>
     <span class="sep" id="sSnapshotsSep" hidden>·</span>
     <button class="btn" id="sExport" type="button" title="Export CSV">⤓ CSV</button>
@@ -41,6 +43,7 @@ export function mountStatus(el, store, handlers = {}) {
     downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `dataduck-${stamp}.csv`);
   });
   pill.querySelector('#sSnapshots').addEventListener('click', () => handlers.onOpenSnapshots?.());
+  pill.querySelector('#sChart').addEventListener('click', () => handlers.onOpenChart?.());
 
   store.subscribe((s) => {
     pill.hidden = !s.resultColumns.length && !s.isBusy;
@@ -57,6 +60,9 @@ export function mountStatus(el, store, handlers = {}) {
     pill.querySelector('#sPrev').disabled = s.isBusy || s.page === 0;
     pill.querySelector('#sNext').disabled = s.isBusy || s.page >= pageCount - 1;
     pill.querySelector('#sExport').disabled = s.isBusy || !s.resultColumns.length;
+    const chartBtn = pill.querySelector('#sChart');
+    chartBtn.disabled = s.isBusy || !s.resultColumns.length || !s.resultRows.length;
+    chartBtn.setAttribute('aria-pressed', s.rightPanel?.type === 'chart' ? 'true' : 'false');
     const showSnapshots = Boolean(s.querySnapshots?.length);
     pill.querySelector('#sSnapshots').hidden = !showSnapshots;
     pill.querySelector('#sSnapshotsSep').hidden = !showSnapshots;

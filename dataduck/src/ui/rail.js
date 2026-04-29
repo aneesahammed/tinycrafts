@@ -46,7 +46,14 @@ function render(el, s, handlers, filterText) {
 
   const filesEl = el.querySelector('#rFiles');
   setHtml(filesEl, '');
-  for (const [name, rec] of s.files.entries()) {
+  // Sort by recency (last used, then opened) so the file the user most likely
+  // wants next sits at the top. Files without timestamps fall to the bottom.
+  const fileEntries = [...s.files.entries()].sort(([, a], [, b]) => {
+    const aTime = a?.lastUsedAt || a?.openedAt || 0;
+    const bTime = b?.lastUsedAt || b?.openedAt || 0;
+    return bTime - aTime;
+  });
+  for (const [name, rec] of fileEntries) {
     const row = document.createElement('div');
     row.className = `file${name === s.activeTable ? ' active' : ''}`;
     const rows = rowCountFromProfile(rec.profile);

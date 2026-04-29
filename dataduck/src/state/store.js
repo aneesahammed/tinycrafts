@@ -14,6 +14,8 @@ export function createStore() {
     querySnapshots: [],
     rightPanel: null,
     railCollapsed: false,
+    sortColumn: null,
+    sortDirection: null,
   };
 
   const listeners = new Set();
@@ -53,6 +55,9 @@ export function createStore() {
       state.resultRows = rows;
       state.queryElapsedMs = elapsedMs;
       state.page = 0;
+      // New result invalidates any prior column sort.
+      state.sortColumn = null;
+      state.sortDirection = null;
       emit();
     },
     clearResult() {
@@ -60,6 +65,20 @@ export function createStore() {
       state.resultColumnTypes = {};
       state.resultRows = [];
       state.queryElapsedMs = null;
+      state.page = 0;
+      state.sortColumn = null;
+      state.sortDirection = null;
+      emit();
+    },
+    setSort(column, direction) {
+      const valid = direction === 'asc' || direction === 'desc' ? direction : null;
+      if (!valid || !column) {
+        state.sortColumn = null;
+        state.sortDirection = null;
+      } else {
+        state.sortColumn = column;
+        state.sortDirection = valid;
+      }
       state.page = 0;
       emit();
     },
