@@ -4,10 +4,26 @@ export const ANALYSIS_CATALOG_VERSION = '2026-04-29';
 
 export const IdentifierSchema = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 export const ColumnNameSchema = z.string().min(1).max(256);
+export const FILTER_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'between', 'in', 'contains', 'is_null', 'is_not_null'];
+export const AGGREGATES = ['count', 'count_distinct', 'sum', 'avg', 'min', 'max'];
+export const TIME_BUCKETS = ['day', 'week', 'month', 'quarter', 'year'];
+export const ANALYSIS_TOOLS = [
+  'profile_overview',
+  'missingness',
+  'top_n',
+  'aggregate_query',
+  'histogram',
+  'trend',
+  'outliers',
+  'correlation',
+];
+export const FilterOpSchema = z.enum(FILTER_OPERATORS);
+export const AggregateOpSchema = z.enum(AGGREGATES);
+export const TimeBucketSchema = z.enum(TIME_BUCKETS);
 
 export const FilterSchema = z.object({
   column: ColumnNameSchema,
-  op: z.enum(['=', '!=', '<', '<=', '>', '>=', 'between', 'in', 'contains', 'is_null', 'is_not_null']),
+  op: FilterOpSchema,
   value: z.union([
     z.string(),
     z.number(),
@@ -18,7 +34,7 @@ export const FilterSchema = z.object({
 }).strict();
 
 export const AggregateMetricSchema = z.object({
-  agg: z.enum(['count', 'count_distinct', 'sum', 'avg', 'min', 'max']),
+  agg: AggregateOpSchema,
   column: ColumnNameSchema.nullable(),
   alias: IdentifierSchema,
 }).strict();
@@ -26,7 +42,7 @@ export const AggregateMetricSchema = z.object({
 export const DimensionSchema = z.object({
   column: ColumnNameSchema,
   alias: IdentifierSchema,
-  timeBucket: z.enum(['day', 'week', 'month', 'quarter', 'year']).nullable(),
+  timeBucket: TimeBucketSchema.nullable(),
 }).strict();
 
 export const AnalysisStepSchema = z.discriminatedUnion('tool', [
@@ -77,7 +93,7 @@ export const AnalysisStepSchema = z.discriminatedUnion('tool', [
     id: IdentifierSchema,
     title: z.string().max(80),
     timeColumn: ColumnNameSchema,
-    bucket: z.enum(['day', 'week', 'month', 'quarter', 'year']),
+    bucket: TimeBucketSchema,
     metric: AggregateMetricSchema,
     filters: z.array(FilterSchema).max(12),
     limit: z.number().int().min(1).max(1000).default(1000),
@@ -110,241 +126,72 @@ export const AnalysisToolPlanSchema = z.object({
   clarifyingQuestion: z.string().nullable(),
 }).strict();
 
-export const ANALYSIS_TOOL_PLAN_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['schemaVersion', 'catalogVersion', 'mode', 'title', 'steps', 'clarifyingQuestion'],
-  properties: {
-    schemaVersion: { const: 1 },
-    catalogVersion: { const: ANALYSIS_CATALOG_VERSION },
-    mode: { type: 'string', enum: ['analysis', 'clarify', 'unsupported'] },
-    title: { type: 'string', maxLength: 120 },
-    steps: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 3,
-      items: {
-        anyOf: [
-          objectSchema(['tool', 'id', 'title'], {
-            tool: { const: 'profile_overview' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-          }),
-          objectSchema(['tool', 'id', 'title', 'columns'], {
-            tool: { const: 'missingness' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            columns: { type: 'array', maxItems: 100, items: columnNameJson() },
-          }),
-          objectSchema(['tool', 'id', 'title', 'dimension', 'metric', 'filters', 'n', 'direction'], {
-            tool: { const: 'top_n' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            dimension: columnNameJson(),
-            metric: aggregateMetricJson(),
-            filters: filtersJson(),
-            n: { type: 'integer', minimum: 1, maximum: 100 },
-            direction: { type: 'string', enum: ['asc', 'desc'] },
-          }),
-          objectSchema(['tool', 'id', 'title', 'dimensions', 'metrics', 'filters', 'orderBy', 'limit'], {
-            tool: { const: 'aggregate_query' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            dimensions: {
-              type: 'array',
-              maxItems: 3,
-              items: objectSchema(['column', 'alias', 'timeBucket'], {
-                column: columnNameJson(),
-                alias: identifierJson(),
-                timeBucket: { anyOf: [{ type: 'string', enum: ['day', 'week', 'month', 'quarter', 'year'] }, { type: 'null' }] },
-              }),
-            },
-            metrics: { type: 'array', maxItems: 8, items: aggregateMetricJson() },
-            filters: filtersJson(),
-            orderBy: {
-              type: 'array',
-              maxItems: 3,
-              items: objectSchema(['field', 'direction'], {
-                field: identifierJson(),
-                direction: { type: 'string', enum: ['asc', 'desc'] },
-              }),
-            },
-            limit: { type: 'integer', minimum: 1, maximum: 1000 },
-          }),
-          objectSchema(['tool', 'id', 'title', 'column', 'bins', 'filters'], {
-            tool: { const: 'histogram' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            column: columnNameJson(),
-            bins: { type: 'integer', minimum: 2, maximum: 50 },
-            filters: filtersJson(),
-          }),
-          objectSchema(['tool', 'id', 'title', 'timeColumn', 'bucket', 'metric', 'filters', 'limit'], {
-            tool: { const: 'trend' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            timeColumn: columnNameJson(),
-            bucket: { type: 'string', enum: ['day', 'week', 'month', 'quarter', 'year'] },
-            metric: aggregateMetricJson(),
-            filters: filtersJson(),
-            limit: { type: 'integer', minimum: 1, maximum: 1000 },
-          }),
-          objectSchema(['tool', 'id', 'title', 'column', 'method', 'filters', 'limit'], {
-            tool: { const: 'outliers' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            column: columnNameJson(),
-            method: { const: 'iqr' },
-            filters: filtersJson(),
-            limit: { type: 'integer', minimum: 1, maximum: 50 },
-          }),
-          objectSchema(['tool', 'id', 'title', 'columns', 'method', 'filters'], {
-            tool: { const: 'correlation' },
-            id: identifierJson(),
-            title: { type: 'string', maxLength: 80 },
-            columns: { type: 'array', minItems: 2, maxItems: 8, items: columnNameJson() },
-            method: { const: 'pearson' },
-            filters: filtersJson(),
-          }),
-        ],
-      },
-    },
-    clarifyingQuestion: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-  },
-};
-
 // Anthropic's structured-output grammar compiler is sensitive to large nested
-// anyOf schemas. Send Claude a compact envelope and keep the full Zod schema as
-// the authoritative local validator before compilation.
-export const ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['schemaVersion', 'catalogVersion', 'mode', 'title', 'steps', 'clarifyingQuestion'],
-  properties: {
-    schemaVersion: { const: 1 },
-    catalogVersion: { const: ANALYSIS_CATALOG_VERSION },
-    mode: { type: 'string', enum: ['analysis', 'clarify', 'unsupported'] },
-    title: { type: 'string' },
-    clarifyingQuestion: { type: 'string' },
-    steps: {
-      type: 'array',
-      items: anthropicStepJson(),
-    },
-  },
-};
+// union schemas. This provider-facing grammar is intentionally compact, but it
+// is still defined in Zod and converted to JSON Schema so it cannot drift by hand.
+export const AnthropicAggregateMetricSchema = z.object({
+  agg: AggregateOpSchema,
+  column: ColumnNameSchema.optional(),
+  alias: IdentifierSchema,
+}).strict();
+
+export const AnthropicDimensionSchema = z.object({
+  column: ColumnNameSchema,
+  alias: IdentifierSchema,
+  timeBucket: z.enum(['', ...TIME_BUCKETS]).optional(),
+}).strict();
+
+export const AnthropicFilterSchema = z.object({
+  column: ColumnNameSchema,
+  op: FilterOpSchema,
+  value: z.string().optional(),
+}).strict();
+
+export const AnthropicOrderBySchema = z.object({
+  field: IdentifierSchema,
+  direction: z.enum(['asc', 'desc']),
+}).strict();
+
+export const AnthropicAnalysisStepSchema = z.object({
+  tool: z.enum(ANALYSIS_TOOLS),
+  id: IdentifierSchema,
+  title: z.string(),
+  columns: z.array(ColumnNameSchema).optional(),
+  dimension: ColumnNameSchema.optional(),
+  metric: AnthropicAggregateMetricSchema.optional(),
+  filters: z.array(AnthropicFilterSchema).optional(),
+  n: z.number().int().optional(),
+  direction: z.enum(['asc', 'desc']).optional(),
+  dimensions: z.array(AnthropicDimensionSchema).optional(),
+  metrics: z.array(AnthropicAggregateMetricSchema).optional(),
+  orderBy: z.array(AnthropicOrderBySchema).optional(),
+  limit: z.number().int().optional(),
+  column: ColumnNameSchema.optional(),
+  bins: z.number().int().optional(),
+  timeColumn: ColumnNameSchema.optional(),
+  bucket: TimeBucketSchema.optional(),
+  method: z.enum(['iqr', 'pearson']).optional(),
+}).strict();
+
+export const AnthropicAnalysisToolPlanSchema = z.object({
+  schemaVersion: z.literal(1),
+  catalogVersion: z.literal(ANALYSIS_CATALOG_VERSION),
+  mode: z.enum(['analysis', 'clarify', 'unsupported']),
+  title: z.string(),
+  steps: z.array(AnthropicAnalysisStepSchema),
+  clarifyingQuestion: z.string(),
+}).strict();
+
+export const ANALYSIS_TOOL_PLAN_JSON_SCHEMA = providerJsonSchema(AnalysisToolPlanSchema);
+export const ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA = providerJsonSchema(AnthropicAnalysisToolPlanSchema);
 
 export function parseAnalysisToolPlan(value) {
   return AnalysisToolPlanSchema.parse(normalizeCompactPlan(value));
 }
 
-function identifierJson() {
-  return { type: 'string', pattern: '^[A-Za-z_][A-Za-z0-9_]*$' };
-}
-
-function columnNameJson() {
-  return { type: 'string', minLength: 1, maxLength: 256 };
-}
-
-function objectSchema(required, properties) {
-  return { type: 'object', additionalProperties: false, required, properties };
-}
-
-function aggregateMetricJson() {
-  return objectSchema(['agg', 'column', 'alias'], {
-    agg: { type: 'string', enum: ['count', 'count_distinct', 'sum', 'avg', 'min', 'max'] },
-    column: { anyOf: [columnNameJson(), { type: 'null' }] },
-    alias: identifierJson(),
-  });
-}
-
-function filtersJson() {
-  return {
-    type: 'array',
-    maxItems: 12,
-    items: objectSchema(['column', 'op', 'value'], {
-      column: columnNameJson(),
-      op: { type: 'string', enum: ['=', '!=', '<', '<=', '>', '>=', 'between', 'in', 'contains', 'is_null', 'is_not_null'] },
-      value: {
-        anyOf: [
-          { type: 'string' },
-          { type: 'number' },
-          { type: 'boolean' },
-          { type: 'null' },
-          { type: 'array', items: { anyOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }] } },
-        ],
-      },
-    }),
-  };
-}
-
-function anthropicStepJson() {
-  return objectSchema(['tool', 'id', 'title'], {
-    tool: {
-      type: 'string',
-      enum: [
-        'profile_overview',
-        'missingness',
-        'top_n',
-        'aggregate_query',
-        'histogram',
-        'trend',
-        'outliers',
-        'correlation',
-      ],
-    },
-    id: identifierJson(),
-    title: { type: 'string' },
-    columns: { type: 'array', items: columnNameJson() },
-    dimension: columnNameJson(),
-    metric: anthropicAggregateMetricJson(),
-    filters: anthropicFiltersJson(),
-    n: { type: 'integer' },
-    direction: { type: 'string', enum: ['asc', 'desc'] },
-    dimensions: { type: 'array', items: anthropicDimensionJson() },
-    metrics: { type: 'array', items: anthropicAggregateMetricJson() },
-    orderBy: {
-      type: 'array',
-      items: objectSchema(['field', 'direction'], {
-        field: identifierJson(),
-        direction: { type: 'string', enum: ['asc', 'desc'] },
-      }),
-    },
-    limit: { type: 'integer' },
-    column: columnNameJson(),
-    bins: { type: 'integer' },
-    timeColumn: columnNameJson(),
-    bucket: { type: 'string', enum: ['day', 'week', 'month', 'quarter', 'year'] },
-    method: { type: 'string', enum: ['iqr', 'pearson'] },
-  });
-}
-
-function anthropicAggregateMetricJson() {
-  return objectSchema(['agg', 'alias'], {
-    agg: { type: 'string', enum: ['count', 'count_distinct', 'sum', 'avg', 'min', 'max'] },
-    column: { type: 'string' },
-    alias: identifierJson(),
-  });
-}
-
-function anthropicDimensionJson() {
-  return objectSchema(['column', 'alias'], {
-    column: columnNameJson(),
-    alias: identifierJson(),
-    timeBucket: { type: 'string', enum: ['', 'day', 'week', 'month', 'quarter', 'year'] },
-  });
-}
-
-function anthropicFiltersJson() {
-  return {
-    type: 'array',
-    items: objectSchema(['column', 'op'], {
-      column: columnNameJson(),
-      op: { type: 'string', enum: ['=', '!=', '<', '<=', '>', '>=', 'between', 'in', 'contains', 'is_null', 'is_not_null'] },
-      value: {
-        type: 'string',
-      },
-    }),
-  };
+function providerJsonSchema(schema) {
+  const { $schema, ...jsonSchema } = z.toJSONSchema(schema);
+  return jsonSchema;
 }
 
 function normalizeCompactPlan(value) {
@@ -362,6 +209,41 @@ function normalizeCompactStep(step) {
   if (Array.isArray(next.metrics)) next.metrics = next.metrics.map(normalizeCompactMetric);
   if (Array.isArray(next.dimensions)) next.dimensions = next.dimensions.map(normalizeCompactDimension);
   if (Array.isArray(next.filters)) next.filters = next.filters.map(normalizeCompactFilter);
+  // The Anthropic compact schema only marks tool/id/title as required per step,
+  // so Claude legitimately omits other fields when their values are empty. Fill
+  // the safe defaults here, before strict Zod parsing rejects them.
+  return applyCompactStepDefaults(next);
+}
+
+function applyCompactStepDefaults(step) {
+  const tool = step.tool;
+  const next = { ...step };
+  // Tools that always carry a filter list — default to [] when omitted.
+  if (
+    tool === 'aggregate_query' ||
+    tool === 'top_n' ||
+    tool === 'histogram' ||
+    tool === 'trend' ||
+    tool === 'outliers' ||
+    tool === 'correlation'
+  ) {
+    if (!Array.isArray(next.filters)) next.filters = [];
+  }
+  if (tool === 'aggregate_query') {
+    if (!Array.isArray(next.orderBy)) next.orderBy = [];
+    if (!Array.isArray(next.dimensions)) next.dimensions = [];
+    if (!Array.isArray(next.metrics)) next.metrics = [];
+    if (typeof next.limit !== 'number') next.limit = 1000;
+  }
+  if (tool === 'trend') {
+    if (typeof next.limit !== 'number') next.limit = 1000;
+    if (!next.bucket) next.bucket = 'month';
+  }
+  if (tool === 'top_n') {
+    if (next.direction !== 'asc' && next.direction !== 'desc') next.direction = 'desc';
+  }
+  if (tool === 'outliers' && !next.method) next.method = 'iqr';
+  if (tool === 'correlation' && !next.method) next.method = 'pearson';
   return next;
 }
 

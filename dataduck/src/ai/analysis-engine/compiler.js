@@ -1,5 +1,6 @@
 import { isNumericSqlType, isTemporalSqlType } from '../../duckdb/sql-types.js';
 import { quoteIdentifier, quoteString } from '../../util/sql-quote.js';
+import { ANALYSIS_ERROR_CODES } from './errors.js';
 import {
   aggregateMetricExpression,
   AnalysisCompileError,
@@ -25,7 +26,9 @@ export function compileToolPlan(plan, context) {
       jobs: [],
     };
   }
-  if (!context?.hasDataset) throw new AnalysisCompileError('Open a CSV or Parquet file first.', 'NO_DATASET');
+  if (!context?.hasDataset) {
+    throw new AnalysisCompileError('Open a CSV or Parquet file first.', ANALYSIS_ERROR_CODES.NO_DATASET, { kind: 'error' });
+  }
   const columns = contextColumnMap(context);
   return {
     mode: 'analysis',
@@ -146,7 +149,7 @@ function compileAggregateQuery(step, columns) {
     select.push(`${expr} AS ${quoteIdentifier(metric.alias)}`);
     aliases.add(metric.alias);
   }
-  if (!select.length) throw new AnalysisCompileError('The aggregate query selected no fields.');
+  if (!select.length) throw new AnalysisCompileError('The aggregate query selected no fields.', ANALYSIS_ERROR_CODES.EMPTY_SELECTION);
   const { sql: where, params } = compileFilterList(step.filters, columns);
   const defaultOrder = step.dimensions.length && step.metrics.length
     ? [{ field: step.metrics[0].alias, direction: 'desc' }]
@@ -184,7 +187,7 @@ function compileAggregateQuery(step, columns) {
 function compileHistogram(step, columns) {
   const column = requireColumn(columns, step.column);
   if (!isNumericSqlType(column.type) && !isTemporalSqlType(column.type)) {
-    throw new AnalysisCompileError(`Column "${column.name}" is not numeric or temporal.`, 'CLARIFY');
+    throw new AnalysisCompileError(`Column "${column.name}" is not numeric or temporal.`, ANALYSIS_ERROR_CODES.COLUMN_TYPE_MISMATCH);
   }
   const id = quoteIdentifier(column.name);
   const valueExpr = isTemporalSqlType(column.type) ? `CAST(epoch_ms(${id}) AS DOUBLE)` : `CAST(${id} AS DOUBLE)`;
@@ -309,7 +312,7 @@ function compileCorrelation(step, columns) {
     for (let j = i + 1; j < selected.length; j += 1) pairs.push([selected[i], selected[j]]);
   }
   if (pairs.length > MAX_CORRELATION_PAIRS) {
-    throw new AnalysisCompileError('Correlation is limited to 28 column pairs.', 'CLARIFY');
+    throw new AnalysisCompileError('Correlation is limited to 28 column pairs.', ANALYSIS_ERROR_CODES.TOO_MANY_COLUMNS);
   }
   const { sql: where, params } = compileFilterList(step.filters, columns);
   const parts = pairs.map(([left, right]) => {
@@ -345,7 +348,7 @@ function selectedColumns(names, columns, maxColumns) {
   const all = [...columns.values()];
   const selected = names?.length ? names.map((name) => requireColumn(columns, name)) : all;
   if (selected.length > maxColumns) {
-    throw new AnalysisCompileError(`This analysis is limited to ${maxColumns} columns. Ask about specific columns.`, 'CLARIFY');
+    throw new AnalysisCompileError(`This analysis is limited to ${maxColumns} columns. Ask about specific columns.`, ANALYSIS_ERROR_CODES.TOO_MANY_COLUMNS);
   }
   return selected;
 }

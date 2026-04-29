@@ -1,11 +1,13 @@
 import { isNumericSqlType, isTemporalSqlType, normalizeSqlType } from '../../duckdb/sql-types.js';
 import { quoteIdentifier, quoteString } from '../../util/sql-quote.js';
+import { ANALYSIS_ERROR_CODES } from './errors.js';
 
 export class AnalysisCompileError extends Error {
-  constructor(message, code = 'INVALID_PLAN') {
+  constructor(message, code = ANALYSIS_ERROR_CODES.INVALID_PLAN, { kind = 'clarify' } = {}) {
     super(message);
     this.name = 'AnalysisCompileError';
     this.code = code;
+    this.kind = kind;
   }
 }
 
@@ -15,14 +17,14 @@ export function contextColumnMap(context) {
 
 export function requireColumn(columns, name) {
   const column = columns.get(name);
-  if (!column) throw new AnalysisCompileError(`Column "${name}" does not exist.`, 'CLARIFY');
+  if (!column) throw new AnalysisCompileError(`Column "${name}" does not exist.`, ANALYSIS_ERROR_CODES.COLUMN_NOT_FOUND);
   return column;
 }
 
 export function requireNumericColumn(columns, name) {
   const column = requireColumn(columns, name);
   if (!isNumericSqlType(column.type)) {
-    throw new AnalysisCompileError(`Column "${name}" is not numeric. Reopen CSV with typed columns or choose a numeric column.`, 'CLARIFY');
+    throw new AnalysisCompileError(`Column "${name}" is not numeric. Reopen CSV with typed columns or choose a numeric column.`, ANALYSIS_ERROR_CODES.COLUMN_TYPE_MISMATCH);
   }
   return column;
 }
@@ -30,14 +32,14 @@ export function requireNumericColumn(columns, name) {
 export function requireTemporalColumn(columns, name) {
   const column = requireColumn(columns, name);
   if (!isTemporalSqlType(column.type)) {
-    throw new AnalysisCompileError(`Column "${name}" is not a date/time column. Pick a temporal column or ask a non-trend question.`, 'CLARIFY');
+    throw new AnalysisCompileError(`Column "${name}" is not a date/time column. Pick a temporal column or ask a non-trend question.`, ANALYSIS_ERROR_CODES.COLUMN_TYPE_MISMATCH);
   }
   return column;
 }
 
 export function rejectUnsupportedAnalyticalType(column, purpose = 'analysis') {
   if (isNestedOrBinaryType(column.type)) {
-    throw new AnalysisCompileError(`Column "${column.name}" has type ${column.type}, which is not supported for ${purpose}.`, 'CLARIFY');
+    throw new AnalysisCompileError(`Column "${column.name}" has type ${column.type}, which is not supported for ${purpose}.`, ANALYSIS_ERROR_CODES.COLUMN_TYPE_UNSUPPORTED);
   }
 }
 
@@ -46,7 +48,7 @@ export function dimensionExpression(column, timeBucket = null) {
   const id = quoteIdentifier(column.name);
   if (!timeBucket) return id;
   if (!isTemporalSqlType(column.type)) {
-    throw new AnalysisCompileError(`Column "${column.name}" is not temporal, so it cannot be bucketed.`, 'CLARIFY');
+    throw new AnalysisCompileError(`Column "${column.name}" is not temporal, so it cannot be bucketed.`, ANALYSIS_ERROR_CODES.COLUMN_TYPE_MISMATCH);
   }
   return `date_trunc(${quoteString(timeBucket)}, ${id})`;
 }
@@ -64,11 +66,11 @@ export function aggregateMetricExpression(metric, columns) {
   }
   if (metric.agg === 'min' || metric.agg === 'max') {
     if (!isNumericSqlType(column.type) && !isTemporalSqlType(column.type)) {
-      throw new AnalysisCompileError(`Column "${column.name}" is not numeric or temporal.`, 'CLARIFY');
+      throw new AnalysisCompileError(`Column "${column.name}" is not numeric or temporal.`, ANALYSIS_ERROR_CODES.COLUMN_TYPE_MISMATCH);
     }
     return `${metric.agg.toUpperCase()}(${id})`;
   }
-  throw new AnalysisCompileError(`Unsupported aggregate: ${metric.agg}`);
+  throw new AnalysisCompileError(`Unsupported aggregate: ${metric.agg}`, ANALYSIS_ERROR_CODES.UNSUPPORTED_AGGREGATE);
 }
 
 export function legacyMetricExpression(metric, columns) {
@@ -99,14 +101,14 @@ export function compileFilter(filter, columns, params) {
   }
   if (filter.op === 'between') {
     if (!Array.isArray(filter.value) || filter.value.length !== 2) {
-      throw new AnalysisCompileError(`Between filter for "${column.name}" needs exactly two values.`, 'CLARIFY');
+      throw new AnalysisCompileError(`Between filter for "${column.name}" needs exactly two values.`, ANALYSIS_ERROR_CODES.FILTER_INVALID);
     }
     params.push(coerceFilterValue(column, filter.value[0]), coerceFilterValue(column, filter.value[1]));
     return `${id} BETWEEN ? AND ?`;
   }
   if (filter.op === 'in') {
     if (!Array.isArray(filter.value) || !filter.value.length) {
-      throw new AnalysisCompileError(`In filter for "${column.name}" needs at least one value.`, 'CLARIFY');
+      throw new AnalysisCompileError(`In filter for "${column.name}" needs at least one value.`, ANALYSIS_ERROR_CODES.FILTER_INVALID);
     }
     params.push(...filter.value.map((value) => coerceFilterValue(column, value)));
     return `${id} IN (${filter.value.map(() => '?').join(', ')})`;
@@ -125,14 +127,14 @@ export function validateFilter(filter, column) {
   }
   if (filter.op === 'between') {
     if (!Array.isArray(filter.value) || filter.value.length !== 2) {
-      throw new AnalysisCompileError(`Between filter for "${column.name}" needs exactly two values.`, 'CLARIFY');
+      throw new AnalysisCompileError(`Between filter for "${column.name}" needs exactly two values.`, ANALYSIS_ERROR_CODES.FILTER_INVALID);
     }
     for (const value of filter.value) validateScalarFilterValue(column, value, filter.op);
     return;
   }
   if (filter.op === 'in') {
     if (!Array.isArray(filter.value) || !filter.value.length) {
-      throw new AnalysisCompileError(`In filter for "${column.name}" needs at least one value.`, 'CLARIFY');
+      throw new AnalysisCompileError(`In filter for "${column.name}" needs at least one value.`, ANALYSIS_ERROR_CODES.FILTER_INVALID);
     }
     for (const value of filter.value) validateScalarFilterValue(column, value, filter.op);
     return;
@@ -168,16 +170,16 @@ export function validateScalarFilterValue(column, value, op) {
 
 export function validateChartFields(chart, aliases) {
   if (!chart) return;
-  if (chart.x && !aliases.has(chart.x)) throw new AnalysisCompileError(`Chart x field "${chart.x}" is not selected.`);
+  if (chart.x && !aliases.has(chart.x)) throw new AnalysisCompileError(`Chart x field "${chart.x}" is not selected.`, ANALYSIS_ERROR_CODES.CHART_FIELD_NOT_SELECTED);
   for (const series of chart.series || []) {
-    if (!aliases.has(series.field)) throw new AnalysisCompileError(`Chart series field "${series.field}" is not selected.`);
+    if (!aliases.has(series.field)) throw new AnalysisCompileError(`Chart series field "${series.field}" is not selected.`, ANALYSIS_ERROR_CODES.CHART_FIELD_NOT_SELECTED);
   }
 }
 
 export function orderBySql(orderBy = [], aliases) {
   if (!orderBy.length) return '';
   const parts = orderBy.map((item) => {
-    if (!aliases.has(item.field)) throw new AnalysisCompileError(`Order field "${item.field}" is not selected.`);
+    if (!aliases.has(item.field)) throw new AnalysisCompileError(`Order field "${item.field}" is not selected.`, ANALYSIS_ERROR_CODES.ORDER_FIELD_NOT_SELECTED);
     return `${quoteIdentifier(item.field)} ${String(item.direction || 'asc').toUpperCase()}`;
   });
   return `ORDER BY ${parts.join(', ')}`;
@@ -193,7 +195,7 @@ function coerceFilterValue(column, value) {
 }
 
 function filterTypeError(column, reason) {
-  return new AnalysisCompileError(`Filter for "${column.name}" is invalid: ${reason}.`, 'CLARIFY');
+  return new AnalysisCompileError(`Filter for "${column.name}" is invalid: ${reason}.`, ANALYSIS_ERROR_CODES.FILTER_INVALID);
 }
 
 export function isBooleanSqlType(sqlType) {

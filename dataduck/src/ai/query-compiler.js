@@ -1,6 +1,7 @@
 import { quoteIdentifier } from '../util/sql-quote.js';
 import { columnMap } from './context.js';
 import { parseAnalysisPlan } from './plan-schema.js';
+import { ANALYSIS_ERROR_CODES } from './analysis-engine/errors.js';
 import {
   AnalysisCompileError,
   compileFilterList,
@@ -13,8 +14,8 @@ import {
 } from './analysis-engine/sql-guards.js';
 
 export class PlanCompileError extends AnalysisCompileError {
-  constructor(message, code = 'INVALID_PLAN') {
-    super(message, code);
+  constructor(message, code = ANALYSIS_ERROR_CODES.INVALID_PLAN, options = {}) {
+    super(message, code, options);
     this.name = 'PlanCompileError';
   }
 }
@@ -29,7 +30,7 @@ export function compileParsedAnalysisPlan(plan, context) {
     return compileParsedAnalysisPlanImpl(plan, context);
   } catch (error) {
     if (error instanceof AnalysisCompileError) {
-      throw new PlanCompileError(error.message, error.code);
+      throw new PlanCompileError(error.message, error.code, { kind: error.kind });
     }
     throw error;
   }
@@ -43,7 +44,7 @@ function compileParsedAnalysisPlanImpl(plan, context) {
       message: plan.clarifyingQuestion || plan.title || 'This request needs clarification.',
     };
   }
-  if (!context?.hasDataset) throw new AnalysisCompileError('Open a CSV or Parquet file first.', 'NO_DATASET');
+  if (!context?.hasDataset) throw new AnalysisCompileError('Open a CSV or Parquet file first.', ANALYSIS_ERROR_CODES.NO_DATASET, { kind: 'error' });
 
   const columns = contextColumnMap(context);
   const select = [];
@@ -52,7 +53,7 @@ function compileParsedAnalysisPlanImpl(plan, context) {
 
   for (const dimension of plan.dimensions) {
     const column = columns.get(dimension.column);
-    if (!column) throw new AnalysisCompileError(`Column "${dimension.column}" does not exist.`, 'CLARIFY');
+    if (!column) throw new AnalysisCompileError(`Column "${dimension.column}" does not exist.`, ANALYSIS_ERROR_CODES.COLUMN_NOT_FOUND);
     const expr = dimensionExpression(column, dimension.timeBucket);
     select.push(`${expr} AS ${quoteIdentifier(dimension.alias)}`);
     groupBy.push(expr);
@@ -65,7 +66,7 @@ function compileParsedAnalysisPlanImpl(plan, context) {
     aliases.add(metric.alias);
   }
 
-  if (!select.length) throw new AnalysisCompileError('The analysis plan selected no fields.');
+  if (!select.length) throw new AnalysisCompileError('The analysis plan selected no fields.', ANALYSIS_ERROR_CODES.EMPTY_SELECTION);
   validateChartFields(plan.chart, aliases);
 
   const { sql: where, params } = compileFilterList(plan.filters, columns);

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ANALYSIS_CATALOG_VERSION, parseAnalysisToolPlan } from '../src/ai/analysis-engine/tool-schema.js';
+import { z } from 'zod';
+import {
+  ANALYSIS_CATALOG_VERSION,
+  ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+  ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+  AnthropicAnalysisToolPlanSchema,
+  AnalysisToolPlanSchema,
+  parseAnalysisToolPlan,
+} from '../src/ai/analysis-engine/tool-schema.js';
 
 function base(overrides = {}) {
   return {
@@ -78,4 +86,31 @@ describe('analysis tool plan schema', () => {
     expect(plan.steps[0].dimensions[0].timeBucket).toBeNull();
     expect(plan.steps[0].metrics[0].column).toBeNull();
   });
+
+  it('derives provider JSON schemas from the authoritative Zod schemas', () => {
+    expect(ANALYSIS_TOOL_PLAN_JSON_SCHEMA).toEqual(providerJsonSchema(AnalysisToolPlanSchema));
+    expect(ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA).toEqual(providerJsonSchema(AnthropicAnalysisToolPlanSchema));
+  });
+
+  it('normalizes compact Anthropic plans that omit empty optional tool fields', () => {
+    const plan = parseAnalysisToolPlan(base({
+      steps: [{
+        tool: 'top_n',
+        id: 'top_products',
+        title: 'Top products',
+        dimension: 'product',
+        metric: { agg: 'sum', column: 'units', alias: 'units' },
+        n: 5,
+        direction: 'desc',
+      }],
+      clarifyingQuestion: '',
+    }));
+
+    expect(plan.steps[0].filters).toEqual([]);
+  });
 });
+
+function providerJsonSchema(schema) {
+  const { $schema, ...jsonSchema } = z.toJSONSchema(schema);
+  return jsonSchema;
+}

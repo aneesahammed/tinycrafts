@@ -16,11 +16,21 @@ describe('Anthropic provider adapter', () => {
     });
   });
 
-  it('sends browser BYOK headers, JSON schema output config, and cacheable planner context', async () => {
+  it('forces a tool_use call with the analysis-plan schema and cacheable planner context', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'request-id': 'req_123' }),
-      json: async () => ({ content: [{ type: 'text', text: '{"mode":"clarify"}' }] }),
+      json: async () => ({
+        stop_reason: 'tool_use',
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_1',
+            name: 'dataduck_analysis_plan',
+            input: { mode: 'clarify' },
+          },
+        ],
+      }),
     });
     const plannerPrompt = buildPlannerPrompt({
       question: 'top region',
@@ -50,14 +60,32 @@ describe('Anthropic provider adapter', () => {
 
     const body = JSON.parse(request.body);
     expect(body.model).toBe('claude-sonnet-4-6');
-    expect(body.output_config.format.type).toBe('json_schema');
-    expect(unsupportedSchemaKeys(body.output_config.format.schema)).toEqual([]);
-    expect(schemaKeys(body.output_config.format.schema, ['pattern'])).toContain('pattern');
-    expect(unsupportedSchemaKeys(ANALYSIS_PLAN_JSON_SCHEMA)).toEqual(expect.arrayContaining(['maxLength', 'minLength', 'maximum']));
-    expect(schemaKeys(ANALYSIS_PLAN_JSON_SCHEMA, ['pattern'])).toContain('pattern');
+    // Documented Anthropic structured-output path: tools + forced tool_choice.
+    expect(body.tools).toHaveLength(1);
+    expect(body.tools[0].name).toBe('dataduck_analysis_plan');
+    expect(body.tools[0].input_schema.type).toBe('object');
+    // OpenAI-only `strict` is stripped before forwarding to Anthropic.
+    expect(body.tools[0].input_schema.strict).toBeUndefined();
+    expect(body.tool_choice).toEqual({ type: 'tool', name: 'dataduck_analysis_plan' });
+    // Standard JSON Schema constraints (maxLength/pattern/etc.) ARE forwarded —
+    // Claude respects them when generating tool inputs.
+    expect(schemaKeys(body.tools[0].input_schema, ['pattern', 'maxLength']).length).toBeGreaterThan(0);
     expect(body.system.at(-1).cache_control).toEqual({ type: 'ephemeral' });
     expect(body.system.at(-1).text).toContain('"table":"active_file"');
     expect(body.messages).toEqual([{ role: 'user', content: 'top region' }]);
+  });
+
+  it('falls back to text-block JSON parsing when Claude does not emit a tool_use', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers(),
+      json: async () => ({
+        stop_reason: 'end_turn',
+        content: [{ type: 'text', text: '{"mode":"unsupported"}' }],
+      }),
+    });
+    await expect(callAnthropicJson({ apiKey: 'sk-ant-secret', messages: [], fetchImpl }))
+      .resolves.toEqual({ mode: 'unsupported' });
   });
 
   it('concatenates text content blocks for aggregate summaries', async () => {

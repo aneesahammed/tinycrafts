@@ -19,13 +19,14 @@ export async function runAnalysisToolPlan({
     compiled = compileToolPlan(plan, context);
   } catch (error) {
     const safe = safeAnalysisError(error);
+    const clarify = safe.kind === 'clarify';
     return {
-      mode: safe.code === 'CLARIFY' ? 'clarify' : 'analysis',
+      mode: clarify ? 'clarify' : 'analysis',
       title: plan?.title || 'Analysis',
       text: safe.safeMessage,
       artifacts: [diagnosticArtifact({
         id: 'compile_diagnostic',
-        status: safe.code === 'CLARIFY' ? 'unsupported' : 'error',
+        status: clarify ? 'unsupported' : 'error',
         code: safe.code,
         safeMessage: safe.safeMessage,
       })],
@@ -66,16 +67,17 @@ export async function runAnalysisToolPlan({
           incomplete: true,
         };
       }
+      const clarify = safe.kind === 'clarify';
       artifacts.push(diagnosticArtifact({
         id: `${job.id}_diagnostic`,
         tool: job.tool,
-        status: safe.code === 'CLARIFY' ? 'unsupported' : 'incomplete',
+        status: clarify ? 'unsupported' : 'incomplete',
         code: safe.code,
         safeMessage: safe.safeMessage,
         failedStepId: job.id,
       }));
       return {
-        mode: safe.code === 'CLARIFY' ? 'clarify' : 'analysis',
+        mode: clarify ? 'clarify' : 'analysis',
         title: compiled.title,
         text: safe.safeMessage,
         artifacts,

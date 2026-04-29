@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ANALYSIS_ERROR_CODES, safeAnalysisError } from '../src/ai/analysis-engine/errors.js';
 import { runAnalysisToolPlan } from '../src/ai/analysis-engine/runner.js';
 import { ANALYSIS_CATALOG_VERSION } from '../src/ai/analysis-engine/tool-schema.js';
 import { activeDatasetFingerprint } from '../src/ai/dataset-fingerprint.js';
@@ -92,6 +93,16 @@ describe('analysis engine runner', () => {
 
     expect(result.incomplete).toBe(true);
     expect(result.artifacts[0].status).toBe('unsupported');
+    expect(result.artifacts[0].code).toBe(ANALYSIS_ERROR_CODES.COLUMN_NOT_FOUND);
     expect(result.artifacts[0].rows).toEqual([]);
+  });
+
+  it('maps provider failures into closed display error codes', () => {
+    expect(safeAnalysisError({ provider: 'anthropic', code: 'REFUSAL' })).toMatchObject({
+      code: ANALYSIS_ERROR_CODES.LLM_REFUSED,
+    });
+    expect(safeAnalysisError({ provider: 'anthropic', code: 'TIMEOUT' })).toMatchObject({
+      code: ANALYSIS_ERROR_CODES.LLM_TIMEOUT,
+    });
   });
 });

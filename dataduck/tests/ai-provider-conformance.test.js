@@ -12,7 +12,10 @@ describe('AI provider structured-output conformance', () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers(),
-      json: async () => ({ content: [{ type: 'text', text: '{"schemaVersion":1,"catalogVersion":"2026-04-29","mode":"clarify","title":"Clarify","steps":[{"tool":"profile_overview","id":"context","title":"Context"}],"clarifyingQuestion":"Which column?"}' }] }),
+      json: async () => ({
+        stop_reason: 'tool_use',
+        content: [{ type: 'tool_use', id: 't1', name: 'dataduck_analysis_plan', input: { schemaVersion: 1, catalogVersion: '2026-04-29', mode: 'clarify', title: 'Clarify', steps: [{ tool: 'profile_overview', id: 'context', title: 'Context' }], clarifyingQuestion: 'Which column?' } }],
+      }),
     });
 
     await callProviderJson({
@@ -24,16 +27,20 @@ describe('AI provider structured-output conformance', () => {
     });
 
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
-    expect(JSON.stringify(body.output_config.format.schema)).not.toContain('anyOf');
-    expect(findAdditionalPropertiesTrue(body.output_config.format.schema)).toEqual([]);
-    expect(findArrayTypes(body.output_config.format.schema)).toEqual([]);
+    const inputSchema = body.tools[0].input_schema;
+    expect(JSON.stringify(inputSchema)).not.toContain('anyOf');
+    expect(findAdditionalPropertiesTrue(inputSchema)).toEqual([]);
+    expect(findArrayTypes(inputSchema)).toEqual([]);
   });
 
-  it('sends Anthropic output_config.format with the compact tool-plan schema', async () => {
+  it('forces a tool_use call carrying the compact tool-plan schema', async () => {
     const fetchImpl = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers(),
-      json: async () => ({ content: [{ type: 'text', text: '{"schemaVersion":1,"catalogVersion":"2026-04-29","mode":"clarify","title":"Clarify","steps":[{"tool":"profile_overview","id":"context","title":"Context"}],"clarifyingQuestion":"Which column?"}' }] }),
+      json: async () => ({
+        stop_reason: 'tool_use',
+        content: [{ type: 'tool_use', id: 't1', name: 'dataduck_analysis_plan', input: { schemaVersion: 1, catalogVersion: '2026-04-29', mode: 'clarify', title: 'Clarify', steps: [{ tool: 'profile_overview', id: 'context', title: 'Context' }], clarifyingQuestion: 'Which column?' } }],
+      }),
     });
 
     await callAnthropicJson({
@@ -44,11 +51,14 @@ describe('AI provider structured-output conformance', () => {
     });
 
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
-    expect(body.output_config.format.type).toBe('json_schema');
-    expect(body.output_config.format.schema.properties.catalogVersion.const).toBe('2026-04-29');
-    expect(JSON.stringify(body.output_config.format.schema)).not.toContain('anyOf');
-    expect(findAdditionalPropertiesTrue(body.output_config.format.schema)).toEqual([]);
-    expect(findArrayTypes(body.output_config.format.schema)).toEqual([]);
+    expect(body.tools).toHaveLength(1);
+    expect(body.tools[0].name).toBe('dataduck_analysis_plan');
+    expect(body.tool_choice).toEqual({ type: 'tool', name: 'dataduck_analysis_plan' });
+    const inputSchema = body.tools[0].input_schema;
+    expect(inputSchema.properties.catalogVersion.const).toBe('2026-04-29');
+    expect(JSON.stringify(inputSchema)).not.toContain('anyOf');
+    expect(findAdditionalPropertiesTrue(inputSchema)).toEqual([]);
+    expect(findArrayTypes(inputSchema)).toEqual([]);
     expect(JSON.stringify(ANALYSIS_TOOL_PLAN_JSON_SCHEMA)).toContain('anyOf');
   });
 

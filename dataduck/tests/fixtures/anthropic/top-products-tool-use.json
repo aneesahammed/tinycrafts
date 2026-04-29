@@ -1,0 +1,36 @@
+{
+  "id": "msg_recorded_top_products",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-4-6",
+  "stop_reason": "tool_use",
+  "content": [
+    {
+      "type": "tool_use",
+      "id": "toolu_recorded_top_products",
+      "name": "dataduck_analysis_plan",
+      "input": {
+        "schemaVersion": 1,
+        "catalogVersion": "2026-04-29",
+        "mode": "analysis",
+        "title": "Top products by units",
+        "steps": [
+          {
+            "tool": "top_n",
+            "id": "top_products",
+            "title": "Top products by units",
+            "dimension": "product",
+            "metric": {
+              "agg": "sum",
+              "column": "units",
+              "alias": "units"
+            },
+            "n": 3,
+            "direction": "desc"
+          }
+        ],
+        "clarifyingQuestion": ""
+      }
+    }
+  ]
+}

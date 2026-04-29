@@ -19,17 +19,11 @@ const ANTHROPIC_RETRY_POLICY = {
     return error?.status >= 500;
   },
 };
-// Anthropic structured-output SDK helpers strip these constraints before sending
-// schemas, then validate against the original schema locally.
-const UNSUPPORTED_STRUCTURED_SCHEMA_KEYS = new Set([
-  'minimum',
-  'maximum',
-  'minLength',
-  'maxLength',
-  'minItems',
-  'maxItems',
-  'format',
-]);
+// Anthropic tool input_schema is JSON Schema, but does not understand OpenAI's
+// `strict` field. Strip OpenAI-only keys before sending. Standard JSON Schema
+// constraints (minimum/maximum/maxLength/etc.) are preserved — Claude respects
+// them when generating tool inputs.
+const OPENAI_ONLY_SCHEMA_KEYS = new Set(['strict']);
 
 export const anthropicAdapter = {
   provider: 'anthropic',
@@ -43,6 +37,7 @@ export async function callAnthropicJson({
   messages,
   plannerPrompt = null,
   jsonSchema = ANALYSIS_PLAN_JSON_SCHEMA,
+  schemaName = 'dataduck_analysis_plan',
   maxCompletionTokens = AI_LIMITS.maxCompletionTokens,
   abortSignal = null,
   fetchImpl = fetch,
@@ -51,6 +46,7 @@ export async function callAnthropicJson({
 } = {}) {
   assertApiKey(apiKey);
   incrementDailyRequestCount('anthropic');
+  const toolName = String(schemaName || 'dataduck_analysis_plan').trim() || 'dataduck_analysis_plan';
   const response = await postAnthropicWithRetry({
     apiKey,
     abortSignal,
@@ -59,15 +55,19 @@ export async function callAnthropicJson({
     sleep,
     body: {
       ...baseRequestBody({ model, messages, plannerPrompt, maxCompletionTokens }),
-      output_config: {
-        format: {
-          type: 'json_schema',
-          schema: toAnthropicStructuredSchema(jsonSchema),
+      // Force structured output via Anthropic tool calling. The model is
+      // required to emit one tool_use block conforming to input_schema.
+      tools: [
+        {
+          name: toolName,
+          description: 'Return the analysis plan as structured JSON conforming to the schema.',
+          input_schema: toAnthropicStructuredSchema(jsonSchema),
         },
-      },
+      ],
+      tool_choice: { type: 'tool', name: toolName },
     },
   });
-  return parseAnthropicJson(response);
+  return parseAnthropicJson(response, toolName);
 }
 
 export async function callAnthropicText({
@@ -214,9 +214,18 @@ async function buildAnthropicHttpError(response) {
   });
 }
 
-async function parseAnthropicJson(response) {
+async function parseAnthropicJson(response, toolName = 'dataduck_analysis_plan') {
   const parsed = await readAnthropicPayload(response);
   assertCompleteResponse(parsed);
+  // Tool-calling path (the normal case): the forced tool_use block carries the
+  // structured plan in its `input` field — already a parsed object.
+  const toolUse = (parsed?.content || []).find((block) => block?.type === 'tool_use' && (toolName ? block.name === toolName : true));
+  if (toolUse && toolUse.input && typeof toolUse.input === 'object') {
+    return toolUse.input;
+  }
+  // Fallback: if Claude emitted a text block instead of the tool (rare under
+  // tool_choice forcing, but possible for some refusal patterns), try to parse
+  // the text as JSON so the rest of the planner pipeline still gets a chance.
   const text = textFromAnthropicContent(parsed);
   try {
     return JSON.parse(text);
@@ -285,30 +294,12 @@ function toAnthropicStructuredSchema(schema) {
 function transformSchemaValue(value) {
   if (Array.isArray(value)) return value.map(transformSchemaValue);
   if (!value || typeof value !== 'object') return value;
-
   const next = {};
-  const notes = [];
   for (const [key, nested] of Object.entries(value)) {
-    if (UNSUPPORTED_STRUCTURED_SCHEMA_KEYS.has(key)) {
-      notes.push(describeRemovedConstraint(key, nested));
-      continue;
-    }
+    if (OPENAI_ONLY_SCHEMA_KEYS.has(key)) continue;
     next[key] = transformSchemaValue(nested);
   }
-  const description = notes.filter(Boolean).join(' ');
-  if (description) next.description = [next.description, description].filter(Boolean).join(' ');
   return next;
-}
-
-function describeRemovedConstraint(key, value) {
-  if (key === 'minimum') return `Minimum value: ${value}.`;
-  if (key === 'maximum') return `Maximum value: ${value}.`;
-  if (key === 'minLength') return `Minimum length: ${value}.`;
-  if (key === 'maxLength') return `Maximum length: ${value}.`;
-  if (key === 'minItems') return `Minimum items: ${value}.`;
-  if (key === 'maxItems') return `Maximum items: ${value}.`;
-  if (key === 'format') return `Expected format: ${value}.`;
-  return '';
 }
 
 function retryAfterHeader(headers) {

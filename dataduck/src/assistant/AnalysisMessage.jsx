@@ -94,12 +94,62 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
 
   if (!normalized || !activeArtifact) return null;
 
+  const failed = Boolean(activeArtifact.status && activeArtifact.status !== 'ok');
+
   const preview = sanitizeAggregatePayload({
     columns: activeArtifact.columns,
     columnTypes: activeArtifact.columnTypes,
     rows: activeArtifact.rows,
   });
   const activeProvider = getActiveProviderConfig(settings);
+
+  if (failed) {
+    return (
+      <article className="analysis-card analysis-card--failed" data-state={activeArtifact.status}>
+        <div className="analysis-fail-rail" aria-hidden="true" />
+        <header className="analysis-fail-head">
+          <span className="analysis-fail-tag" data-status={activeArtifact.status}>
+            <span className="analysis-fail-glyph" aria-hidden="true">{activeArtifact.status === 'unsupported' ? '?' : '!'}</span>
+            <span className="analysis-fail-code">{(activeArtifact.code || activeArtifact.status || 'ERROR').toString().toUpperCase()}</span>
+          </span>
+          <h3 className="analysis-fail-title">{activeArtifact.title || normalized.title || 'Analysis did not complete'}</h3>
+        </header>
+
+        {artifacts.length > 1 ? (
+          <div className="analysis-artifacts" role="tablist" aria-label="Analysis artifacts">
+            {artifacts.map((artifact) => (
+              <button
+                key={artifact.id}
+                type="button"
+                className="analysis-artifact-tab"
+                aria-selected={artifact.id === activeArtifact.id}
+                data-status={artifact.status || 'ok'}
+                onClick={() => { setArtifactId(artifact.id); setTab('chart'); }}
+              >
+                <span className="analysis-artifact-status" aria-hidden="true">{artifact.status && artifact.status !== 'ok' ? '!' : '●'}</span>
+                <span>{artifact.title || artifact.tool}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="analysis-fail-body">
+          <p className="analysis-fail-msg">{activeArtifact.safeMessage || activeArtifact.text || 'This analysis did not complete.'}</p>
+          {activeArtifact.warnings?.length ? (
+            <ul className="analysis-fail-notes">
+              {activeArtifact.warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="analysis-fail-hint">
+            <span aria-hidden="true">→</span> Try a more specific question, or open the SQL editor to query directly.
+          </p>
+        </div>
+      </article>
+    );
+  }
+
 
   async function sendAggregate() {
     summaryControllerRef.current?.abort();
