@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import { AnalysisMessage } from '../src/assistant/AnalysisMessage.jsx';
 import { selectChartRows } from '../src/assistant/ChartCard.jsx';
+import { normalizeChartRows } from '../src/assistant/normalize-chart-data.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -54,5 +55,54 @@ describe('assistant analysis rendering', () => {
 
     expect(selected.rows).toHaveLength(120);
     expect(selected.truncated).toBe(true);
+  });
+
+  it('samples time-series chart rows across the full range instead of hiding the latest rows', () => {
+    const rows = Array.from({ length: 500 }, (_, index) => ({ order_date: `d-${index}`, units: index }));
+    const selected = selectChartRows(rows, 120, {
+      chart: { kind: 'line', x: 'order_date' },
+      xType: 'Date64<MILLISECOND>',
+    });
+
+    expect(selected.rows).toHaveLength(120);
+    expect(selected.truncated).toBe(true);
+    expect(selected.rows[0].order_date).toBe('d-0');
+    expect(selected.rows.at(-1).order_date).toBe('d-499');
+  });
+
+  it('normalizes chart rows with temporal column metadata', () => {
+    expect(normalizeChartRows(
+      [{ order_date: 1735776000000, total_amount: '11567.59' }],
+      ['order_date', 'total_amount'],
+      { order_date: 'Date32<DAY>' },
+    )).toEqual([{ order_date: '2025-01-02', total_amount: 11567.59 }]);
+  });
+
+  it('labels metadata-only planning without implying aggregate rows were sent', () => {
+    const { container, root } = render(
+      <AnalysisMessage
+        analysis={{
+          title: 'Rows',
+          privacyNotice: 'local',
+          elapsedMs: 1,
+          sql: 'SELECT 1',
+          question: 'show rows',
+          columns: ['order_date'],
+          columnTypes: { order_date: 'Date32<DAY>' },
+          rows: [{ order_date: 1735776000000 }],
+          chart: { kind: 'table', x: null, series: [] },
+        }}
+        settings={{ apiKey: 'gsk_test' }}
+        onOpenSql={vi.fn()}
+        onCopySql={vi.fn()}
+      />,
+    );
+
+    expect(container.textContent).toContain('Metadata-only planning');
+    expect(container.textContent).not.toContain('Schema-only context');
+    expect(container.textContent).toContain('2025-01-02');
+    act(() => {
+      root.unmount();
+    });
   });
 });

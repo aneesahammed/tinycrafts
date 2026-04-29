@@ -36,7 +36,7 @@ export function mountStatus(el, store, handlers = {}) {
   pill.querySelector('#sExport').addEventListener('click', () => {
     const s = store.state;
     if (!s.resultColumns.length) return;
-    const csv = toCsv(s.resultColumns, s.resultRows);
+    const csv = toCsv(s.resultColumns, s.resultRows, s.resultColumnTypes);
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `dataduck-${stamp}.csv`);
   });

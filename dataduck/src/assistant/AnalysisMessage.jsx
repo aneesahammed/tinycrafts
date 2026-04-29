@@ -77,7 +77,11 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
 
   if (!analysis) return null;
 
-  const preview = sanitizeAggregatePayload({ columns: analysis.columns, rows: analysis.rows });
+  const preview = sanitizeAggregatePayload({
+    columns: analysis.columns,
+    columnTypes: analysis.columnTypes,
+    rows: analysis.rows,
+  });
 
   async function sendAggregate() {
     setBusy(true);
@@ -102,7 +106,7 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
       <header className="analysis-card-head">
         <h3>{analysis.title}</h3>
         <div className="analysis-card-meta">
-          <span className="pill">Schema-only context</span>
+          <span className="pill">Metadata-only planning</span>
           <span className="dot" aria-hidden="true">·</span>
           <span className="mono">{analysis.elapsedMs ?? 0} ms</span>
           <span className="dot" aria-hidden="true">·</span>
@@ -129,7 +133,9 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
 
       <div className="analysis-tabpanel">
         {tab === 'chart' && hasChartTab ? <ChartCard analysis={analysis} /> : null}
-        {tab === 'table' && hasTableTab ? <TablePreview columns={analysis.columns} rows={analysis.rows} /> : null}
+        {tab === 'table' && hasTableTab ? (
+          <TablePreview columns={analysis.columns} columnTypes={analysis.columnTypes} rows={analysis.rows} />
+        ) : null}
         {tab === 'sql' && hasSqlTab ? (
           <div className="analysis-sql">
             <SqlHighlight sql={analysis.sql} />
@@ -161,7 +167,7 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
   );
 }
 
-export function TablePreview({ columns = [], rows = [], maxRows = 100 }) {
+export function TablePreview({ columns = [], columnTypes = {}, rows = [], maxRows = 100 }) {
   if (!columns.length) return null;
   const visibleRows = rows.slice(0, maxRows);
   return (
@@ -173,7 +179,7 @@ export function TablePreview({ columns = [], rows = [], maxRows = 100 }) {
         <tbody>
           {visibleRows.map((row, rowIndex) => (
             <tr key={rowIndex}>
-              {columns.map((column) => <td key={column}>{valueToDisplay(row?.[column])}</td>)}
+              {columns.map((column) => <td key={column}>{valueToDisplay(row?.[column], columnTypes[column])}</td>)}
             </tr>
           ))}
         </tbody>

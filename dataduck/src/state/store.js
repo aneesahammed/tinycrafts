@@ -3,6 +3,7 @@ export function createStore() {
     files: new Map(),
     activeTable: null,
     resultColumns: [],
+    resultColumnTypes: {},
     resultRows: [],
     queryElapsedMs: null,
     page: 0,
@@ -46,8 +47,9 @@ export function createStore() {
       state.activeTable = tableName;
       emit();
     },
-    setResult({ columns, rows, elapsedMs }) {
+    setResult({ columns, columnTypes = {}, rows, elapsedMs }) {
       state.resultColumns = columns;
+      state.resultColumnTypes = { ...columnTypes };
       state.resultRows = rows;
       state.queryElapsedMs = elapsedMs;
       state.page = 0;
@@ -55,6 +57,7 @@ export function createStore() {
     },
     clearResult() {
       state.resultColumns = [];
+      state.resultColumnTypes = {};
       state.resultRows = [];
       state.queryElapsedMs = null;
       state.page = 0;

@@ -89,7 +89,7 @@ function renderLoading(drawer, payload, close) {
 }
 
 function renderProfile(drawer, profile, handlers, close) {
-  const chart = profile.kind === 'histogram' ? renderHistogram(profile.bins) : renderTopValues(profile.values);
+  const chart = profile.kind === 'histogram' ? renderHistogram(profile.bins) : renderTopValues(profile);
   const stats = renderStats(profile);
   setHtml(drawer, `
     <div class="profile-head">
@@ -159,7 +159,7 @@ function renderStats(profile) {
     statCell('Distinct', formatNumber(profile.stats?.distinct)),
     statCell('Nulls', formatNulls(profile.stats)),
   ];
-  if (profile.kind === 'histogram') cells.push(statCell('Range', formatRange(profile.stats)));
+  if (profile.kind === 'histogram') cells.push(statCell('Range', formatRange(profile.stats, profile.type)));
   return cells;
 }
 
@@ -185,7 +185,8 @@ function renderHistogram(rows = []) {
   `;
 }
 
-function renderTopValues(values = []) {
+function renderTopValues(profile = {}) {
+  const values = profile.values || [];
   if (!values.length) return '<p class="profile-empty">No non-null values found.</p>';
   const max = Math.max(1, ...values.map((row) => normalizeCount(row.count)));
   return `
@@ -196,7 +197,7 @@ function renderTopValues(values = []) {
           const width = Math.max(2, Math.round((count / max) * 100));
           return `
             <div class="profile-value">
-              <span class="profile-value-name">${esc(valueToDisplay(row.value))}</span>
+              <span class="profile-value-name">${esc(valueToDisplay(row.value, profile.type))}</span>
               <span class="profile-value-bar"><i style="width:${width}%"></i></span>
               <b>${esc(abbreviateCount(count))}</b>
             </div>
@@ -207,10 +208,10 @@ function renderTopValues(values = []) {
   `;
 }
 
-function formatRange(stats = {}) {
+function formatRange(stats = {}, type = null) {
   if (stats.min == null && stats.max == null) return '-';
-  if (stats.min === stats.max) return valueToDisplay(stats.min);
-  return `${valueToDisplay(stats.min)} → ${valueToDisplay(stats.max)}`;
+  if (stats.min === stats.max) return valueToDisplay(stats.min, type);
+  return `${valueToDisplay(stats.min, type)} → ${valueToDisplay(stats.max, type)}`;
 }
 
 function formatNulls(stats = {}) {

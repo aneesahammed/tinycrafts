@@ -2,7 +2,7 @@ import { valueToDisplay } from '../util/format.js';
 import { callGroqText } from './groq-client.js';
 import { AGGREGATE_UPLOAD_LIMITS, GROQ_LIMITS } from './privacy.js';
 
-export function sanitizeAggregatePayload({ columns = [], rows = [] }, limits = AGGREGATE_UPLOAD_LIMITS) {
+export function sanitizeAggregatePayload({ columns = [], columnTypes = {}, rows = [] }, limits = AGGREGATE_UPLOAD_LIMITS) {
   const safeColumns = columns.map(String).slice(0, limits.maxColumns);
   const safeRows = [];
   let totalChars = 0;
@@ -11,7 +11,7 @@ export function sanitizeAggregatePayload({ columns = [], rows = [] }, limits = A
   for (const row of rows.slice(0, limits.maxRows)) {
     const safeRow = {};
     for (const column of safeColumns) {
-      let value = valueToDisplay(row?.[column]);
+      let value = valueToDisplay(row?.[column], columnTypes[column]);
       if (value.length > limits.maxCellChars) {
         value = `${value.slice(0, limits.maxCellChars)}...`;
         truncated = true;
@@ -34,6 +34,7 @@ export async function summarizeAggregateWithGroq({ apiKey, model, question, anal
     question,
     title: analysis.title,
     columns: analysis.columns,
+    columnTypes: analysis.columnTypes,
     rows: analysis.rows,
   });
   const payload = request.aggregatePayload;
@@ -62,10 +63,10 @@ export async function summarizeAggregateWithGroq({ apiKey, model, question, anal
 }
 
 export function buildAggregateSummaryRequest(
-  { question = '', title = '', columns = [], rows = [] },
+  { question = '', title = '', columns = [], columnTypes = {}, rows = [] },
   limits = AGGREGATE_UPLOAD_LIMITS,
 ) {
-  const payload = sanitizeAggregatePayload({ columns, rows }, limits);
+  const payload = sanitizeAggregatePayload({ columns, columnTypes, rows }, limits);
   const request = {
     question: trimText(question, limits.maxCellChars),
     title: trimText(title, 120),

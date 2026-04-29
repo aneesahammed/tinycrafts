@@ -47,6 +47,23 @@ describe('store query snapshot state', () => {
     expect(states).toEqual([true, false]);
   });
 
+  it('stores query result column types for typed display surfaces', () => {
+    const store = createStore();
+
+    store.setResult({
+      columns: ['order_date'],
+      columnTypes: { order_date: 'Date64<MILLISECOND>' },
+      rows: [{ order_date: 1735776000000 }],
+      elapsedMs: 7,
+    });
+
+    expect(store.state.resultColumnTypes).toEqual({ order_date: 'Date64<MILLISECOND>' });
+
+    store.clearResult();
+
+    expect(store.state.resultColumnTypes).toEqual({});
+  });
+
   it('patches file records without replacing the full files map', () => {
     const store = createStore();
     const states = [];

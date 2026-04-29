@@ -15,7 +15,7 @@ import {
   YAxis,
 } from 'recharts';
 import { normalizeChartRows } from './normalize-chart-data.js';
-import { valueToDisplay } from '../util/format.js';
+import { isTemporalColumnType, valueToDisplay } from '../util/format.js';
 
 export const MAX_CHART_ROWS = 120;
 
@@ -53,9 +53,14 @@ export function chartIsRenderable(analysis) {
 
 export function ChartCard({ analysis }) {
   const chart = analysis?.chart;
+  const xKey = chart?.x || analysis?.columns?.[0];
   const selectedRows = useMemo(
-    () => selectChartRows(normalizeChartRows(analysis?.rows || [], analysis?.columns || [])),
-    [analysis?.rows, analysis?.columns],
+    () => selectChartRows(
+      normalizeChartRows(analysis?.rows || [], analysis?.columns || [], analysis?.columnTypes || {}),
+      MAX_CHART_ROWS,
+      { chart, xType: analysis?.columnTypes?.[xKey] },
+    ),
+    [analysis?.rows, analysis?.columns, analysis?.columnTypes, chart, xKey],
   );
   const rows = selectedRows.rows;
   const [colors, setColors] = useState(() => readThemeColors());
@@ -84,7 +89,6 @@ export function ChartCard({ analysis }) {
   }
 
   const height = Math.max(240, Math.min(360, rows.length * 28));
-  const xKey = chart.x || analysis.columns?.[0];
   const interval = rows.length > 60 ? 'preserveStartEnd' : rows.length > 20 ? Math.ceil(rows.length / 20) - 1 : 0;
   const showLegend = chart.series.length > 1;
   const hasRightAxis = chart.series.some((series) => series.axis === 'right');
@@ -134,18 +138,49 @@ export function ChartCard({ analysis }) {
         </ResponsiveContainer>
       </div>
       {selectedRows.truncated ? (
-        <p className="assistant-chart-note">Chart limited to first {MAX_CHART_ROWS} rows.</p>
+        <p className="assistant-chart-note">
+          {selectedRows.sampled
+            ? `Chart sampled to ${MAX_CHART_ROWS} rows.`
+            : `Chart limited to first ${MAX_CHART_ROWS} rows.`}
+        </p>
       ) : null}
     </>
   );
 }
 
-export function selectChartRows(rows = [], maxRows = MAX_CHART_ROWS) {
+export function selectChartRows(rows = [], maxRows = MAX_CHART_ROWS, options = {}) {
   const limit = Math.max(1, Number(maxRows) || MAX_CHART_ROWS);
+  if (rows.length <= limit) {
+    return {
+      rows,
+      truncated: false,
+      sampled: false,
+    };
+  }
+  if (isTimeSeriesChart(options)) {
+    return {
+      rows: sampleRowsAcrossRange(rows, limit),
+      truncated: true,
+      sampled: true,
+    };
+  }
   return {
     rows: rows.slice(0, limit),
-    truncated: rows.length > limit,
+    truncated: true,
+    sampled: false,
   };
+}
+
+function isTimeSeriesChart({ chart, xType } = {}) {
+  return Boolean(chart?.x && isTemporalColumnType(xType) && (chart.kind === 'line' || chart.kind === 'combo'));
+}
+
+function sampleRowsAcrossRange(rows, limit) {
+  if (limit <= 1) return [rows[rows.length - 1]];
+  return Array.from({ length: limit }, (_unused, index) => {
+    const rowIndex = Math.round((index * (rows.length - 1)) / (limit - 1));
+    return rows[rowIndex];
+  });
 }
 
 function renderChart(chart, rows, common, colors) {

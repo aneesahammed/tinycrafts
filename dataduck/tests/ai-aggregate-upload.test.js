@@ -35,4 +35,17 @@ describe('aggregate upload sanitizer', () => {
     expect(JSON.stringify(request).length).toBeLessThanOrEqual(900);
     expect(request.aggregatePayload.truncated).toBe(true);
   });
+
+  it('sanitizes aggregate rows with column type display metadata', () => {
+    const payload = sanitizeAggregatePayload({
+      columns: ['order_date', 'total_amount'],
+      columnTypes: { order_date: 'Date32<DAY>' },
+      rows: [{ order_date: 1735776000000, total_amount: 11567.59 }],
+    });
+
+    expect(payload.rows[0]).toEqual({
+      order_date: '2025-01-02',
+      total_amount: '11567.59',
+    });
+  });
 });

@@ -1,18 +1,19 @@
-import { valueToDisplay } from '../util/format.js';
+import { isTemporalColumnType, valueToDisplay } from '../util/format.js';
 
-export function normalizeChartRows(rows = [], columns = []) {
+export function normalizeChartRows(rows = [], columns = [], columnTypes = {}) {
   return rows.map((row) => {
     const next = {};
     for (const column of columns) {
       const value = row?.[column];
-      next[column] = normalizeChartValue(value);
+      next[column] = normalizeChartValue(value, columnTypes[column]);
     }
     return next;
   });
 }
 
-export function normalizeChartValue(value) {
+export function normalizeChartValue(value, columnType = null) {
   if (value == null) return null;
+  if (isTemporalColumnType(columnType)) return valueToDisplay(value, columnType);
   if (typeof value === 'bigint') return Number(value);
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (value instanceof Uint8Array || ArrayBuffer.isView(value)) return valueToDisplay(value);

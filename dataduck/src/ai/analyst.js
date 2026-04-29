@@ -6,6 +6,12 @@ import { compileParsedAnalysisPlan, PlanCompileError } from './query-compiler.js
 import { parseAnalysisPlan, ANALYSIS_PLAN_JSON_SCHEMA } from './plan-schema.js';
 import { buildPlannerMessages } from './prompts.js';
 import { DEFAULT_GROQ_MODEL, GROQ_LIMITS } from './privacy.js';
+import {
+  formatNumber,
+  inferDisplayColumnTypes,
+  isTemporalColumnType,
+  valueToDisplay,
+} from '../util/format.js';
 
 export async function answerDataQuestion({
   question,
@@ -73,16 +79,21 @@ export async function answerDataQuestion({
   const result = await queryFn(compiled.sql);
   assertFresh(startFingerprint, getStoreState());
   const elapsedMs = Math.max(0, Math.round(now() - startedAt));
+  const columns = result.columns || [];
+  const rows = result.rows || [];
+  const columnTypes = inferDisplayColumnTypes(columns, rows, result.columnTypes || {});
+  const typedResult = { ...result, columns, rows, columnTypes };
 
   const answer = {
     type: 'analysis_result',
     mode: 'analysis',
     title: compiled.title,
     question: String(question || ''),
-    text: summarizeResult(compiled, result),
+    text: summarizeResult(compiled, typedResult),
     sql: compiled.sql,
-    columns: result.columns || [],
-    rows: result.rows || [],
+    columns,
+    columnTypes,
+    rows,
     elapsedMs,
     chart: compiled.chart,
     privacyNotice: 'Planned with schema/profile metadata only. Query execution stayed in DuckDB-WASM.',
@@ -117,12 +128,49 @@ function summarizeResult(compiled, result) {
   const rows = result.rows || [];
   if (!rows.length) return `${compiled.title}: no rows matched.`;
   const first = rows[0] || {};
-  const firstSeries = compiled.chart?.series?.[0]?.field;
+  const firstSeries = compiled.chart?.series?.[0];
+  const firstSeriesField = firstSeries?.field;
   const x = compiled.chart?.x;
-  if (x && firstSeries && first[x] != null && first[firstSeries] != null) {
-    return `${compiled.title}: the leading result is ${first[x]} with ${first[firstSeries]}.`;
+  const columnTypes = result.columnTypes || {};
+  if (x && firstSeriesField && first[x] != null && first[firstSeriesField] != null) {
+    if (isTemporalColumnType(columnTypes[x])) {
+      return summarizeTimeSeries({ compiled, result, x, series: firstSeries });
+    }
+    return `${compiled.title}: the top result is ${formatSummaryValue(first[x], columnTypes[x])} with ${formatSummaryValue(first[firstSeriesField], columnTypes[firstSeriesField])}.`;
   }
   return `${compiled.title}: returned ${rows.length} row${rows.length === 1 ? '' : 's'}.`;
+}
+
+function summarizeTimeSeries({ compiled, result, x, series }) {
+  const rows = result.rows || [];
+  const y = series.field;
+  const columnTypes = result.columnTypes || {};
+  const first = rows[0] || {};
+  const last = rows[rows.length - 1] || {};
+  const peak = rows.reduce((best, row) => {
+    const value = toFiniteNumber(row?.[y]);
+    if (value == null) return best;
+    return best == null || value > best.value ? { row, value } : best;
+  }, null);
+
+  const label = series.label || y;
+  const range = `${formatSummaryValue(first[x], columnTypes[x])} to ${formatSummaryValue(last[x], columnTypes[x])}`;
+  const latest = formatSummaryValue(last[y], columnTypes[y]);
+  if (!peak) return `${compiled.title}: ${label} runs from ${range}; latest is ${latest}.`;
+
+  return `${compiled.title}: ${label} runs from ${range}; peak is ${formatSummaryValue(peak.row[y], columnTypes[y])} on ${formatSummaryValue(peak.row[x], columnTypes[x])}; latest is ${latest}.`;
+}
+
+function formatSummaryValue(value, columnType = null) {
+  if (isTemporalColumnType(columnType)) return valueToDisplay(value, columnType);
+  if (typeof value === 'number' || typeof value === 'bigint') return formatNumber(value);
+  return valueToDisplay(value, columnType);
+}
+
+function toFiniteNumber(value) {
+  if (typeof value === 'bigint') return Number(value);
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function assertFresh(startFingerprint, state) {

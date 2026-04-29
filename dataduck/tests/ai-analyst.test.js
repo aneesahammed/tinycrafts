@@ -25,6 +25,54 @@ function stateFor(table = 'orders') {
   };
 }
 
+function salesState(table = 'sales') {
+  return {
+    activeTable: table,
+    files: new Map([
+      [table, {
+        virtualName: `${table}.csv`,
+        size: 100,
+        format: 'csv',
+        summaryStatus: 'ready',
+        summary: new Map([
+          ['order_date', { rowCount: 3, min: 1735776000000, max: 1735948800000 }],
+          ['total_amount', { rowCount: 3, min: 12000, max: 40000 }],
+        ]),
+        profile: {
+          schema: [
+            { column_name: 'order_date', column_type: 'DATE' },
+            { column_name: 'total_amount', column_type: 'DOUBLE' },
+          ],
+        },
+      }],
+    ]),
+  };
+}
+
+function epochSalesState(table = 'sales') {
+  return {
+    activeTable: table,
+    files: new Map([
+      [table, {
+        virtualName: `${table}.csv`,
+        size: 100,
+        format: 'csv',
+        summaryStatus: 'ready',
+        summary: new Map([
+          ['order_date', { rowCount: 3, min: 1735776000000, max: 1766707200000 }],
+          ['total_amount', { rowCount: 3, min: 2822.49, max: 110206.48 }],
+        ]),
+        profile: {
+          schema: [
+            { column_name: 'order_date', column_type: 'BIGINT' },
+            { column_name: 'total_amount', column_type: 'DOUBLE' },
+          ],
+        },
+      }],
+    ]),
+  };
+}
+
 const plan = {
   mode: 'analysis',
   title: 'Top products',
@@ -35,6 +83,32 @@ const plan = {
   limit: 5,
   chart: { kind: 'bar', x: 'product', series: [{ field: 'units', label: 'Units', mark: 'bar', axis: 'left' }] },
   clarifyingQuestion: null,
+};
+
+const timeSeriesPlan = {
+  mode: 'analysis',
+  title: 'Total Amount Over Order Date',
+  dimensions: [{ column: 'order_date', alias: 'order_date', timeBucket: null }],
+  metrics: [{ kind: 'aggregate', agg: 'sum', column: 'total_amount', alias: 'total_amount' }],
+  filters: [],
+  orderBy: [{ field: 'order_date', direction: 'asc' }],
+  limit: 1000,
+  chart: {
+    kind: 'line',
+    x: 'order_date',
+    series: [{ field: 'total_amount', label: 'Total Amount', mark: 'line', axis: 'left' }],
+  },
+  clarifyingQuestion: null,
+};
+
+const epochTimeSeriesPlan = {
+  ...timeSeriesPlan,
+  metrics: [{ kind: 'aggregate', agg: 'sum', column: 'total_amount', alias: 'total_amount_sum' }],
+  chart: {
+    kind: 'line',
+    x: 'order_date',
+    series: [{ field: 'total_amount_sum', label: 'Total Amount', mark: 'line', axis: 'left' }],
+  },
 };
 
 describe('AI analyst orchestration', () => {
@@ -64,5 +138,51 @@ describe('AI analyst orchestration', () => {
       planProvider: async () => plan,
       queryFn: async () => ({ columns: [], rows: [] }),
     })).rejects.toMatchObject({ code: 'STALE_DATASET' });
+  });
+
+  it('summarizes temporal chart results by range, peak, and latest value', async () => {
+    const answer = await answerDataQuestion({
+      question: 'How does total_amount change over order_date?',
+      storeState: salesState(),
+      settings: { apiKey: 'test' },
+      planProvider: async () => timeSeriesPlan,
+      queryFn: async () => ({
+        columns: ['order_date', 'total_amount'],
+        columnTypes: { order_date: 'Date32<DAY>', total_amount: 'Float64' },
+        rows: [
+          { order_date: 1735776000000, total_amount: 20000 },
+          { order_date: 1735862400000, total_amount: 40000 },
+          { order_date: 1735948800000, total_amount: 12000 },
+        ],
+      }),
+    });
+
+    expect(answer.text).toBe(
+      'Total Amount Over Order Date: Total Amount runs from 2025-01-02 to 2025-01-04; peak is 40,000 on 2025-01-03; latest is 12,000.',
+    );
+    expect(answer.analysis.columnTypes).toEqual({ order_date: 'Date32<DAY>', total_amount: 'Float64' });
+  });
+
+  it('treats numeric epoch-millisecond date dimensions as dates in assistant summaries', async () => {
+    const answer = await answerDataQuestion({
+      question: 'How does total_amount change over order_date?',
+      storeState: epochSalesState(),
+      settings: { apiKey: 'test' },
+      planProvider: async () => epochTimeSeriesPlan,
+      queryFn: async () => ({
+        columns: ['order_date', 'total_amount_sum'],
+        columnTypes: { order_date: 'Int64', total_amount_sum: 'Float64' },
+        rows: [
+          { order_date: 1735776000000, total_amount_sum: 11567.59 },
+          { order_date: 1737504000000, total_amount_sum: 110206.48 },
+          { order_date: 1766707200000, total_amount_sum: 2822.49 },
+        ],
+      }),
+    });
+
+    expect(answer.text).toBe(
+      'Total Amount Over Order Date: Total Amount runs from 2025-01-02 to 2025-12-26; peak is 110,206.48 on 2025-01-22; latest is 2,822.49.',
+    );
+    expect(answer.analysis.columnTypes.order_date).toBe('Date64<MILLISECOND>');
   });
 });

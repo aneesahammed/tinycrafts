@@ -1,4 +1,4 @@
-import { valueToDisplay } from '../util/format.js';
+import { isTemporalColumnType, valueToDisplay } from '../util/format.js';
 import { setHtml, esc } from '../util/dom.js';
 
 export function mountResult(el, store) {
@@ -21,10 +21,11 @@ function render(wrap, s) {
       const cells = s.resultColumns
         .map((c) => {
           const v = r[c];
-          const isNum = typeof v === 'number' || typeof v === 'bigint';
+          const type = s.resultColumnTypes?.[c];
+          const isNum = !isTemporalColumnType(type) && (typeof v === 'number' || typeof v === 'bigint');
           const isNull = v == null;
           const cls = [isNum && 'num', isNull && 'null'].filter(Boolean).join(' ');
-          return `<td${cls ? ` class="${cls}"` : ''}>${esc(valueToDisplay(v))}</td>`;
+          return `<td${cls ? ` class="${cls}"` : ''}>${esc(valueToDisplay(v, type))}</td>`;
         })
         .join('');
       return `<tr><td>${start + i + 1}</td>${cells}</tr>`;

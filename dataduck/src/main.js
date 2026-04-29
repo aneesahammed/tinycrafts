@@ -251,6 +251,7 @@ async function runActiveQuery() {
     const elapsedMs = Math.round(performance.now() - startedAt);
     store.setResult({
       columns: result.columns,
+      columnTypes: result.columnTypes,
       rows: result.rows,
       elapsedMs,
     });
