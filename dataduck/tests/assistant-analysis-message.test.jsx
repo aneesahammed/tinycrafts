@@ -105,4 +105,46 @@ describe('assistant analysis rendering', () => {
       root.unmount();
     });
   });
+
+  it('aborts aggregate summary requests when unmounted', async () => {
+    let capturedSignal = null;
+    const summaryProvider = vi.fn(({ abortSignal }) => {
+      capturedSignal = abortSignal;
+      return new Promise(() => {});
+    });
+    const { container, root } = render(
+      <AnalysisMessage
+        analysis={{
+          title: 'Rows',
+          privacyNotice: 'local',
+          elapsedMs: 1,
+          sql: 'SELECT 1',
+          question: 'show rows',
+          columns: ['product'],
+          rows: [{ product: 'row-0' }],
+          chart: { kind: 'table', x: null, series: [] },
+        }}
+        settings={{ apiKey: 'gsk_test' }}
+        summaryProvider={summaryProvider}
+        onOpenSql={vi.fn()}
+        onCopySql={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      container.querySelector('.analysis-aggregate-trigger').click();
+    });
+    await act(async () => {
+      container.querySelector('.analysis-preview button').click();
+    });
+
+    expect(capturedSignal).toBeTruthy();
+    expect(capturedSignal.aborted).toBe(false);
+
+    act(() => {
+      root.unmount();
+    });
+
+    expect(capturedSignal.aborted).toBe(true);
+  });
 });

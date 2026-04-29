@@ -10,5 +10,9 @@ export const GROQ_LIMITS = {
   dailyRequestWarning: 50,
 };
 
+export const AI_LIMITS = GROQ_LIMITS;
+
+export const DEFAULT_AI_PROVIDER = 'anthropic';
+export const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
 export const GROQ_DAILY_REQUEST_KEY = 'dataduck:groq-daily-requests';

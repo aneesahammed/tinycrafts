@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { activeDatasetFingerprint } from '../ai/dataset-fingerprint.js';
 import { answerDataQuestion } from '../ai/analyst.js';
-import { DEFAULT_GROQ_MODEL, GROQ_LIMITS } from '../ai/privacy.js';
-import { clearGroqKey, loadGroqKey, saveGroqKey, secureKeyStoreSupported } from '../ai/secure-key-store.js';
+import { DEFAULT_GROQ_MODEL, AI_LIMITS } from '../ai/privacy.js';
+import { AI_PROVIDERS, DEFAULT_PROVIDER_ID, getActiveProviderConfig, getProviderDefinition, normalizeProviderId, providerIds } from '../ai/providers/registry.js';
+import { dailyRequestCount } from '../ai/providers/usage.js';
+import { clearProviderKey, loadProviderKey, migrateLegacyGroqKey, saveProviderKey, secureKeyStoreSupported } from '../ai/secure-key-store.js';
 import { createThread, deleteThread, listThreads, saveThread, threadIsHistorical } from '../ai/thread-store.js';
 import { isNumericSqlType, isTemporalSqlType } from '../duckdb/sql-types.js';
 import { DataDuckRuntimeProvider } from './DataDuckRuntime.jsx';
@@ -17,7 +19,7 @@ export const FALLBACK_SUGGESTIONS = [
   'Which columns have the most nulls?',
 ];
 
-export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
+export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summaryProvider }) {
   const state = useStoreState(store);
   const [settings, setSettings] = useState(() => readSettings());
   const [threads, setThreads] = useState([]);
@@ -37,12 +39,16 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([listThreads(), maybeLoadRememberedKey()]).then(([stored, key]) => {
+    const startingSettings = readSettings();
+    Promise.all([listThreads(), maybeLoadRememberedKeys(startingSettings)]).then(([stored, remembered]) => {
       if (cancelled) return;
       const initial = stored.length ? stored : [createThread({ title: 'New analysis', datasetFingerprint: currentFingerprint, tableLabel: state.activeTable })];
       setThreads(initial);
       setActiveThreadId(initial[0]?.id || null);
-      if (key) setSettings((next) => ({ ...next, apiKey: key }));
+      setSettings(remembered.settings);
+      if (remembered.migrationFailed) {
+        showToast?.('Your remembered Groq API key needs to be re-entered.', 'error');
+      }
     });
     return () => {
       cancelled = true;
@@ -56,7 +62,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
 
   useEffect(() => {
     writeSettings(settings);
-  }, [settings.model, settings.rememberKey]);
+  }, [settings]);
 
   useEffect(() => {
     writePanelWide(panelWide);
@@ -118,9 +124,10 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
       showToast?.('Open a CSV or Parquet file before asking DataDuck.', 'error');
       return;
     }
-    if (!settings.apiKey) {
+    const activeProvider = getActiveProviderConfig(settings);
+    if (!activeProvider.apiKey) {
       setOpenPopover('settings');
-      showToast?.('Add a Groq API key in Settings.', 'error');
+      showToast?.(`Add a ${activeProvider.provider.label} API key in Settings.`, 'error');
       return;
     }
 
@@ -183,7 +190,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
     });
   }
 
-  const runtimeSettings = useMemo(() => settings, [settings.apiKey, settings.model]);
+  const runtimeSettings = useMemo(() => settings, [settings]);
   const suggestions = buildAssistantSuggestions(state);
 
   return (
@@ -251,7 +258,8 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
             <SettingsPopover
               settings={settings}
               setSettings={setSettings}
-              dailyHint={dailyRequestCopy()}
+              dailyHint={dailyRequestCopy(settings.providerId)}
+              showToast={showToast}
             />
           ) : null}
         </header>
@@ -283,6 +291,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
               settings={settings}
               onOpenSql={setSql}
               onCopySql={(sql) => copyText(sql, showToast)}
+              summaryProvider={summaryProvider}
             />
           ))}
           {running ? (
@@ -331,7 +340,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose }) {
   );
 }
 
-function Message({ message, settings, onOpenSql, onCopySql }) {
+function Message({ message, settings, onOpenSql, onCopySql, summaryProvider }) {
   const isUser = message.role === 'user';
   if (isUser) {
     return (
@@ -353,6 +362,7 @@ function Message({ message, settings, onOpenSql, onCopySql }) {
             settings={settings}
             onOpenSql={onOpenSql}
             onCopySql={onCopySql}
+            summaryProvider={summaryProvider}
           />
         ) : null}
       </div>
@@ -397,28 +407,60 @@ function HistoryPopover({ threads, activeId, onPick, onNew, onDelete }) {
   );
 }
 
-function SettingsPopover({ settings, setSettings, dailyHint }) {
+function SettingsPopover({ settings, setSettings, dailyHint, showToast }) {
   const supported = secureKeyStoreSupported();
+  const active = getActiveProviderConfig(settings);
+  const provider = active.provider;
+
   async function updateRemember(rememberKey) {
     setSettings((next) => ({ ...next, rememberKey }));
-    if (!rememberKey) await clearGroqKey().catch(() => undefined);
-    if (rememberKey && settings.apiKey && supported) await saveGroqKey(settings.apiKey).catch(() => undefined);
+    if (!supported) return;
+    if (!rememberKey) {
+      await Promise.all(providerIds().map((providerId) => clearProviderKey(providerId).catch(() => undefined)));
+      return;
+    }
+    await Promise.all(providerIds().map((providerId) => {
+      const key = settings.providers?.[providerId]?.apiKey || '';
+      return key ? saveProviderKey(providerId, key).catch(() => undefined) : Promise.resolve();
+    }));
   }
+
   async function updateKey(apiKey) {
-    setSettings((next) => ({ ...next, apiKey }));
-    if (settings.rememberKey && supported) await saveGroqKey(apiKey).catch(() => undefined);
+    setSettings((next) => updateProviderSettings(next, active.providerId, { apiKey }));
+    if (settings.rememberKey && supported) await saveProviderKey(active.providerId, apiKey).catch(() => undefined);
+  }
+
+  function updateModel(model) {
+    if (looksLikeApiKey(model)) {
+      showToast?.('That looks like an API key. Paste it in the API key field.', 'error');
+      return;
+    }
+    setSettings((next) => updateProviderSettings(next, active.providerId, { model }));
+  }
+
+  function updateProvider(providerId) {
+    setSettings((next) => ({ ...normalizeSettingsShape(next), providerId: normalizeProviderId(providerId) }));
   }
 
   return (
     <div className="assistant-popover" role="dialog" aria-label="AI settings">
       <h4>AI provider</h4>
       <label>
-        <span>Groq API key</span>
+        <span>Provider</span>
+        <select value={active.providerId} onChange={(event) => updateProvider(event.target.value)}>
+          {providerIds().map((providerId) => {
+            const option = getProviderDefinition(providerId);
+            return <option key={providerId} value={providerId}>{option.label}</option>;
+          })}
+        </select>
+      </label>
+      <label>
+        <span>{provider.keyLabel}</span>
         <input
           type="password"
-          value={settings.apiKey}
+          value={active.apiKey}
           onChange={(event) => updateKey(event.target.value)}
-          placeholder="gsk_..."
+          placeholder={provider.keyPlaceholder}
           autoComplete="off"
           spellCheck={false}
         />
@@ -427,8 +469,8 @@ function SettingsPopover({ settings, setSettings, dailyHint }) {
         <span>Model</span>
         <input
           type="text"
-          value={settings.model}
-          onChange={(event) => setSettings((next) => ({ ...next, model: event.target.value }))}
+          value={active.model}
+          onChange={(event) => updateModel(event.target.value)}
           spellCheck={false}
         />
       </label>
@@ -484,30 +526,91 @@ function useStoreState(store) {
 const LEGACY_DEFAULT_MODELS = new Set(['openai/gpt-oss-20b']);
 
 function readSettings() {
-  let stored = {};
+  let stored = null;
   try {
-    stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    stored = raw ? JSON.parse(raw) : null;
   } catch {
-    stored = {};
+    stored = null;
   }
-  const storedModel = stored.model;
-  const model = !storedModel || LEGACY_DEFAULT_MODELS.has(storedModel) ? DEFAULT_GROQ_MODEL : storedModel;
-  return {
-    apiKey: '',
-    model,
-    rememberKey: Boolean(stored.rememberKey),
-  };
+  if (stored?.providerId) return normalizeSettingsShape(stored);
+  const hasLegacySettings = stored &&
+    (Object.prototype.hasOwnProperty.call(stored, 'model') ||
+      Object.prototype.hasOwnProperty.call(stored, 'rememberKey'));
+  if (hasLegacySettings) {
+    const storedModel = stored.model;
+    const model = !storedModel || LEGACY_DEFAULT_MODELS.has(storedModel) ? DEFAULT_GROQ_MODEL : storedModel;
+    return normalizeSettingsShape({
+      providerId: 'groq',
+      rememberKey: Boolean(stored.rememberKey),
+      providers: {
+        groq: { model },
+      },
+    });
+  }
+  return normalizeSettingsShape({
+    providerId: DEFAULT_PROVIDER_ID,
+    rememberKey: false,
+  });
 }
 
 function writeSettings(settings) {
+  const normalized = normalizeSettingsShape(settings);
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-      model: settings.model || DEFAULT_GROQ_MODEL,
-      rememberKey: Boolean(settings.rememberKey),
+      providerId: normalized.providerId,
+      rememberKey: Boolean(normalized.rememberKey),
+      providers: Object.fromEntries(providerIds().map((providerId) => [
+        providerId,
+        { model: normalized.providers[providerId]?.model || AI_PROVIDERS[providerId].defaultModel },
+      ])),
     }));
   } catch {
     // ignore private mode quota errors
   }
+}
+
+function normalizeSettingsShape(settings = {}) {
+  const providerId = normalizeProviderId(settings.providerId);
+  const providers = {};
+  for (const providerIdValue of providerIds()) {
+    providers[providerIdValue] = {
+      model: AI_PROVIDERS[providerIdValue].defaultModel,
+      apiKey: '',
+      ...(settings.providers?.[providerIdValue] || {}),
+    };
+  }
+  if (settings.apiKey || settings.model) {
+    providers.groq = {
+      ...providers.groq,
+      apiKey: settings.apiKey || providers.groq.apiKey || '',
+      model: settings.model || providers.groq.model || DEFAULT_GROQ_MODEL,
+    };
+  }
+  return {
+    providerId,
+    rememberKey: Boolean(settings.rememberKey),
+    providers,
+  };
+}
+
+function updateProviderSettings(settings, providerId, patch) {
+  const normalized = normalizeSettingsShape(settings);
+  const id = normalizeProviderId(providerId);
+  return {
+    ...normalized,
+    providers: {
+      ...normalized.providers,
+      [id]: {
+        ...normalized.providers[id],
+        ...patch,
+      },
+    },
+  };
+}
+
+function looksLikeApiKey(value) {
+  return /^(sk-ant-|sk-|gsk_)/i.test(String(value || '').trim());
 }
 
 function readPanelWide() {
@@ -526,10 +629,19 @@ function writePanelWide(wide) {
   }
 }
 
-async function maybeLoadRememberedKey() {
-  const settings = readSettings();
-  if (!settings.rememberKey || !secureKeyStoreSupported()) return '';
-  return loadGroqKey().catch(() => '');
+async function maybeLoadRememberedKeys(settings) {
+  const normalized = normalizeSettingsShape(settings);
+  if (!normalized.rememberKey || !secureKeyStoreSupported()) return { settings: normalized, migrationFailed: false };
+  const migration = await migrateLegacyGroqKey().catch((error) => ({ status: 'failed', error }));
+  const providers = { ...normalized.providers };
+  await Promise.all(providerIds().map(async (providerId) => {
+    const key = await loadProviderKey(providerId).catch(() => '');
+    if (key) providers[providerId] = { ...providers[providerId], apiKey: key };
+  }));
+  return {
+    settings: { ...normalized, providers },
+    migrationFailed: migration?.status === 'failed',
+  };
 }
 
 export function buildAssistantSuggestions(state = {}) {
@@ -636,16 +748,11 @@ function titleFromQuestion(question) {
   return question.replace(/\s+/g, ' ').trim().slice(0, 80) || 'New analysis';
 }
 
-function dailyRequestCopy() {
-  let count = 0;
-  try {
-    const payload = JSON.parse(localStorage.getItem('dataduck:groq-daily-requests') || '{}');
-    const day = new Date().toISOString().slice(0, 10);
-    count = payload.day === day ? Number(payload.count) || 0 : 0;
-  } catch {
-    count = 0;
-  }
-  return count >= GROQ_LIMITS.dailyRequestWarning ? `${count} Groq calls today` : null;
+function dailyRequestCopy(providerId) {
+  const id = normalizeProviderId(providerId);
+  const count = dailyRequestCount(id);
+  const label = getProviderDefinition(id).label;
+  return count >= AI_LIMITS.dailyRequestWarning ? `${count} ${label} calls today` : null;
 }
 
 async function copyText(text, showToast) {

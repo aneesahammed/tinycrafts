@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callGroqJson, dailyRequestCount, GroqError } from '../src/ai/groq-client.js';
+import { dailyRequestKey } from '../src/ai/providers/usage.js';
 
 describe('Groq client', () => {
   beforeEach(() => {
@@ -19,7 +20,7 @@ describe('Groq client', () => {
     const result = await callGroqJson({ apiKey: 'gsk_secret', messages: [], fetchImpl });
 
     expect(result).toEqual({ mode: 'clarify' });
-    expect(localStorage.getItem('dataduck:groq-daily-requests')).toContain('"count":1');
+    expect(localStorage.getItem(dailyRequestKey('groq'))).toContain('"count":1');
     expect(JSON.stringify(localStorage)).not.toContain('gsk_secret');
   });
 
@@ -99,6 +100,22 @@ describe('Groq client', () => {
       fetchImpl: vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
     })).rejects.toMatchObject({ code: 'NETWORK' });
     expect(JSON.stringify(localStorage)).not.toContain('gsk_secret');
+  });
+
+  it('times out stalled requests through the compatibility wrapper', async () => {
+    const promise = callGroqJson({
+      apiKey: 'gsk_secret',
+      messages: [],
+      requestTimeoutMs: 5,
+      fetchImpl: vi.fn(() => new Promise(() => {})),
+    });
+    promise.catch(() => undefined);
+
+    const result = await Promise.race([
+      promise.then(() => 'resolved', (error) => error.code),
+      new Promise((resolve) => setTimeout(() => resolve('pending'), 50)),
+    ]);
+    expect(result).toBe('TIMEOUT');
   });
 
   it('tracks daily request counts without secrets', () => {

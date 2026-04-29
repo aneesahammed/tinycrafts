@@ -1,6 +1,6 @@
 import { valueToDisplay } from '../util/format.js';
-import { callGroqText } from './groq-client.js';
-import { AGGREGATE_UPLOAD_LIMITS, GROQ_LIMITS } from './privacy.js';
+import { callProviderText } from './providers/registry.js';
+import { AGGREGATE_UPLOAD_LIMITS, AI_LIMITS } from './privacy.js';
 
 export function sanitizeAggregatePayload({ columns = [], columnTypes = {}, rows = [] }, limits = AGGREGATE_UPLOAD_LIMITS) {
   const safeColumns = columns.map(String).slice(0, limits.maxColumns);
@@ -29,7 +29,7 @@ export function sanitizeAggregatePayload({ columns = [], columnTypes = {}, rows 
   return { columns: safeColumns, rows: safeRows, truncated, totalChars };
 }
 
-export async function summarizeAggregateWithGroq({ apiKey, model, question, analysis, fetchImpl, abortSignal }) {
+export async function summarizeAggregateWithProvider({ settings = null, apiKey = '', model = '', question, analysis, fetchImpl, abortSignal }) {
   const request = buildAggregateSummaryRequest({
     question,
     title: analysis.title,
@@ -38,12 +38,11 @@ export async function summarizeAggregateWithGroq({ apiKey, model, question, anal
     rows: analysis.rows,
   });
   const payload = request.aggregatePayload;
-  const text = await callGroqText({
-    apiKey,
-    model,
+  const text = await callProviderText({
+    settings: settings || { apiKey, model },
     fetchImpl,
     abortSignal,
-    maxCompletionTokens: GROQ_LIMITS.maxCompletionTokens,
+    maxCompletionTokens: AI_LIMITS.maxCompletionTokens,
     messages: [
       {
         role: 'system',
@@ -60,6 +59,13 @@ export async function summarizeAggregateWithGroq({ apiKey, model, question, anal
     payload,
     sentAt: new Date().toISOString(),
   };
+}
+
+export function summarizeAggregateWithGroq(options) {
+  return summarizeAggregateWithProvider({
+    ...options,
+    settings: options?.settings || { apiKey: options?.apiKey, model: options?.model },
+  });
 }
 
 export function buildAggregateSummaryRequest(

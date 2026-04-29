@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildPlannerMessages } from '../src/ai/prompts.js';
 
 describe('AI planner prompts', () => {
-  it('sends only redacted dataset metadata to Groq', () => {
+  it('sends only redacted dataset metadata to the provider', () => {
     const messages = buildPlannerMessages({
       question: 'what is the payroll total?',
       context: {

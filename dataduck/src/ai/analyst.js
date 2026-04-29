@@ -1,11 +1,11 @@
 import { query as duckdbQuery } from '../duckdb/engine.js';
 import { buildDatasetContext } from './context.js';
 import { activeDatasetFingerprint } from './dataset-fingerprint.js';
-import { callGroqJson } from './groq-client.js';
+import { callProviderJson } from './providers/registry.js';
 import { compileParsedAnalysisPlan, PlanCompileError } from './query-compiler.js';
 import { parseAnalysisPlan, ANALYSIS_PLAN_JSON_SCHEMA } from './plan-schema.js';
-import { buildPlannerMessages } from './prompts.js';
-import { DEFAULT_GROQ_MODEL, GROQ_LIMITS } from './privacy.js';
+import { buildPlannerMessages, buildPlannerPrompt } from './prompts.js';
+import { AI_LIMITS } from './privacy.js';
 import {
   formatNumber,
   inferDisplayColumnTypes,
@@ -34,15 +34,16 @@ export async function answerDataQuestion({
   }
 
   const startFingerprint = context.fingerprint;
+  const plannerPrompt = buildPlannerPrompt({ question, context });
   const messages = buildPlannerMessages({ question, context });
   const rawPlan = planProvider
-    ? await planProvider({ question, context, messages, abortSignal })
-    : await callGroqJson({
-        apiKey: settings.apiKey,
-        model: settings.model || DEFAULT_GROQ_MODEL,
+    ? await planProvider({ question, context, messages, plannerPrompt, abortSignal })
+    : await callProviderJson({
+        settings,
         messages,
+        plannerPrompt,
         jsonSchema: ANALYSIS_PLAN_JSON_SCHEMA,
-        maxCompletionTokens: GROQ_LIMITS.maxCompletionTokens,
+        maxCompletionTokens: AI_LIMITS.maxCompletionTokens,
         abortSignal,
         fetchImpl,
       });

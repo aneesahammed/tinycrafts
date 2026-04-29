@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartCard, chartIsRenderable } from './ChartCard.jsx';
-import { sanitizeAggregatePayload, summarizeAggregateWithGroq } from '../ai/aggregate-upload.js';
+import { sanitizeAggregatePayload, summarizeAggregateWithProvider } from '../ai/aggregate-upload.js';
+import { getActiveProviderConfig } from '../ai/providers/registry.js';
 import { valueToDisplay } from '../util/format.js';
 
 const TAB_DEFS = [
@@ -56,7 +57,7 @@ export function SqlHighlight({ sql }) {
   );
 }
 
-export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
+export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summaryProvider = summarizeAggregateWithProvider }) {
   const renderable = useMemo(() => chartIsRenderable(analysis), [analysis]);
   const rowCount = analysis?.rows?.length ?? 0;
   const hasKpi = rowCount === 1 && Boolean(analysis?.chart?.series?.length) && analysis?.chart?.kind !== 'table';
@@ -74,6 +75,13 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
   const [summary, setSummary] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const summaryControllerRef = useRef(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    summaryControllerRef.current?.abort();
+  }, []);
 
   if (!analysis) return null;
 
@@ -82,22 +90,29 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
     columnTypes: analysis.columnTypes,
     rows: analysis.rows,
   });
+  const activeProvider = getActiveProviderConfig(settings);
 
   async function sendAggregate() {
+    summaryControllerRef.current?.abort();
+    const controller = new AbortController();
+    summaryControllerRef.current = controller;
     setBusy(true);
     setError('');
     try {
-      const response = await summarizeAggregateWithGroq({
-        apiKey: settings.apiKey,
-        model: settings.model,
+      const response = await summaryProvider({
+        settings,
         question: analysis.question,
         analysis,
+        abortSignal: controller.signal,
       });
+      if (!mountedRef.current || controller.signal.aborted) return;
       setSummary(response);
     } catch (err) {
+      if (!mountedRef.current || controller.signal.aborted || err?.name === 'AbortError') return;
       setError(err?.message || 'Could not summarize aggregate rows.');
     } finally {
-      setBusy(false);
+      if (summaryControllerRef.current === controller) summaryControllerRef.current = null;
+      if (mountedRef.current) setBusy(false);
     }
   }
 
@@ -155,7 +170,7 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql }) {
           <div className="analysis-preview">
             <p>Preview: {preview.rows.length} rows, {preview.columns.length} columns{preview.truncated ? ' (truncated to 50 rows)' : ''}.</p>
             <TablePreview columns={preview.columns} rows={preview.rows} maxRows={preview.rows.length} />
-            <button type="button" disabled={busy || !settings.apiKey} onClick={sendAggregate}>
+            <button type="button" disabled={busy || !activeProvider.apiKey} onClick={sendAggregate}>
               {busy ? 'Sending…' : 'Confirm and send'}
             </button>
           </div>

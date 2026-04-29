@@ -736,6 +736,7 @@ body.is-resizing-rail .stage { transition: none; }
   color: var(--ink-3);
 }
 .assistant-popover label { display: grid; gap: 5px; font-size: 12px; color: var(--ink-2); }
+.assistant-popover select,
 .assistant-popover input[type="password"],
 .assistant-popover input[type="text"] {
   border: 1px solid var(--line);
@@ -748,6 +749,7 @@ body.is-resizing-rail .stage { transition: none; }
   min-width: 0;
   transition: border-color 130ms ease, box-shadow 130ms ease;
 }
+.assistant-popover select:focus,
 .assistant-popover input:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);

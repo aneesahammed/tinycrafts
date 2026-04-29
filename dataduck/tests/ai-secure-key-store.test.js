@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { clearGroqKey, loadGroqKey, saveGroqKey, secureKeyStoreSupported } from '../src/ai/secure-key-store.js';
+import {
+  clearProviderKey,
+  loadLegacyGroqKey,
+  loadProviderKey,
+  migrateLegacyGroqKey,
+  saveLegacyGroqKey,
+  saveProviderKey,
+  secureKeyStoreSupported,
+} from '../src/ai/secure-key-store.js';
 
 describe('secure key store', () => {
   it('reports unsupported environments and fails closed', async () => {
     const env = {};
     expect(secureKeyStoreSupported(env)).toBe(false);
-    await expect(loadGroqKey(env)).rejects.toThrow('IndexedDB and WebCrypto');
+    await expect(loadProviderKey('groq', env)).rejects.toThrow('IndexedDB and WebCrypto');
   });
 
-  it('saves, loads, rejects tampering, and clears the remembered key', async () => {
+  it('saves, loads, rejects tampering, and clears provider-scoped remembered keys', async () => {
     const fakeIdb = createFakeIndexedDb();
     const env = {
       indexedDB: fakeIdb.indexedDB,
@@ -17,16 +25,71 @@ describe('secure key store', () => {
       TextDecoder: globalThis.TextDecoder,
     };
 
-    await saveGroqKey('gsk_secret', env);
-    expect(await loadGroqKey(env)).toBe('gsk_secret');
+    await saveProviderKey('groq', 'gsk_secret', env);
+    expect(await loadProviderKey('groq', env)).toBe('gsk_secret');
 
+    fakeIdb.tamper('provider:groq:apiKey', (row) => ({ ...row, ct: new Uint8Array(row.ct).fill(0) }));
+    await expect(loadProviderKey('groq', env)).rejects.toThrow();
+
+    await clearProviderKey('groq', env);
+    expect(await loadProviderKey('groq', env)).toBe('');
+  });
+
+  it('migrates the legacy Groq key only after provider-key verification', async () => {
+    const fakeIdb = createFakeIndexedDb();
+    const env = createFakeEnv(fakeIdb);
+
+    await saveLegacyGroqKey('gsk_legacy', env);
+
+    await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'migrated' });
+    expect(await loadProviderKey('groq', env)).toBe('gsk_legacy');
+    expect(await loadLegacyGroqKey(env)).toBe('');
+
+    await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'skipped' });
+  });
+
+  it('leaves legacy data alone when a migrated provider key already exists or migration fails', async () => {
+    const fakeIdb = createFakeIndexedDb();
+    const env = createFakeEnv(fakeIdb);
+
+    await saveLegacyGroqKey('gsk_legacy', env);
+    await saveProviderKey('groq', 'gsk_new', env);
+    await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'skipped' });
+    expect(await loadProviderKey('groq', env)).toBe('gsk_new');
+    expect(await loadLegacyGroqKey(env)).toBe('gsk_legacy');
+
+    await clearProviderKey('groq', env);
     fakeIdb.tamper('groq-api-key', (row) => ({ ...row, ct: new Uint8Array(row.ct).fill(0) }));
-    await expect(loadGroqKey(env)).rejects.toThrow();
+    await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'failed' });
+    expect(fakeIdb.has('groq-api-key')).toBe(true);
+    expect(await loadProviderKey('groq', env)).toBe('');
+  });
 
-    await clearGroqKey(env);
-    expect(await loadGroqKey(env)).toBe('');
+  it('does not delete a provider key written by another tab while migration is failing', async () => {
+    const fakeIdb = createFakeIndexedDb();
+    const env = createFakeEnv(fakeIdb);
+
+    await saveLegacyGroqKey('gsk_legacy', env);
+    fakeIdb.tamper('groq-api-key', (row) => ({ ...row, ct: new Uint8Array(row.ct).fill(0) }));
+    env.crypto = cryptoWithDecryptSideEffect(() => {
+      fakeIdb.putRaw({ id: 'provider:groq:apiKey', iv: new Uint8Array([1]), ct: new Uint8Array([2]) });
+    });
+
+    await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'failed' });
+
+    expect(fakeIdb.has('provider:groq:apiKey')).toBe(true);
+    expect(fakeIdb.has('groq-api-key')).toBe(true);
   });
 });
+
+function createFakeEnv(fakeIdb) {
+  return {
+    indexedDB: fakeIdb.indexedDB,
+    crypto: globalThis.crypto,
+    TextEncoder: globalThis.TextEncoder,
+    TextDecoder: globalThis.TextDecoder,
+  };
+}
 
 function createFakeIndexedDb() {
   const rows = new Map();
@@ -68,6 +131,30 @@ function createFakeIndexedDb() {
     indexedDB,
     tamper(id, fn) {
       rows.set(id, fn(rows.get(id)));
+    },
+    has(id) {
+      return rows.has(id);
+    },
+    putRaw(row) {
+      rows.set(row.id, row);
+    },
+  };
+}
+
+function cryptoWithDecryptSideEffect(onDecryptFailure) {
+  return {
+    getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto),
+    subtle: {
+      generateKey: (...args) => globalThis.crypto.subtle.generateKey(...args),
+      encrypt: (...args) => globalThis.crypto.subtle.encrypt(...args),
+      decrypt: async (...args) => {
+        try {
+          return await globalThis.crypto.subtle.decrypt(...args);
+        } catch (error) {
+          onDecryptFailure();
+          throw error;
+        }
+      },
     },
   };
 }

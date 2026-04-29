@@ -18,9 +18,10 @@ vi.mock('../src/ai/analyst.js', () => ({
 }));
 
 vi.mock('../src/ai/secure-key-store.js', () => ({
-  clearGroqKey: vi.fn(),
-  loadGroqKey: vi.fn(async () => 'gsk_test'),
-  saveGroqKey: vi.fn(),
+  clearProviderKey: vi.fn(),
+  loadProviderKey: vi.fn(async (providerId) => (providerId === 'groq' ? 'gsk_test' : '')),
+  migrateLegacyGroqKey: vi.fn(async () => ({ status: 'none' })),
+  saveProviderKey: vi.fn(),
   secureKeyStoreSupported: vi.fn(() => true),
 }));
 
@@ -56,7 +57,11 @@ function inputValue(element, value) {
 describe('AssistantApp request lifecycle', () => {
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('dataduck-ai-settings', JSON.stringify({ rememberKey: true }));
+    localStorage.setItem('dataduck-ai-settings', JSON.stringify({
+      providerId: 'groq',
+      rememberKey: true,
+      providers: { groq: { model: 'openai/gpt-oss-120b' } },
+    }));
     capturedSignal = null;
     resolveAnswer = null;
   });

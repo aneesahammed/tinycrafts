@@ -10,9 +10,10 @@ vi.mock('../src/ai/analyst.js', () => ({
 }));
 
 vi.mock('../src/ai/secure-key-store.js', () => ({
-  clearGroqKey: vi.fn(),
-  loadGroqKey: vi.fn(async () => ''),
-  saveGroqKey: vi.fn(),
+  clearProviderKey: vi.fn(),
+  loadProviderKey: vi.fn(async () => ''),
+  migrateLegacyGroqKey: vi.fn(async () => ({ status: 'none' })),
+  saveProviderKey: vi.fn(),
   secureKeyStoreSupported: vi.fn(() => false),
 }));
 

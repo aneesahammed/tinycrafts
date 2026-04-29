@@ -3,6 +3,7 @@ const DB_VERSION = 1;
 const STORE = 'secrets';
 const KEY_ID = 'aes-key';
 const GROQ_KEY_ID = 'groq-api-key';
+const PROVIDER_KEY_PREFIX = 'provider:';
 
 // Browser-local persistence only. The AES key lives in the same origin store, so this
 // avoids localStorage/plaintext exposure but is not an XSS or compromised-origin boundary.
@@ -17,6 +18,18 @@ export function secureKeyStoreSupported(env = globalThis) {
 }
 
 export async function saveGroqKey(plaintext, env = globalThis) {
+  return saveProviderKey('groq', plaintext, env);
+}
+
+export async function loadGroqKey(env = globalThis) {
+  return loadProviderKey('groq', env);
+}
+
+export async function clearGroqKey(env = globalThis) {
+  return clearProviderKey('groq', env);
+}
+
+export async function saveLegacyGroqKey(plaintext, env = globalThis) {
   assertSupported(env);
   if (!plaintext) {
     await idbDelete(GROQ_KEY_ID, env);
@@ -26,16 +39,91 @@ export async function saveGroqKey(plaintext, env = globalThis) {
   await idbPut({ id: GROQ_KEY_ID, iv: payload.iv, ct: payload.ct }, env);
 }
 
-export async function loadGroqKey(env = globalThis) {
+export async function loadLegacyGroqKey(env = globalThis) {
   assertSupported(env);
   const row = await idbGet(GROQ_KEY_ID, env);
   if (!row?.iv || !row?.ct) return '';
   return decryptPayload({ iv: row.iv, ct: row.ct }, env);
 }
 
-export async function clearGroqKey(env = globalThis) {
+export async function clearLegacyGroqKey(env = globalThis) {
   assertSupported(env);
   await idbDelete(GROQ_KEY_ID, env);
+}
+
+export async function saveProviderKey(providerId, plaintext, env = globalThis) {
+  assertSupported(env);
+  const id = providerKeyId(providerId);
+  if (!plaintext) {
+    await idbDelete(id, env);
+    return;
+  }
+  const payload = await encryptString(String(plaintext), env);
+  await idbPut({ id, iv: payload.iv, ct: payload.ct }, env);
+}
+
+export async function loadProviderKey(providerId, env = globalThis) {
+  assertSupported(env);
+  const row = await idbGet(providerKeyId(providerId), env);
+  if (!row?.iv || !row?.ct) return '';
+  return decryptPayload({ iv: row.iv, ct: row.ct }, env);
+}
+
+export async function clearProviderKey(providerId, env = globalThis) {
+  assertSupported(env);
+  await idbDelete(providerKeyId(providerId), env);
+}
+
+export async function migrateLegacyGroqKey(env = globalThis) {
+  assertSupported(env);
+  const newId = providerKeyId('groq');
+  const existing = await idbGet(newId, env);
+  if (existing?.iv && existing?.ct) return { status: 'skipped' };
+  const legacy = await idbGet(GROQ_KEY_ID, env);
+  if (!legacy?.iv || !legacy?.ct) return { status: 'none' };
+
+  let migratedRow = null;
+  try {
+    const plaintext = await decryptPayload({ iv: legacy.iv, ct: legacy.ct }, env);
+    if (!plaintext) return { status: 'none' };
+    const payload = await encryptString(plaintext, env);
+    migratedRow = { id: newId, iv: payload.iv, ct: payload.ct };
+    await idbPut(migratedRow, env);
+    const verified = await loadProviderKey('groq', env);
+    if (verified !== plaintext) throw new Error('Provider key verification failed.');
+    await idbDelete(GROQ_KEY_ID, env);
+    return { status: 'migrated' };
+  } catch (error) {
+    if (migratedRow) {
+      const current = await idbGet(newId, env).catch(() => null);
+      if (encryptedRowsMatch(current, migratedRow)) await idbDelete(newId, env).catch(() => undefined);
+    }
+    return { status: 'failed', error };
+  }
+}
+
+function providerKeyId(providerId) {
+  const id = String(providerId || '').trim();
+  if (!id) throw new Error('Provider id is required.');
+  return `${PROVIDER_KEY_PREFIX}${id}:apiKey`;
+}
+
+function encryptedRowsMatch(a, b) {
+  return Boolean(
+    a &&
+      b &&
+      a.id === b.id &&
+      bytesEqual(a.iv, b.iv) &&
+      bytesEqual(a.ct, b.ct),
+  );
+}
+
+function bytesEqual(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) return false;
+  }
+  return true;
 }
 
 async function getOrCreateAesKey(env) {
