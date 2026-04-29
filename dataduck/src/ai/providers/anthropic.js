@@ -14,10 +14,13 @@ const ANTHROPIC_RETRY_POLICY = {
   baseMs: 1000,
   capMs: 15_000,
   retryOn: (error) => {
+    if (error?.code === 'TIMEOUT') return true;
     if (error?.status === 408 || error?.status === 409 || error?.status === 429) return true;
     return error?.status >= 500;
   },
 };
+// Anthropic structured-output SDK helpers strip these constraints before sending
+// schemas, then validate against the original schema locally.
 const UNSUPPORTED_STRUCTURED_SCHEMA_KEYS = new Set([
   'minimum',
   'maximum',
@@ -25,7 +28,6 @@ const UNSUPPORTED_STRUCTURED_SCHEMA_KEYS = new Set([
   'maxLength',
   'minItems',
   'maxItems',
-  'pattern',
   'format',
 ]);
 
@@ -48,6 +50,7 @@ export async function callAnthropicJson({
   sleep,
 } = {}) {
   assertApiKey(apiKey);
+  incrementDailyRequestCount('anthropic');
   const response = await postAnthropicWithRetry({
     apiKey,
     abortSignal,
@@ -78,6 +81,7 @@ export async function callAnthropicText({
   sleep,
 } = {}) {
   assertApiKey(apiKey);
+  incrementDailyRequestCount('anthropic');
   const response = await postAnthropicWithRetry({
     apiKey,
     abortSignal,
@@ -153,10 +157,7 @@ async function postAnthropicWithRetry({ body, apiKey, abortSignal, fetchImpl, re
     provider: 'anthropic',
     retryPolicy: ANTHROPIC_RETRY_POLICY,
     sleep,
-    operation: async () => {
-      incrementDailyRequestCount('anthropic');
-      return postAnthropic({ body, apiKey, abortSignal, fetchImpl, requestTimeoutMs });
-    },
+    operation: async () => postAnthropic({ body, apiKey, abortSignal, fetchImpl, requestTimeoutMs }),
   });
 }
 
@@ -169,15 +170,15 @@ async function postAnthropic({ body, apiKey, abortSignal, fetchImpl, requestTime
       url: ANTHROPIC_MESSAGES_URL,
       timeoutMs: requestTimeoutMs,
       init: {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': ANTHROPIC_VERSION,
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify(body),
-      signal: abortSignal || undefined,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': ANTHROPIC_VERSION,
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify(body),
+        signal: abortSignal || undefined,
       },
     });
   } catch (error) {
@@ -208,7 +209,7 @@ async function buildAnthropicHttpError(response) {
     provider: 'anthropic',
     code: codeForStatus(response.status, type),
     status: response.status,
-    retryAfter: response.headers?.get?.('retry-after') || '',
+    retryAfter: retryAfterHeader(response.headers),
     requestId: response.headers?.get?.('request-id') || response.headers?.get?.('x-request-id') || '',
   });
 }
@@ -306,9 +307,25 @@ function describeRemovedConstraint(key, value) {
   if (key === 'maxLength') return `Maximum length: ${value}.`;
   if (key === 'minItems') return `Minimum items: ${value}.`;
   if (key === 'maxItems') return `Maximum items: ${value}.`;
-  if (key === 'pattern') return `Must match pattern: ${value}.`;
   if (key === 'format') return `Expected format: ${value}.`;
   return '';
+}
+
+function retryAfterHeader(headers) {
+  const retryAfter = headers?.get?.('retry-after');
+  if (retryAfter) return retryAfter;
+  const resets = [
+    headers?.get?.('anthropic-ratelimit-requests-reset'),
+    headers?.get?.('anthropic-ratelimit-tokens-reset'),
+  ].filter(Boolean);
+  if (!resets.length) return '';
+  return resets.sort((a, b) => {
+    const aMs = Date.parse(a);
+    const bMs = Date.parse(b);
+    if (!Number.isFinite(aMs)) return 1;
+    if (!Number.isFinite(bMs)) return -1;
+    return aMs - bMs;
+  })[0];
 }
 
 function codeForStatus(status, type) {

@@ -4,7 +4,7 @@ import { answerDataQuestion } from '../ai/analyst.js';
 import { DEFAULT_GROQ_MODEL, AI_LIMITS } from '../ai/privacy.js';
 import { AI_PROVIDERS, DEFAULT_PROVIDER_ID, getActiveProviderConfig, getProviderDefinition, normalizeProviderId, providerIds } from '../ai/providers/registry.js';
 import { dailyRequestCount } from '../ai/providers/usage.js';
-import { clearProviderKey, loadProviderKey, migrateLegacyGroqKey, saveProviderKey, secureKeyStoreSupported } from '../ai/secure-key-store.js';
+import { clearLegacyGroqKey, clearProviderKey, loadProviderKey, migrateLegacyGroqKey, saveProviderKey, secureKeyStoreSupported } from '../ai/secure-key-store.js';
 import { createThread, deleteThread, listThreads, saveThread, threadIsHistorical } from '../ai/thread-store.js';
 import { isNumericSqlType, isTemporalSqlType } from '../duckdb/sql-types.js';
 import { DataDuckRuntimeProvider } from './DataDuckRuntime.jsx';
@@ -12,6 +12,7 @@ import { AnalysisMessage } from './AnalysisMessage.jsx';
 
 const SETTINGS_KEY = 'dataduck-ai-settings';
 const PANEL_WIDE_KEY = 'dataduck-ai-panel-wide';
+const KEY_SAVE_DEBOUNCE_MS = 300;
 
 export const FALLBACK_SUGGESTIONS = [
   'What are the main numeric columns and their ranges?',
@@ -260,6 +261,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
               setSettings={setSettings}
               dailyHint={dailyRequestCopy(settings.providerId)}
               showToast={showToast}
+              onProviderSwitch={cancelActiveRequest}
             />
           ) : null}
         </header>
@@ -407,27 +409,69 @@ function HistoryPopover({ threads, activeId, onPick, onNew, onDelete }) {
   );
 }
 
-function SettingsPopover({ settings, setSettings, dailyHint, showToast }) {
+function SettingsPopover({ settings, setSettings, dailyHint, showToast, onProviderSwitch }) {
   const supported = secureKeyStoreSupported();
   const active = getActiveProviderConfig(settings);
   const provider = active.provider;
+  const keySaveTimersRef = useRef(new Map());
+  const pendingKeySavesRef = useRef(new Map());
+
+  useEffect(() => () => {
+    void flushPendingProviderKeySaves();
+  }, []);
+
+  function clearPendingProviderKeySaves() {
+    for (const timer of keySaveTimersRef.current.values()) clearTimeout(timer);
+    keySaveTimersRef.current.clear();
+    pendingKeySavesRef.current.clear();
+  }
+
+  function flushPendingProviderKeySaves() {
+    for (const timer of keySaveTimersRef.current.values()) clearTimeout(timer);
+    keySaveTimersRef.current.clear();
+    const pending = [...pendingKeySavesRef.current.entries()];
+    pendingKeySavesRef.current.clear();
+    return Promise.all(pending.map(([providerId, apiKey]) => (
+      Promise.resolve(saveProviderKey(providerId, apiKey)).catch(() => undefined)
+    )));
+  }
+
+  function scheduleProviderKeySave(providerId, apiKey) {
+    if (!supported || !settings.rememberKey) return;
+    const id = normalizeProviderId(providerId);
+    const existing = keySaveTimersRef.current.get(id);
+    if (existing) clearTimeout(existing);
+    pendingKeySavesRef.current.set(id, apiKey);
+    const timer = setTimeout(() => {
+      keySaveTimersRef.current.delete(id);
+      const pending = pendingKeySavesRef.current.get(id);
+      pendingKeySavesRef.current.delete(id);
+      Promise.resolve(saveProviderKey(id, pending)).catch(() => undefined);
+    }, KEY_SAVE_DEBOUNCE_MS);
+    keySaveTimersRef.current.set(id, timer);
+  }
 
   async function updateRemember(rememberKey) {
     setSettings((next) => ({ ...next, rememberKey }));
     if (!supported) return;
     if (!rememberKey) {
-      await Promise.all(providerIds().map((providerId) => clearProviderKey(providerId).catch(() => undefined)));
+      clearPendingProviderKeySaves();
+      await Promise.all([
+        ...providerIds().map((providerId) => Promise.resolve(clearProviderKey(providerId)).catch(() => undefined)),
+        Promise.resolve(clearLegacyGroqKey()).catch(() => undefined),
+      ]);
       return;
     }
+    await flushPendingProviderKeySaves();
     await Promise.all(providerIds().map((providerId) => {
       const key = settings.providers?.[providerId]?.apiKey || '';
-      return key ? saveProviderKey(providerId, key).catch(() => undefined) : Promise.resolve();
+      return key ? Promise.resolve(saveProviderKey(providerId, key)).catch(() => undefined) : Promise.resolve();
     }));
   }
 
-  async function updateKey(apiKey) {
+  function updateKey(apiKey) {
     setSettings((next) => updateProviderSettings(next, active.providerId, { apiKey }));
-    if (settings.rememberKey && supported) await saveProviderKey(active.providerId, apiKey).catch(() => undefined);
+    scheduleProviderKeySave(active.providerId, apiKey);
   }
 
   function updateModel(model) {
@@ -439,7 +483,9 @@ function SettingsPopover({ settings, setSettings, dailyHint, showToast }) {
   }
 
   function updateProvider(providerId) {
-    setSettings((next) => ({ ...normalizeSettingsShape(next), providerId: normalizeProviderId(providerId) }));
+    const nextProviderId = normalizeProviderId(providerId);
+    if (nextProviderId !== active.providerId) onProviderSwitch?.();
+    setSettings((next) => ({ ...normalizeSettingsShape(next), providerId: nextProviderId }));
   }
 
   return (
@@ -523,6 +569,8 @@ function useStoreState(store) {
   return store.state;
 }
 
+// Early Groq-only builds used the smaller OSS model as a default; migrate it
+// to the current Groq default instead of preserving a stale implicit default.
 const LEGACY_DEFAULT_MODELS = new Set(['openai/gpt-oss-20b']);
 
 function readSettings() {
@@ -610,7 +658,7 @@ function updateProviderSettings(settings, providerId, patch) {
 }
 
 function looksLikeApiKey(value) {
-  return /^(sk-ant-|sk-|gsk_)/i.test(String(value || '').trim());
+  return /^(sk-ant-[A-Za-z0-9_-]{8,}|gsk_[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9_-]{16,})/i.test(String(value || '').trim());
 }
 
 function readPanelWide() {
@@ -631,7 +679,11 @@ function writePanelWide(wide) {
 
 async function maybeLoadRememberedKeys(settings) {
   const normalized = normalizeSettingsShape(settings);
-  if (!normalized.rememberKey || !secureKeyStoreSupported()) return { settings: normalized, migrationFailed: false };
+  if (!secureKeyStoreSupported()) return { settings: normalized, migrationFailed: false };
+  if (!normalized.rememberKey) {
+    await Promise.resolve(clearLegacyGroqKey()).catch(() => undefined);
+    return { settings: normalized, migrationFailed: false };
+  }
   const migration = await migrateLegacyGroqKey().catch((error) => ({ status: 'failed', error }));
   const providers = { ...normalized.providers };
   await Promise.all(providerIds().map(async (providerId) => {

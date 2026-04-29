@@ -52,7 +52,9 @@ describe('Anthropic provider adapter', () => {
     expect(body.model).toBe('claude-sonnet-4-6');
     expect(body.output_config.format.type).toBe('json_schema');
     expect(unsupportedSchemaKeys(body.output_config.format.schema)).toEqual([]);
-    expect(unsupportedSchemaKeys(ANALYSIS_PLAN_JSON_SCHEMA)).toEqual(expect.arrayContaining(['maxLength', 'minLength', 'maximum', 'pattern']));
+    expect(schemaKeys(body.output_config.format.schema, ['pattern'])).toContain('pattern');
+    expect(unsupportedSchemaKeys(ANALYSIS_PLAN_JSON_SCHEMA)).toEqual(expect.arrayContaining(['maxLength', 'minLength', 'maximum']));
+    expect(schemaKeys(ANALYSIS_PLAN_JSON_SCHEMA, ['pattern'])).toContain('pattern');
     expect(body.system.at(-1).cache_control).toEqual({ type: 'ephemeral' });
     expect(body.system.at(-1).text).toContain('"table":"active_file"');
     expect(body.messages).toEqual([{ role: 'user', content: 'top region' }]);
@@ -118,11 +120,14 @@ describe('Anthropic provider adapter', () => {
   });
 
   it('times out stalled requests and clears the timer path', async () => {
+    const fetchImpl = vi.fn(() => new Promise(() => {}));
+    const sleep = vi.fn(async () => {});
     const promise = callAnthropicText({
       apiKey: 'sk-ant-secret',
       messages: [],
       requestTimeoutMs: 5,
-      fetchImpl: vi.fn(() => new Promise(() => {})),
+      fetchImpl,
+      sleep,
     });
     promise.catch(() => undefined);
 
@@ -131,6 +136,48 @@ describe('Anthropic provider adapter', () => {
       new Promise((resolve) => setTimeout(() => resolve('pending'), 50)),
     ]);
     expect(result).toBe('TIMEOUT');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries Anthropic request timeouts before surfacing failure', async () => {
+    const fetchImpl = vi.fn()
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers(),
+        json: async () => ({ content: [{ type: 'text', text: '{"mode":"clarify"}' }] }),
+      });
+    const sleep = vi.fn(async () => {});
+
+    const result = await callAnthropicJson({
+      apiKey: 'sk-ant-secret',
+      messages: [],
+      fetchImpl,
+      requestTimeoutMs: 5,
+      sleep,
+    });
+
+    expect(result).toEqual({ mode: 'clarify' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(1000);
+  });
+
+  it('uses Anthropic rate-limit reset headers when retry-after is absent', async () => {
+    const reset = new Date(Date.now() + 60_000).toUTCString();
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: new Headers({ 'anthropic-ratelimit-requests-reset': reset }),
+      clone: () => ({ json: async () => ({ error: { message: 'slow down' } }) }),
+      text: async () => '',
+    };
+
+    await expect(callAnthropicJson({
+      apiKey: 'sk-ant-secret',
+      messages: [],
+      fetchImpl: vi.fn().mockResolvedValue(rateLimited),
+    })).rejects.toMatchObject({ provider: 'anthropic', code: 'RATE_LIMITED', retryAfter: reset });
   });
 
   it('does not leak API keys through provider errors', async () => {
@@ -151,10 +198,19 @@ describe('Anthropic provider adapter', () => {
 function unsupportedSchemaKeys(value, found = []) {
   if (!value || typeof value !== 'object') return found;
   for (const [key, nested] of Object.entries(value)) {
-    if (['minimum', 'maximum', 'minLength', 'maxLength', 'maxItems', 'minItems', 'pattern', 'format'].includes(key)) {
+    if (['minimum', 'maximum', 'minLength', 'maxLength', 'maxItems', 'minItems'].includes(key)) {
       found.push(key);
     }
     unsupportedSchemaKeys(nested, found);
+  }
+  return found;
+}
+
+function schemaKeys(value, keys, found = []) {
+  if (!value || typeof value !== 'object') return found;
+  for (const [key, nested] of Object.entries(value)) {
+    if (keys.includes(key)) found.push(key);
+    schemaKeys(nested, keys, found);
   }
   return found;
 }

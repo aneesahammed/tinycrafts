@@ -48,7 +48,7 @@ describe('secure key store', () => {
     await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'skipped' });
   });
 
-  it('leaves legacy data alone when a migrated provider key already exists or migration fails', async () => {
+  it('keeps the provider key canonical and cleans legacy data when a migrated provider key already exists', async () => {
     const fakeIdb = createFakeIndexedDb();
     const env = createFakeEnv(fakeIdb);
 
@@ -56,12 +56,17 @@ describe('secure key store', () => {
     await saveProviderKey('groq', 'gsk_new', env);
     await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'skipped' });
     expect(await loadProviderKey('groq', env)).toBe('gsk_new');
-    expect(await loadLegacyGroqKey(env)).toBe('gsk_legacy');
+    expect(await loadLegacyGroqKey(env)).toBe('');
+  });
 
-    await clearProviderKey('groq', env);
+  it('cleans unrecoverable legacy data after migration failure to avoid repeated failure loops', async () => {
+    const fakeIdb = createFakeIndexedDb();
+    const env = createFakeEnv(fakeIdb);
+
+    await saveLegacyGroqKey('gsk_legacy', env);
     fakeIdb.tamper('groq-api-key', (row) => ({ ...row, ct: new Uint8Array(row.ct).fill(0) }));
     await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'failed' });
-    expect(fakeIdb.has('groq-api-key')).toBe(true);
+    expect(fakeIdb.has('groq-api-key')).toBe(false);
     expect(await loadProviderKey('groq', env)).toBe('');
   });
 
@@ -78,7 +83,7 @@ describe('secure key store', () => {
     await expect(migrateLegacyGroqKey(env)).resolves.toMatchObject({ status: 'failed' });
 
     expect(fakeIdb.has('provider:groq:apiKey')).toBe(true);
-    expect(fakeIdb.has('groq-api-key')).toBe(true);
+    expect(fakeIdb.has('groq-api-key')).toBe(false);
   });
 });
 

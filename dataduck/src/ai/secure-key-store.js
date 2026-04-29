@@ -78,14 +78,22 @@ export async function migrateLegacyGroqKey(env = globalThis) {
   assertSupported(env);
   const newId = providerKeyId('groq');
   const existing = await idbGet(newId, env);
-  if (existing?.iv && existing?.ct) return { status: 'skipped' };
+  if (existing?.iv && existing?.ct) {
+    await idbDelete(GROQ_KEY_ID, env).catch(() => undefined);
+    return { status: 'skipped' };
+  }
   const legacy = await idbGet(GROQ_KEY_ID, env);
   if (!legacy?.iv || !legacy?.ct) return { status: 'none' };
 
   let migratedRow = null;
+  let decrypted = false;
   try {
     const plaintext = await decryptPayload({ iv: legacy.iv, ct: legacy.ct }, env);
-    if (!plaintext) return { status: 'none' };
+    decrypted = true;
+    if (!plaintext) {
+      await idbDelete(GROQ_KEY_ID, env).catch(() => undefined);
+      return { status: 'none' };
+    }
     const payload = await encryptString(plaintext, env);
     migratedRow = { id: newId, iv: payload.iv, ct: payload.ct };
     await idbPut(migratedRow, env);
@@ -98,6 +106,7 @@ export async function migrateLegacyGroqKey(env = globalThis) {
       const current = await idbGet(newId, env).catch(() => null);
       if (encryptedRowsMatch(current, migratedRow)) await idbDelete(newId, env).catch(() => undefined);
     }
+    if (!decrypted) await idbDelete(GROQ_KEY_ID, env).catch(() => undefined);
     return { status: 'failed', error };
   }
 }

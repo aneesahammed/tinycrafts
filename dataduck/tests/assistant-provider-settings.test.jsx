@@ -8,6 +8,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const saveProviderKey = vi.fn();
 const loadProviderKey = vi.fn(async () => '');
 const clearProviderKey = vi.fn();
+const clearLegacyGroqKey = vi.fn();
 const migrateLegacyGroqKey = vi.fn(async () => ({ status: 'none' }));
 
 vi.mock('../src/ai/analyst.js', () => ({
@@ -15,6 +16,7 @@ vi.mock('../src/ai/analyst.js', () => ({
 }));
 
 vi.mock('../src/ai/secure-key-store.js', () => ({
+  clearLegacyGroqKey: (...args) => clearLegacyGroqKey(...args),
   clearProviderKey: (...args) => clearProviderKey(...args),
   loadProviderKey: (...args) => loadProviderKey(...args),
   migrateLegacyGroqKey: (...args) => migrateLegacyGroqKey(...args),
@@ -66,6 +68,7 @@ describe('AssistantApp provider settings', () => {
     localStorage.clear();
     vi.clearAllMocks();
     loadProviderKey.mockResolvedValue('');
+    clearLegacyGroqKey.mockResolvedValue();
     migrateLegacyGroqKey.mockResolvedValue({ status: 'none' });
   });
 
@@ -79,6 +82,17 @@ describe('AssistantApp provider settings', () => {
     expect(container.querySelector('select').value).toBe('anthropic');
     expect(container.textContent).toContain('Claude API key');
     expect(container.querySelector('input[type="text"]').value).toBe('claude-sonnet-4-6');
+
+    await act(async () => root.unmount());
+  });
+
+  it('cleans legacy Groq key storage even when legacy remember-key is disabled', async () => {
+    localStorage.setItem('dataduck-ai-settings', JSON.stringify({ model: 'llama-3.3-70b-versatile', rememberKey: false }));
+
+    const { root } = await renderAssistant();
+
+    expect(clearLegacyGroqKey).toHaveBeenCalled();
+    expect(migrateLegacyGroqKey).not.toHaveBeenCalled();
 
     await act(async () => root.unmount());
   });
@@ -136,6 +150,66 @@ describe('AssistantApp provider settings', () => {
 
     expect(container.querySelector('input[type="text"]').value).toBe('openai/gpt-oss-120b');
     expect(showToast).toHaveBeenCalledWith('That looks like an API key. Paste it in the API key field.', 'error');
+
+    await act(async () => {
+      inputValue(container.querySelector('input[type="text"]'), 'sk-small-model');
+    });
+
+    expect(container.querySelector('input[type="text"]').value).toBe('sk-small-model');
+
+    await act(async () => root.unmount());
+  });
+
+  it('debounces remembered provider key writes and saves the final value', async () => {
+    vi.useFakeTimers();
+    localStorage.setItem('dataduck-ai-settings', JSON.stringify({
+      providerId: 'anthropic',
+      rememberKey: true,
+      providers: { anthropic: { model: 'claude-sonnet-4-6' } },
+    }));
+    const { container, root } = await renderAssistant();
+
+    await act(async () => {
+      container.querySelector('[aria-label="AI settings"]').click();
+    });
+    const keyInput = container.querySelector('input[type="password"]');
+    await act(async () => {
+      inputValue(keyInput, 'sk-ant-partial');
+      inputValue(keyInput, 'sk-ant-final-secret');
+    });
+
+    expect(saveProviderKey).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(350);
+      await Promise.resolve();
+    });
+
+    expect(saveProviderKey).toHaveBeenCalledTimes(1);
+    expect(saveProviderKey).toHaveBeenCalledWith('anthropic', 'sk-ant-final-secret');
+
+    await act(async () => root.unmount());
+    vi.useRealTimers();
+  });
+
+  it('clears provider-scoped and legacy key storage when remember-key is disabled', async () => {
+    localStorage.setItem('dataduck-ai-settings', JSON.stringify({
+      providerId: 'groq',
+      rememberKey: true,
+      providers: { groq: { model: 'openai/gpt-oss-120b' } },
+    }));
+    const { container, root } = await renderAssistant();
+
+    await act(async () => {
+      container.querySelector('[aria-label="AI settings"]').click();
+    });
+    await act(async () => {
+      container.querySelector('input[type="checkbox"]').click();
+    });
+
+    expect(clearProviderKey).toHaveBeenCalledWith('anthropic');
+    expect(clearProviderKey).toHaveBeenCalledWith('groq');
+    expect(clearLegacyGroqKey).toHaveBeenCalled();
 
     await act(async () => root.unmount());
   });

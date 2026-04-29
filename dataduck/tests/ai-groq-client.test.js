@@ -90,7 +90,31 @@ describe('Groq client', () => {
     expect(result).toEqual({ mode: 'clarify' });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(sleep).toHaveBeenCalledWith(250);
-    expect(dailyRequestCount()).toBe(2);
+    expect(dailyRequestCount()).toBe(1);
+  });
+
+  it('retries transient 5xx responses without double-counting a user request', async () => {
+    const unavailable = {
+      ok: false,
+      status: 503,
+      statusText: 'Unavailable',
+      headers: new Headers(),
+      clone: () => ({ json: async () => ({ error: { message: 'try again' } }) }),
+      text: async () => '',
+    };
+    const good = {
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: '{"mode":"clarify"}' } }] }),
+    };
+    const fetchImpl = vi.fn().mockResolvedValueOnce(unavailable).mockResolvedValueOnce(good);
+    const sleep = vi.fn(async () => {});
+
+    const result = await callGroqJson({ apiKey: 'gsk', messages: [], fetchImpl, sleep });
+
+    expect(result).toEqual({ mode: 'clarify' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(250);
+    expect(dailyRequestCount()).toBe(1);
   });
 
   it('normalizes network failures without leaking the key', async () => {
@@ -103,11 +127,14 @@ describe('Groq client', () => {
   });
 
   it('times out stalled requests through the compatibility wrapper', async () => {
+    const fetchImpl = vi.fn(() => new Promise(() => {}));
+    const sleep = vi.fn(async () => {});
     const promise = callGroqJson({
       apiKey: 'gsk_secret',
       messages: [],
       requestTimeoutMs: 5,
-      fetchImpl: vi.fn(() => new Promise(() => {})),
+      fetchImpl,
+      sleep,
     });
     promise.catch(() => undefined);
 
@@ -116,6 +143,7 @@ describe('Groq client', () => {
       new Promise((resolve) => setTimeout(() => resolve('pending'), 50)),
     ]);
     expect(result).toBe('TIMEOUT');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
   it('tracks daily request counts without secrets', () => {

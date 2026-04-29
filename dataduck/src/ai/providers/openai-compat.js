@@ -12,7 +12,11 @@ const GROQ_RETRY_POLICY = {
   retries: 2,
   baseMs: 250,
   capMs: 2_000,
-  retryOn: [429],
+  retryOn: (error) => {
+    if (error?.code === 'TIMEOUT') return true;
+    if (error?.status === 408 || error?.status === 409 || error?.status === 429) return true;
+    return error?.status >= 500;
+  },
 };
 
 export const groqAdapter = createOpenAICompatibleAdapter({
@@ -53,6 +57,7 @@ export function createOpenAICompatibleAdapter({
       sleep,
     } = {}) {
       assertApiKey(provider, apiKey);
+      incrementDailyRequestCount(provider);
       const body = buildBody({ model, defaultModel, messages, maxCompletionTokens, bodyMutators });
       body.response_format = responseFormatForModel(model, jsonSchema, schemaName, strictStructuredModels);
 
@@ -103,6 +108,7 @@ export function createOpenAICompatibleAdapter({
       sleep,
     } = {}) {
       assertApiKey(provider, apiKey);
+      incrementDailyRequestCount(provider);
       const response = await postWithRetry({
         provider,
         chatUrl,
@@ -158,10 +164,7 @@ async function postWithRetry({ provider, chatUrl, headers, body, apiKey, abortSi
     provider,
     retryPolicy,
     sleep,
-    operation: async () => {
-      incrementDailyRequestCount(provider);
-      return post({ provider, chatUrl, headers, body, apiKey, abortSignal, fetchImpl, requestTimeoutMs });
-    },
+    operation: async () => post({ provider, chatUrl, headers, body, apiKey, abortSignal, fetchImpl, requestTimeoutMs }),
   });
 }
 

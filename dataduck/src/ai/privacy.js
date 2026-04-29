@@ -5,12 +5,12 @@ export const AGGREGATE_UPLOAD_LIMITS = {
   maxPayloadChars: 24_000,
 };
 
-export const GROQ_LIMITS = {
+export const AI_LIMITS = {
   maxCompletionTokens: 1600,
   dailyRequestWarning: 50,
 };
 
-export const AI_LIMITS = GROQ_LIMITS;
+export const GROQ_LIMITS = AI_LIMITS;
 
 export const DEFAULT_AI_PROVIDER = 'anthropic';
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
