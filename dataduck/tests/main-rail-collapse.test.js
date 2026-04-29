@@ -12,4 +12,10 @@ describe('main rail collapse startup', () => {
     expect(startupSyncIndex).toBeGreaterThanOrEqual(0);
     expect(guardIndex).toBeLessThan(startupSyncIndex);
   });
+
+  it('passes the theme toggle handler to the header', () => {
+    const headerMount = mainSource.match(/mountHeader\(head, store, \{([\s\S]*?)\n\}\);/);
+
+    expect(headerMount?.[1]).toContain('onToggleTheme: toggleTheme');
+  });
 });

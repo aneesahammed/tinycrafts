@@ -61,6 +61,7 @@ restoreRailCollapsed();
 
 mountHeader(head, store, {
   onRun: () => runActiveQuery(),
+  onToggleTheme: toggleTheme,
   onOpenPalette: () => store.setPaletteOpen(true),
   onOpenSnapshots: toggleSnapshotsPanel,
   onOpenAssistant: () => assistant.toggle(),

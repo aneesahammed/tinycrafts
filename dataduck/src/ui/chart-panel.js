@@ -14,11 +14,18 @@ const PADDING_RIGHT = 12;
 const PADDING_TOP = 12;
 const PADDING_BOTTOM = 28;
 const MAX_BARS = 30;
+const AGGREGATES = [
+  ['sum', 'Sum'],
+  ['avg', 'Average'],
+  ['count', 'Count'],
+  ['min', 'Min'],
+  ['max', 'Max'],
+];
 
 export function mountChartPanel(el, store) {
   const drawer = ensureRightPanel(el, store);
 
-  let pick = null; // { kind, x, y }
+  let pick = null; // { kind, x, y, aggregate }
   let renderedRows = null;
   let renderedColumnsKey = '';
 
@@ -76,7 +83,7 @@ export function mountChartPanel(el, store) {
       <div class="chart-panel-head">
         <div class="chart-panel-heading">
           <p class="chart-panel-kicker">Chart</p>
-          <h2>${esc(pick.y)} by ${esc(pick.x)}</h2>
+          <h2>${esc(chartTitle(pick))}</h2>
         </div>
         <button class="chart-panel-close" type="button" data-action="close" aria-label="Close chart">×</button>
       </div>
@@ -93,6 +100,11 @@ export function mountChartPanel(el, store) {
             <option value="line"${pick.kind === 'line' ? ' selected' : ''}>Line</option>
           </select>
         </label>
+        <label><span>Aggregate</span>
+          <select data-axis="aggregate">
+            ${AGGREGATES.map(([value, label]) => `<option value="${value}"${value === pick.aggregate ? ' selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </label>
       </div>
       <div class="chart-panel-body" id="chartBody"></div>
     `);
@@ -102,8 +114,13 @@ export function mountChartPanel(el, store) {
       select.addEventListener('change', () => {
         const axis = select.dataset.axis;
         if (axis === 'x') pick = { ...pick, x: select.value };
-        else if (axis === 'y') pick = { ...pick, y: select.value };
+        else if (axis === 'y') {
+          pick = { ...pick, y: select.value, aggregate: defaultAggregateForColumn(select.value) };
+          const aggregateSelect = drawer.querySelector('[data-axis="aggregate"]');
+          if (aggregateSelect) aggregateSelect.value = pick.aggregate;
+        }
         else if (axis === 'kind') pick = { ...pick, kind: select.value };
+        else if (axis === 'aggregate') pick = { ...pick, aggregate: normalizeAggregate(select.value) };
         renderChart();
       });
     });
@@ -113,8 +130,10 @@ export function mountChartPanel(el, store) {
   function renderChart() {
     const body = drawer.querySelector('#chartBody');
     if (!body || !pick) return;
+    const title = drawer.querySelector('.chart-panel-heading h2');
+    if (title) title.textContent = chartTitle(pick);
     const s = store.state;
-    const points = collectPoints(s.resultRows, pick.x, pick.y, s.resultColumnTypes);
+    const points = collectPoints(s.resultRows, pick.x, pick.y, s.resultColumnTypes, pick.aggregate);
     if (!points.length) {
       setHtml(body, '<p class="chart-panel-empty">No numeric values for this combination.</p>');
       return;
@@ -147,13 +166,13 @@ function autoDetect(columns, types = {}) {
   const temporal = columns.find((c) => isTemporalSqlType(types[c]));
   if (temporal) {
     const y = numericColumns.find((c) => c !== temporal) || numericColumns[0];
-    return { kind: 'line', x: temporal, y };
+    return { kind: 'line', x: temporal, y, aggregate: defaultAggregateForColumn(y) };
   }
   // Pick the first non-numeric column as x (categorical), else first column.
   const xCandidates = columns.filter((c) => !isNumericSqlType(types[c]));
   const x = xCandidates[0] || columns[0];
   const y = numericColumns.find((c) => c !== x) || numericColumns[0];
-  return { kind: 'bar', x, y };
+  return { kind: 'bar', x, y, aggregate: defaultAggregateForColumn(y) };
 }
 
 function isCategoricalLike(column, rows, types) {
@@ -162,32 +181,45 @@ function isCategoricalLike(column, rows, types) {
   return true;
 }
 
-function collectPoints(rows, xKey, yKey, types) {
+function collectPoints(rows, xKey, yKey, types, aggregate = 'sum') {
   const temporal = isTemporalSqlType(types?.[xKey]);
+  const mode = normalizeAggregate(aggregate);
   const groups = new Map();
   for (const row of rows) {
-    const yRaw = row?.[yKey];
-    const y = toNumber(yRaw);
-    if (y == null) continue;
     const xRaw = row?.[xKey];
     if (xRaw == null) continue;
     const xLabel = valueToDisplay(xRaw, types?.[xKey]);
     const xSort = temporal ? sortableTime(xRaw) : null;
-    const existing = groups.get(xLabel);
-    if (existing) {
-      existing.y += y;
-      if (temporal && xSort != null && (existing.xSort == null || xSort < existing.xSort)) existing.xSort = xSort;
-      continue;
-    }
-    groups.set(xLabel, {
-      xLabel: valueToDisplay(xRaw, types?.[xKey]),
-      xSort,
-      y,
-    });
+    const y = mode === 'count' ? 1 : toNumber(row?.[yKey]);
+    if (y == null) continue;
+    addGroupedValue(groups, { xLabel, xSort, y, temporal });
   }
-  const points = [...groups.values()];
+  const points = [...groups.values()].map((group) => ({
+    xLabel: group.xLabel,
+    xSort: group.xSort,
+    y: aggregateValue(group.values, mode),
+  }));
   if (temporal) points.sort((a, b) => (a.xSort ?? 0) - (b.xSort ?? 0));
   return points;
+}
+
+function addGroupedValue(groups, { xLabel, xSort, y, temporal }) {
+  const existing = groups.get(xLabel);
+  if (existing) {
+    existing.values.push(y);
+    if (temporal && xSort != null && (existing.xSort == null || xSort < existing.xSort)) existing.xSort = xSort;
+    return;
+  }
+  groups.set(xLabel, { xLabel, xSort, values: [y] });
+}
+
+function aggregateValue(values, aggregate) {
+  if (aggregate === 'count') return values.length;
+  if (aggregate === 'min') return Math.min(...values);
+  if (aggregate === 'max') return Math.max(...values);
+  const sum = values.reduce((total, value) => total + value, 0);
+  if (aggregate === 'avg') return sum / values.length;
+  return sum;
 }
 
 function toNumber(value) {
@@ -276,6 +308,27 @@ function axisLabels(points, minY, maxY, yToPx) {
 
 function wrapSvg(plot, axes) {
   return `<svg class="chart-panel-svg" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" role="img" aria-label="Chart of result">${axes}${plot}</svg>`;
+}
+
+function chartTitle(selection) {
+  if (!selection) return 'Chart';
+  if (selection.aggregate === 'count') return `count by ${selection.x}`;
+  return `${selection.aggregate || 'sum'} ${selection.y} by ${selection.x}`;
+}
+
+function normalizeAggregate(value) {
+  return AGGREGATES.some(([id]) => id === value) ? value : 'sum';
+}
+
+function defaultAggregateForColumn(column) {
+  const name = String(column || '').toLowerCase();
+  if (/(^|[_\s-])(avg|average|mean|rate|ratio|percent|pct|score|length|depth|height|width|mass|weight|temperature|temp|age|price)([_\s-]|$)/.test(` ${name} `)) {
+    return 'avg';
+  }
+  if (/(^|[_\s-])(count|rows|total|amount|revenue|sales|qty|quantity|units|cost|spend|duration)([_\s-]|$)/.test(` ${name} `)) {
+    return 'sum';
+  }
+  return 'avg';
 }
 
 function renderEmpty(drawer, close, message = 'This result has no numeric column to plot. Try a query with at least one numeric measure.') {
