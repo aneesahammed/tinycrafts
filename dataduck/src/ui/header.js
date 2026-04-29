@@ -52,7 +52,10 @@ export function mountHeader(el, store, handlers) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
     </button>
     <button class="icon-btn ask-btn" id="hAssistant" type="button" aria-label="Ask DataDuck" title="Ask DataDuck">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.6 10.4 L22 12 L13.6 13.6 L12 22 L10.4 13.6 L2 12 L10.4 10.4 Z"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path class="ai-sparkle-main" d="M12 4 L14.4 9.6 L20 12 L14.4 14.4 L12 20 L9.6 14.4 L4 12 L9.6 9.6 Z"/>
+        <path class="ai-sparkle-spark" d="M18.4 2.6 L19.1 4.3 L20.8 5 L19.1 5.7 L18.4 7.4 L17.7 5.7 L16 5 L17.7 4.3 Z"/>
+      </svg>
     </button>
     <button class="icon-btn" id="hTheme" type="button" aria-label="Toggle theme" title="Toggle theme">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
