@@ -78,6 +78,14 @@ describe('assistant analysis rendering', () => {
     )).toEqual([{ order_date: '2025-01-02', total_amount: 11567.59 }]);
   });
 
+  it('normalizes BigInt and non-finite numeric chart values safely', () => {
+    expect(normalizeChartRows(
+      [{ a: 10n, b: Number.NaN, c: Number.POSITIVE_INFINITY, d: -0 }],
+      ['a', 'b', 'c', 'd'],
+      {},
+    )).toEqual([{ a: 10, b: null, c: null, d: 0 }]);
+  });
+
   it('labels metadata-only planning without implying aggregate rows were sent', () => {
     const { container, root } = render(
       <AnalysisMessage

@@ -362,22 +362,26 @@ Unchanged behavior. Service worker continues to cache the shell + DuckDB-WASM as
 
 Ask DataDuck is the only React island in the app. The rest of DataDuck remains vanilla modules. The assistant mounts into the existing right-panel host, so it shares Escape handling, docked/mobile layout, and panel replacement semantics with column profiles and query snapshots.
 
-Groq BYOK keys are session-only unless the user explicitly chooses "Remember key on this browser". Remembered keys use WebCrypto and IndexedDB browser storage, but this is not a server-grade secret boundary and does not protect against same-origin script compromise.
+Claude and Groq BYOK keys are session-only unless the user explicitly chooses "Remember key on this browser". Remembered keys use WebCrypto and IndexedDB browser storage, but this is not a server-grade secret boundary and does not protect against same-origin script compromise.
 
-AI requests are plan-first, not SQL-first:
+AI requests are tool-plan-first, not SQL-first:
 
 1. Build a redacted schema/profile context for the active file.
-2. Ask Groq for a structured JSON analysis plan.
+2. Ask the selected provider for a structured JSON tool plan.
 3. Validate the plan with Zod.
-4. Compile safe SQL locally against `active_file`.
+4. Compile engine-owned SQL locally against `active_file`, using prepared parameters for provider/user literals.
 5. Execute in DuckDB-WASM.
-6. Render the local result table and Recharts chart.
+6. Render local analysis artifacts with result tables and Recharts charts.
+
+The assistant island is lazy-loaded. Header and palette commands first open the right panel with a lightweight "Loading assistant..." placeholder, then import React, assistant-ui, and Recharts. If the chunk fails, the panel shows a retry action and the app raises a toast.
 
 Privacy rules:
 
-- Default prompts exclude source rows, current result rows, sample rows, top values, text min/max, file contents, and API keys.
+- Default prompts exclude source rows, current result rows, sample rows, top values, text/blob/list/struct min/max, file contents, file names, virtual names, fingerprints, SQL, and API keys.
+- Wide-schema prompts include all columns only up to 120 columns and 24,000 serialized characters. Wider files use deterministic token overlap against the user's question and send at most 40 matching columns.
+- Same-dataset follow-up memory includes only tool metadata and non-sensitive column names already present in the current prompt context. Sensitive column-name patterns such as `ssn`, `salary`, `patient`, `token`, `key`, `password`, and `account_id` are excluded from memory.
 - Aggregate row uploads are an explicit second action with a visible preview and hard caps.
-- Stored threads keep message text, analysis artifacts, table labels, and dataset fingerprints; they never store Groq keys.
+- Stored threads keep message text, table labels, dataset fingerprints, and sanitized v2 analysis artifacts. They never store provider keys, prompts, provider raw errors, raw SQL, or full result payloads.
 - If a restored thread's dataset fingerprint differs from the active file, the UI marks it historical and new questions use the current file.
 
 ## 9. Out of scope (v1)

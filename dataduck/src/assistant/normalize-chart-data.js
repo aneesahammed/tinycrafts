@@ -15,6 +15,7 @@ export function normalizeChartValue(value, columnType = null) {
   if (value == null) return null;
   if (isTemporalColumnType(columnType)) return valueToDisplay(value, columnType);
   if (typeof value === 'bigint') return Number(value);
+  if (typeof value === 'number') return Number.isFinite(value) ? (Object.is(value, -0) ? 0 : value) : null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   if (value instanceof Uint8Array || ArrayBuffer.isView(value)) return valueToDisplay(value);
   if (Array.isArray(value) || typeof value === 'object') return valueToDisplay(value);

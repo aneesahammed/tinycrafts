@@ -1,6 +1,6 @@
 import { restoreTheme, toggleTheme } from './ui/theme.js';
 import { createStore } from './state/store.js';
-import { getEngine, query } from './duckdb/engine.js';
+import { getEngine, query, queryPrepared } from './duckdb/engine.js';
 import { openFileInto, closeFile, setActiveFile, isSupportedFile } from './duckdb/files.js';
 import {
   applyAcceptExtensions,
@@ -25,7 +25,7 @@ import { mountChartPanel } from './ui/chart-panel.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
 import { setupRailResize } from './ui/rail-resizer.js';
 import { setupServiceWorker } from './service-worker.js';
-import { mountAiAssistant } from './assistant/mount.jsx';
+import { createLazyAiAssistant } from './assistant/lazy.js';
 import sampleDatasetUrl from '../samples/penguins.csv?url';
 import {
   clearQuerySnapshots,
@@ -82,8 +82,8 @@ const snapshotsPanel = mountQuerySnapshots(stage, store, {
   onDelete: deleteSnapshotWithUndo,
   onClear: clearSnapshotsWithUndo,
 });
-const assistant = mountAiAssistant(stage, store, {
-  query,
+const assistant = createLazyAiAssistant(stage, store, {
+  query: queryPrepared,
   setSql: (sql) => editor.setSql(sql),
   showToast,
 });

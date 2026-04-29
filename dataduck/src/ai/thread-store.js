@@ -1,5 +1,7 @@
+import { normalizeAnalysisForRender, persistableAnalysis } from './analysis-engine/artifacts.js';
+
 const DB_NAME = 'dataduck-ai-threads';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'threads';
 const MAX_THREADS = 25;
 
@@ -12,6 +14,7 @@ export function createThread({ title = 'New analysis', datasetFingerprint = null
     title,
     datasetFingerprint,
     tableLabel,
+    schemaVersion: 2,
     messages: [],
     createdAt,
     updatedAt: createdAt,
@@ -46,6 +49,7 @@ function sanitizeThread(thread) {
   const title = String(thread.title || messages.find((m) => m.role === 'user')?.text || 'New analysis').slice(0, 100);
   return {
     id: String(thread.id),
+    schemaVersion: 2,
     title,
     datasetFingerprint: thread.datasetFingerprint || null,
     tableLabel: thread.tableLabel || null,
@@ -61,9 +65,15 @@ function sanitizeMessage(message) {
     id: String(message.id || `msg_${Date.now()}_${Math.random().toString(16).slice(2)}`),
     role: message.role,
     text: String(message.text || ''),
-    analysis: message.analysis || null,
+    analysis: sanitizeAnalysis(message.analysis),
     createdAt: normalizeTime(message.createdAt),
   };
+}
+
+function sanitizeAnalysis(analysis) {
+  if (!analysis) return null;
+  const normalized = normalizeAnalysisForRender(analysis);
+  return persistableAnalysis(normalized);
 }
 
 function sortThreads(threads) {

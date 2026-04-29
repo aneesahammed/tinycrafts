@@ -6,6 +6,7 @@ import { AI_PROVIDERS, DEFAULT_PROVIDER_ID, getActiveProviderConfig, getProvider
 import { dailyRequestCount } from '../ai/providers/usage.js';
 import { clearLegacyGroqKey, clearProviderKey, loadProviderKey, migrateLegacyGroqKey, saveProviderKey, secureKeyStoreSupported } from '../ai/secure-key-store.js';
 import { createThread, deleteThread, listThreads, saveThread, threadIsHistorical } from '../ai/thread-store.js';
+import { safeAnalysisError } from '../ai/analysis-engine/errors.js';
 import { isNumericSqlType, isTemporalSqlType } from '../duckdb/sql-types.js';
 import { DataDuckRuntimeProvider } from './DataDuckRuntime.jsx';
 import { AnalysisMessage } from './AnalysisMessage.jsx';
@@ -154,6 +155,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
         settings,
         queryFn,
         abortSignal: controller.signal,
+        thread: pendingThread,
       });
       if (!isCurrentRequest()) return;
       await persistThread({
@@ -164,9 +166,10 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
     } catch (error) {
       if (controller.signal.aborted || error?.name === 'AbortError') return;
       if (!isCurrentRequest()) return;
+      const safe = safeAnalysisError(error);
       await persistThread({
         ...pendingThread,
-        messages: [...pendingThread.messages, makeMessage('assistant', error?.message || 'Analysis failed.')],
+        messages: [...pendingThread.messages, makeMessage('assistant', safe.safeMessage || 'Analysis failed.')],
         updatedAt: Date.now(),
       });
     } finally {

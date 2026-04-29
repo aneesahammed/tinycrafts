@@ -55,6 +55,7 @@ export default defineConfig({
     forwardConsole: false,
   },
   build: {
+    manifest: true,
     sourcemap: true,
     target: 'es2022',
     rollupOptions: {

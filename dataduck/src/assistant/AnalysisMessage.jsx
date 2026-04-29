@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartCard, chartIsRenderable } from './ChartCard.jsx';
 import { sanitizeAggregatePayload, summarizeAggregateWithProvider } from '../ai/aggregate-upload.js';
+import { normalizeAnalysisForRender } from '../ai/analysis-engine/artifacts.js';
 import { getActiveProviderConfig } from '../ai/providers/registry.js';
 import { valueToDisplay } from '../util/format.js';
 
@@ -58,12 +59,16 @@ export function SqlHighlight({ sql }) {
 }
 
 export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summaryProvider = summarizeAggregateWithProvider }) {
-  const renderable = useMemo(() => chartIsRenderable(analysis), [analysis]);
-  const rowCount = analysis?.rows?.length ?? 0;
-  const hasKpi = rowCount === 1 && Boolean(analysis?.chart?.series?.length) && analysis?.chart?.kind !== 'table';
+  const normalized = useMemo(() => normalizeAnalysisForRender(analysis), [analysis]);
+  const artifacts = normalized?.artifacts || [];
+  const [artifactId, setArtifactId] = useState(() => normalized?.primaryArtifactId || artifacts[0]?.id || '');
+  const activeArtifact = artifacts.find((artifact) => artifact.id === artifactId) || artifacts[0] || null;
+  const renderable = useMemo(() => chartIsRenderable(activeArtifact), [activeArtifact]);
+  const rowCount = activeArtifact?.rows?.length ?? 0;
+  const hasKpi = rowCount === 1 && Boolean(activeArtifact?.chart?.series?.length) && activeArtifact?.chart?.kind !== 'table';
   const hasChartTab = renderable || hasKpi;
   const hasTableTab = rowCount > 0;
-  const hasSqlTab = Boolean(analysis?.sql);
+  const hasSqlTab = Boolean(activeArtifact?.sql);
   const visibleTabs = TAB_DEFS.filter((t) =>
     (t.id === 'chart' && hasChartTab) ||
     (t.id === 'table' && hasTableTab) ||
@@ -83,12 +88,16 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
     summaryControllerRef.current?.abort();
   }, []);
 
-  if (!analysis) return null;
+  useEffect(() => {
+    setArtifactId(normalized?.primaryArtifactId || artifacts[0]?.id || '');
+  }, [normalized?.primaryArtifactId, artifacts.length]);
+
+  if (!normalized || !activeArtifact) return null;
 
   const preview = sanitizeAggregatePayload({
-    columns: analysis.columns,
-    columnTypes: analysis.columnTypes,
-    rows: analysis.rows,
+    columns: activeArtifact.columns,
+    columnTypes: activeArtifact.columnTypes,
+    rows: activeArtifact.rows,
   });
   const activeProvider = getActiveProviderConfig(settings);
 
@@ -101,8 +110,13 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
     try {
       const response = await summaryProvider({
         settings,
-        question: analysis.question,
-        analysis,
+        question: normalized.question,
+        analysis: {
+          ...normalized,
+          ...activeArtifact,
+          question: normalized.question,
+          title: activeArtifact.title || normalized.title,
+        },
         abortSignal: controller.signal,
       });
       if (!mountedRef.current || controller.signal.aborted) return;
@@ -119,15 +133,38 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
   return (
     <article className="analysis-card">
       <header className="analysis-card-head">
-        <h3>{analysis.title}</h3>
+        <h3>{normalized.title}</h3>
         <div className="analysis-card-meta">
           <span className="pill">Metadata-only planning</span>
           <span className="dot" aria-hidden="true">·</span>
-          <span className="mono">{analysis.elapsedMs ?? 0} ms</span>
+          <span className="mono">{activeArtifact.elapsedMs ?? 0} ms</span>
           <span className="dot" aria-hidden="true">·</span>
-          <span>{rowCount} {rowCount === 1 ? 'row' : 'rows'}</span>
+          <span>{activeArtifact.rowCount ?? rowCount} {(activeArtifact.rowCount ?? rowCount) === 1 ? 'row' : 'rows'}</span>
         </div>
       </header>
+
+      {artifacts.length > 1 ? (
+        <div className="analysis-artifacts" role="tablist" aria-label="Analysis artifacts">
+          {artifacts.map((artifact) => (
+            <button
+              key={artifact.id}
+              type="button"
+              className="analysis-artifact-tab"
+              aria-selected={artifact.id === activeArtifact.id}
+              onClick={() => { setArtifactId(artifact.id); setTab('chart'); }}
+            >
+              {artifact.status && artifact.status !== 'ok' ? '!' : ''}{artifact.title || artifact.tool}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {activeArtifact.status && activeArtifact.status !== 'ok' ? (
+        <p className="analysis-error">{activeArtifact.safeMessage || activeArtifact.text || 'This analysis artifact did not complete.'}</p>
+      ) : null}
+      {activeArtifact.warnings?.length ? (
+        <p className="analysis-warning">{activeArtifact.warnings.join(' ')}</p>
+      ) : null}
 
       {visibleTabs.length > 1 ? (
         <div className="analysis-tabs" role="tablist">
@@ -147,16 +184,16 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
       ) : null}
 
       <div className="analysis-tabpanel">
-        {tab === 'chart' && hasChartTab ? <ChartCard analysis={analysis} /> : null}
+        {tab === 'chart' && hasChartTab ? <ChartCard analysis={activeArtifact} /> : null}
         {tab === 'table' && hasTableTab ? (
-          <TablePreview columns={analysis.columns} columnTypes={analysis.columnTypes} rows={analysis.rows} />
+          <TablePreview columns={activeArtifact.columns} columnTypes={activeArtifact.columnTypes} rows={activeArtifact.rows} />
         ) : null}
         {tab === 'sql' && hasSqlTab ? (
           <div className="analysis-sql">
-            <SqlHighlight sql={analysis.sql} />
+            <SqlHighlight sql={activeArtifact.sql} />
             <div className="analysis-sql-actions">
-              <button type="button" onClick={() => onCopySql?.(analysis.sql)}>Copy SQL</button>
-              <button type="button" onClick={() => onOpenSql?.(analysis.sql)}>Open in editor</button>
+              <button type="button" onClick={() => onCopySql?.(activeArtifact.sql)}>Copy SQL</button>
+              <button type="button" onClick={() => onOpenSql?.(activeArtifact.sql)}>Open in editor</button>
             </div>
           </div>
         ) : null}

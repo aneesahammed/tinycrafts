@@ -33,6 +33,17 @@ export async function query(sql) {
   return arrowTableToObjects(table);
 }
 
+export async function queryPrepared(sql, params = []) {
+  const { conn } = await getEngine();
+  const statement = await conn.prepare(sql);
+  try {
+    const table = await statement.query(...params);
+    return arrowTableToObjects(table);
+  } finally {
+    await statement.close().catch(() => undefined);
+  }
+}
+
 export async function tryQuery(sql) {
   try {
     return await query(sql);

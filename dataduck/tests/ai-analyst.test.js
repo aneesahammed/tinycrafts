@@ -127,17 +127,20 @@ describe('AI analyst orchestration', () => {
     expect(answer.analysis.sql).toContain('FROM active_file');
   });
 
-  it('rejects stale active-file changes', async () => {
+  it('returns a stale diagnostic when the active file changes', async () => {
     const original = stateFor('orders');
     const changed = stateFor('customers');
-    await expect(answerDataQuestion({
+    const answer = await answerDataQuestion({
       question: 'top products',
       storeState: original,
       getStoreState: () => changed,
       settings: { apiKey: 'test' },
       planProvider: async () => plan,
       queryFn: async () => ({ columns: [], rows: [] }),
-    })).rejects.toMatchObject({ code: 'STALE_DATASET' });
+    });
+
+    expect(answer.mode).toBe('incomplete');
+    expect(answer.analysis.artifacts[0]).toMatchObject({ status: 'stale', code: 'STALE_DATASET' });
   });
 
   it('summarizes temporal chart results by range, peak, and latest value', async () => {

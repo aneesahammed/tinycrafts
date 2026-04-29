@@ -54,7 +54,8 @@ describe('AI query compiler', () => {
     const compiled = compileAnalysisPlan(basePlan({
       filters: [{ column: 'product', op: 'contains', value: 'a%b' }],
     }), context);
-    expect(compiled.sql).toContain("ILIKE '%a\\%b%' ESCAPE '\\'");
+    expect(compiled.sql).toContain("ILIKE ? ESCAPE '\\'");
+    expect(compiled.params).toEqual(['%a\\%b%']);
   });
 
   it('rejects numeric metrics over varchar columns', () => {
