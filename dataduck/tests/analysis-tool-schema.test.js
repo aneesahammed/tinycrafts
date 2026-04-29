@@ -59,4 +59,23 @@ describe('analysis tool plan schema', () => {
       clarifyingQuestion: 'Which column should I use?',
     })).mode).toBe('clarify');
   });
+
+  it('normalizes compact Anthropic nullable fields before strict validation', () => {
+    const plan = parseAnalysisToolPlan(base({
+      steps: [{
+        tool: 'aggregate_query',
+        id: 'orders',
+        title: 'Orders',
+        dimensions: [{ column: 'order_date', alias: 'order_date', timeBucket: '' }],
+        metrics: [{ agg: 'count', column: '', alias: 'rows' }],
+        filters: [],
+        orderBy: [],
+        limit: 100,
+      }],
+      clarifyingQuestion: '',
+    }));
+
+    expect(plan.steps[0].dimensions[0].timeBucket).toBeNull();
+    expect(plan.steps[0].metrics[0].column).toBeNull();
+  });
 });

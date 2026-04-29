@@ -228,34 +228,13 @@ export const ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA = {
     clarifyingQuestion: { type: 'string' },
     steps: {
       type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: true,
-        required: ['tool', 'id', 'title'],
-        properties: {
-          tool: {
-            type: 'string',
-            enum: [
-              'profile_overview',
-              'missingness',
-              'top_n',
-              'aggregate_query',
-              'histogram',
-              'trend',
-              'outliers',
-              'correlation',
-            ],
-          },
-          id: { type: 'string' },
-          title: { type: 'string' },
-        },
-      },
+      items: anthropicStepJson(),
     },
   },
 };
 
 export function parseAnalysisToolPlan(value) {
-  return AnalysisToolPlanSchema.parse(value);
+  return AnalysisToolPlanSchema.parse(normalizeCompactPlan(value));
 }
 
 function identifierJson() {
@@ -296,4 +275,112 @@ function filtersJson() {
       },
     }),
   };
+}
+
+function anthropicStepJson() {
+  return objectSchema(['tool', 'id', 'title'], {
+    tool: {
+      type: 'string',
+      enum: [
+        'profile_overview',
+        'missingness',
+        'top_n',
+        'aggregate_query',
+        'histogram',
+        'trend',
+        'outliers',
+        'correlation',
+      ],
+    },
+    id: identifierJson(),
+    title: { type: 'string' },
+    columns: { type: 'array', items: columnNameJson() },
+    dimension: columnNameJson(),
+    metric: anthropicAggregateMetricJson(),
+    filters: anthropicFiltersJson(),
+    n: { type: 'integer' },
+    direction: { type: 'string', enum: ['asc', 'desc'] },
+    dimensions: { type: 'array', items: anthropicDimensionJson() },
+    metrics: { type: 'array', items: anthropicAggregateMetricJson() },
+    orderBy: {
+      type: 'array',
+      items: objectSchema(['field', 'direction'], {
+        field: identifierJson(),
+        direction: { type: 'string', enum: ['asc', 'desc'] },
+      }),
+    },
+    limit: { type: 'integer' },
+    column: columnNameJson(),
+    bins: { type: 'integer' },
+    timeColumn: columnNameJson(),
+    bucket: { type: 'string', enum: ['day', 'week', 'month', 'quarter', 'year'] },
+    method: { type: 'string', enum: ['iqr', 'pearson'] },
+  });
+}
+
+function anthropicAggregateMetricJson() {
+  return objectSchema(['agg', 'alias'], {
+    agg: { type: 'string', enum: ['count', 'count_distinct', 'sum', 'avg', 'min', 'max'] },
+    column: { type: 'string' },
+    alias: identifierJson(),
+  });
+}
+
+function anthropicDimensionJson() {
+  return objectSchema(['column', 'alias'], {
+    column: columnNameJson(),
+    alias: identifierJson(),
+    timeBucket: { type: 'string', enum: ['', 'day', 'week', 'month', 'quarter', 'year'] },
+  });
+}
+
+function anthropicFiltersJson() {
+  return {
+    type: 'array',
+    items: objectSchema(['column', 'op'], {
+      column: columnNameJson(),
+      op: { type: 'string', enum: ['=', '!=', '<', '<=', '>', '>=', 'between', 'in', 'contains', 'is_null', 'is_not_null'] },
+      value: {
+        type: 'string',
+      },
+    }),
+  };
+}
+
+function normalizeCompactPlan(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  return {
+    ...value,
+    steps: Array.isArray(value.steps) ? value.steps.map(normalizeCompactStep) : value.steps,
+  };
+}
+
+function normalizeCompactStep(step) {
+  if (!step || typeof step !== 'object' || Array.isArray(step)) return step;
+  const next = { ...step };
+  if (next.metric) next.metric = normalizeCompactMetric(next.metric);
+  if (Array.isArray(next.metrics)) next.metrics = next.metrics.map(normalizeCompactMetric);
+  if (Array.isArray(next.dimensions)) next.dimensions = next.dimensions.map(normalizeCompactDimension);
+  if (Array.isArray(next.filters)) next.filters = next.filters.map(normalizeCompactFilter);
+  return next;
+}
+
+function normalizeCompactMetric(metric) {
+  if (!metric || typeof metric !== 'object' || Array.isArray(metric)) return metric;
+  if (!Object.prototype.hasOwnProperty.call(metric, 'column')) return { ...metric, column: null };
+  if (typeof metric.column === 'string' && metric.column.trim() === '') return { ...metric, column: null };
+  return metric;
+}
+
+function normalizeCompactDimension(dimension) {
+  if (!dimension || typeof dimension !== 'object' || Array.isArray(dimension)) return dimension;
+  if (!Object.prototype.hasOwnProperty.call(dimension, 'timeBucket')) return { ...dimension, timeBucket: null };
+  if (dimension.timeBucket === '') return { ...dimension, timeBucket: null };
+  return dimension;
+}
+
+function normalizeCompactFilter(filter) {
+  if (!filter || typeof filter !== 'object' || Array.isArray(filter)) return filter;
+  if (!Object.prototype.hasOwnProperty.call(filter, 'value')) return { ...filter, value: null };
+  return filter;
 }

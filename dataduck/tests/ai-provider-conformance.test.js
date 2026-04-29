@@ -25,6 +25,8 @@ describe('AI provider structured-output conformance', () => {
 
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
     expect(JSON.stringify(body.output_config.format.schema)).not.toContain('anyOf');
+    expect(findAdditionalPropertiesTrue(body.output_config.format.schema)).toEqual([]);
+    expect(findArrayTypes(body.output_config.format.schema)).toEqual([]);
   });
 
   it('sends Anthropic output_config.format with the compact tool-plan schema', async () => {
@@ -45,6 +47,8 @@ describe('AI provider structured-output conformance', () => {
     expect(body.output_config.format.type).toBe('json_schema');
     expect(body.output_config.format.schema.properties.catalogVersion.const).toBe('2026-04-29');
     expect(JSON.stringify(body.output_config.format.schema)).not.toContain('anyOf');
+    expect(findAdditionalPropertiesTrue(body.output_config.format.schema)).toEqual([]);
+    expect(findArrayTypes(body.output_config.format.schema)).toEqual([]);
     expect(JSON.stringify(ANALYSIS_TOOL_PLAN_JSON_SCHEMA)).toContain('anyOf');
   });
 
@@ -74,3 +78,35 @@ describe('AI provider structured-output conformance', () => {
     expect(body.response_format.json_schema.schema.properties.catalogVersion.const).toBe('2026-04-29');
   });
 });
+
+function findAdditionalPropertiesTrue(value, path = '$') {
+  if (!value || typeof value !== 'object') return [];
+  const hits = [];
+  if (value.additionalProperties === true) hits.push(path);
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      hits.push(...findAdditionalPropertiesTrue(item, `${path}[${index}]`));
+    });
+    return hits;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    hits.push(...findAdditionalPropertiesTrue(child, `${path}.${key}`));
+  }
+  return hits;
+}
+
+function findArrayTypes(value, path = '$') {
+  if (!value || typeof value !== 'object') return [];
+  const hits = [];
+  if (Array.isArray(value.type)) hits.push(path);
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      hits.push(...findArrayTypes(item, `${path}[${index}]`));
+    });
+    return hits;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    hits.push(...findArrayTypes(child, `${path}.${key}`));
+  }
+  return hits;
+}
