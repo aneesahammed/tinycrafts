@@ -48,6 +48,7 @@ const PLANNER_SYSTEM_PROMPT = [
   'Use only columns listed in the dataset context.',
   'Choose one to three independent tool steps; steps cannot reference each other.',
   'If a requested calculation requires missing columns, ambiguous numeric casts, joins, source rows, or dependent multi-step state, return mode "clarify" or "unsupported".',
+  'Set clarifyingQuestion to an empty string when no clarification is needed.',
   'Use schemaVersion 1 and the exact catalogVersion from the tool catalog.',
   'For varchar numeric-looking columns, ask for clarification instead of casting.',
   'Prefer deterministic aggregate answers over raw row listing.',

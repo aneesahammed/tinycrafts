@@ -213,6 +213,47 @@ export const ANALYSIS_TOOL_PLAN_JSON_SCHEMA = {
   },
 };
 
+// Anthropic's structured-output grammar compiler is sensitive to large nested
+// anyOf schemas. Send Claude a compact envelope and keep the full Zod schema as
+// the authoritative local validator before compilation.
+export const ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['schemaVersion', 'catalogVersion', 'mode', 'title', 'steps', 'clarifyingQuestion'],
+  properties: {
+    schemaVersion: { const: 1 },
+    catalogVersion: { const: ANALYSIS_CATALOG_VERSION },
+    mode: { type: 'string', enum: ['analysis', 'clarify', 'unsupported'] },
+    title: { type: 'string' },
+    clarifyingQuestion: { type: 'string' },
+    steps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: true,
+        required: ['tool', 'id', 'title'],
+        properties: {
+          tool: {
+            type: 'string',
+            enum: [
+              'profile_overview',
+              'missingness',
+              'top_n',
+              'aggregate_query',
+              'histogram',
+              'trend',
+              'outliers',
+              'correlation',
+            ],
+          },
+          id: { type: 'string' },
+          title: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
 export function parseAnalysisToolPlan(value) {
   return AnalysisToolPlanSchema.parse(value);
 }

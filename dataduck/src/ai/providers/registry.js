@@ -78,6 +78,7 @@ export async function callProviderJson({ settings = {}, ...options } = {}) {
   const active = getActiveProviderConfig(settings);
   return active.provider.adapter.callJson({
     ...options,
+    jsonSchema: schemaForProvider(active.provider.id, options),
     apiKey: active.apiKey,
     model: active.model,
   });
@@ -90,4 +91,9 @@ export async function callProviderText({ settings = {}, ...options } = {}) {
     apiKey: active.apiKey,
     model: active.model,
   });
+}
+
+function schemaForProvider(providerId, options = {}) {
+  if (providerId === 'anthropic' && options.anthropicJsonSchema) return options.anthropicJsonSchema;
+  return options.jsonSchema;
 }

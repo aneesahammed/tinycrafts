@@ -1,7 +1,11 @@
 import { queryPrepared as duckdbQueryPrepared } from '../duckdb/engine.js';
 import { buildDatasetContext } from './context.js';
 import { callProviderJson } from './providers/registry.js';
-import { parseAnalysisToolPlan, ANALYSIS_TOOL_PLAN_JSON_SCHEMA } from './analysis-engine/tool-schema.js';
+import {
+  parseAnalysisToolPlan,
+  ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+  ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+} from './analysis-engine/tool-schema.js';
 import { buildPlannerMessages, buildPlannerPrompt } from './prompts.js';
 import { AI_LIMITS } from './privacy.js';
 import { runAnalysisToolPlan } from './analysis-engine/runner.js';
@@ -118,6 +122,7 @@ async function requestValidatedPlan({
         messages,
         plannerPrompt,
         jsonSchema: ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+        anthropicJsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
         schemaName: 'dataduck_analysis_tool_plan',
         maxCompletionTokens: AI_LIMITS.maxCompletionTokens,
         abortSignal,
@@ -142,6 +147,7 @@ async function requestValidatedPlan({
       messages: retryMessages,
       plannerPrompt: { ...plannerPrompt, validationIssues: safeValidationIssues(error) },
       jsonSchema: ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+      anthropicJsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
       schemaName: 'dataduck_analysis_tool_plan',
       maxCompletionTokens: AI_LIMITS.maxCompletionTokens,
       abortSignal,
