@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
   ANALYSIS_CATALOG_VERSION,
+  ANALYSIS_TOOL_SCHEMA_NAME,
   ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
   ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
-  AnthropicAnalysisToolPlanSchema,
   AnalysisToolPlanSchema,
+  deriveAnthropicToolPlanJsonSchema,
   parseAnalysisToolPlan,
 } from '../src/ai/analysis-engine/tool-schema.js';
 
@@ -87,9 +88,25 @@ describe('analysis tool plan schema', () => {
     expect(plan.steps[0].metrics[0].column).toBeNull();
   });
 
-  it('derives provider JSON schemas from the authoritative Zod schemas', () => {
+  it('uses one stable production Anthropic tool name for planner fixtures and calls', () => {
+    expect(ANALYSIS_TOOL_SCHEMA_NAME).toBe('dataduck_analysis_tool_plan');
+  });
+
+  it('derives provider JSON schemas from the authoritative strict schema', () => {
     expect(ANALYSIS_TOOL_PLAN_JSON_SCHEMA).toEqual(providerJsonSchema(AnalysisToolPlanSchema));
-    expect(ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA).toEqual(providerJsonSchema(AnthropicAnalysisToolPlanSchema));
+    expect(ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA).toEqual(
+      deriveAnthropicToolPlanJsonSchema(ANALYSIS_TOOL_PLAN_JSON_SCHEMA),
+    );
+    expect(JSON.stringify(ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA)).not.toContain('anyOf');
+    expect(JSON.stringify(ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA)).not.toContain('oneOf');
+  });
+
+  it('does not over-constrain compact shared step fields across different tools', () => {
+    const stepProperties = ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA.properties.steps.items.properties;
+
+    expect(stepProperties.columns.minItems).toBeUndefined();
+    expect(stepProperties.columns.maxItems).toBe(100);
+    expect(stepProperties.limit.maximum).toBe(1000);
   });
 
   it('normalizes compact Anthropic plans that omit empty optional tool fields', () => {

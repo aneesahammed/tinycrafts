@@ -9,6 +9,7 @@ import anthropicTopProductsFixture from './fixtures/anthropic/top-products-tool-
 import { runAnalysisToolPlan } from '../src/ai/analysis-engine/runner.js';
 import {
   ANALYSIS_CATALOG_VERSION,
+  ANALYSIS_TOOL_SCHEMA_NAME,
   ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
   parseAnalysisToolPlan,
 } from '../src/ai/analysis-engine/tool-schema.js';
@@ -41,6 +42,7 @@ describe('analysis first-flight integration', () => {
       apiKey: 'sk-ant-test',
       messages: [{ role: 'user', content: 'top products by units' }],
       jsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+      schemaName: ANALYSIS_TOOL_SCHEMA_NAME,
       fetchImpl,
     });
     const plan = parseAnalysisToolPlan(rawPlan);

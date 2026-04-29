@@ -3,6 +3,7 @@ import { callAnthropicJson } from '../src/ai/providers/anthropic.js';
 import { createOpenAICompatibleAdapter } from '../src/ai/providers/openai-compat.js';
 import { callProviderJson } from '../src/ai/providers/registry.js';
 import {
+  ANALYSIS_TOOL_SCHEMA_NAME,
   ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
   ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
 } from '../src/ai/analysis-engine/tool-schema.js';
@@ -14,7 +15,7 @@ describe('AI provider structured-output conformance', () => {
       headers: new Headers(),
       json: async () => ({
         stop_reason: 'tool_use',
-        content: [{ type: 'tool_use', id: 't1', name: 'dataduck_analysis_plan', input: { schemaVersion: 1, catalogVersion: '2026-04-29', mode: 'clarify', title: 'Clarify', steps: [{ tool: 'profile_overview', id: 'context', title: 'Context' }], clarifyingQuestion: 'Which column?' } }],
+        content: [{ type: 'tool_use', id: 't1', name: ANALYSIS_TOOL_SCHEMA_NAME, input: { schemaVersion: 1, catalogVersion: '2026-04-29', mode: 'clarify', title: 'Clarify', steps: [{ tool: 'profile_overview', id: 'context', title: 'Context' }], clarifyingQuestion: 'Which column?' } }],
       }),
     });
 
@@ -23,6 +24,7 @@ describe('AI provider structured-output conformance', () => {
       messages: [],
       jsonSchema: ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
       anthropicJsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+      schemaName: ANALYSIS_TOOL_SCHEMA_NAME,
       fetchImpl,
     });
 
@@ -39,7 +41,7 @@ describe('AI provider structured-output conformance', () => {
       headers: new Headers(),
       json: async () => ({
         stop_reason: 'tool_use',
-        content: [{ type: 'tool_use', id: 't1', name: 'dataduck_analysis_plan', input: { schemaVersion: 1, catalogVersion: '2026-04-29', mode: 'clarify', title: 'Clarify', steps: [{ tool: 'profile_overview', id: 'context', title: 'Context' }], clarifyingQuestion: 'Which column?' } }],
+        content: [{ type: 'tool_use', id: 't1', name: ANALYSIS_TOOL_SCHEMA_NAME, input: { schemaVersion: 1, catalogVersion: '2026-04-29', mode: 'clarify', title: 'Clarify', steps: [{ tool: 'profile_overview', id: 'context', title: 'Context' }], clarifyingQuestion: 'Which column?' } }],
       }),
     });
 
@@ -47,13 +49,14 @@ describe('AI provider structured-output conformance', () => {
       apiKey: 'sk-ant-test',
       messages: [{ role: 'user', content: 'question' }],
       jsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
+      schemaName: ANALYSIS_TOOL_SCHEMA_NAME,
       fetchImpl,
     });
 
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
     expect(body.tools).toHaveLength(1);
-    expect(body.tools[0].name).toBe('dataduck_analysis_plan');
-    expect(body.tool_choice).toEqual({ type: 'tool', name: 'dataduck_analysis_plan' });
+    expect(body.tools[0].name).toBe(ANALYSIS_TOOL_SCHEMA_NAME);
+    expect(body.tool_choice).toEqual({ type: 'tool', name: ANALYSIS_TOOL_SCHEMA_NAME });
     const inputSchema = body.tools[0].input_schema;
     expect(inputSchema.properties.catalogVersion.const).toBe('2026-04-29');
     expect(JSON.stringify(inputSchema)).not.toContain('anyOf');

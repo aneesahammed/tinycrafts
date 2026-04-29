@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { answerDataQuestion } from '../src/ai/analyst.js';
+import { ANALYSIS_ERROR_CODES } from '../src/ai/analysis-engine/errors.js';
 
 function stateFor(table = 'orders') {
   return {
@@ -141,6 +142,48 @@ describe('AI analyst orchestration', () => {
 
     expect(answer.mode).toBe('incomplete');
     expect(answer.analysis.artifacts[0]).toMatchObject({ status: 'stale', code: 'STALE_DATASET' });
+  });
+
+  it('uses a dedicated diagnostic when the provider returns valid JSON with the wrong plan shape', async () => {
+    const invalidPlanResponse = {
+      stop_reason: 'tool_use',
+      content: [{
+        type: 'tool_use',
+        id: 'toolu_bad_shape',
+        name: 'dataduck_analysis_tool_plan',
+        input: {
+          schemaVersion: 1,
+          catalogVersion: '2026-04-29',
+          mode: 'analysis',
+          title: 'Bad top products',
+          steps: [{ tool: 'top_n', id: 'bad_top', title: 'Bad top products' }],
+          clarifyingQuestion: '',
+        },
+      }],
+    };
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'request-id': 'req_bad_shape' }),
+      json: async () => invalidPlanResponse,
+    });
+
+    const answer = await answerDataQuestion({
+      question: 'top products',
+      storeState: stateFor(),
+      settings: {
+        providerId: 'anthropic',
+        providers: { anthropic: { apiKey: 'sk-ant-test', model: 'claude-sonnet-4-6' } },
+      },
+      fetchImpl,
+      queryFn: async () => ({ columns: [], rows: [] }),
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(answer.mode).toBe('incomplete');
+    expect(answer.analysis.artifacts[0]).toMatchObject({
+      status: 'error',
+      code: ANALYSIS_ERROR_CODES.LLM_INVALID_PLAN_SHAPE,
+    });
   });
 
   it('summarizes temporal chart results by range, peak, and latest value', async () => {

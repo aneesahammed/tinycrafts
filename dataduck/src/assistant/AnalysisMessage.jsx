@@ -104,6 +104,11 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
   const activeProvider = getActiveProviderConfig(settings);
 
   if (failed) {
+    const failureNotes = [
+      ...(activeArtifact.warnings || []),
+      activeArtifact.retryAfter ? `Retry after: ${activeArtifact.retryAfter}` : '',
+      activeArtifact.requestId ? `Request ID: ${activeArtifact.requestId}` : '',
+    ].filter(Boolean);
     return (
       <article className="analysis-card analysis-card--failed" data-state={activeArtifact.status}>
         <div className="analysis-fail-rail" aria-hidden="true" />
@@ -135,10 +140,10 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
 
         <div className="analysis-fail-body">
           <p className="analysis-fail-msg">{activeArtifact.safeMessage || activeArtifact.text || 'This analysis did not complete.'}</p>
-          {activeArtifact.warnings?.length ? (
+          {failureNotes.length ? (
             <ul className="analysis-fail-notes">
-              {activeArtifact.warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
+              {failureNotes.map((note, index) => (
+                <li key={index}>{note}</li>
               ))}
             </ul>
           ) : null}

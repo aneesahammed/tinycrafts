@@ -114,6 +114,46 @@ describe('assistant analysis rendering', () => {
     });
   });
 
+  it('renders safe provider request details on diagnostic cards', () => {
+    const { container, root } = render(
+      <AnalysisMessage
+        analysis={{
+          schemaVersion: 2,
+          type: 'analysis_result',
+          mode: 'incomplete',
+          title: 'Analysis plan failed',
+          text: 'Claude rate limited this request. Retry after 7 seconds.',
+          question: 'top products',
+          artifacts: [{
+            id: 'plan_diagnostic',
+            tool: 'diagnostic',
+            status: 'error',
+            code: 'LLM_RATE_LIMITED',
+            safeMessage: 'Claude rate limited this request. Retry after 7 seconds.',
+            requestId: 'req_123',
+            retryAfter: '7',
+            rows: [],
+            columns: [],
+            columnTypes: {},
+            chart: { kind: 'table', x: null, series: [] },
+          }],
+          primaryArtifactId: 'plan_diagnostic',
+          privacyNotice: 'local',
+        }}
+        settings={{ apiKey: 'gsk_test' }}
+        onOpenSql={vi.fn()}
+        onCopySql={vi.fn()}
+      />,
+    );
+
+    expect(container.textContent).toContain('LLM_RATE_LIMITED');
+    expect(container.textContent).toContain('Request ID: req_123');
+    expect(container.textContent).toContain('Retry after: 7');
+    act(() => {
+      root.unmount();
+    });
+  });
+
   it('aborts aggregate summary requests when unmounted', async () => {
     let capturedSignal = null;
     const summaryProvider = vi.fn(({ abortSignal }) => {

@@ -37,6 +37,8 @@ export function diagnosticArtifact({
   safeMessage = 'Analysis failed.',
   failedStepId = null,
   warnings = [],
+  requestId = '',
+  retryAfter = '',
 } = {}) {
   return {
     id,
@@ -45,6 +47,8 @@ export function diagnosticArtifact({
     code,
     safeMessage,
     failedStepId,
+    requestId: safeDiagnosticToken(requestId),
+    retryAfter: safeDiagnosticToken(retryAfter),
     warnings,
     rows: [],
     columns: [],
@@ -88,6 +92,11 @@ export function persistableArtifact(artifact, limits = PERSISTED_ARTIFACT_LIMITS
     id: artifact.id,
     tool: artifact.tool,
     status: artifact.status || 'ok',
+    code: artifact.code || null,
+    safeMessage: artifact.safeMessage || '',
+    failedStepId: artifact.failedStepId || null,
+    requestId: safeDiagnosticToken(artifact.requestId),
+    retryAfter: safeDiagnosticToken(artifact.retryAfter),
     title: artifact.title,
     text: artifact.text || '',
     columns,
@@ -137,4 +146,9 @@ function trimCell(value, maxChars) {
   const text = String(value ?? '');
   if (text.length <= maxChars) return text;
   return `${text.slice(0, Math.max(0, maxChars - 3))}...`;
+}
+
+function safeDiagnosticToken(value) {
+  const text = String(value || '');
+  return /^[A-Za-z0-9_.:/ -]{0,160}$/.test(text) ? text : '';
 }

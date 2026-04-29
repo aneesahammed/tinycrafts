@@ -9,6 +9,7 @@ export const ANALYSIS_ERROR_CODES = Object.freeze({
   CHART_FIELD_NOT_SELECTED: 'CHART_FIELD_NOT_SELECTED',
   UNSUPPORTED_AGGREGATE: 'UNSUPPORTED_AGGREGATE',
   INVALID_PLAN: 'INVALID_PLAN',
+  CLARIFY: 'CLARIFY',
   EMPTY_SELECTION: 'EMPTY_SELECTION',
   TOO_MANY_COLUMNS: 'TOO_MANY_COLUMNS',
   LLM_MISSING_KEY: 'LLM_MISSING_KEY',
@@ -20,6 +21,7 @@ export const ANALYSIS_ERROR_CODES = Object.freeze({
   LLM_BAD_JSON: 'LLM_BAD_JSON',
   LLM_BAD_RESPONSE: 'LLM_BAD_RESPONSE',
   LLM_EMPTY_RESPONSE: 'LLM_EMPTY_RESPONSE',
+  LLM_INVALID_PLAN_SHAPE: 'LLM_INVALID_PLAN_SHAPE',
   LLM_MAX_TOKENS: 'LLM_MAX_TOKENS',
   LLM_REFUSED: 'LLM_REFUSED',
   LLM_OVERLOADED: 'LLM_OVERLOADED',
@@ -50,13 +52,14 @@ export function sanitizeProviderError(error) {
   const code = providerDisplayCode(rawCode);
   const provider = String(error?.provider || 'provider');
   const status = Number.isFinite(Number(error?.status)) ? Number(error.status) : null;
+  const retryAfter = safeToken(error?.retryAfter);
   return {
     provider,
     code,
     status,
     requestId: safeToken(error?.requestId),
-    retryAfter: safeToken(error?.retryAfter),
-    safeMessage: safeProviderMessage(provider, code, status),
+    retryAfter,
+    safeMessage: safeProviderMessage(provider, code, status, retryAfter),
   };
 }
 
@@ -79,18 +82,26 @@ export function safeAnalysisError(error) {
   if (error?.provider || error?.status || String(error?.code || '').match(/^(?:MISSING_KEY|UNAUTHORIZED|FORBIDDEN|RATE_LIMITED|TIMEOUT|NETWORK|BAD_JSON|BAD_RESPONSE|EMPTY_RESPONSE|MAX_TOKENS|REFUSAL|OVERLOADED|HTTP)/)) {
     return sanitizeProviderError(error);
   }
+  const displayCode = analysisDisplayCode(error?.code || ANALYSIS_ERROR_CODES.ANALYSIS_ERROR);
+  if (displayCode === ANALYSIS_ERROR_CODES.LLM_INVALID_PLAN_SHAPE) {
+    return {
+      code: displayCode,
+      kind: 'error',
+      safeMessage: 'The AI provider returned an analysis plan that DataDuck could not validate. Try narrowing the question.',
+    };
+  }
   return {
-    code: analysisDisplayCode(error?.code || ANALYSIS_ERROR_CODES.ANALYSIS_ERROR),
+    code: displayCode,
     kind: 'error',
     safeMessage: 'DataDuck could not complete this analysis. Try narrowing the question or selected columns.',
   };
 }
 
-function safeProviderMessage(provider, code, status) {
+function safeProviderMessage(provider, code, status, retryAfter = '') {
   const label = provider === 'anthropic' ? 'Claude' : provider === 'groq' ? 'Groq' : 'The AI provider';
   if (code === ANALYSIS_ERROR_CODES.LLM_MISSING_KEY || code === ANALYSIS_ERROR_CODES.LLM_UNAUTHORIZED) return `${label} rejected the API key. Check the key in AI settings.`;
   if (code === ANALYSIS_ERROR_CODES.LLM_FORBIDDEN) return `${label} denied this request. Check API key permissions.`;
-  if (code === ANALYSIS_ERROR_CODES.LLM_RATE_LIMITED) return `${label} rate limited this request. Try again later.`;
+  if (code === ANALYSIS_ERROR_CODES.LLM_RATE_LIMITED) return `${label} rate limited this request.${retryAfter ? ` Retry after ${formatRetryAfter(retryAfter)}.` : ' Try again later.'}`;
   if (code === ANALYSIS_ERROR_CODES.LLM_TIMEOUT) return `${label} timed out while planning the analysis.`;
   if (code === ANALYSIS_ERROR_CODES.LLM_NETWORK) return `Could not reach ${label}. Check network access, CORS, or browser privacy settings.`;
   if (code === ANALYSIS_ERROR_CODES.LLM_BAD_JSON || code === ANALYSIS_ERROR_CODES.LLM_BAD_RESPONSE || code === ANALYSIS_ERROR_CODES.LLM_EMPTY_RESPONSE) return `${label} did not return a valid analysis plan. Try narrowing the question.`;
@@ -111,6 +122,11 @@ function safeToken(value) {
   return /^[A-Za-z0-9_.:/ -]{0,160}$/.test(text) ? text : '';
 }
 
+function formatRetryAfter(value) {
+  const text = String(value || '');
+  return /^\d+$/.test(text) ? `${text} seconds` : text;
+}
+
 function providerDisplayCode(code) {
   if (PROVIDER_CODE_MAP[code]) return PROVIDER_CODE_MAP[code];
   if (ANALYSIS_ERROR_CODE_VALUES.has(code)) return code;
@@ -118,7 +134,7 @@ function providerDisplayCode(code) {
 }
 
 function analysisDisplayCode(code) {
-  if (code === 'CLARIFY') return ANALYSIS_ERROR_CODES.INVALID_PLAN;
+  if (code === 'CLARIFY') return ANALYSIS_ERROR_CODES.CLARIFY;
   const text = String(code || '');
   return ANALYSIS_ERROR_CODE_VALUES.has(text) ? text : ANALYSIS_ERROR_CODES.ANALYSIS_ERROR;
 }

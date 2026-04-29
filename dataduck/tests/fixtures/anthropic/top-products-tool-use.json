@@ -8,7 +8,7 @@
     {
       "type": "tool_use",
       "id": "toolu_recorded_top_products",
-      "name": "dataduck_analysis_plan",
+      "name": "dataduck_analysis_tool_plan",
       "input": {
         "schemaVersion": 1,
         "catalogVersion": "2026-04-29",

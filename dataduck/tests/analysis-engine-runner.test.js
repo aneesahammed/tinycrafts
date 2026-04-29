@@ -105,4 +105,35 @@ describe('analysis engine runner', () => {
       code: ANALYSIS_ERROR_CODES.LLM_TIMEOUT,
     });
   });
+
+  it('does not display clarification requests as invalid plans', () => {
+    expect(safeAnalysisError({ code: 'CLARIFY', message: 'Which column should I use?' })).toMatchObject({
+      code: ANALYSIS_ERROR_CODES.CLARIFY,
+      kind: 'clarify',
+      safeMessage: 'Which column should I use?',
+    });
+  });
+
+  it('keeps safe provider retry and request correlation details', () => {
+    const safe = safeAnalysisError({
+      provider: 'anthropic',
+      code: 'RATE_LIMITED',
+      retryAfter: '7',
+      requestId: 'req_123',
+    });
+
+    expect(safe).toMatchObject({
+      code: ANALYSIS_ERROR_CODES.LLM_RATE_LIMITED,
+      retryAfter: '7',
+      requestId: 'req_123',
+    });
+    expect(safe.safeMessage).toContain('7');
+  });
+
+  it('uses a dedicated code for provider plans that fail schema validation', () => {
+    expect(safeAnalysisError({ code: 'LLM_INVALID_PLAN_SHAPE' })).toMatchObject({
+      code: ANALYSIS_ERROR_CODES.LLM_INVALID_PLAN_SHAPE,
+      kind: 'error',
+    });
+  });
 });

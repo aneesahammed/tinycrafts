@@ -2,6 +2,7 @@ import { queryPrepared as duckdbQueryPrepared } from '../duckdb/engine.js';
 import { buildDatasetContext } from './context.js';
 import { callProviderJson } from './providers/registry.js';
 import {
+  ANALYSIS_TOOL_SCHEMA_NAME,
   parseAnalysisToolPlan,
   ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
   ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
@@ -10,7 +11,7 @@ import { buildPlannerMessages, buildPlannerPrompt } from './prompts.js';
 import { AI_LIMITS } from './privacy.js';
 import { runAnalysisToolPlan } from './analysis-engine/runner.js';
 import { diagnosticArtifact } from './analysis-engine/artifacts.js';
-import { safeAnalysisError } from './analysis-engine/errors.js';
+import { ANALYSIS_ERROR_CODES, safeAnalysisError } from './analysis-engine/errors.js';
 
 export async function answerDataQuestion({
   question,
@@ -123,7 +124,7 @@ async function requestValidatedPlan({
         plannerPrompt,
         jsonSchema: ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
         anthropicJsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
-        schemaName: 'dataduck_analysis_tool_plan',
+        schemaName: ANALYSIS_TOOL_SCHEMA_NAME,
         maxCompletionTokens: AI_LIMITS.maxCompletionTokens,
         abortSignal,
         fetchImpl,
@@ -148,13 +149,25 @@ async function requestValidatedPlan({
       plannerPrompt: { ...plannerPrompt, validationIssues: safeValidationIssues(error) },
       jsonSchema: ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
       anthropicJsonSchema: ANTHROPIC_ANALYSIS_TOOL_PLAN_JSON_SCHEMA,
-      schemaName: 'dataduck_analysis_tool_plan',
+      schemaName: ANALYSIS_TOOL_SCHEMA_NAME,
       maxCompletionTokens: AI_LIMITS.maxCompletionTokens,
       abortSignal,
       fetchImpl,
     });
-    return parseProviderPlan(retryPlan);
+    try {
+      return parseProviderPlan(retryPlan);
+    } catch (retryError) {
+      throw invalidPlanShapeError(retryError);
+    }
   }
+}
+
+function invalidPlanShapeError(error) {
+  const wrapped = new Error('The AI provider returned JSON that does not match the DataDuck analysis plan schema.');
+  wrapped.code = ANALYSIS_ERROR_CODES.LLM_INVALID_PLAN_SHAPE;
+  wrapped.kind = 'error';
+  wrapped.cause = error;
+  return wrapped;
 }
 
 function parseProviderPlan(rawPlan) {
@@ -250,6 +263,8 @@ function diagnosticAnswer({ title, question, safe, datasetFingerprint }) {
       status: 'error',
       code: safe.code,
       safeMessage: safe.safeMessage,
+      requestId: safe.requestId,
+      retryAfter: safe.retryAfter,
     })],
     datasetFingerprint,
     incomplete: true,

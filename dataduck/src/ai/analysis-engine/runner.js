@@ -29,6 +29,8 @@ export async function runAnalysisToolPlan({
         status: clarify ? 'unsupported' : 'error',
         code: safe.code,
         safeMessage: safe.safeMessage,
+        requestId: safe.requestId,
+        retryAfter: safe.retryAfter,
       })],
       incomplete: true,
     };
@@ -63,6 +65,8 @@ export async function runAnalysisToolPlan({
             code: safe.code,
             safeMessage: safe.safeMessage,
             failedStepId: job.id,
+            requestId: safe.requestId,
+            retryAfter: safe.retryAfter,
           })],
           incomplete: true,
         };
@@ -75,6 +79,8 @@ export async function runAnalysisToolPlan({
         code: safe.code,
         safeMessage: safe.safeMessage,
         failedStepId: job.id,
+        requestId: safe.requestId,
+        retryAfter: safe.retryAfter,
       }));
       return {
         mode: clarify ? 'clarify' : 'analysis',
