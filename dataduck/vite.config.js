@@ -55,6 +55,7 @@ export default defineConfig({
     forwardConsole: false,
   },
   build: {
+    assetsInlineLimit: 0,
     manifest: true,
     sourcemap: true,
     target: 'es2022',

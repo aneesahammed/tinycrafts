@@ -9,7 +9,7 @@ A minimal local-first Parquet and CSV viewer PWA powered by DuckDB-WASM.
 - Creates virtual tables named after each file, plus `active_file` and legacy `parquet_file` aliases
 - Shows file facts, schema, Parquet metadata where available, and query results
 - Runs SQL queries against the file
-- Answers questions about the active file with Ask DataDuck, an optional BYOK assistant for Claude or Groq
+- Answers questions about the active file with Ask DataDuck, an optional BYOK assistant for Groq or Claude
 - Exports the current result set to CSV
 - Works as an installable PWA after the first successful load
 
@@ -110,7 +110,7 @@ The legacy `parquet_file` alias still follows the active file for existing queri
 
 ## Ask DataDuck AI analyst
 
-Ask DataDuck is an optional browser-side assistant for the active CSV or Parquet file. It uses a user-provided Claude or Groq API key to choose a structured analysis tool plan. DataDuck validates that plan, compiles engine-owned SQL against `active_file`, executes it locally in DuckDB-WASM, and renders one or more local analysis artifacts in the browser.
+Ask DataDuck is an optional browser-side assistant for the active CSV or Parquet file. It defaults to Groq and can also use a user-provided Claude API key to choose a structured analysis tool plan. DataDuck validates that plan, compiles engine-owned SQL against `active_file`, executes it locally in DuckDB-WASM, and renders one or more local analysis artifacts in the browser.
 
 The v1 tool catalog is deliberately bounded:
 

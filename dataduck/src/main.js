@@ -1,3 +1,26 @@
+// Click-jacking guard — runs before any UI mounts. CSP `frame-ancestors` is
+// ignored when set via <meta>, and GitHub Pages cannot send X-Frame-Options,
+// so we bust the frame in script. A cross-origin parent will throw on the
+// .replace() — we then strip the document so the iframed UI cannot serve as
+// a click-jack target. Trusted Types friendly: no innerHTML.
+if (globalThis.window && window.self !== window.top) {
+  try {
+    window.top.location.replace(window.self.location.href);
+  } catch {
+    // Continue to the local fail-closed path below.
+  }
+  while (document.documentElement?.firstChild) {
+    document.documentElement.firstChild.remove();
+  }
+  throw new Error('DataDuck cannot run inside a frame.');
+}
+
+// Self-hosted fonts. Bundling the woff2 files keeps the entire app on a single
+// origin — no requests to fonts.googleapis.com / fonts.gstatic.com, no IPs
+// leaked to Google, no GDPR exposure, and one fewer CDN that has to be trusted.
+import '@fontsource-variable/inter';
+import '@fontsource-variable/jetbrains-mono';
+
 import { restoreTheme, toggleTheme } from './ui/theme.js';
 import { createStore } from './state/store.js';
 import { getEngine, query, queryPrepared } from './duckdb/engine.js';
@@ -23,7 +46,7 @@ import { mountProfiler } from './ui/profiler.js';
 import { profileColumn } from './duckdb/column-profile.js';
 import { mountChartPanel } from './ui/chart-panel.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
-import { setupRailResize } from './ui/rail-resizer.js';
+import { setupRailResize, setupRightResize } from './ui/rail-resizer.js';
 import { setupServiceWorker } from './service-worker.js';
 import { createLazyAiAssistant } from './assistant/lazy.js';
 import sampleDatasetUrl from '../samples/penguins.csv?url';
@@ -53,6 +76,7 @@ const fileInput = document.querySelector('#fileInput');
 const paletteScrim = document.querySelector('#paletteScrim');
 const railResizer = document.querySelector('#railResizer');
 const railResizerTrack = railResizer?.closest('.rail-resizer-track');
+const rightResizer = document.querySelector('#rightResizer');
 
 let lastSyncedRailCollapsed = null;
 
@@ -97,6 +121,7 @@ mountRail(rail, store, {
 });
 
 setupRailResize(stage, railResizer);
+if (rightResizer) setupRightResize(stage, rightResizer);
 
 mountResult(work, store);
 mountStatus(work, store, {

@@ -11,14 +11,19 @@
   --ink-4: #b8b5b0;
   --accent: #1a4d44;
   --accent-soft: #e8efed;
+  /* Accent color tuned for use on the inverted-surface (status pill, ink bg).
+     The default --accent (#1a4d44) is dark teal designed for readability on
+     light surfaces; on the black status pill it had ~1.4:1 contrast and was
+     effectively invisible. This brighter shade hits >5:1 against #111. */
+  --accent-on-ink: #6dc4b4;
   --num: #b85c00;
   --fn: #7a4cb3;
   --danger: #c44a3a;
 
   /* Typography — JetBrains Mono + Inter, matching the studio catalogue. */
   --serif: ui-serif, "New York", "Charter", "Iowan Old Style", Georgia, serif;
-  --sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* Sharp catalogue edges — much smaller radii than before. */
   --r-sm: 2px;
@@ -43,6 +48,10 @@
   --ink-4: #4a4d4b;
   --accent: #6dc4b4;
   --accent-soft: rgba(109, 196, 180, 0.12);
+  /* In dark theme the status pill flips to the cream --ink (#e8e6e3), so the
+     bright dark-mode --accent (#6dc4b4) is now too low-contrast on that pill.
+     Use the dark-teal accent instead — same hue family, opposite luminance. */
+  --accent-on-ink: #1a4d44;
   --num: #d18a4a;
   --fn: #c79bff;
   --danger: #ff8b6b;
@@ -208,7 +217,8 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 .stage > .rail { grid-column: 1; }
 .stage > .rail-resizer-track { grid-column: 2; }
 .stage > .work { grid-column: 3; }
-.stage > .profile-drawer { grid-column: 4; }
+.stage > .right-resizer-track { grid-column: 4; }
+.stage > .profile-drawer { grid-column: 5; }
 
 /* Rail */
 .rail {
@@ -401,6 +411,70 @@ body.is-resizing-rail {
   user-select: none;
 }
 
+/* Right-panel resizer — mirrors the rail resizer but lives between the work
+   area and the right drawer (chart / profiler / snapshots). The track is a
+   1px-wide grid cell; the handle is an absolute element centered on it. */
+.right-resizer-track {
+  position: relative;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+  background: var(--line);
+  z-index: 4;
+}
+.right-resizer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface-2);
+  cursor: col-resize;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+}
+.right-resizer::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 11px;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 1px 1px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 5px 1px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 1px 5.5px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 5px 5.5px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 1px 10px, var(--ink-2) 1px, transparent 1.15px),
+    radial-gradient(circle at 5px 10px, var(--ink-2) 1px, transparent 1.15px);
+  pointer-events: none;
+}
+.right-resizer:hover,
+.right-resizer:focus-visible,
+body.is-resizing-right .right-resizer {
+  border-color: var(--line-strong);
+  background-color: var(--line);
+}
+.right-resizer:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  outline-offset: 1px;
+}
+body.is-resizing-right {
+  cursor: col-resize;
+  user-select: none;
+}
+body.is-resizing-right .stage { transition: none; }
+/* Hide the track when the right panel is closed or when an assistant panel
+   takes over (assistant has its own size toggle, not drag-resize). */
+.stage:not([data-right-open="true"]) > .right-resizer-track,
+.stage[data-right-open="true"]:has(.assistant-host) > .right-resizer-track {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Work area */
 .work {
   --editor-height: min(34vh, 320px);
@@ -549,6 +623,11 @@ body.is-resizing-editor {
   font-family: var(--sans); font-weight: 500; font-size: 10.5px;
   color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;
   z-index: 1;
+  /* Keep the column name and its sort glyph on the same baseline. Long names
+     like BILL_BILLING_PERIOD_END_DATE were wrapping the indicator to a second
+     line, which made some headers float above and others below the row. */
+  white-space: nowrap;
+  vertical-align: middle;
 }
 .result th[data-sortable] {
   cursor: pointer;
@@ -596,17 +675,20 @@ body.is-resizing-editor {
 }
 .profile-drawer[hidden] { display: none; }
 
-/* Four-track grid: rail | resizer | work | right-panel.
+/* Five-track grid: rail | rail-resizer | work | right-resizer | right-panel.
    Right-panel column interpolates 0 → panel width on open/close.
-   Rail column is driven by the --rail-w custom property (drag-resizable). */
-.stage { grid-template-columns: var(--rail-w, 256px) 1px 1fr 0; transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-.stage[data-right-open="true"] { grid-template-columns: var(--rail-w, 256px) 1px 1fr min(420px, 36vw); }
-.stage[data-right-open="true"]:has(.assistant-host) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) min(480px, 38vw); }
-.stage[data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) min(760px, 54vw); }
-.stage[data-rail-collapsed="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 0; }
-.stage[data-rail-collapsed="true"][data-right-open="true"] { grid-template-columns: 0 0 minmax(0, 1fr) min(420px, 36vw); }
-.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-host) { grid-template-columns: 0 0 minmax(0, 1fr) min(480px, 38vw); }
-.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: 0 0 minmax(0, 1fr) min(760px, 54vw); }
+   Rail column is driven by the --rail-w custom property (drag-resizable).
+   Right-panel column is driven by --right-w (drag-resizable too) when the
+   non-assistant panels (chart / profiler / snapshots) are open. The assistant
+   panel keeps its hardcoded widths because it has its own size mode toggle. */
+.stage { grid-template-columns: var(--rail-w, 256px) 1px 1fr 0 0; transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.stage[data-right-open="true"] { grid-template-columns: var(--rail-w, 256px) 1px 1fr 1px var(--right-w, min(420px, 36vw)); }
+.stage[data-right-open="true"]:has(.assistant-host) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) 0 min(480px, 38vw); }
+.stage[data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) 0 min(760px, 54vw); }
+.stage[data-rail-collapsed="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
+.stage[data-rail-collapsed="true"][data-right-open="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 1px var(--right-w, min(420px, 36vw)); }
+.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-host) { grid-template-columns: 0 0 minmax(0, 1fr) 0 min(480px, 38vw); }
+.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: 0 0 minmax(0, 1fr) 0 min(760px, 54vw); }
 .stage[data-rail-collapsed="true"] > .rail {
   border-right: 0;
   pointer-events: none;
@@ -2127,9 +2209,13 @@ body.is-resizing-rail .stage { transition: none; }
   margin: 0 0 10px;
 }
 .chart-panel-svg {
-  width: 100%; height: auto;
+  width: 100%; height: auto; display: block;
   background: var(--surface);
   border: 1px solid var(--line); border-radius: var(--r-md);
+  /* The SVG re-renders with a viewBox matched to its container, so labels
+     should never extend past the viewBox. overflow: visible is belt-and-
+     suspenders against sub-pixel rounding clipping a glyph descender. */
+  overflow: visible;
 }
 .chart-panel-svg .axis { stroke: var(--line-strong); stroke-width: 1; }
 .chart-panel-svg .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.7; }
@@ -2137,13 +2223,16 @@ body.is-resizing-rail .stage { transition: none; }
 .chart-panel-svg .bar:hover { fill: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .chart-panel-svg .line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
 .chart-panel-svg .dot { fill: var(--accent); }
-.chart-panel-svg .label { fill: var(--ink-3); font-family: var(--mono); font-size: 9px; }
+.chart-panel-svg .label { fill: var(--ink-3); font-family: var(--mono); font-size: 11px; }
 .chart-panel-empty {
   font-size: 12px; color: var(--ink-3); text-align: center; padding: 30px 10px;
 }
 
-/* Status bar "Chart" button reuses .btn styling */
-.status .chart-btn { color: var(--accent); font-weight: 500; }
+/* Status bar "Chart" button reuses .btn styling. Uses --accent-on-ink because
+   the pill background is the inverted surface — the regular --accent is tuned
+   for the page surface and disappears against the pill. */
+.status .chart-btn { color: var(--accent-on-ink); font-weight: 600; }
+.status .chart-btn:hover:not(:disabled) { color: var(--accent-on-ink); opacity: 1; }
 
 /* Palette */
 .palette-scrim {
@@ -2379,6 +2468,7 @@ body.is-resizing-rail .stage { transition: none; }
   .stage > .rail,
   .stage > .rail-resizer-track,
   .stage > .work,
+  .stage > .right-resizer-track,
   .stage > .profile-drawer { grid-column: 1; }
   .stage[data-rail-collapsed="true"],
   .stage[data-rail-collapsed="true"][data-right-open="true"] { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
@@ -2391,7 +2481,8 @@ body.is-resizing-rail .stage { transition: none; }
   .stage:not([data-rail-collapsed="true"]):has(.work[data-state="empty"]) > .rail { display: flex; }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); }
   /* Drag-to-resize doesn't make sense on stacked layout. */
-  .rail-resizer-track { display: none; }
+  .rail-resizer-track,
+  .right-resizer-track { display: none; }
   /* On narrow viewports the docked panel becomes a right-edge overlay
      so the editor and results below remain at full width. */
   .stage > .profile-drawer {

@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+// Keep schema validation compatible with CSP Trusted Types enforcement.
+// Zod's object-schema JIT probes Function(''), which Chrome reports as a
+// TrustedScript violation even when Zod catches it.
+z.config({ jitless: true });
+
 export const IdentifierSchema = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 
 export const DimensionSchema = z.object({

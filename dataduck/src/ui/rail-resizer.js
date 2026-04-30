@@ -69,3 +69,79 @@ export function setupRailResize(stage, resizer) {
     persist(apply(DEFAULT_PX));
   });
 }
+
+const RIGHT_STORAGE_KEY = 'dataduck:right-w';
+const RIGHT_MIN_PX = 320;
+const RIGHT_MAX_PX = 900;
+const RIGHT_DEFAULT_PX = 420;
+
+export function setupRightResize(stage, resizer) {
+  const apply = (width) => {
+    const next = Math.round(Math.min(Math.max(width, RIGHT_MIN_PX), RIGHT_MAX_PX));
+    stage.style.setProperty('--right-w', `${next}px`);
+    resizer.setAttribute('aria-valuenow', String(next));
+    return next;
+  };
+
+  const persist = (width) => {
+    try { localStorage.setItem(RIGHT_STORAGE_KEY, String(width)); } catch { /* private mode */ }
+  };
+
+  resizer.setAttribute('aria-valuemin', String(RIGHT_MIN_PX));
+  resizer.setAttribute('aria-valuemax', String(RIGHT_MAX_PX));
+
+  let initial = RIGHT_DEFAULT_PX;
+  try {
+    const stored = Number(localStorage.getItem(RIGHT_STORAGE_KEY));
+    if (Number.isFinite(stored) && stored >= RIGHT_MIN_PX && stored <= RIGHT_MAX_PX) initial = stored;
+  } catch { /* private mode */ }
+  apply(initial);
+
+  // The right panel sits on the RIGHT edge of the stage, so the panel grows
+  // as the user drags toward the LEFT. Compute the panel width from the
+  // distance between the pointer and the stage's right edge.
+  const resizeFromViewportX = (clientX) => {
+    const box = stage.getBoundingClientRect();
+    apply(box.right - clientX);
+  };
+
+  resizer.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    resizer.setPointerCapture?.(event.pointerId);
+    document.body.classList.add('is-resizing-right');
+
+    const onMove = (moveEvent) => resizeFromViewportX(moveEvent.clientX);
+    const onEnd = () => {
+      document.body.classList.remove('is-resizing-right');
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
+      const current = Number(resizer.getAttribute('aria-valuenow'));
+      if (Number.isFinite(current)) persist(current);
+    };
+
+    resizeFromViewportX(event.clientX);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
+  });
+
+  resizer.addEventListener('keydown', (event) => {
+    const current = Number(resizer.getAttribute('aria-valuenow')) || RIGHT_DEFAULT_PX;
+    let next = current;
+    // Right arrow shrinks (panel right edge is fixed, drag-right narrows it),
+    // left arrow widens. Mirrors what dragging the handle does in either direction.
+    if (event.key === 'ArrowLeft') next = current + KEY_STEP;
+    else if (event.key === 'ArrowRight') next = current - KEY_STEP;
+    else if (event.key === 'Home') next = RIGHT_MAX_PX;
+    else if (event.key === 'End') next = RIGHT_MIN_PX;
+    else return;
+    event.preventDefault();
+    persist(apply(next));
+  });
+
+  resizer.addEventListener('dblclick', () => {
+    persist(apply(RIGHT_DEFAULT_PX));
+  });
+}

@@ -1,3 +1,5 @@
+import { trustedScriptUrl } from './util/dom.js';
+
 export async function setupServiceWorker({
   isDev = import.meta.env.DEV,
   navigatorRef = navigator,
@@ -12,7 +14,11 @@ export async function setupServiceWorker({
     return;
   }
 
-  await serviceWorker.register(serviceWorkerUrl, { scope: './' });
+  // updateViaCache: 'none' forces the browser to bypass the HTTP cache when
+  // checking sw.js for updates. Without this, a malicious SW briefly served
+  // during a transient compromise could persist via cache-Control until TTL
+  // expiry — keeping a backdoor alive after the source was already fixed.
+  await serviceWorker.register(trustedScriptUrl(serviceWorkerUrl), { scope: './', updateViaCache: 'none' });
 }
 
 async function unregisterDevServiceWorkers({ serviceWorker, locationRef }) {

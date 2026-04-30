@@ -72,16 +72,16 @@ describe('AssistantApp provider settings', () => {
     migrateLegacyGroqKey.mockResolvedValue({ status: 'none' });
   });
 
-  it('defaults first-time users to Claude provider settings', async () => {
+  it('defaults first-time users to Groq provider settings', async () => {
     const { container, root } = await renderAssistant();
 
     await act(async () => {
       container.querySelector('[aria-label="AI settings"]').click();
     });
 
-    expect(container.querySelector('select').value).toBe('anthropic');
-    expect(container.textContent).toContain('Claude API key');
-    expect(container.querySelector('input[type="text"]').value).toBe('claude-sonnet-4-6');
+    expect(container.querySelector('select').value).toBe('groq');
+    expect(container.textContent).toContain('Groq API key');
+    expect(container.querySelector('input[type="text"]').value).toBe('openai/gpt-oss-120b');
 
     await act(async () => root.unmount());
   });

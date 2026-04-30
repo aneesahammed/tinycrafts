@@ -1,7 +1,19 @@
-const CACHE_NAME = 'dataduck-shell-v3';
+const CACHE_NAME = 'dataduck-shell-v4';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon.svg', './icon-192.png', './icon-512.png'];
 const LOCAL_DEV_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 const IS_LOCAL_DEV_SERVER = LOCAL_DEV_HOSTS.has(self.location.hostname);
+
+// Hardening guard: never cache or serve opaque/error responses, redirects, or
+// anything not served from our own scheme. A compromised intermediary that
+// fed us a tampered response would otherwise persist in cache across the fix.
+function isCacheableResponse(response) {
+  if (!response) return false;
+  if (response.type !== 'basic' && response.type !== 'default') return false;
+  if (!response.ok) return false;
+  if (response.redirected) return false;
+  if (response.status !== 200) return false;
+  return true;
+}
 
 self.addEventListener('install', (event) => {
   if (IS_LOCAL_DEV_SERVER) {
@@ -53,7 +65,7 @@ async function cacheFirst(request) {
   if (cached) return cached;
 
   const response = await fetch(request);
-  if (response.ok) {
+  if (isCacheableResponse(response)) {
     const cache = await caches.open(CACHE_NAME);
     cache.put(request, response.clone());
   }
@@ -73,7 +85,7 @@ async function unregisterLocalDevWorker() {
 async function networkFirst(request, fallbackUrl) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    if (isCacheableResponse(response)) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, response.clone());
     }

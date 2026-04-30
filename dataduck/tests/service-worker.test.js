@@ -60,7 +60,7 @@ describe('service-worker setup', () => {
       },
     });
 
-    expect(register).toHaveBeenCalledWith('/sw.js', { scope: './' });
+    expect(register).toHaveBeenCalledWith('/sw.js', { scope: './', updateViaCache: 'none' });
   });
 
   it('registers the root service-worker script by default in production', async () => {
@@ -75,6 +75,6 @@ describe('service-worker setup', () => {
       },
     });
 
-    expect(register).toHaveBeenCalledWith('./sw.js', { scope: './' });
+    expect(register).toHaveBeenCalledWith('./sw.js', { scope: './', updateViaCache: 'none' });
   });
 });

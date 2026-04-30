@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+// Keep schema validation compatible with CSP Trusted Types enforcement.
+// Zod's object-schema JIT probes Function(''), which Chrome reports as a
+// TrustedScript violation even when Zod catches it.
+z.config({ jitless: true });
+
 export const ANALYSIS_CATALOG_VERSION = '2026-04-29';
 export const ANALYSIS_TOOL_SCHEMA_NAME = 'dataduck_analysis_tool_plan';
 

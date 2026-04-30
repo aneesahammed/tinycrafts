@@ -7,12 +7,23 @@ import { isNumericSqlType, isTemporalSqlType } from '../duckdb/sql-types.js';
 import { abbreviateCount, formatNumber, valueToDisplay } from '../util/format.js';
 import { closeRightPanel, ensureRightPanel, openRightPanel } from './right-panel.js';
 
-const SVG_WIDTH = 320;
-const SVG_HEIGHT = 180;
-const PADDING_LEFT = 36;
-const PADDING_RIGHT = 12;
-const PADDING_TOP = 12;
-const PADDING_BOTTOM = 28;
+// Default dimensions are used when the container hasn't been measured yet
+// (first paint) or when ResizeObserver isn't available. The chart re-renders
+// at actual container dimensions on every resize so labels never clip and
+// the bar widths grow with available space.
+const DEFAULT_WIDTH = 320;
+const DEFAULT_HEIGHT = 220;
+const MIN_WIDTH = 280;
+const MIN_HEIGHT = 200;
+// Reserve room for axis labels in viewBox units. Y labels (left) need room
+// for "999K"-style abbreviations; X labels (bottom) need a single text line.
+const PADDING_LEFT = 52;
+const PADDING_RIGHT = 16;
+const PADDING_TOP = 16;
+const PADDING_BOTTOM = 32;
+const MIN_X_LABEL_SLOT = 56;   // px per label before we start dropping labels
+const MIN_X_LABEL_CHARS = 8;
+const MAX_X_LABEL_CHARS = 24;
 const MAX_BARS = 30;
 const AGGREGATES = [
   ['sum', 'Sum'],
@@ -28,6 +39,27 @@ export function mountChartPanel(el, store) {
   let pick = null; // { kind, x, y, aggregate }
   let renderedRows = null;
   let renderedColumnsKey = '';
+  // Current chart-body dimensions in CSS pixels. Updated by ResizeObserver
+  // every time the panel is resized via the drag handle (or when the body
+  // first appears in the DOM). The SVG viewBox tracks these so labels and
+  // bars get more room as the panel widens — no label cutoff at any width.
+  let chartWidth = DEFAULT_WIDTH;
+  let chartHeight = DEFAULT_HEIGHT;
+  // Single ResizeObserver instance reused across renders. Re-attach to the
+  // active body element each time the chart re-mounts (setHtml replaces it).
+  const bodyResizeObserver = typeof ResizeObserver === 'function'
+    ? new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const w = Math.max(MIN_WIDTH, Math.floor(entry.contentRect.width));
+          // Keep an aspect-ratio-ish height so wide panels also get taller charts.
+          const h = Math.max(MIN_HEIGHT, Math.min(420, Math.round(w * 0.62)));
+          if (w === chartWidth && h === chartHeight) continue;
+          chartWidth = w;
+          chartHeight = h;
+          if (pick) renderChart();
+        }
+      })
+    : null;
 
   const close = () => {
     pick = null;
@@ -130,18 +162,33 @@ export function mountChartPanel(el, store) {
   function renderChart() {
     const body = drawer.querySelector('#chartBody');
     if (!body || !pick) return;
+    // Snap to the current container width before drawing. The body has
+    // padding, so subtract it; otherwise the SVG renders 32px wider than its
+    // parent and triggers horizontal scroll.
+    const measured = measureChartBody(body);
+    if (measured.width >= MIN_WIDTH) chartWidth = measured.width;
+    if (measured.height >= MIN_HEIGHT) chartHeight = measured.height;
     const title = drawer.querySelector('.chart-panel-heading h2');
     if (title) title.textContent = chartTitle(pick);
     const s = store.state;
     const points = collectPoints(s.resultRows, pick.x, pick.y, s.resultColumnTypes, pick.aggregate);
     if (!points.length) {
       setHtml(body, '<p class="chart-panel-empty">No numeric values for this combination.</p>');
+      observeBody(body);
       return;
     }
     const limited = points.slice(0, MAX_BARS);
     const truncatedNote = points.length > MAX_BARS ? `<p class="chart-panel-summary">Showing first ${MAX_BARS} of ${formatNumber(points.length)} groups.</p>` : `<p class="chart-panel-summary">${formatNumber(points.length)} ${points.length === 1 ? 'group' : 'groups'}</p>`;
-    const svg = pick.kind === 'line' ? renderLineSvg(limited) : renderBarSvg(limited);
+    const dims = { width: chartWidth, height: chartHeight };
+    const svg = pick.kind === 'line' ? renderLineSvg(limited, dims) : renderBarSvg(limited, dims);
     setHtml(body, `${truncatedNote}${svg}`);
+    observeBody(body);
+  }
+
+  function observeBody(body) {
+    if (!bodyResizeObserver || !body) return;
+    bodyResizeObserver.disconnect();
+    bodyResizeObserver.observe(body);
   }
 
   // Keep the drawer bound to the current result. A new query replaces the
@@ -240,18 +287,28 @@ function sortableTime(value) {
   return null;
 }
 
-function plotMetrics(points) {
+function measureChartBody(body) {
+  if (!body) return { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT };
+  const rect = body.getBoundingClientRect();
+  // Body padding from styles.css: 14px 16px 18px → subtract horizontal padding.
+  const horizontalPadding = 32;
+  const width = Math.max(MIN_WIDTH, Math.floor(rect.width - horizontalPadding));
+  const height = Math.max(MIN_HEIGHT, Math.min(420, Math.round(width * 0.62)));
+  return { width, height };
+}
+
+function plotMetrics(points, dims) {
   const ys = points.map((p) => p.y);
   const minY = Math.min(0, ...ys);
   const maxY = Math.max(...ys, minY + 1);
-  const plotW = SVG_WIDTH - PADDING_LEFT - PADDING_RIGHT;
-  const plotH = SVG_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
+  const plotW = dims.width - PADDING_LEFT - PADDING_RIGHT;
+  const plotH = dims.height - PADDING_TOP - PADDING_BOTTOM;
   const yToPx = (y) => PADDING_TOP + plotH - ((y - minY) / (maxY - minY || 1)) * plotH;
   return { minY, maxY, plotW, plotH, yToPx };
 }
 
-function renderBarSvg(points) {
-  const { minY, maxY, plotW, plotH, yToPx } = plotMetrics(points);
+function renderBarSvg(points, dims) {
+  const { minY, maxY, plotW, yToPx } = plotMetrics(points, dims);
   const gap = 2;
   const slot = plotW / points.length;
   const barWidth = Math.max(2, slot - gap);
@@ -263,12 +320,12 @@ function renderBarSvg(points) {
       return `<rect class="bar" x="${round(x)}" y="${round(yTop)}" width="${round(barWidth)}" height="${round(height)}" rx="1.5"><title>${esc(`${point.xLabel}: ${abbreviateCount(point.y)}`)}</title></rect>`;
     })
     .join('');
-  return wrapSvg(bars, axisLabels(points, minY, maxY, yToPx));
+  return wrapSvg(bars, axisLabels(points, minY, maxY, yToPx, dims), dims);
 }
 
-function renderLineSvg(points) {
-  const { minY, maxY, plotW, plotH, yToPx } = plotMetrics(points);
-  if (points.length < 2) return renderBarSvg(points);
+function renderLineSvg(points, dims) {
+  const { minY, maxY, plotW, yToPx } = plotMetrics(points, dims);
+  if (points.length < 2) return renderBarSvg(points, dims);
   const stepX = plotW / (points.length - 1);
   const path = points
     .map((point, index) => {
@@ -284,30 +341,50 @@ function renderLineSvg(points) {
       return `<circle class="dot" cx="${round(x)}" cy="${round(y)}" r="2"><title>${esc(`${point.xLabel}: ${abbreviateCount(point.y)}`)}</title></circle>`;
     })
     .join('');
-  return wrapSvg(`<path class="line" d="${path}" />${dots}`, axisLabels(points, minY, maxY, yToPx));
+  return wrapSvg(`<path class="line" d="${path}" />${dots}`, axisLabels(points, minY, maxY, yToPx, dims), dims);
 }
 
-function axisLabels(points, minY, maxY, yToPx) {
+function axisLabels(points, minY, maxY, yToPx, dims) {
+  const plotW = dims.width - PADDING_LEFT - PADDING_RIGHT;
   const yTicks = [minY, (minY + maxY) / 2, maxY];
   const yLabels = yTicks
-    .map((tick) => `<text class="label" x="${PADDING_LEFT - 6}" y="${round(yToPx(tick) + 3)}" text-anchor="end">${esc(abbreviateCount(tick))}</text>`)
+    .map((tick) => `<text class="label" x="${PADDING_LEFT - 8}" y="${round(yToPx(tick) + 3)}" text-anchor="end">${esc(formatTick(tick))}</text>`)
     .join('');
-  const yAxis = `<line class="axis" x1="${PADDING_LEFT}" x2="${PADDING_LEFT}" y1="${PADDING_TOP}" y2="${SVG_HEIGHT - PADDING_BOTTOM}" />`;
-  const xAxis = `<line class="axis" x1="${PADDING_LEFT}" x2="${SVG_WIDTH - PADDING_RIGHT}" y1="${SVG_HEIGHT - PADDING_BOTTOM}" y2="${SVG_HEIGHT - PADDING_BOTTOM}" />`;
-  // Show first, middle, and last x labels only — avoids overlap on dense bars.
-  const indicesToLabel = points.length <= 3 ? points.map((_, i) => i) : [0, Math.floor(points.length / 2), points.length - 1];
-  const slot = (SVG_WIDTH - PADDING_LEFT - PADDING_RIGHT) / Math.max(1, points.length - (points.length > 1 ? 1 : 0));
+  const yAxis = `<line class="axis" x1="${PADDING_LEFT}" x2="${PADDING_LEFT}" y1="${PADDING_TOP}" y2="${dims.height - PADDING_BOTTOM}" />`;
+  const xAxis = `<line class="axis" x1="${PADDING_LEFT}" x2="${dims.width - PADDING_RIGHT}" y1="${dims.height - PADDING_BOTTOM}" y2="${dims.height - PADDING_BOTTOM}" />`;
+  // How many X labels can we comfortably fit? Each label needs ~MIN_X_LABEL_SLOT
+  // px to avoid overlap. The label budget grows with panel width — at 320px
+  // wide we show 3 labels (first/middle/last); at 800px wide we may show 8.
+  const maxLabels = Math.max(2, Math.min(points.length, Math.floor(plotW / MIN_X_LABEL_SLOT)));
+  const indicesToLabel = pickLabelIndices(points.length, maxLabels);
+  // Truncate length is also responsive: more room per label = longer text.
+  const slotPx = points.length > 1 ? plotW / Math.max(1, indicesToLabel.length) : plotW;
+  const truncBudget = Math.max(MIN_X_LABEL_CHARS, Math.min(MAX_X_LABEL_CHARS, Math.floor(slotPx / 7)));
+  const stepDenominator = Math.max(1, points.length - (points.length > 1 ? 1 : 0));
+  const slot = plotW / stepDenominator;
   const xLabels = indicesToLabel
     .map((i) => {
       const x = PADDING_LEFT + i * slot;
-      return `<text class="label" x="${round(x)}" y="${SVG_HEIGHT - 10}" text-anchor="middle">${esc(truncate(points[i].xLabel, 8))}</text>`;
+      return `<text class="label" x="${round(x)}" y="${dims.height - 10}" text-anchor="middle">${esc(truncate(points[i].xLabel, truncBudget))}</text>`;
     })
     .join('');
   return `${yAxis}${xAxis}${yLabels}${xLabels}`;
 }
 
-function wrapSvg(plot, axes) {
-  return `<svg class="chart-panel-svg" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" role="img" aria-label="Chart of result">${axes}${plot}</svg>`;
+function pickLabelIndices(total, maxLabels) {
+  if (total <= maxLabels) return Array.from({ length: total }, (_, i) => i);
+  if (maxLabels <= 1) return [Math.floor(total / 2)];
+  const out = [];
+  const step = (total - 1) / (maxLabels - 1);
+  for (let i = 0; i < maxLabels; i += 1) out.push(Math.round(i * step));
+  return out;
+}
+
+function wrapSvg(plot, axes, dims) {
+  // overflow="visible" prevents any sub-pixel rounding at the viewBox edge
+  // from clipping label glyphs. The chart container doesn't visibly bleed
+  // because the body has its own padding + the SVG has a 1px border.
+  return `<svg class="chart-panel-svg" viewBox="0 0 ${dims.width} ${dims.height}" role="img" aria-label="Chart of result" overflow="visible">${axes}${plot}</svg>`;
 }
 
 function chartTitle(selection) {
@@ -362,4 +439,18 @@ function truncate(text, max) {
 
 function round(value) {
   return Math.round(value * 100) / 100;
+}
+
+// Format an axis tick value for display. abbreviateCount handles large values
+// nicely ("1.2M", "5K") but returns String(n) verbatim for n < 1000, which
+// surfaces floating-point noise like "24.300000000000004" when an aggregate
+// is an average. Round small floats to a sane precision, drop trailing zeros.
+function formatTick(value) {
+  if (value == null || !Number.isFinite(value)) return '';
+  const abs = Math.abs(value);
+  if (abs >= 1000) return abbreviateCount(value);
+  if (Number.isInteger(value)) return String(value);
+  // Pick precision based on magnitude: < 1 → 3 digits, < 10 → 2, otherwise 1.
+  const precision = abs < 1 ? 3 : abs < 10 ? 2 : 1;
+  return Number(value.toFixed(precision)).toString();
 }

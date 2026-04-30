@@ -4,6 +4,7 @@ import duckdbWorkerMvp from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.
 import duckdbWasmEh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
 import duckdbWorkerEh from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
 import { arrowTableToObjects } from '../util/arrow.js';
+import { trustedScriptUrl } from '../util/dom.js';
 
 const BUNDLES = {
   mvp: { mainModule: duckdbWasmMvp, mainWorker: duckdbWorkerMvp },
@@ -16,7 +17,11 @@ export async function getEngine() {
   if (!dbPromise) {
     dbPromise = (async () => {
       const bundle = await duckdb.selectBundle(BUNDLES);
-      const worker = new Worker(bundle.mainWorker);
+      // Wrap the worker URL through the Trusted Types policy. The policy
+      // verifies the URL is same-origin before producing TrustedScriptURL —
+      // a hostile dependency cannot smuggle a cross-origin worker through
+      // this constructor when CSP enforces require-trusted-types-for 'script'.
+      const worker = new Worker(trustedScriptUrl(bundle.mainWorker));
       const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
