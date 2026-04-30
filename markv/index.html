@@ -592,6 +592,192 @@
         }
       }
 
+      /* ── Mobile overflow ("More") system ──────────────────────────
+         At ≤640px the toolbar shrinks to a single primary row and a
+         "⋯ More" button. Secondary controls are teleported (by JS,
+         see assets/toolbar-mobile.js) into the bottom sheet that
+         opens from this button. CSS below handles the default-hidden
+         state for the More button + sheet on desktop, the sheet's
+         visual presentation, and the ≤640px overrides. */
+
+      /* Mobile-only "More" trigger. Higher specificity than `.btn`
+         so the default-hidden state isn't overridden by the base
+         button rule (which is defined later in this stylesheet). */
+      .toolbar .mv-more-btn {
+        display: none;
+        flex-shrink: 0;
+      }
+
+      .mv-more-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 9990;
+        background: color-mix(in srgb, #000 38%, transparent);
+        -webkit-backdrop-filter: blur(2px);
+        backdrop-filter: blur(2px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .mv-more-backdrop.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .mv-more-backdrop[hidden] {
+        display: none !important;
+      }
+
+      .mv-more-sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9995;
+        max-height: 86vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: var(--bg-canvas);
+        border-top: 1px solid var(--border-default);
+        border-top-left-radius: 18px;
+        border-top-right-radius: 18px;
+        box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.18);
+        transform: translateY(100%);
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+        padding: 4px 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+      }
+      .mv-more-sheet.is-open {
+        transform: translateY(0);
+      }
+      .mv-more-sheet[hidden] {
+        display: none !important;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .mv-more-backdrop,
+        .mv-more-sheet {
+          transition: none;
+        }
+      }
+
+      /* Drag-handle hint: subtle pill at top of sheet */
+      .mv-more-sheet::before {
+        content: "";
+        display: block;
+        width: 38px;
+        height: 4px;
+        margin: 8px auto 4px;
+        border-radius: 999px;
+        background: var(--border-default);
+        opacity: 0.7;
+      }
+
+      .mv-more-sheet__header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 2px 12px;
+        background: var(--bg-canvas);
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .mv-more-sheet__title {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-weight: 600;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+        color: var(--fg-default);
+      }
+      .mv-more-sheet__close {
+        flex-shrink: 0;
+      }
+
+      .mv-more-sheet__body {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 16px 0 8px;
+      }
+      .mv-more-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .mv-more-section__label {
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--fg-subtle);
+        padding: 0 2px;
+      }
+      .mv-more-section__row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      /* Inside the sheet, hoist tb-group children directly into the
+         row so we get one consistent flex-wrap layout regardless of
+         which groups happen to teleport in. */
+      .mv-more-sheet .tb-group {
+        display: contents;
+      }
+      .mv-more-sheet .tb-divider {
+        display: none;
+      }
+      /* Touch-target floor inside the sheet (WCAG 2.5.5). */
+      .mv-more-sheet .btn,
+      .mv-more-sheet .tb-segment .tb-seg-btn,
+      .mv-more-sheet .auto-refresh {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      /* ── ≤640px: collapse toolbar to primary row + More ─────────
+         FOUC prevention: hide secondary items via attribute selector
+         even before toolbar-mobile.js runs. JS then physically moves
+         them into #mvMoreSheetBody (single source of truth — same
+         buttons, same IDs, same event handlers). */
+      @media (max-width: 640px) {
+        .toolbar {
+          flex-wrap: nowrap;
+          padding: 8px 12px;
+          gap: 4px;
+        }
+        .toolbar .status,
+        .toolbar #wordCount {
+          display: none;
+        }
+        .toolbar .tb-divider {
+          display: none;
+        }
+        /* Whole groups marked for overflow: hidden inside toolbar. */
+        .toolbar [data-mv-overflow-section] {
+          display: none;
+        }
+        /* Individual secondary buttons inside mixed groups. */
+        .toolbar #openFileBtn,
+        .toolbar #saveBtn,
+        .toolbar .ont-settings {
+          display: none;
+        }
+        /* Primary controls keep WCAG 2.5.5 tap floor + room to breathe. */
+        .toolbar .btn {
+          min-height: 44px;
+        }
+        .toolbar .mv-more-btn {
+          display: inline-flex;
+          margin-left: auto;
+        }
+        /* While sheet is open, freeze background scroll. */
+        body.mv-more-open {
+          overflow: hidden;
+        }
+      }
+
       .btn {
         display: inline-flex;
         align-items: center;
@@ -4954,6 +5140,7 @@
             type="button"
             class="btn"
             title="Open a local .md file"
+            data-mv-overflow-section="File"
           >
             <svg
               width="15"
@@ -5003,6 +5190,7 @@
             title="Save current document (Ctrl/Cmd+S)"
             disabled
             hidden
+            data-mv-overflow-section="File"
           >
             Save
           </button>
@@ -5049,7 +5237,7 @@
             <span id="modeToggleLabel">Edit</span>
           </button>
 
-          <div class="ont-settings">
+          <div class="ont-settings" data-mv-overflow-section="View">
             <button
               id="ontologyToggleBtn"
               type="button"
@@ -5101,7 +5289,7 @@
         <span class="tb-divider" aria-hidden="true"></span>
 
         <!-- ── Cluster: Refresh — Reload · Auto-refresh ────────── -->
-        <div class="tb-group" role="group" aria-label="Refresh">
+        <div class="tb-group" role="group" aria-label="Refresh" data-mv-overflow-section="Live">
           <button
             id="reloadBtn"
             type="button"
@@ -5135,7 +5323,7 @@
         <span class="tb-divider" aria-hidden="true"></span>
 
         <!-- ── Cluster: Display preferences — Reading · Theme ──── -->
-        <div class="tb-group" role="group" aria-label="Display preferences">
+        <div class="tb-group" role="group" aria-label="Display preferences" data-mv-overflow-section="View">
           <div class="reading-settings">
           <button
             id="readingToggleBtn"
@@ -5381,7 +5569,7 @@
         <span class="tb-divider" aria-hidden="true"></span>
 
         <!-- ── Cluster: Mindmap, share & settings — Concept map · Snapshot link · Preferences ── -->
-        <div class="tb-group" role="group" aria-label="Mindmap, share, and settings">
+        <div class="tb-group" role="group" aria-label="Mindmap, share, and settings" data-mv-overflow-section="Explore">
           <button
             id="mindmapBtn"
             type="button"
@@ -5463,7 +5651,7 @@
         <span class="tb-divider" aria-hidden="true"></span>
 
         <!-- ── Cluster: Document actions — Clear (destructive) ─── -->
-        <div class="tb-group" role="group" aria-label="Document actions">
+        <div class="tb-group" role="group" aria-label="Document actions" data-mv-overflow-section="Manage">
           <button
             id="clearBtn"
             type="button"
@@ -5473,6 +5661,34 @@
             Clear
           </button>
         </div>
+
+        <!-- ── Mobile-only "More" overflow trigger ─────────────────────
+             Hidden ≥641px. At ≤640px, JS teleports the secondary tb-group
+             nodes into #mvMoreSheetBody and toggles this button's
+             aria-expanded. See assets/toolbar-mobile.js. -->
+        <button
+          id="mvMoreBtn"
+          type="button"
+          class="btn btn-icon mv-more-btn"
+          aria-haspopup="dialog"
+          aria-controls="mvMoreSheet"
+          aria-expanded="false"
+          aria-label="More toolbar actions"
+          title="More"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <circle cx="5" cy="12" r="1.8" />
+            <circle cx="12" cy="12" r="1.8" />
+            <circle cx="19" cy="12" r="1.8" />
+          </svg>
+        </button>
 
         <input
           id="fileInput"
@@ -5488,6 +5704,54 @@
           hidden
         />
       </header>
+
+      <!-- ── Mobile More overflow sheet ───────────────────────────────
+           Toolbar groups live inside .toolbar on desktop. On ≤640px,
+           toolbar-mobile.js moves the secondary .tb-group elements into
+           #mvMoreSheetBody so they remain a single source of truth
+           (existing event handlers and IDs unchanged). -->
+      <div
+        id="mvMoreBackdrop"
+        class="mv-more-backdrop"
+        hidden
+        aria-hidden="true"
+      ></div>
+      <aside
+        id="mvMoreSheet"
+        class="mv-more-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mvMoreSheetTitle"
+        aria-hidden="true"
+        hidden
+      >
+        <header class="mv-more-sheet__header">
+          <h2 id="mvMoreSheetTitle" class="mv-more-sheet__title">More</h2>
+          <button
+            id="mvMoreCloseBtn"
+            type="button"
+            class="btn btn-icon mv-more-sheet__close"
+            aria-label="Close more menu"
+            title="Close"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M6 6l12 12M18 6l-12 12" />
+            </svg>
+          </button>
+        </header>
+        <div id="mvMoreSheetBody" class="mv-more-sheet__body" role="group" aria-label="More toolbar actions"></div>
+      </aside>
 
       <div
         id="pwaUpdateToast"
@@ -23150,5 +23414,8 @@ Return JSON only.`;
     <!-- Keeps the toolbar's segmented View-mode pill visually in
          sync with body.edit-mode-active / body.mindmap-open. -->
     <script src="assets/toolbar-sync.js"></script>
+    <!-- ≤640px: teleports secondary toolbar groups into a bottom
+         sheet ("⋯ More") so the mobile header collapses to one row. -->
+    <script src="assets/toolbar-mobile.js"></script>
   </body>
 </html>

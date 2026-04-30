@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "dataduck", "--", "--port", "5174", "--strictPort"],
       "port": 5174
+    },
+    {
+      "name": "markv",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "/Users/aneesahammed/Documents/dev/web/tinycrafts/markv"],
+      "port": 8765
     }
   ]
 }
