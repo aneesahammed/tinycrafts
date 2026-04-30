@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TinyCrafts icon">
+  <rect width="512" height="512" rx="96" fill="#3867e8"/>
+  <rect x="44" y="44" width="424" height="424" rx="68" fill="#f7f3ec"/>
+  <rect x="68" y="68" width="376" height="376" rx="50" fill="#3867e8"/>
+  <polygon points="130,325 238,217 262,241 154,349" fill="#f7f3ec"/>
+  <polygon points="262,217 352,307 328,331 238,241" fill="#f7f3ec"/>
+  <polygon points="308,178 398,268 374,292 284,202" fill="#f7f3ec"/>
+  <circle cx="174" cy="174" r="31" fill="#f7f3ec"/>
+</svg>
