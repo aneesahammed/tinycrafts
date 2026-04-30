@@ -41,6 +41,7 @@ export function compileStep(step, columns, context) {
   if (step.tool === 'profile_overview') return compileProfileOverview(step, context);
   if (step.tool === 'missingness') return compileMissingness(step, columns, context);
   if (step.tool === 'top_n') return compileTopN(step, columns);
+  if (step.tool === 'top_rows') return compileTopRows(step, columns);
   if (step.tool === 'aggregate_query') return compileAggregateQuery(step, columns);
   if (step.tool === 'histogram') return compileHistogram(step, columns);
   if (step.tool === 'trend') return compileTrend(step, columns);
@@ -130,6 +131,34 @@ function compileTopN(step, columns) {
       x: 'dimension_value',
       series: [{ field: step.metric.alias, label: labelForAlias(step.metric.alias), mark: 'bar', axis: 'left' }],
     },
+  };
+}
+
+// top_rows — raw row listing sorted by a column. Distinct from top_n: no
+// GROUP BY, no aggregation, returns all original columns. SELECT * is safe
+// because runtime row limits and persisted-artifact caps already apply
+// downstream; rows themselves are not sent to providers.
+function compileTopRows(step, columns) {
+  const column = requireColumn(columns, step.column);
+  const { sql: where, params } = compileFilterList(step.filters, columns);
+  const limit = Math.max(1, Math.min(100, Number(step.n) || 10));
+  const direction = String(step.direction || 'desc').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const colId = quoteIdentifier(column.name);
+  const nullsClause = direction === 'DESC' ? 'NULLS LAST' : 'NULLS LAST';
+  return {
+    id: step.id,
+    tool: step.tool,
+    title: step.title,
+    kind: 'query',
+    sql: [
+      `SELECT *`,
+      'FROM active_file',
+      where ? `WHERE ${where}` : '',
+      `ORDER BY ${colId} ${direction} ${nullsClause}`,
+      `LIMIT ${limit};`,
+    ].filter(Boolean).join('\n'),
+    params,
+    chart: { kind: 'table', x: null, series: [] },
   };
 }
 

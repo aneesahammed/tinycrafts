@@ -12,6 +12,7 @@ export const ANALYSIS_TOOLS = [
   'profile_overview',
   'missingness',
   'top_n',
+  'top_rows',
   'aggregate_query',
   'histogram',
   'trend',
@@ -64,6 +65,17 @@ export const AnalysisStepSchema = z.discriminatedUnion('tool', [
     title: z.string().max(80),
     dimension: ColumnNameSchema,
     metric: AggregateMetricSchema,
+    filters: z.array(FilterSchema).max(12),
+    n: z.number().int().min(1).max(100).default(10),
+    direction: z.enum(['asc', 'desc']),
+  }).strict(),
+  // top_rows: raw row listing — `SELECT * FROM active_file ORDER BY <column>
+  // {asc|desc} LIMIT n`. Distinct from top_n which always groups+aggregates.
+  z.object({
+    tool: z.literal('top_rows'),
+    id: IdentifierSchema,
+    title: z.string().max(80),
+    column: ColumnNameSchema,
     filters: z.array(FilterSchema).max(12),
     n: z.number().int().min(1).max(100).default(10),
     direction: z.enum(['asc', 'desc']),
@@ -385,6 +397,7 @@ function applyCompactStepDefaults(step) {
   if (
     tool === 'aggregate_query' ||
     tool === 'top_n' ||
+    tool === 'top_rows' ||
     tool === 'histogram' ||
     tool === 'trend' ||
     tool === 'outliers' ||
@@ -404,6 +417,10 @@ function applyCompactStepDefaults(step) {
   }
   if (tool === 'top_n') {
     if (next.direction !== 'asc' && next.direction !== 'desc') next.direction = 'desc';
+  }
+  if (tool === 'top_rows') {
+    if (next.direction !== 'asc' && next.direction !== 'desc') next.direction = 'desc';
+    if (typeof next.n !== 'number') next.n = 10;
   }
   if (tool === 'outliers' && !next.method) next.method = 'iqr';
   if (tool === 'correlation' && !next.method) next.method = 'pearson';

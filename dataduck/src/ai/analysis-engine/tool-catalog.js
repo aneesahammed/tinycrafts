@@ -11,7 +11,11 @@ export const TOOL_CATALOG = [
   },
   {
     tool: 'top_n',
-    description: 'Group by one dimension and calculate one aggregate metric. Default n is 10; ties sort by metric then dimension.',
+    description: 'Group by one categorical/identifier dimension and rank by one aggregate metric (e.g., "top 10 PRODUCTS by sum of revenue"). Always groups+aggregates; never returns raw rows.',
+  },
+  {
+    tool: 'top_rows',
+    description: 'Show the top N RAW rows of active_file sorted by a column (e.g., "top 10 rows by bill_length_mm" or "5 highest values of price"). Returns all original columns of those rows. No grouping, no aggregation. Use this — not top_n — when the user asks for raw rows or row-level extremes.',
   },
   {
     tool: 'aggregate_query',
