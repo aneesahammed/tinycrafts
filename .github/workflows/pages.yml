@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - pages
-    paths:
-      - '.github/workflows/pages.yml'
-      - 'dataduck/**'
-      - 'scripts/build-pages.mjs'
-      - 'scripts/verify-pages-build.mjs'
   workflow_dispatch:
 
 permissions:
