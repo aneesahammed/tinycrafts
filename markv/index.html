@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-4N8pBzH5NQ/fFgBenbQVQs03IKfbSr2TAOecTxzJcr8=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-6eK2HZw3r1SJ8ckoickHd7qa4vN2DXjTQwBnM2rv6pM=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -4164,21 +4164,13 @@
         color: var(--fg-subtle);
         transform: translateY(-0.5px);
       }
-      .lib-bulk-actions {
-        display: inline-flex;
-        align-items: center;
-        gap: 14px;
-        margin-left: 2px;
-      }
-      .lib-bulk-actions[hidden] {
-        display: none;
-      }
-      .lib-bulk-btn {
+      .lib-toggle-all {
         appearance: none;
         display: inline-flex;
         align-items: center;
         gap: 5px;
         padding: 0;
+        margin-left: 2px;
         border: 0;
         background: transparent;
         color: var(--fg-subtle);
@@ -4188,23 +4180,22 @@
         cursor: pointer;
         transition: color 140ms ease;
       }
-      .lib-bulk-btn:hover:not(:disabled),
-      .lib-bulk-btn:focus-visible:not(:disabled) {
+      .lib-toggle-all[hidden] {
+        display: none;
+      }
+      .lib-toggle-all:hover,
+      .lib-toggle-all:focus-visible {
         color: var(--fg-default);
       }
-      .lib-bulk-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-      .lib-bulk-btn svg {
+      .lib-toggle-all svg {
         width: 9px;
         height: 9px;
         flex-shrink: 0;
         opacity: 0.75;
         transition: opacity 140ms ease;
       }
-      .lib-bulk-btn:hover:not(:disabled) svg,
-      .lib-bulk-btn:focus-visible:not(:disabled) svg {
+      .lib-toggle-all:hover svg,
+      .lib-toggle-all:focus-visible svg {
         opacity: 1;
       }
       .lib-supported-note {
@@ -4251,7 +4242,13 @@
         border-top: 1px solid var(--border-soft);
       }
       .lib-folder-head {
-        padding: 0 10px 4px;
+        padding: 4px 10px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background-color 140ms ease;
+      }
+      .lib-folder-head:hover {
+        background: var(--bg-subtle);
       }
       .lib-folder-top {
         display: flex;
@@ -4422,7 +4419,7 @@
       }
       .lib-tree-row:focus-visible,
       .lib-close:focus-visible,
-      .lib-bulk-btn:focus-visible,
+      .lib-toggle-all:focus-visible,
       .lib-folder-toggle:focus-visible,
       .lib-action-btn:focus-visible {
         outline: none;
@@ -11962,11 +11959,7 @@ Return JSON only.`;
           libraryOverlay: document.getElementById("libraryOverlay"),
           libraryDrawer: document.getElementById("libraryDrawer"),
           libraryAddBtn: document.getElementById("libraryAddBtn"),
-          libraryBulkActions: document.getElementById("libraryBulkActions"),
-          libraryCollapseAllBtn: document.getElementById(
-            "libraryCollapseAllBtn",
-          ),
-          libraryExpandAllBtn: document.getElementById("libraryExpandAllBtn"),
+          libraryToggleAllBtn: document.getElementById("libraryToggleAllBtn"),
           libraryCloseBtn: document.getElementById("libraryCloseBtn"),
           libraryBody: document.getElementById("libraryBody"),
           libraryEmpty: document.getElementById("libraryEmpty"),
@@ -11981,15 +11974,9 @@ Return JSON only.`;
             els.libraryDrawer || document.getElementById("libraryDrawer");
           els.libraryAddBtn =
             els.libraryAddBtn || document.getElementById("libraryAddBtn");
-          els.libraryBulkActions =
-            els.libraryBulkActions ||
-            document.getElementById("libraryBulkActions");
-          els.libraryCollapseAllBtn =
-            els.libraryCollapseAllBtn ||
-            document.getElementById("libraryCollapseAllBtn");
-          els.libraryExpandAllBtn =
-            els.libraryExpandAllBtn ||
-            document.getElementById("libraryExpandAllBtn");
+          els.libraryToggleAllBtn =
+            els.libraryToggleAllBtn ||
+            document.getElementById("libraryToggleAllBtn");
           els.libraryCloseBtn =
             els.libraryCloseBtn || document.getElementById("libraryCloseBtn");
           els.libraryBody =
@@ -12004,9 +11991,7 @@ Return JSON only.`;
             els.libraryOverlay &&
               els.libraryDrawer &&
               els.libraryAddBtn &&
-              els.libraryBulkActions &&
-              els.libraryCollapseAllBtn &&
-              els.libraryExpandAllBtn &&
+              els.libraryToggleAllBtn &&
               els.libraryCloseBtn &&
               els.libraryBody &&
               els.libraryEmpty &&
@@ -15379,6 +15364,29 @@ Return JSON only.`;
           return summary;
         }
 
+        function updateLibraryToggleAllBtn(summary) {
+          const btn = els.libraryToggleAllBtn;
+          if (!btn) return;
+          if (!summary.hasFolders) {
+            btn.hidden = true;
+            return;
+          }
+          btn.hidden = false;
+          const allCollapsed =
+            summary.hasCollapsed && !summary.hasUncollapsed;
+          const label = allCollapsed ? "Expand all" : "Collapse all";
+          const path = allCollapsed
+            ? "M3 4.5 6 7.5l3-3"
+            : "M3 7.5 6 4.5l3 3";
+          btn.dataset.mode = allCollapsed ? "expand" : "collapse";
+          btn.setAttribute("aria-label", label);
+          btn.setAttribute("title", label);
+          const labelEl = btn.querySelector(".lib-toggle-all-label");
+          if (labelEl) labelEl.textContent = label;
+          const pathEl = btn.querySelector("svg path");
+          if (pathEl) pathEl.setAttribute("d", path);
+        }
+
         function renderLibraryTreeNodes(nodes, folderId, depth) {
           return (nodes || [])
             .map(function (node) {
@@ -15445,9 +15453,7 @@ Return JSON only.`;
           els.libraryAddBtn.disabled =
             !supported || state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders;
           const collapseSummary = getLibraryCollapseSummary();
-          els.libraryBulkActions.hidden = !collapseSummary.hasFolders;
-          els.libraryCollapseAllBtn.disabled = !collapseSummary.hasUncollapsed;
-          els.libraryExpandAllBtn.disabled = !collapseSummary.hasCollapsed;
+          updateLibraryToggleAllBtn(collapseSummary);
 
           if (!supported) {
             els.librarySupportedNote.hidden = false;
@@ -15539,7 +15545,9 @@ Return JSON only.`;
                 '" data-collapsed="' +
                 (collapsed ? "true" : "false") +
                 '">' +
-                '<div class="lib-folder-head">' +
+                '<div class="lib-folder-head" data-action="toggle-folder" data-folder-id="' +
+                escapeHtml(folder.id) +
+                '">' +
                 '<div class="lib-folder-top">' +
                 toggleBtn +
                 '<div class="lib-folder-meta">' +
@@ -15647,11 +15655,11 @@ Return JSON only.`;
           els.libraryAddBtn.addEventListener("click", async function () {
             await addLibraryFolder();
           });
-          els.libraryCollapseAllBtn.addEventListener("click", function () {
-            setAllLibraryFoldersCollapsed(true);
-          });
-          els.libraryExpandAllBtn.addEventListener("click", function () {
-            setAllLibraryFoldersCollapsed(false);
+          els.libraryToggleAllBtn.addEventListener("click", function () {
+            const summary = getLibraryCollapseSummary();
+            const allCollapsed =
+              summary.hasCollapsed && !summary.hasUncollapsed;
+            setAllLibraryFoldersCollapsed(!allCollapsed);
           });
           els.libraryBody.addEventListener("click", async function (event) {
             const trigger = event.target.closest("[data-action]");
@@ -20869,56 +20877,28 @@ Return JSON only.`;
           <span class="lib-add-plus" aria-hidden="true">+</span>
           <span>Add folder</span>
         </button>
-        <div
-          id="libraryBulkActions"
-          class="lib-bulk-actions"
-          role="group"
-          aria-label="Folder display"
+        <button
+          id="libraryToggleAllBtn"
+          type="button"
+          class="lib-toggle-all"
+          data-mode="collapse"
+          title="Collapse all"
+          aria-label="Collapse all"
           hidden
         >
-          <button
-            id="libraryCollapseAllBtn"
-            type="button"
-            class="lib-bulk-btn"
-            title="Collapse all folders"
-            aria-label="Collapse all folders"
-            disabled
+          <svg
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
           >
-            <svg
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.4"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 7.5 6 4.5l3 3" />
-            </svg>
-            <span>Collapse</span>
-          </button>
-          <button
-            id="libraryExpandAllBtn"
-            type="button"
-            class="lib-bulk-btn"
-            title="Expand all folders"
-            aria-label="Expand all folders"
-            disabled
-          >
-            <svg
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.4"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 4.5 6 7.5l3-3" />
-            </svg>
-            <span>Expand</span>
-          </button>
-        </div>
+            <path d="M3 7.5 6 4.5l3 3" />
+          </svg>
+          <span class="lib-toggle-all-label">Collapse all</span>
+        </button>
       </div>
       <div id="librarySupportedNote" class="lib-supported-note" hidden></div>
       <div id="libraryBody" class="lib-body">
