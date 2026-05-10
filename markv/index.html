@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-ornVVQl57jXC/kJ/EOr7nDQThwfPyZRYhuTBKy8+GY4=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-4N8pBzH5NQ/fFgBenbQVQs03IKfbSr2TAOecTxzJcr8=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -4121,6 +4121,7 @@
       .lib-actions {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 10px;
         padding: 10px 18px 10px;
         flex-shrink: 0;
@@ -4162,6 +4163,49 @@
         line-height: 1;
         color: var(--fg-subtle);
         transform: translateY(-0.5px);
+      }
+      .lib-bulk-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: 2px;
+      }
+      .lib-bulk-actions[hidden] {
+        display: none;
+      }
+      .lib-bulk-btn {
+        appearance: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--fg-subtle);
+        font: inherit;
+        font-size: 11.5px;
+        line-height: 1;
+        cursor: pointer;
+        transition: color 140ms ease;
+      }
+      .lib-bulk-btn:hover:not(:disabled),
+      .lib-bulk-btn:focus-visible:not(:disabled) {
+        color: var(--fg-default);
+      }
+      .lib-bulk-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .lib-bulk-btn svg {
+        width: 9px;
+        height: 9px;
+        flex-shrink: 0;
+        opacity: 0.75;
+        transition: opacity 140ms ease;
+      }
+      .lib-bulk-btn:hover:not(:disabled) svg,
+      .lib-bulk-btn:focus-visible:not(:disabled) svg {
+        opacity: 1;
       }
       .lib-supported-note {
         margin: 2px 18px 10px;
@@ -4211,8 +4255,38 @@
       }
       .lib-folder-top {
         display: flex;
-        align-items: baseline;
-        gap: 10px;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .lib-folder-toggle {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 4px;
+        margin: -2px 0 -2px -4px;
+        color: var(--fg-subtle);
+        cursor: pointer;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition:
+          color 140ms ease,
+          background-color 140ms ease;
+      }
+      .lib-folder-toggle:hover,
+      .lib-folder-toggle:focus-visible {
+        color: var(--fg-default);
+        background: var(--bg-subtle);
+      }
+      .lib-folder-toggle svg {
+        width: 10px;
+        height: 10px;
+        transition: transform 160ms ease;
+      }
+      .lib-folder-toggle[aria-expanded="true"] svg {
+        transform: rotate(90deg);
       }
       .lib-folder-meta {
         flex: 1;
@@ -4241,7 +4315,6 @@
         padding: 0;
         background: transparent;
         font-size: 11px;
-        font-style: italic;
         color: var(--fg-subtle);
         display: inline;
       }
@@ -4349,6 +4422,8 @@
       }
       .lib-tree-row:focus-visible,
       .lib-close:focus-visible,
+      .lib-bulk-btn:focus-visible,
+      .lib-folder-toggle:focus-visible,
       .lib-action-btn:focus-visible {
         outline: none;
         box-shadow: 0 0 0 3px var(--selection);
@@ -11887,6 +11962,11 @@ Return JSON only.`;
           libraryOverlay: document.getElementById("libraryOverlay"),
           libraryDrawer: document.getElementById("libraryDrawer"),
           libraryAddBtn: document.getElementById("libraryAddBtn"),
+          libraryBulkActions: document.getElementById("libraryBulkActions"),
+          libraryCollapseAllBtn: document.getElementById(
+            "libraryCollapseAllBtn",
+          ),
+          libraryExpandAllBtn: document.getElementById("libraryExpandAllBtn"),
           libraryCloseBtn: document.getElementById("libraryCloseBtn"),
           libraryBody: document.getElementById("libraryBody"),
           libraryEmpty: document.getElementById("libraryEmpty"),
@@ -11901,6 +11981,15 @@ Return JSON only.`;
             els.libraryDrawer || document.getElementById("libraryDrawer");
           els.libraryAddBtn =
             els.libraryAddBtn || document.getElementById("libraryAddBtn");
+          els.libraryBulkActions =
+            els.libraryBulkActions ||
+            document.getElementById("libraryBulkActions");
+          els.libraryCollapseAllBtn =
+            els.libraryCollapseAllBtn ||
+            document.getElementById("libraryCollapseAllBtn");
+          els.libraryExpandAllBtn =
+            els.libraryExpandAllBtn ||
+            document.getElementById("libraryExpandAllBtn");
           els.libraryCloseBtn =
             els.libraryCloseBtn || document.getElementById("libraryCloseBtn");
           els.libraryBody =
@@ -11915,6 +12004,9 @@ Return JSON only.`;
             els.libraryOverlay &&
               els.libraryDrawer &&
               els.libraryAddBtn &&
+              els.libraryBulkActions &&
+              els.libraryCollapseAllBtn &&
+              els.libraryExpandAllBtn &&
               els.libraryCloseBtn &&
               els.libraryBody &&
               els.libraryEmpty &&
@@ -11968,6 +12060,7 @@ Return JSON only.`;
           libraryFolders: [],
           libraryFolderOrder: [],
           libraryExpandedPathsByFolder: {},
+          libraryCollapsedFolderIds: [],
           libraryActiveFolderId: "",
           libraryActiveFilePath: "",
           libraryCurrentFileHandle: null,
@@ -12102,6 +12195,11 @@ Return JSON only.`;
               typeof source.expandedPathsByFolder === "object"
                 ? source.expandedPathsByFolder
                 : {},
+            collapsedFolderIds: Array.isArray(source.collapsedFolderIds)
+              ? source.collapsedFolderIds.filter(function (item) {
+                  return typeof item === "string" && item.length > 0;
+                })
+              : [],
             lastActiveFile:
               source.lastActiveFile &&
               typeof source.lastActiveFile.folderId === "string" &&
@@ -12136,6 +12234,43 @@ Return JSON only.`;
           return Array.isArray(entries) ? entries.slice() : [];
         }
 
+        function orderLibraryFolders(folders, folderOrder) {
+          if (typeof libraryCore.orderLibraryFolders === "function") {
+            return libraryCore.orderLibraryFolders(folders, folderOrder);
+          }
+          const order = Array.isArray(folderOrder) ? folderOrder.slice() : [];
+          return (Array.isArray(folders) ? folders.slice() : []).sort(function (a, b) {
+            const aIndex = order.indexOf(a.id);
+            const bIndex = order.indexOf(b.id);
+            if (aIndex === -1 && bIndex === -1) {
+              return (b.addedAt || 0) - (a.addedAt || 0);
+            }
+            if (aIndex === -1) return -1;
+            if (bIndex === -1) return 1;
+            return aIndex - bIndex;
+          });
+        }
+
+        function getLibraryDirectoryPaths(nodes) {
+          if (typeof libraryCore.getLibraryDirectoryPaths === "function") {
+            return libraryCore.getLibraryDirectoryPaths(nodes);
+          }
+          const paths = [];
+
+          function walk(list) {
+            (Array.isArray(list) ? list : []).forEach(function (node) {
+              if (!node || node.type !== "directory") return;
+              if (typeof node.path === "string" && node.path) {
+                paths.push(node.path);
+              }
+              walk(node.children);
+            });
+          }
+
+          walk(nodes);
+          return paths;
+        }
+
         function getClearedLibraryCollectionState(input) {
           if (
             typeof libraryCore.getClearedLibraryCollectionState === "function"
@@ -12148,6 +12283,7 @@ Return JSON only.`;
             libraryFolders: [],
             libraryFolderOrder: [],
             libraryExpandedPathsByFolder: {},
+            libraryCollapsedFolderIds: [],
             libraryActiveFolderId: "",
             libraryActiveFilePath: "",
             libraryCurrentFileHandle: null,
@@ -12568,6 +12704,47 @@ Return JSON only.`;
           return output;
         }
 
+        function cloneLibraryCollapsedIds(value) {
+          if (typeof libraryCore.normalizeLibraryFolderIdSet === "function") {
+            return libraryCore.normalizeLibraryFolderIdSet(value);
+          }
+          if (!Array.isArray(value)) return [];
+          const seen = Object.create(null);
+          const result = [];
+          value.forEach(function (item) {
+            if (typeof item !== "string" || !item) return;
+            if (seen[item]) return;
+            seen[item] = true;
+            result.push(item);
+          });
+          return result;
+        }
+
+        function isLibraryFolderCollapsed(folderId) {
+          if (!folderId) return false;
+          const list = state.libraryCollapsedFolderIds;
+          return Array.isArray(list) && list.indexOf(folderId) !== -1;
+        }
+
+        function setLibraryFolderCollapsed(folderId, collapsed) {
+          if (!folderId) return false;
+          const current = Array.isArray(state.libraryCollapsedFolderIds)
+            ? state.libraryCollapsedFolderIds.slice()
+            : [];
+          const index = current.indexOf(folderId);
+          if (collapsed && index === -1) {
+            current.push(folderId);
+            state.libraryCollapsedFolderIds = current;
+            return true;
+          }
+          if (!collapsed && index !== -1) {
+            current.splice(index, 1);
+            state.libraryCollapsedFolderIds = current;
+            return true;
+          }
+          return false;
+        }
+
         function computeLibraryDisplayLabels() {
           const seen = Object.create(null);
           state.libraryFolders.forEach(function (folder) {
@@ -12582,16 +12759,7 @@ Return JSON only.`;
           const order = Array.isArray(state.libraryFolderOrder)
             ? state.libraryFolderOrder.slice()
             : [];
-          state.libraryFolders.sort(function (a, b) {
-            const aIndex = order.indexOf(a.id);
-            const bIndex = order.indexOf(b.id);
-            if (aIndex === -1 && bIndex === -1) {
-              return (a.addedAt || 0) - (b.addedAt || 0);
-            }
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-          });
+          state.libraryFolders = orderLibraryFolders(state.libraryFolders, order);
           state.libraryFolderOrder = state.libraryFolders.map(function (folder) {
             return folder.id;
           });
@@ -12647,6 +12815,7 @@ Return JSON only.`;
             libraryFolders: state.libraryFolders,
             libraryFolderOrder: state.libraryFolderOrder,
             libraryExpandedPathsByFolder: state.libraryExpandedPathsByFolder,
+            libraryCollapsedFolderIds: state.libraryCollapsedFolderIds,
             libraryActiveFolderId: state.libraryActiveFolderId,
             libraryActiveFilePath: state.libraryActiveFilePath,
             libraryCurrentFileHandle: state.libraryCurrentFileHandle,
@@ -12658,6 +12827,11 @@ Return JSON only.`;
           state.libraryFolderOrder = nextState.libraryFolderOrder;
           state.libraryExpandedPathsByFolder =
             nextState.libraryExpandedPathsByFolder;
+          state.libraryCollapsedFolderIds = Array.isArray(
+            nextState.libraryCollapsedFolderIds,
+          )
+            ? nextState.libraryCollapsedFolderIds.slice()
+            : [];
           state.libraryActiveFolderId = nextState.libraryActiveFolderId;
           state.libraryActiveFilePath = nextState.libraryActiveFilePath;
           state.libraryCurrentFileHandle = nextState.libraryCurrentFileHandle;
@@ -12830,6 +13004,7 @@ Return JSON only.`;
                   normalizeLibraryMetaState({
                     folderOrder: meta.folderOrder,
                     expandedPathsByFolder: meta.expandedPathsByFolder,
+                    collapsedFolderIds: meta.collapsedFolderIds,
                     lastActiveFile: meta.lastActiveFile,
                   }),
                 );
@@ -12846,6 +13021,9 @@ Return JSON only.`;
             folderOrder: state.libraryFolderOrder.slice(),
             expandedPathsByFolder: cloneExpandedPathsByFolder(
               state.libraryExpandedPathsByFolder,
+            ),
+            collapsedFolderIds: cloneLibraryCollapsedIds(
+              state.libraryCollapsedFolderIds,
             ),
             lastActiveFile:
               state.libraryActiveFolderId && state.libraryActiveFilePath
@@ -12864,6 +13042,10 @@ Return JSON only.`;
               store.put({
                 key: "expandedPathsByFolder",
                 value: payload.expandedPathsByFolder,
+              });
+              store.put({
+                key: "collapsedFolderIds",
+                value: payload.collapsedFolderIds,
               });
               store.put({ key: "lastActiveFile", value: payload.lastActiveFile });
               tx.oncomplete = function () {
@@ -15177,6 +15359,26 @@ Return JSON only.`;
             });
         }
 
+        function getLibraryCollapseSummary() {
+          const summary = {
+            hasFolders: false,
+            hasCollapsed: false,
+            hasUncollapsed: false,
+          };
+
+          state.libraryFolders.forEach(function (folder) {
+            if (!folder || !folder.id) return;
+            summary.hasFolders = true;
+            if (isLibraryFolderCollapsed(folder.id)) {
+              summary.hasCollapsed = true;
+            } else {
+              summary.hasUncollapsed = true;
+            }
+          });
+
+          return summary;
+        }
+
         function renderLibraryTreeNodes(nodes, folderId, depth) {
           return (nodes || [])
             .map(function (node) {
@@ -15242,6 +15444,10 @@ Return JSON only.`;
           const supported = persistentSupported || importSupported;
           els.libraryAddBtn.disabled =
             !supported || state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders;
+          const collapseSummary = getLibraryCollapseSummary();
+          els.libraryBulkActions.hidden = !collapseSummary.hasFolders;
+          els.libraryCollapseAllBtn.disabled = !collapseSummary.hasUncollapsed;
+          els.libraryExpandAllBtn.disabled = !collapseSummary.hasCollapsed;
 
           if (!supported) {
             els.librarySupportedNote.hidden = false;
@@ -15277,6 +15483,22 @@ Return JSON only.`;
                       : folder.sourceType === "snapshot"
                         ? "Imported snapshot"
                         : "Ready";
+              const collapsed = isLibraryFolderCollapsed(folder.id);
+              const toggleLabel =
+                (collapsed ? "Expand " : "Collapse ") +
+                (folder.displayLabel || folder.name || "folder");
+              const toggleBtn =
+                '<button type="button" class="lib-folder-toggle" data-action="toggle-folder" data-folder-id="' +
+                escapeHtml(folder.id) +
+                '" aria-expanded="' +
+                (collapsed ? "false" : "true") +
+                '" aria-label="' +
+                escapeHtml(toggleLabel) +
+                '" title="' +
+                escapeHtml(toggleLabel) +
+                '">' +
+                '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 3.5 8 6l-3.5 2.5"/></svg>' +
+                "</button>";
               const actions =
                 '<div class="lib-folder-actions">' +
                 (folder.status === "needs-permission"
@@ -15293,8 +15515,9 @@ Return JSON only.`;
                 '">Remove</button>' +
                 "</div>";
 
-              const content =
-                folder.status === "ready"
+              const content = collapsed
+                ? ""
+                : folder.status === "ready"
                   ? '<div class="lib-tree">' +
                     renderLibraryTreeNodes(folder.tree || [], folder.id, 0) +
                     "</div>"
@@ -15313,9 +15536,12 @@ Return JSON only.`;
               return (
                 '<section class="lib-folder" data-folder-id="' +
                 escapeHtml(folder.id) +
+                '" data-collapsed="' +
+                (collapsed ? "true" : "false") +
                 '">' +
                 '<div class="lib-folder-head">' +
                 '<div class="lib-folder-top">' +
+                toggleBtn +
                 '<div class="lib-folder-meta">' +
                 '<h3 class="lib-folder-name">' +
                 escapeHtml(folder.displayLabel || folder.name) +
@@ -15421,6 +15647,12 @@ Return JSON only.`;
           els.libraryAddBtn.addEventListener("click", async function () {
             await addLibraryFolder();
           });
+          els.libraryCollapseAllBtn.addEventListener("click", function () {
+            setAllLibraryFoldersCollapsed(true);
+          });
+          els.libraryExpandAllBtn.addEventListener("click", function () {
+            setAllLibraryFoldersCollapsed(false);
+          });
           els.libraryBody.addEventListener("click", async function (event) {
             const trigger = event.target.closest("[data-action]");
             if (!trigger || !els.libraryBody.contains(trigger)) return;
@@ -15429,6 +15661,10 @@ Return JSON only.`;
             const folderId = trigger.getAttribute("data-folder-id") || "";
             const path = trigger.getAttribute("data-path") || "";
 
+            if (action === "toggle-folder") {
+              toggleLibraryFolderCollapsed(folderId);
+              return;
+            }
             if (action === "toggle-dir") {
               toggleLibraryDirectory(folderId, path);
               return;
@@ -15477,6 +15713,66 @@ Return JSON only.`;
           renderLibraryDrawer();
         }
 
+        function rebuildLibraryFolderTree(folder, expandedPaths) {
+          const fileHandlesByPath =
+            folder && folder.fileHandlesByPath &&
+            typeof folder.fileHandlesByPath.keys === "function"
+              ? folder.fileHandlesByPath
+              : new Map();
+
+          return attachLibraryFileHandles(
+            shapeLibraryTree(
+              Array.from(fileHandlesByPath.keys()).map(function (item) {
+                return { kind: "file", path: item };
+              }),
+              { expandedPaths: expandedPaths },
+            ),
+            fileHandlesByPath,
+          );
+        }
+
+        function setAllLibraryFoldersCollapsed(collapsed) {
+          let changed = false;
+
+          state.libraryFolders.forEach(function (folder) {
+            if (!folder || !folder.id) return;
+            if (setLibraryFolderCollapsed(folder.id, collapsed)) {
+              changed = true;
+            }
+          });
+
+          if (!changed) return;
+          renderLibraryDrawer();
+
+          if (canUseLibraryStorage()) {
+            persistLibraryMeta().catch(function (error) {
+              console.warn(
+                "[library] could not persist bulk collapse state",
+                error,
+              );
+            });
+          }
+          setStatus(
+            collapsed ? "Library folders collapsed" : "Library folders expanded",
+            { announce: true },
+          );
+        }
+
+        function toggleLibraryFolderCollapsed(folderId) {
+          if (!folderId) return;
+          const next = !isLibraryFolderCollapsed(folderId);
+          if (!setLibraryFolderCollapsed(folderId, next)) return;
+          renderLibraryDrawer();
+          if (canUseLibraryStorage()) {
+            persistLibraryMeta().catch(function (error) {
+              console.warn(
+                "[library] could not persist folder collapse state",
+                error,
+              );
+            });
+          }
+        }
+
         function toggleLibraryDirectory(folderId, path) {
           const paths = getLibraryExpandedPaths(folderId);
           const next = paths.includes(path)
@@ -15487,15 +15783,7 @@ Return JSON only.`;
           state.libraryExpandedPathsByFolder[folderId] = next;
           const folder = getLibraryFolderById(folderId);
           if (!folder) return;
-          folder.tree = attachLibraryFileHandles(
-            shapeLibraryTree(
-              Array.from(folder.fileHandlesByPath.keys()).map(function (item) {
-                return { kind: "file", path: item };
-              }),
-              { expandedPaths: next },
-            ),
-            folder.fileHandlesByPath,
-          );
+          folder.tree = rebuildLibraryFolderTree(folder, next);
           if (canUseLibraryStorage()) {
             persistLibraryMeta().catch(function (error) {
               console.warn("[library] could not persist expanded paths", error);
@@ -15633,6 +15921,7 @@ Return JSON only.`;
           applyLibraryFolderOrder();
 
           delete state.libraryExpandedPathsByFolder[folderId];
+          setLibraryFolderCollapsed(folderId, false);
           if (state.libraryActiveFolderId === folderId) {
             state.libraryActiveFolderId = "";
             state.libraryActiveFilePath = "";
@@ -15879,6 +16168,9 @@ Return JSON only.`;
           state.libraryFolderOrder = meta.folderOrder.slice();
           state.libraryExpandedPathsByFolder = cloneExpandedPathsByFolder(
             meta.expandedPathsByFolder,
+          );
+          state.libraryCollapsedFolderIds = cloneLibraryCollapsedIds(
+            meta.collapsedFolderIds,
           );
           state.libraryFolders = folders.map(function (item) {
             return createLibraryFolderRecord(item);
@@ -20577,6 +20869,56 @@ Return JSON only.`;
           <span class="lib-add-plus" aria-hidden="true">+</span>
           <span>Add folder</span>
         </button>
+        <div
+          id="libraryBulkActions"
+          class="lib-bulk-actions"
+          role="group"
+          aria-label="Folder display"
+          hidden
+        >
+          <button
+            id="libraryCollapseAllBtn"
+            type="button"
+            class="lib-bulk-btn"
+            title="Collapse all folders"
+            aria-label="Collapse all folders"
+            disabled
+          >
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 7.5 6 4.5l3 3" />
+            </svg>
+            <span>Collapse</span>
+          </button>
+          <button
+            id="libraryExpandAllBtn"
+            type="button"
+            class="lib-bulk-btn"
+            title="Expand all folders"
+            aria-label="Expand all folders"
+            disabled
+          >
+            <svg
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 4.5 6 7.5l3-3" />
+            </svg>
+            <span>Expand</span>
+          </button>
+        </div>
       </div>
       <div id="librarySupportedNote" class="lib-supported-note" hidden></div>
       <div id="libraryBody" class="lib-body">

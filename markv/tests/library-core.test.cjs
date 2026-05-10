@@ -54,13 +54,47 @@ test("normalizes persisted library metadata", () => {
   const normalized = core.normalizeLibraryMeta?.({
     folderOrder: ["b", "a"],
     expandedPathsByFolder: { a: ["guides"] },
+    collapsedFolderIds: ["a", "", "a", 7, "b"],
     lastActiveFile: { folderId: "a", path: "guides/intro.md" },
   });
   assert.deepEqual(normalized, {
     folderOrder: ["b", "a"],
     expandedPathsByFolder: { a: ["guides"] },
+    collapsedFolderIds: ["a", "b"],
     lastActiveFile: { folderId: "a", path: "guides/intro.md" },
   });
+});
+
+test("normalizes missing collapsedFolderIds to an empty array", () => {
+  const normalized = core.normalizeLibraryMeta?.({
+    folderOrder: ["a"],
+    expandedPathsByFolder: {},
+  });
+  assert.deepEqual(normalized.collapsedFolderIds, []);
+});
+
+test("dedupes and filters folder id sets", () => {
+  assert.deepEqual(
+    core.normalizeLibraryFolderIdSet?.(["a", "a", "", "b", null, "b", "c"]),
+    ["a", "b", "c"],
+  );
+  assert.deepEqual(core.normalizeLibraryFolderIdSet?.(null), []);
+});
+
+test("orders newly added library folders before persisted folders", () => {
+  const folders = [
+    { id: "old-a", name: "old-a", addedAt: 100 },
+    { id: "newer", name: "newer", addedAt: 300 },
+    { id: "old-b", name: "old-b", addedAt: 200 },
+    { id: "newest", name: "newest", addedAt: 400 },
+  ];
+
+  assert.deepEqual(
+    core.orderLibraryFolders?.(folders, ["old-b", "old-a"]).map(
+      (folder) => folder.id,
+    ),
+    ["newest", "newer", "old-b", "old-a"],
+  );
 });
 
 test("builds a markdown-only tree and prunes empty directories", () => {
@@ -83,6 +117,23 @@ test("builds a markdown-only tree and prunes empty directories", () => {
       children: [{ type: "file", path: "drafts/plan.txt", name: "plan.txt" }],
     },
     { type: "file", path: "README.md", name: "README.md" },
+  ]);
+});
+
+test("collects directory paths from a shaped library tree", () => {
+  const tree = core.shapeLibraryTree?.(
+    [
+      { kind: "file", path: "guides/start.md" },
+      { kind: "file", path: "guides/deep/reference.md" },
+      { kind: "file", path: "drafts/plan.md" },
+    ],
+    { expandedPaths: [] },
+  );
+
+  assert.deepEqual(core.getLibraryDirectoryPaths?.(tree), [
+    "drafts",
+    "guides",
+    "guides/deep",
   ]);
 });
 
@@ -109,6 +160,7 @@ test("clears library collection state for a full reset", () => {
       libraryFolders: [{ id: "docs" }],
       libraryFolderOrder: ["docs"],
       libraryExpandedPathsByFolder: { docs: ["guides"] },
+      libraryCollapsedFolderIds: ["docs"],
       libraryActiveFolderId: "docs",
       libraryActiveFilePath: "guides/intro.md",
       libraryCurrentFileHandle: { kind: "file" },
@@ -119,6 +171,7 @@ test("clears library collection state for a full reset", () => {
       libraryFolders: [],
       libraryFolderOrder: [],
       libraryExpandedPathsByFolder: {},
+      libraryCollapsedFolderIds: [],
       libraryActiveFolderId: "",
       libraryActiveFilePath: "",
       libraryCurrentFileHandle: null,

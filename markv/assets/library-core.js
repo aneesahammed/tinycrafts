@@ -411,6 +411,36 @@
       : [];
   }
 
+  function normalizeLibraryFolderIdSet(value) {
+    if (!Array.isArray(value)) return [];
+    const seen = Object.create(null);
+    const result = [];
+    value.forEach(function (item) {
+      if (typeof item !== "string" || !item) return;
+      if (seen[item]) return;
+      seen[item] = true;
+      result.push(item);
+    });
+    return result;
+  }
+
+  function orderLibraryFolders(folders, folderOrder) {
+    const order = cloneStringArray(folderOrder);
+    return (Array.isArray(folders) ? folders.slice() : []).sort(function (a, b) {
+      const aId = String((a && a.id) || "");
+      const bId = String((b && b.id) || "");
+      const aIndex = order.indexOf(aId);
+      const bIndex = order.indexOf(bId);
+
+      if (aIndex === -1 && bIndex === -1) {
+        return (Number(b && b.addedAt) || 0) - (Number(a && a.addedAt) || 0);
+      }
+      if (aIndex === -1) return -1;
+      if (bIndex === -1) return 1;
+      return aIndex - bIndex;
+    });
+  }
+
   function normalizeExpandedPathsByFolder(value) {
     if (!value || typeof value !== "object") return {};
 
@@ -438,6 +468,9 @@
       folderOrder: cloneStringArray(source.folderOrder),
       expandedPathsByFolder: normalizeExpandedPathsByFolder(
         source.expandedPathsByFolder,
+      ),
+      collapsedFolderIds: normalizeLibraryFolderIdSet(
+        source.collapsedFolderIds,
       ),
       lastActiveFile: lastActiveFile,
     };
@@ -517,6 +550,23 @@
     return pruneAndSort(root.children);
   }
 
+  function getLibraryDirectoryPaths(nodes) {
+    const paths = [];
+
+    function walk(list) {
+      (Array.isArray(list) ? list : []).forEach(function (node) {
+        if (!node || node.type !== "directory") return;
+        if (typeof node.path === "string" && node.path) {
+          paths.push(node.path);
+        }
+        walk(node.children);
+      });
+    }
+
+    walk(nodes);
+    return paths;
+  }
+
   function shouldAutoRestoreLastFile(input) {
     const source = input && typeof input === "object" ? input : {};
     return Boolean(
@@ -535,6 +585,7 @@
       libraryFolders: [],
       libraryFolderOrder: [],
       libraryExpandedPathsByFolder: {},
+      libraryCollapsedFolderIds: [],
       libraryActiveFolderId: "",
       libraryActiveFilePath: "",
       libraryCurrentFileHandle: null,
@@ -689,12 +740,15 @@
     getShareSnapshotState,
     getClearedLibraryCollectionState,
     getFolderConflict,
+    getLibraryDirectoryPaths,
     getReaderAuthoringState,
     getReaderRefreshState,
     getReaderSaveState,
     isSupportedLibraryFile,
+    normalizeLibraryFolderIdSet,
     normalizeLibraryMeta,
     normalizePathKey,
+    orderLibraryFolders,
     parseShareSnapshotFragment,
     prepareImportedLibraryEntries,
     shapeLibraryTree,
