@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-yUIUiDCx2sUNFhRg0XoiADv3AWPQb/JNu0h6XtZPWmo=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-tvt2WcNGeGkcXrkP/8U5dLFRe3lbAuHRBrCOWg5JzpQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -17602,6 +17602,18 @@ Return JSON only.`;
           const documentToken =
             (state.currentName || "__draft__") + "::" + state.sourceMode;
           const generation = state.previewRenderGeneration + 1;
+          const editModeActive = isEditModeActive();
+          const preserveEditorFocus =
+            source === "editor" &&
+            editModeActive &&
+            document.activeElement === els.editor;
+          const editorSelectionStart = preserveEditorFocus
+            ? els.editor.selectionStart
+            : null;
+          const editorSelectionEnd = preserveEditorFocus
+            ? els.editor.selectionEnd
+            : null;
+          const editorScrollTop = preserveEditorFocus ? els.editor.scrollTop : 0;
 
           if (
             state.contentVersion === state.lastRenderedContentVersion &&
@@ -17645,8 +17657,10 @@ Return JSON only.`;
           }
 
           preservePreviewScroll(function () {
-            dismissSelectionUi();
-            clearBrowserSelection();
+            if (!editModeActive) {
+              dismissSelectionUi();
+              clearBrowserSelection();
+            }
             state.highlightTextModel = null;
             state.resolvedHighlights = [];
             els.preview.innerHTML = html;
@@ -17699,6 +17713,22 @@ Return JSON only.`;
           const detail = source === "editor" ? "" : " • " + nowString();
           setStatus(label + action + detail);
           updateWordCount();
+          if (preserveEditorFocus && document.activeElement !== els.editor) {
+            requestAnimationFrame(function () {
+              try {
+                els.editor.focus({ preventScroll: true });
+              } catch (_error) {
+                els.editor.focus();
+              }
+              try {
+                els.editor.setSelectionRange(
+                  editorSelectionStart,
+                  editorSelectionEnd,
+                );
+              } catch (_error) {}
+              els.editor.scrollTop = editorScrollTop;
+            });
+          }
           document.dispatchEvent(
             new CustomEvent("markv:render-complete", {
               detail: {
@@ -19358,6 +19388,8 @@ Return JSON only.`;
           if (mode === "edit") {
             const sourceOffset =
               getPreviewViewportSourceOffset() ?? state.editorSelection ?? 0;
+            dismissSelectionUi();
+            clearBrowserSelection();
             mainEl.classList.add("edit-mode");
             document.body.classList.add("edit-mode-active");
             document.body.classList.remove("preview-mode");
