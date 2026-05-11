@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-j3QYfuSgaQikBDAou2dovx8T56BnbJ2dW4OgE3tBQ8g=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-fXTBV6Ldx+Gy7skfOlRYCA9hbozaTYfA205qhUnOCdI=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -12065,7 +12065,8 @@ Return JSON only.`;
           sourceMode: "editor",
           currentName: "",
           baseHref: window.location.href,
-          lastRenderedText: null,
+          contentVersion: 0,
+          lastRenderedContentVersion: -1,
           lastRenderedDocumentToken: "",
           renderTimer: null,
           autoRefreshTimer: null,
@@ -12134,6 +12135,27 @@ Return JSON only.`;
           return String(value).replace(/[&<>"']/g, function (char) {
             return attrMap[char];
           });
+        }
+
+        function markEditorContentChanged() {
+          state.contentVersion += 1;
+          clearSelectionController();
+          state.highlightTextModel = null;
+        }
+
+        function setEditorMarkdown(markdown) {
+          const next = String(markdown || "");
+          if (els.editor.value !== next) {
+            els.editor.value = next;
+            markEditorContentChanged();
+            return;
+          }
+          els.editor.value = next;
+        }
+
+        function invalidateLastRenderedDocument() {
+          state.lastRenderedContentVersion = -1;
+          state.lastRenderedDocumentToken = "";
         }
 
         function readStorage(storage, key, fallback) {
@@ -12665,8 +12687,7 @@ Return JSON only.`;
           }
 
           if (nextSourceMode === "handle" || nextSourceMode === "library") {
-            state.lastRenderedText = null;
-            state.lastRenderedDocumentToken = "";
+            invalidateLastRenderedDocument();
             render(nextSourceMode);
           } else {
             writeSessionMeta();
@@ -15189,7 +15210,7 @@ Return JSON only.`;
             renderDrawer: true,
           });
 
-          els.editor.value = next.text;
+          setEditorMarkdown(next.text);
           updateUiState();
           render("editor");
           setMode(state.sharedSnapshotMeta.view);
@@ -15244,7 +15265,7 @@ Return JSON only.`;
             renderDrawer: true,
           });
 
-          els.editor.value = markdown;
+          setEditorMarkdown(markdown);
           updateUiState();
           render("editor");
           clearLocationSearch();
@@ -16080,7 +16101,7 @@ Return JSON only.`;
           state.dirty = false;
           state.hasSessionDraft = false;
 
-          els.editor.value = markdown;
+          setEditorMarkdown(markdown);
           updateUiState();
           render("library");
           renderLibraryDrawer();
@@ -17499,7 +17520,7 @@ Return JSON only.`;
           const generation = state.previewRenderGeneration + 1;
 
           if (
-            markdown === state.lastRenderedText &&
+            state.contentVersion === state.lastRenderedContentVersion &&
             documentToken === state.lastRenderedDocumentToken &&
             source !== "force"
           ) {
@@ -17540,6 +17561,10 @@ Return JSON only.`;
           }
 
           preservePreviewScroll(function () {
+            dismissSelectionUi();
+            clearBrowserSelection();
+            state.highlightTextModel = null;
+            state.resolvedHighlights = [];
             els.preview.innerHTML = html;
             document.documentElement.classList.toggle(
               "empty-preview-state",
@@ -17564,7 +17589,7 @@ Return JSON only.`;
             renderKatexInPreview(generation);
           }
 
-          state.lastRenderedText = markdown;
+          state.lastRenderedContentVersion = state.contentVersion;
           state.lastRenderedDocumentToken = documentToken;
           scheduleSessionContentWrite(markdown);
           writeSessionMeta();
@@ -17639,7 +17664,7 @@ Return JSON only.`;
             renderDrawer: true,
           });
 
-          els.editor.value = markdown;
+          setEditorMarkdown(markdown);
           updateUiState();
 
           render("handle");
@@ -17671,7 +17696,7 @@ Return JSON only.`;
             renderDrawer: true,
           });
 
-          els.editor.value = markdown;
+          setEditorMarkdown(markdown);
           updateUiState();
 
           render("file");
@@ -17957,8 +17982,7 @@ Return JSON only.`;
           state.sourceMode = "editor";
           state.currentName = "";
           state.baseHref = window.location.href;
-          state.lastRenderedText = null;
-          state.lastRenderedDocumentToken = "";
+          invalidateLastRenderedDocument();
           state.dirty = false;
           state.hasSessionDraft = false;
           state.highlightDocKey = "";
@@ -17970,7 +17994,7 @@ Return JSON only.`;
             renderDrawer: true,
           });
 
-          els.editor.value = "";
+          setEditorMarkdown("");
           resetMindmapState({ closeViewer: true });
 
           removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
@@ -17985,6 +18009,7 @@ Return JSON only.`;
         }
 
         els.editor.addEventListener("input", function () {
+          markEditorContentChanged();
           syncEditorSelectionState();
           updateUiState();
           scheduleRender();
@@ -17999,6 +18024,7 @@ Return JSON only.`;
             const indent = "  ";
             els.editor.value =
               value.slice(0, start) + indent + value.slice(end);
+            markEditorContentChanged();
             els.editor.selectionStart = els.editor.selectionEnd =
               start + indent.length;
             syncEditorSelectionState();
@@ -18661,7 +18687,7 @@ Return JSON only.`;
             });
             updateUiState();
 
-            els.editor.value = text;
+            setEditorMarkdown(text);
             render("editor");
           }
         });
@@ -18720,7 +18746,7 @@ Return JSON only.`;
             return;
           }
 
-          els.editor.value = savedContent || "";
+          setEditorMarkdown(savedContent || "");
           render("force");
 
           await restoreLibraryFromStorage(sessionMeta);
@@ -18731,7 +18757,7 @@ Return JSON only.`;
             !els.editor.value.trim() &&
             !hasPendingPrimaryHandle
           ) {
-            els.editor.value = await loadDefaultSample();
+            setEditorMarkdown(await loadDefaultSample());
             render("force");
           }
         }
@@ -19900,6 +19926,17 @@ Return JSON only.`;
         var lastTextHash = null;
 
         // ── Utility ───────────────────────────────────────────────────────────
+        function releaseDocumentAnalysis(options) {
+          options = options || {};
+          sections = [];
+          termData = [];
+          lastTextHash = null;
+          if (!options.keepClassifications) {
+            classifications = {};
+            documentShape = {};
+          }
+        }
+
         function simpleHash(text) {
           var h = 5381;
           for (var i = 0; i < text.length; i++) {
@@ -20776,6 +20813,7 @@ Return JSON only.`;
           if (!options.skipGenerationBump) classifyGeneration++;
           if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
           removePreviewHints();
+          releaseDocumentAnalysis();
           if (options.announce !== false) {
             emitAnnounce("Document ontology panel closed.");
           }
@@ -20833,11 +20871,9 @@ Return JSON only.`;
 
           if (newDocId !== currentDocumentId) {
             currentDocumentId = newDocId;
-            classifications = {};
-            documentShape = {};
+            releaseDocumentAnalysis();
             classifyStale = false;
             classifyGeneration++;
-            lastTextHash = null;
             if (panelOpen) {
               hidePanel({ announce: false, skipGenerationBump: true });
             }
@@ -20849,6 +20885,7 @@ Return JSON only.`;
           // rebuilds from current DOM.
           if (!panelOpen) {
             classifyStale = true;
+            releaseDocumentAnalysis();
             return;
           }
 
@@ -20872,9 +20909,7 @@ Return JSON only.`;
           var docName = document.getElementById("preview").dataset.documentLabel || "";
           if (docName === "current document") docName = "";
           currentDocumentId = getDocumentId(docName);
-          buildSectionModel();
-          extractTerms();
-          lastTextHash = computeDocumentTextHash();
+          classifyStale = true;
         }
 
       })();
@@ -21859,6 +21894,7 @@ Return JSON only.`;
         const groqModelField = document.getElementById("groqModelField");
         const CHAT_HISTORY_LIMIT = 8;
         const HISTORY_CHAR_LIMIT = 1200;
+        const CHAT_MESSAGE_DOM_LIMIT = 40;
         const chatHistory = [];
         let lastDocumentFingerprint = "";
         let lastFocusedElement = null;
@@ -22322,6 +22358,26 @@ Return JSON only.`;
         });
 
         // ---- Message helpers ----
+        function pruneChatMessageDom(keepNode) {
+          const nodes = Array.from(messagesDiv.querySelectorAll(".chat-msg"));
+          let overflow = nodes.length - CHAT_MESSAGE_DOM_LIMIT;
+          if (overflow <= 0) return;
+
+          for (const node of nodes) {
+            if (overflow <= 0) break;
+            if (node === keepNode) continue;
+            node.remove();
+            overflow -= 1;
+          }
+        }
+
+        function appendChatMessage(div) {
+          messagesDiv.appendChild(div);
+          pruneChatMessageDom(div);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          return div;
+        }
+
         function addMessage(text, role) {
           const div = document.createElement("div");
           div.className = "chat-msg " + role;
@@ -22334,17 +22390,13 @@ Return JSON only.`;
           } else {
             div.textContent = text;
           }
-          messagesDiv.appendChild(div);
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
-          return div;
+          return appendChatMessage(div);
         }
         function addTyping() {
           const div = document.createElement("div");
           div.className = "chat-msg assistant";
           div.innerHTML = '<span class="typing-dots">Thinking</span>';
-          messagesDiv.appendChild(div);
-          messagesDiv.scrollTop = messagesDiv.scrollHeight;
-          return div;
+          return appendChatMessage(div);
         }
 
         function trimForHistory(text, maxChars) {
