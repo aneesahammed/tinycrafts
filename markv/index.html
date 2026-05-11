@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-fXTBV6Ldx+Gy7skfOlRYCA9hbozaTYfA205qhUnOCdI=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-yUIUiDCx2sUNFhRg0XoiADv3AWPQb/JNu0h6XtZPWmo=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -916,6 +916,7 @@
       }
       .btn:focus-visible,
       .chat-fab:focus-visible,
+      .scroll-top-btn:focus-visible,
       .chat-header-btn:focus-visible,
       .chat-send-btn:focus-visible,
       .ctx-menu-item:focus-visible,
@@ -3614,6 +3615,88 @@
       .chat-fab.hidden {
         display: none;
       }
+      .scroll-top-btn {
+        position: fixed;
+        right: max(24px, env(safe-area-inset-right));
+        bottom: max(86px, calc(env(safe-area-inset-bottom) + 86px));
+        z-index: 900;
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--border-default);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+        color: var(--fg-muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 18px 34px -28px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease,
+          color 180ms ease,
+          border-color 180ms ease,
+          background-color 180ms ease;
+      }
+      .scroll-top-btn.is-visible {
+        opacity: 0.82;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+      .scroll-top-btn:hover,
+      .scroll-top-btn:focus-visible {
+        background: var(--bg-subtle);
+        border-color: var(--border-strong);
+        color: var(--fg-default);
+        opacity: 1;
+      }
+      .scroll-top-btn.is-visible:active {
+        transform: translateY(1px);
+      }
+      .scroll-top-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+      body.library-open .scroll-top-btn,
+      body.mindmap-open .scroll-top-btn,
+      body.mv-more-open .scroll-top-btn {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+      }
+      body.chat-open .scroll-top-btn {
+        right: calc(360px + max(24px, env(safe-area-inset-right)));
+      }
+      @media (max-width: 640px) {
+        .scroll-top-btn {
+          right: 50%;
+          bottom: max(16px, env(safe-area-inset-bottom));
+          transform: translate(50%, 8px);
+        }
+        .scroll-top-btn.is-visible {
+          transform: translate(50%, 0);
+        }
+        .scroll-top-btn.is-visible:active {
+          transform: translate(50%, 1px);
+        }
+        body.library-open .scroll-top-btn,
+        body.mindmap-open .scroll-top-btn,
+        body.mv-more-open .scroll-top-btn {
+          transform: translate(50%, 8px);
+        }
+      }
+      @media (max-width: 600px) {
+        body.chat-open .scroll-top-btn {
+          opacity: 0;
+          pointer-events: none;
+          transform: translate(50%, 8px);
+        }
+      }
 
       .chat-panel {
         position: fixed;
@@ -5216,6 +5299,7 @@
         .highlight-remove-chip,
         .highlight-undo,
         .chat-fab,
+        .scroll-top-btn,
         .chat-panel,
         .ont-panel {
           display: none !important;
@@ -19542,6 +19626,71 @@ Return JSON only.`;
           breadcrumb.id = "readingBreadcrumb";
           breadcrumb.setAttribute("aria-hidden", "true");
           document.body.appendChild(breadcrumb);
+          let scrollTopBtn = null;
+          let scrollTopButtonReady = false;
+
+          function getScrollTopButton() {
+            if (!scrollTopBtn) {
+              scrollTopBtn = document.getElementById("scrollTopBtn");
+            }
+            return scrollTopBtn;
+          }
+
+          function scrollToDocumentTop() {
+            const btn = getScrollTopButton();
+            window.scrollTo({
+              top: 0,
+              behavior: prefersReducedMotion() ? "auto" : "smooth",
+            });
+            if (btn && typeof btn.blur === "function") {
+              btn.blur();
+            }
+          }
+
+          function syncScrollTopButton(maxY) {
+            const btn = getScrollTopButton();
+            if (!btn) return;
+            const blocked =
+              document.body.classList.contains("library-open") ||
+              document.body.classList.contains("mindmap-open") ||
+              document.body.classList.contains("mv-more-open") ||
+              (document.body.classList.contains("chat-open") &&
+                window.matchMedia("(max-width: 600px)").matches);
+            const scrollable =
+              (typeof maxY === "number" ? maxY : document.documentElement.scrollHeight - window.innerHeight) >
+              window.innerHeight * 0.75;
+            const threshold = Math.min(
+              720,
+              Math.max(360, window.innerHeight * 0.55),
+            );
+            const visible = !blocked && scrollable && window.scrollY > threshold;
+            btn.classList.toggle("is-visible", visible);
+            btn.tabIndex = visible ? 0 : -1;
+            btn.setAttribute("aria-hidden", String(!visible));
+          }
+
+          function setupScrollTopButton() {
+            const btn = getScrollTopButton();
+            if (!btn || scrollTopButtonReady) return;
+            scrollTopButtonReady = true;
+            btn.addEventListener("click", scrollToDocumentTop);
+            new MutationObserver(function () {
+              syncScrollTopButton();
+            }).observe(document.body, {
+              attributes: true,
+              attributeFilter: ["class"],
+            });
+            syncScrollTopButton();
+          }
+
+          setupScrollTopButton();
+          if (!scrollTopButtonReady && document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", setupScrollTopButton, {
+              once: true,
+            });
+          } else if (!scrollTopButtonReady) {
+            window.requestAnimationFrame(setupScrollTopButton);
+          }
 
           function renderBreadcrumb(headings, activeHeading) {
             if (!activeHeading) {
@@ -19603,6 +19752,7 @@ Return JSON only.`;
                 "is-active",
                 window.scrollY > 40 && maxY > window.innerHeight * 0.4,
               );
+              syncScrollTopButton(maxY);
 
               // Breadcrumb — find the heading closest above the
               // viewport top threshold.
@@ -20914,6 +21064,30 @@ Return JSON only.`;
 
       })();
     </script>
+
+    <!-- Scroll to top -->
+    <button
+      id="scrollTopBtn"
+      class="scroll-top-btn"
+      type="button"
+      title="Scroll to top"
+      aria-label="Scroll to top"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 19V5" />
+        <path d="M5 12l7-7 7 7" />
+      </svg>
+    </button>
 
     <!-- Chat FAB -->
     <button
