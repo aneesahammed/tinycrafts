@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-6eK2HZw3r1SJ8ckoickHd7qa4vN2DXjTQwBnM2rv6pM=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-j3QYfuSgaQikBDAou2dovx8T56BnbJ2dW4OgE3tBQ8g=' 'sha256-3gXDEKdnDX/I0VCSzLEvY0etIpZjRKNxD6tmqTVU4+E=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-ghD+QPQm3O6Hh5meZkDrvV3K78X6c61hdKreH3ZhqEI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -379,6 +379,39 @@
         letter-spacing: -0.045em;
         line-height: 1;
         text-transform: lowercase;
+        max-width: 360px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--fg-default);
+      }
+      .brand-name.is-file {
+        font-weight: 500;
+        letter-spacing: -0.005em;
+        text-transform: none;
+      }
+      .brand-name.is-untitled {
+        font-weight: 500;
+        letter-spacing: -0.005em;
+        text-transform: none;
+        color: var(--fg-subtle);
+      }
+      .brand-dirty {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        margin-left: 6px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--alert-warning) 80%, transparent);
+        flex-shrink: 0;
+      }
+      .brand-dirty[hidden] {
+        display: none;
+      }
+      @media (max-width: 640px) {
+        .brand-name {
+          max-width: 180px;
+        }
       }
 
       .toolbar .spacer {
@@ -3192,7 +3225,7 @@
         .brand {
           margin-right: 0;
         }
-        .brand span:last-child {
+        .brand-name:not(.is-file):not(.is-untitled) {
           display: none;
         }
         .toolbar .status {
@@ -4235,11 +4268,33 @@
       .lib-folder {
         margin: 0;
         padding: 10px 0 4px;
+        position: relative;
+        transition: opacity 140ms ease;
       }
       .lib-folder + .lib-folder {
         margin-top: 8px;
         padding-top: 14px;
         border-top: 1px solid var(--border-soft);
+      }
+      .lib-folder[data-dragging="true"] {
+        opacity: 0.35;
+      }
+      .lib-folder[data-drop="before"]::before,
+      .lib-folder[data-drop="after"]::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        height: 2px;
+        background: var(--accent-fg);
+        border-radius: 2px;
+        pointer-events: none;
+      }
+      .lib-folder[data-drop="before"]::before {
+        top: -1px;
+      }
+      .lib-folder[data-drop="after"]::after {
+        bottom: -1px;
       }
       .lib-folder-head {
         padding: 4px 10px;
@@ -4290,7 +4345,7 @@
         min-width: 0;
         display: flex;
         align-items: baseline;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         column-gap: 8px;
         row-gap: 2px;
       }
@@ -4302,7 +4357,10 @@
         line-height: 1.3;
         letter-spacing: -0.01em;
         color: var(--fg-default);
-        word-break: break-word;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .lib-folder-sub {
         display: none;
@@ -4340,9 +4398,9 @@
       .lib-folder-actions {
         display: inline-flex;
         flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 2px;
-        width: 100%;
+        gap: 10px;
+        margin: 0 0 0 auto;
+        flex-shrink: 0;
         opacity: 0;
         transition: opacity 140ms ease;
       }
@@ -4374,7 +4432,7 @@
         color: color-mix(in srgb, var(--alert-warning) 72%, var(--fg-default));
       }
       .lib-tree {
-        padding: 4px 0 4px;
+        padding: 1px 0 4px;
       }
       .lib-tree-node {
         display: block;
@@ -4482,7 +4540,7 @@
         white-space: nowrap;
       }
       .lib-tree-empty {
-        padding: 4px 12px 0 22px;
+        padding: 3px 12px 0 42px;
         font-size: 11.5px;
         font-style: italic;
         color: var(--fg-subtle);
@@ -5192,7 +5250,8 @@
               <path d="M54 100L54 54L100 54Q94 94 54 100Z" />
             </svg>
           </span>
-          <span class="brand-name">MarkV</span>
+          <span class="brand-name" id="brandName">MarkV</span>
+          <span id="brandDirty" class="brand-dirty" aria-hidden="true" hidden></span>
         </div>
 
         <div id="status" class="status">Ready</div>
@@ -11877,6 +11936,8 @@ Return JSON only.`;
         }
 
         const els = {
+          brandName: document.getElementById("brandName"),
+          brandDirty: document.getElementById("brandDirty"),
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
           openFileBtn: document.getElementById("openFileBtn"),
@@ -15390,7 +15451,7 @@ Return JSON only.`;
         function renderLibraryTreeNodes(nodes, folderId, depth) {
           return (nodes || [])
             .map(function (node) {
-              const padding = 10 + depth * 14;
+              const padding = 32 + depth * 18;
               if (node.type === "directory") {
                 return (
                   '<div class="lib-tree-node">' +
@@ -15544,7 +15605,7 @@ Return JSON only.`;
                 escapeHtml(folder.id) +
                 '" data-collapsed="' +
                 (collapsed ? "true" : "false") +
-                '">' +
+                '" draggable="true">' +
                 '<div class="lib-folder-head" data-action="toggle-folder" data-folder-id="' +
                 escapeHtml(folder.id) +
                 '">' +
@@ -15695,6 +15756,114 @@ Return JSON only.`;
               await removeLibraryFolder(folderId);
             }
           });
+          let libraryDragId = "";
+          function cleanupLibraryDragState() {
+            libraryDragId = "";
+            els.libraryBody
+              .querySelectorAll(".lib-folder[data-dragging], .lib-folder[data-drop]")
+              .forEach(function (s) {
+                s.removeAttribute("data-dragging");
+                s.removeAttribute("data-drop");
+              });
+          }
+
+          els.libraryBody.addEventListener("dragstart", function (event) {
+            const section =
+              event.target.closest && event.target.closest(".lib-folder");
+            if (!section) return;
+            // Don't start a drag from inner buttons; let them handle clicks.
+            if (event.target.closest && event.target.closest("button")) {
+              event.preventDefault();
+              return;
+            }
+            const id = section.getAttribute("data-folder-id") || "";
+            if (!id) return;
+            libraryDragId = id;
+            section.setAttribute("data-dragging", "true");
+            if (event.dataTransfer) {
+              event.dataTransfer.effectAllowed = "move";
+              try {
+                event.dataTransfer.setData("text/plain", id);
+              } catch (_) {}
+            }
+          });
+
+          els.libraryBody.addEventListener("dragover", function (event) {
+            if (!libraryDragId) return;
+            const section =
+              event.target.closest && event.target.closest(".lib-folder");
+            if (!section) return;
+            const targetId = section.getAttribute("data-folder-id");
+            if (!targetId || targetId === libraryDragId) return;
+            event.preventDefault();
+            const rect = section.getBoundingClientRect();
+            const isAfter = event.clientY > rect.top + rect.height / 2;
+            els.libraryBody
+              .querySelectorAll(".lib-folder[data-drop]")
+              .forEach(function (s) {
+                if (s !== section) s.removeAttribute("data-drop");
+              });
+            section.setAttribute("data-drop", isAfter ? "after" : "before");
+            if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+          });
+
+          els.libraryBody.addEventListener("dragleave", function (event) {
+            const section =
+              event.target.closest && event.target.closest(".lib-folder");
+            if (!section) return;
+            if (!section.contains(event.relatedTarget)) {
+              section.removeAttribute("data-drop");
+            }
+          });
+
+          els.libraryBody.addEventListener("drop", function (event) {
+            if (!libraryDragId) return;
+            const section =
+              event.target.closest && event.target.closest(".lib-folder");
+            if (!section) {
+              cleanupLibraryDragState();
+              return;
+            }
+            const targetId = section.getAttribute("data-folder-id");
+            const position = section.getAttribute("data-drop") || "before";
+            event.preventDefault();
+            const fromId = libraryDragId;
+            cleanupLibraryDragState();
+            if (targetId && targetId !== fromId) {
+              if (moveLibraryFolder(fromId, targetId, position)) {
+                setStatus("Library folders reordered", { announce: true });
+              }
+            }
+          });
+
+          els.libraryBody.addEventListener("dragend", function () {
+            cleanupLibraryDragState();
+          });
+
+          els.libraryBody.addEventListener("keydown", function (event) {
+            if (!event.altKey) return;
+            if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+            const head =
+              event.target.closest &&
+              event.target.closest(".lib-folder-head");
+            if (!head) return;
+            const folderId = head.getAttribute("data-folder-id");
+            if (!folderId) return;
+            event.preventDefault();
+            const offset = event.key === "ArrowUp" ? -1 : 1;
+            if (moveLibraryFolderByOffset(folderId, offset)) {
+              setStatus("Library folders reordered", { announce: true });
+              window.requestAnimationFrame(function () {
+                const next = els.libraryBody.querySelector(
+                  '.lib-folder[data-folder-id="' +
+                    folderId.replace(/"/g, '\\"') +
+                    '"] .lib-folder-toggle',
+                );
+                if (next && typeof next.focus === "function") next.focus();
+              });
+            }
+          });
+
           els.libraryDrawer.addEventListener("keydown", function (event) {
             if (event.key === "Escape") {
               event.preventDefault();
@@ -15779,6 +15948,56 @@ Return JSON only.`;
               );
             });
           }
+        }
+
+        function moveLibraryFolder(fromId, toId, position) {
+          if (!fromId || !toId || fromId === toId) return false;
+          const ids = state.libraryFolders.map(function (f) {
+            return f.id;
+          });
+          const fromIdx = ids.indexOf(fromId);
+          if (fromIdx < 0) return false;
+          ids.splice(fromIdx, 1);
+          let toIdx = ids.indexOf(toId);
+          if (toIdx < 0) return false;
+          if (position === "after") toIdx += 1;
+          ids.splice(toIdx, 0, fromId);
+          const byId = new Map(
+            state.libraryFolders.map(function (f) {
+              return [f.id, f];
+            }),
+          );
+          state.libraryFolders = ids
+            .map(function (id) {
+              return byId.get(id);
+            })
+            .filter(Boolean);
+          state.libraryFolderOrder = ids.slice();
+          applyLibraryFolderOrder();
+          renderLibraryDrawer();
+          if (canUseLibraryStorage()) {
+            persistLibraryMeta().catch(function (error) {
+              console.warn(
+                "[library] could not persist folder reorder",
+                error,
+              );
+            });
+          }
+          return true;
+        }
+
+        function moveLibraryFolderByOffset(folderId, offset) {
+          if (!folderId || !offset) return false;
+          const ids = state.libraryFolders.map(function (f) {
+            return f.id;
+          });
+          const idx = ids.indexOf(folderId);
+          if (idx < 0) return false;
+          const targetIdx = idx + offset;
+          if (targetIdx < 0 || targetIdx >= ids.length) return false;
+          const targetId = ids[targetIdx];
+          const position = offset < 0 ? "before" : "after";
+          return moveLibraryFolder(folderId, targetId, position);
         }
 
         function toggleLibraryDirectory(folderId, path) {
@@ -15873,7 +16092,7 @@ Return JSON only.`;
           }
 
           if (!options.quiet) {
-            setStatus(file.name + " • loaded • " + nowString(), {
+            setStatus("Loaded • " + nowString(), {
               announce: true,
             });
           }
@@ -16215,6 +16434,38 @@ Return JSON only.`;
           els.wordCount.hidden = false;
         }
 
+        function updateBrandDisplay() {
+          if (!els.brandName) return;
+          const rawName = String(state.currentName || "").trim();
+          const stripped = rawName.replace(
+            /\.(md|markdown|mdown|mkdn|txt)$/i,
+            "",
+          );
+          const hasFile = Boolean(stripped);
+          const hasContent = Boolean((els.editor.value || "").trim());
+
+          if (hasFile) {
+            els.brandName.textContent = stripped;
+            els.brandName.className = "brand-name is-file";
+            els.brandName.title = rawName;
+            document.title = stripped + " · MarkV";
+          } else if (hasContent) {
+            els.brandName.textContent = "Untitled";
+            els.brandName.className = "brand-name is-untitled";
+            els.brandName.removeAttribute("title");
+            document.title = "Untitled · MarkV";
+          } else {
+            els.brandName.textContent = "MarkV";
+            els.brandName.className = "brand-name";
+            els.brandName.removeAttribute("title");
+            document.title = "MarkV — Markdown Viewer";
+          }
+
+          if (els.brandDirty) {
+            els.brandDirty.hidden = !(hasFile && state.dirty);
+          }
+        }
+
         function updateUiState() {
           const refreshState = getReaderRefreshState();
           const saveState = getReaderSaveState();
@@ -16222,6 +16473,7 @@ Return JSON only.`;
           const editModeActive = isEditModeActive();
           const hasContent = Boolean((els.editor.value || "").trim());
           const canOpenMindmap = hasContent;
+          updateBrandDisplay();
           els.reloadBtn.disabled = !refreshState.canReload;
           const reloadLabel =
             refreshState.reloadAction === "file-handle"
@@ -17393,7 +17645,7 @@ Return JSON only.`;
           render("handle");
 
           if (!quiet) {
-            setStatus(file.name + " • reloaded • " + nowString(), {
+            setStatus("Reloaded • " + nowString(), {
               announce: true,
             });
           }
@@ -17423,7 +17675,7 @@ Return JSON only.`;
           updateUiState();
 
           render("file");
-          setStatus(file.name + " • loaded • " + nowString(), {
+          setStatus("Loaded • " + nowString(), {
             announce: true,
           });
         }
@@ -17621,7 +17873,7 @@ Return JSON only.`;
               await writeMarkdownToHandle(state.fileHandle, markdown);
               state.currentName = state.fileHandle.name || suggestedName;
               markDocumentSaved("handle");
-              setStatus(state.currentName + " • saved • " + nowString(), {
+              setStatus("Saved • " + nowString(), {
                 announce: true,
               });
               return;
@@ -17641,7 +17893,7 @@ Return JSON only.`;
               state.currentName =
                 state.libraryCurrentFileHandle.name || suggestedName;
               markDocumentSaved("library");
-              setStatus(state.currentName + " • saved • " + nowString(), {
+              setStatus("Saved • " + nowString(), {
                 announce: true,
               });
               return;
@@ -17671,7 +17923,7 @@ Return JSON only.`;
                   renderDrawer: true,
                 });
                 markDocumentSaved("handle");
-                setStatus(state.currentName + " • saved • " + nowString(), {
+                setStatus("Saved • " + nowString(), {
                   announce: true,
                 });
                 return;
