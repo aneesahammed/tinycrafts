@@ -26,7 +26,7 @@
 
     <script src="../assets/analytics.js"></script>
     <script src="assets/library-core.js"></script>
-    <script src="assets/visual-blocks.js"></script>
+    <script src="assets/visual-blocks.js?v=12"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -1655,21 +1655,21 @@
       }
 
       .visual-block-menu {
-        position: absolute;
+        position: fixed;
         z-index: 1001;
         box-sizing: border-box;
-        width: min(340px, calc(100vw - 20px));
-        max-height: min(360px, calc(100vh - 24px));
+        width: min(390px, calc(100vw - 20px));
+        max-height: min(440px, calc(100vh - 32px));
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: 6px;
-        border: 1px solid var(--border-default);
-        border-radius: 8px;
-        background: color-mix(in srgb, var(--bg-raised) 96%, var(--bg-subtle));
+        padding: 14px 12px 12px;
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--bg-raised) 98%, var(--bg-subtle));
         color: var(--fg-default);
         box-shadow:
-          0 16px 44px rgba(0, 0, 0, 0.12),
-          0 2px 8px rgba(0, 0, 0, 0.06);
+          0 24px 70px rgba(0, 0, 0, 0.11),
+          0 3px 16px rgba(0, 0, 0, 0.05);
         font-family: var(--font-sans);
         opacity: 0;
         transform: translateY(3px) scale(0.99);
@@ -1680,9 +1680,11 @@
       }
 
       :root[data-theme="dark"] .visual-block-menu {
+        background: color-mix(in srgb, var(--bg-raised) 96%, var(--bg-subtle));
+        border-color: var(--border-default);
         box-shadow:
-          0 18px 50px rgba(0, 0, 0, 0.48),
-          0 2px 8px rgba(0, 0, 0, 0.28);
+          0 26px 80px rgba(0, 0, 0, 0.52),
+          0 3px 16px rgba(0, 0, 0, 0.28);
       }
 
       .visual-block-menu[hidden] {
@@ -1695,24 +1697,26 @@
       }
 
       .visual-block-menu__section {
-        padding: 7px 8px 5px;
+        padding: 6px 8px 5px;
         color: var(--fg-subtle);
-        font-size: 11px;
-        font-weight: 650;
+        font-size: 16px;
+        font-weight: 500;
         line-height: 1.2;
-        text-transform: uppercase;
       }
 
       .visual-block-menu__section:not(:first-child) {
-        margin-top: 4px;
-        border-top: 1px solid var(--border-soft);
+        margin-top: 7px;
+        padding-top: 9px;
       }
 
       .visual-block-menu__item {
         display: grid;
-        gap: 2px;
-        padding: 8px 9px;
-        border-radius: 6px;
+        grid-template-columns: 28px minmax(0, 1fr);
+        align-items: center;
+        min-height: 38px;
+        gap: 10px;
+        padding: 3px 8px;
+        border-radius: 7px;
         border: 1px solid transparent;
         cursor: default;
         user-select: none;
@@ -1724,40 +1728,122 @@
       }
 
       .visual-block-menu__item[aria-selected="true"] {
-        border-color: color-mix(in srgb, var(--accent-fg) 28%, transparent);
-        background: color-mix(in srgb, var(--accent-fg) 10%, transparent);
+        border-color: transparent;
+        background: color-mix(in srgb, var(--fg-default) 7%, transparent);
       }
 
       .visual-block-menu__item:active {
         transform: translateY(1px);
       }
 
+      .visual-block-menu__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        color: color-mix(in srgb, var(--fg-muted) 82%, var(--fg-subtle));
+      }
+
+      .visual-block-menu__icon svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        overflow: visible;
+        transform: scale(1.08);
+        transform-origin: center;
+      }
+
       .visual-block-menu__title {
         color: var(--fg-default);
-        font-size: 13px;
-        font-weight: 650;
-        line-height: 1.25;
+        overflow: hidden;
+        font-size: 17px;
+        font-weight: 430;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .visual-block-menu__description {
-        color: var(--fg-muted);
-        font-size: 12px;
-        line-height: 1.35;
+        display: none;
+      }
+
+      @supports selector(:has(*)) {
+        .visual-block-menu__item:has(.visual-block-menu__description):not(:has(.visual-block-menu__icon)) {
+          grid-template-columns: minmax(0, 1fr);
+        }
       }
 
       .visual-block-menu__empty {
-        padding: 18px 12px;
+        padding: 14px 8px 8px;
         color: var(--fg-muted);
         font-family: var(--font-sans);
-        font-size: 13px;
+        font-size: 16px;
         line-height: 1.35;
-        text-align: center;
       }
 
       @media (max-width: 640px) {
         .visual-block-menu {
-          width: min(320px, calc(100vw - 20px));
-          max-height: min(320px, calc(100vh - 24px));
+          width: min(340px, calc(100vw - 20px));
+          max-height: min(380px, calc(100vh - 28px));
+          padding: 12px 10px 10px;
+          border-radius: 12px;
+        }
+
+        .visual-block-menu__section {
+          font-size: 15px;
+        }
+
+        .visual-block-menu__item {
+          grid-template-columns: 26px minmax(0, 1fr);
+          min-height: 36px;
+          gap: 9px;
+          padding-inline: 6px;
+        }
+
+        .visual-block-menu__icon {
+          width: 22px;
+          height: 22px;
+        }
+
+        .visual-block-menu__icon svg {
+          width: 19px;
+          height: 19px;
+        }
+
+        .visual-block-menu__title {
+          font-size: 16px;
+        }
+      }
+
+      @media (max-height: 760px) {
+        .visual-block-menu {
+          max-height: min(400px, calc(100vh - 28px));
+          padding: 12px 10px 10px;
+          border-radius: 12px;
+        }
+
+        .visual-block-menu__section {
+          padding: 5px 7px 4px;
+          font-size: 15px;
+        }
+
+        .visual-block-menu__section:not(:first-child) {
+          margin-top: 5px;
+          padding-top: 7px;
+        }
+
+        .visual-block-menu__item {
+          min-height: 34px;
+          padding-block: 2px;
+        }
+
+        .visual-block-menu__title {
+          font-size: 16px;
         }
       }
 
@@ -25345,7 +25431,7 @@ Return JSON only.`;
       })();
     </script>
 
-    <script src="assets/visual-block-menu.js"></script>
+    <script src="assets/visual-block-menu.js?v=12"></script>
     <!-- Keeps the toolbar's segmented View-mode pill visually in
          sync with body.edit-mode-active / body.mindmap-open. -->
     <script src="assets/toolbar-sync.js"></script>

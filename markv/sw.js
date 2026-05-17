@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v10";
+const CACHE_VERSION = "v12";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -8,8 +8,8 @@ const SHELL_ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./assets/library-core.js",
-  "./assets/visual-blocks.js",
-  "./assets/visual-block-menu.js",
+  "./assets/visual-blocks.js?v=12",
+  "./assets/visual-block-menu.js?v=12",
   "./assets/pwa.js",
   "./assets/sample-developer.md",
   "./assets/toolbar-sync.js",
