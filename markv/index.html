@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-tvt2WcNGeGkcXrkP/8U5dLFRe3lbAuHRBrCOWg5JzpQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-qFvKG/O2EbHIgRI+GIa7RFuwjw2z5CUMnWYS4O+VkGE=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -2798,6 +2798,24 @@
         stroke: var(--mm-node-border-hover);
       }
 
+      .mm-node.is-focused .mm-node-card {
+        fill: var(--mm-node-bg-selected);
+        stroke: var(--accent-fg);
+        stroke-width: 1.5;
+        filter: var(--mm-node-filter-hover);
+      }
+
+      .mm-node.is-related .mm-node-card {
+        stroke: color-mix(in srgb, var(--accent-fg) 48%, var(--mm-node-border));
+      }
+
+      .mm-node.is-muted .mm-node-card,
+      .mm-node.is-muted .mm-node-typebar,
+      .mm-node.is-muted .mm-node-label,
+      .mm-node.is-muted .mm-node-badge {
+        opacity: 0.24;
+      }
+
       .mm-node.is-interactive:focus-visible .mm-node-card {
         stroke: var(--accent-fg);
         stroke-width: 2;
@@ -2869,6 +2887,16 @@
         stroke-opacity: var(--mm-edge-opacity-tertiary);
       }
 
+      .mm-edge.is-active {
+        stroke: var(--accent-fg);
+        stroke-opacity: 0.7;
+        stroke-width: 2.25;
+      }
+
+      .mm-edge.is-muted {
+        stroke-opacity: 0.06;
+      }
+
       /* ── Tooltip card (hover detail) ────────────────────────── */
 
       .mm-tooltip {
@@ -2911,6 +2939,297 @@
         display: block;
         font: 400 13px/1.55 var(--font-serif);
         color: var(--fg-muted);
+      }
+
+      /* ── Search and focus inspector ─────────────────────────── */
+
+      .mindmap-search {
+        position: absolute;
+        top: 18px;
+        left: 24px;
+        z-index: 6;
+        width: min(320px, calc(100% - 48px));
+        font-family: var(--font-sans);
+      }
+
+      .mindmap-search-input {
+        width: 100%;
+        height: 36px;
+        padding: 0 12px 0 34px;
+        color: var(--fg-default);
+        background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+        outline: none;
+        font: 500 12px/1 var(--font-sans);
+      }
+
+      .mindmap-search-input::placeholder {
+        color: var(--fg-subtle);
+      }
+
+      .mindmap-search-input:focus {
+        border-color: var(--accent-fg);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-fg) 16%, transparent);
+      }
+
+      .mindmap-search-icon {
+        position: absolute;
+        left: 12px;
+        top: 11px;
+        width: 14px;
+        height: 14px;
+        color: var(--fg-muted);
+        pointer-events: none;
+      }
+
+      .mindmap-search-results {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 6px);
+        max-height: min(320px, calc(100vh - 260px));
+        overflow-y: auto;
+        padding: 6px;
+        background: var(--bg-raised);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .mindmap-search-results.is-hidden {
+        display: none;
+      }
+
+      .mindmap-search-result {
+        display: grid;
+        grid-template-columns: 6px 1fr;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 10px;
+        color: var(--fg-default);
+        background: transparent;
+        border: 0;
+        border-radius: 6px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mindmap-search-result:hover,
+      .mindmap-search-result:focus-visible {
+        background: var(--bg-subtle);
+        outline: none;
+      }
+
+      .mindmap-search-result-dot {
+        width: 6px;
+        height: 6px;
+        margin-top: 6px;
+        border-radius: 50%;
+      }
+
+      .mindmap-search-result-label {
+        display: block;
+        font: 500 13px/1.25 var(--font-serif);
+      }
+
+      .mindmap-search-result-type {
+        display: block;
+        margin-top: 3px;
+        color: var(--fg-muted);
+        font: 600 9px/1 var(--font-sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .mindmap-inspector {
+        position: absolute;
+        top: 18px;
+        right: 24px;
+        z-index: 6;
+        width: min(340px, calc(100% - 48px));
+        max-height: calc(100% - 36px);
+        overflow: auto;
+        padding: 18px;
+        color: var(--fg-default);
+        background: color-mix(in srgb, var(--bg-raised) 94%, transparent);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        box-shadow: var(--shadow-md);
+        font-family: var(--font-sans);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(6px);
+        transition: opacity 160ms, transform 160ms;
+      }
+
+      .mindmap-inspector.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .mindmap-inspector-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .mindmap-inspector-type {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--fg-muted);
+        font: 600 10px/1 var(--font-sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .mindmap-inspector-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      .mindmap-inspector-title {
+        margin: 10px 0 0;
+        color: var(--fg-default);
+        font: 500 19px/1.25 var(--font-serif);
+      }
+
+      .mindmap-inspector-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        color: var(--fg-muted);
+        background: transparent;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .mindmap-inspector-close:hover,
+      .mindmap-inspector-close:focus-visible {
+        color: var(--fg-default);
+        background: var(--bg-subtle);
+        outline: none;
+      }
+
+      .mindmap-inspector-summary {
+        margin: 12px 0 0;
+        color: var(--fg-muted);
+        font: 400 13px/1.55 var(--font-serif);
+      }
+
+      .mindmap-inspector-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .mindmap-inspector-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 12px;
+        color: var(--bg-canvas);
+        background: var(--fg-default);
+        border: 0;
+        border-radius: 8px;
+        font: 600 12px/1 var(--font-sans);
+        cursor: pointer;
+      }
+
+      .mindmap-inspector-action:hover,
+      .mindmap-inspector-action:focus-visible {
+        background: var(--accent-fg);
+        outline: none;
+      }
+
+      .mindmap-inspector-section {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border-soft);
+      }
+
+      .mindmap-inspector-section-title {
+        margin: 0 0 8px;
+        color: var(--fg-muted);
+        font: 600 10px/1 var(--font-sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .mindmap-connection-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .mindmap-connection {
+        display: grid;
+        grid-template-columns: 6px 1fr;
+        gap: 10px;
+        width: 100%;
+        padding: 8px;
+        color: var(--fg-default);
+        background: transparent;
+        border: 0;
+        border-radius: 6px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mindmap-connection:hover,
+      .mindmap-connection:focus-visible {
+        background: var(--bg-subtle);
+        outline: none;
+      }
+
+      .mindmap-connection-dot {
+        width: 6px;
+        height: 6px;
+        margin-top: 6px;
+        border-radius: 50%;
+      }
+
+      .mindmap-connection-label {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font: 500 13px/1.25 var(--font-serif);
+      }
+
+      .mindmap-connection-meta {
+        display: block;
+        margin-top: 3px;
+        color: var(--fg-muted);
+        font: 600 9px/1 var(--font-sans);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 860px) {
+        .mindmap-search {
+          top: 12px;
+          left: 12px;
+          width: min(300px, calc(100% - 24px));
+        }
+
+        .mindmap-inspector {
+          top: auto;
+          right: 12px;
+          bottom: 12px;
+          left: 12px;
+          width: auto;
+          max-height: 42%;
+        }
       }
 
       /* ── Entry motion ───────────────────────────────────────── */
@@ -6225,7 +6544,7 @@ Drop a .md file anywhere on the page, or open one with the Open button."
                 Concept Mindmap
               </h2>
               <p id="mindmapViewerHelp" class="mindmap-viewer-help">
-                Click a linked concept to jump to its section. Drag to pan, scroll to zoom.
+                Click a concept to inspect its neighborhood. Drag to pan, scroll to zoom.
               </p>
             </div>
             <div class="mindmap-viewer-actions" aria-label="Mindmap viewer actions">
@@ -6301,6 +6620,29 @@ Drop a .md file anywhere on the page, or open one with the Open button."
           <div id="mindmapLegend" class="mindmap-legend" aria-label="Concept type legend"></div>
 
           <div id="mindmapStage" class="mindmap-viewer-stage">
+            <div id="mindmapSearch" class="mindmap-search" role="search">
+              <svg class="mindmap-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                id="mindmapSearchInput"
+                class="mindmap-search-input"
+                type="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Find concept"
+                aria-label="Find concept"
+                aria-controls="mindmapSearchResults"
+              />
+              <div
+                id="mindmapSearchResults"
+                class="mindmap-search-results is-hidden"
+                role="listbox"
+                aria-label="Matching concepts"
+              ></div>
+            </div>
+
             <svg id="mindmapSvg" class="mindmap-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mindmapViewerTitle" aria-describedby="mindmapSrList">
               <g id="mindmapSvgRoot" class="mindmap-svg-root">
                 <g id="mindmapEdges"></g>
@@ -6315,6 +6657,13 @@ Drop a .md file anywhere on the page, or open one with the Open button."
               <span class="mm-tooltip-label"></span>
               <span class="mm-tooltip-summary"></span>
             </div>
+
+            <aside
+              id="mindmapInspector"
+              class="mindmap-inspector"
+              aria-live="polite"
+              aria-hidden="true"
+            ></aside>
 
             <div id="mindmapLoading" class="mm-state-wrap is-hidden">
               <div class="mm-spinner" aria-hidden="true"></div>
@@ -10501,6 +10850,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
             const path = document.createElementNS(SVG_NS, "path");
             path.setAttribute("class", "mm-edge");
             path.setAttribute("data-depth", String(e.depth));
+            path.setAttribute("data-from", e.from.id);
+            path.setAttribute("data-to", e.to.id);
+            path.setAttribute("data-kind", "parent");
             path.setAttribute("d", edgePath(e.from, e.to, `tree-${idx}-${e.to.id}`));
             path.style.setProperty("--mm-stagger", String(idx));
             edgesG.appendChild(path);
@@ -10511,6 +10863,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
             const path = document.createElementNS(SVG_NS, "path");
             path.setAttribute("class", "mm-edge mm-edge-cross");
             path.setAttribute("data-depth", "3");
+            path.setAttribute("data-from", e.from.id);
+            path.setAttribute("data-to", e.to.id);
+            path.setAttribute("data-kind", e.kind || "related");
             path.setAttribute("stroke-dasharray", "3 5");
             path.setAttribute("d", edgePath(e.from, e.to, `cross-${idx}-${e.from.id}-${e.to.id}`));
             edgesG.appendChild(path);
@@ -10527,7 +10882,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
               g.classList.add("is-interactive");
               g.setAttribute("role", "button");
               g.setAttribute("tabindex", "0");
-              g.setAttribute("aria-label", `${MINDMAP_TYPE_LABEL[node.type] || node.type || "Concept"}: ${node.label}`);
+              g.setAttribute("aria-label", `${MINDMAP_TYPE_LABEL[node.type] || node.type || "Concept"}: ${node.label}. Inspect concept.`);
             }
             g.style.setProperty("--mm-stagger", String(idx));
 
@@ -10609,6 +10964,13 @@ Paste markdown on the left, open a local file, or drag one into the page.
           // Render the screen-reader-only concept list and legend as side-effects.
           renderMindmapSrList(laid);
           renderMindmapLegend(laid);
+          if (
+            mindmapState.activeNodeId &&
+            !laid.nodes.some((node) => node.id === mindmapState.activeNodeId)
+          ) {
+            mindmapState.activeNodeId = null;
+          }
+          updateMindmapFocusSurface();
 
           return { bounds: computeBounds(laid.nodes) };
         }
@@ -10827,6 +11189,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           hideTimer: 0,
           isLoading: false,
           rateLimitUntil: 0,
+          activeNodeId: null,
         };
 
         const MINDMAP_MAX_MARKDOWN_CHARS = 20000;
@@ -10839,6 +11202,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
             svgRoot: document.getElementById("mindmapSvgRoot"),
             zoomLabel: document.getElementById("mindmapZoomLabel"),
             tooltip: document.getElementById("mindmapTooltip"),
+            inspector: document.getElementById("mindmapInspector"),
+            searchInput: document.getElementById("mindmapSearchInput"),
+            searchResults: document.getElementById("mindmapSearchResults"),
             loading: document.getElementById("mindmapLoading"),
             errorPane: document.getElementById("mindmapError"),
             errorMsg: document.getElementById("mindmapErrorMessage"),
@@ -10846,7 +11212,17 @@ Paste markdown on the left, open a local file, or drag one into the page.
         }
 
         function clearMindmapSurface() {
-          const { svgRoot, zoomLabel, tooltip, loading, errorPane, errorMsg } =
+          const {
+            svgRoot,
+            zoomLabel,
+            tooltip,
+            inspector,
+            searchInput,
+            searchResults,
+            loading,
+            errorPane,
+            errorMsg,
+          } =
             getMindmapEls();
           const edgesG = document.getElementById("mindmapEdges");
           const nodesG = document.getElementById("mindmapNodes");
@@ -10862,6 +11238,16 @@ Paste markdown on the left, open a local file, or drag one into the page.
           }
           if (zoomLabel) zoomLabel.textContent = "100%";
           if (tooltip) tooltip.classList.remove("is-visible");
+          if (inspector) {
+            inspector.classList.remove("is-visible");
+            inspector.setAttribute("aria-hidden", "true");
+            inspector.textContent = "";
+          }
+          if (searchInput) searchInput.value = "";
+          if (searchResults) {
+            searchResults.classList.add("is-hidden");
+            searchResults.textContent = "";
+          }
           if (loading) loading.classList.add("is-hidden");
           if (errorPane) {
             errorPane.classList.add("is-hidden");
@@ -10896,6 +11282,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           mindmapState.panStartTx = 0;
           mindmapState.panStartTy = 0;
           mindmapState.currentGraph = null;
+          mindmapState.activeNodeId = null;
           if (forgetDocHash) {
             mindmapState.currentDocHash = null;
           }
@@ -10961,7 +11348,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           if (!viewer) return [];
           return Array.from(
             viewer.querySelectorAll(
-              'button, [tabindex]:not([tabindex="-1"])',
+              'button, input, [tabindex]:not([tabindex="-1"])',
             ),
           ).filter(isMindmapFocusable);
         }
@@ -11046,9 +11433,361 @@ Paste markdown on the left, open a local file, or drag one into the page.
           applyMindmapTransform();
         }
 
+        function getMindmapTypeColor(type) {
+          return MINDMAP_TYPE_COLOR_VAR[type]
+            ? `var(${MINDMAP_TYPE_COLOR_VAR[type]})`
+            : "var(--fg-subtle)";
+        }
+
+        function describeMindmapEdgeKind(kind) {
+          const labels = {
+            parent: "Parent link",
+            child: "Child",
+            part_of: "Part of",
+            depends_on: "Depends on",
+            blocks: "Blocks",
+            supports: "Supports",
+            contradicts: "Contradicts",
+            measured_by: "Measured by",
+            related: "Related",
+          };
+          return labels[kind] || "Related";
+        }
+
+        function getMindmapNodeMap() {
+          const map = new Map();
+          if (!mindmapState.laid || !mindmapState.laid.nodes) return map;
+          for (const node of mindmapState.laid.nodes) {
+            map.set(node.id, node);
+          }
+          return map;
+        }
+
+        function getMindmapFocusNeighborhood(nodeId) {
+          const laid = mindmapState.laid;
+          const related = new Set([nodeId]);
+          const activeEdges = new Set();
+          if (!laid) return { related, activeEdges };
+
+          for (const edge of laid.treeEdges || []) {
+            if (edge.from.id === nodeId || edge.to.id === nodeId) {
+              related.add(edge.from.id);
+              related.add(edge.to.id);
+              activeEdges.add(`${edge.from.id}->${edge.to.id}`);
+            }
+          }
+          for (const edge of laid.crossEdges || []) {
+            if (edge.from.id === nodeId || edge.to.id === nodeId) {
+              related.add(edge.from.id);
+              related.add(edge.to.id);
+              activeEdges.add(`${edge.from.id}->${edge.to.id}`);
+            }
+          }
+
+          return { related, activeEdges };
+        }
+
+        function getMindmapConnectedNodes(node) {
+          const laid = mindmapState.laid;
+          if (!node || !laid) return [];
+          const nodeMap = getMindmapNodeMap();
+          const byId = new Map();
+
+          function addConnection(id, relation, kind) {
+            if (!id || id === node.id || byId.has(id)) return;
+            const target = nodeMap.get(id);
+            if (!target) return;
+            byId.set(id, {
+              node: target,
+              relation,
+              kind: kind || relation,
+            });
+          }
+
+          addConnection(node.parent, "Parent", "parent");
+          for (const child of node.children || []) {
+            addConnection(child.id, "Child", "child");
+          }
+          for (const edge of laid.crossEdges || []) {
+            if (edge.from.id === node.id) {
+              addConnection(edge.to.id, describeMindmapEdgeKind(edge.kind), edge.kind);
+            } else if (edge.to.id === node.id) {
+              addConnection(edge.from.id, describeMindmapEdgeKind(edge.kind), edge.kind);
+            }
+          }
+
+          return Array.from(byId.values()).sort((a, b) => {
+            if (a.node.depth !== b.node.depth) return a.node.depth - b.node.depth;
+            return String(a.node.label || "").localeCompare(String(b.node.label || ""));
+          });
+        }
+
+        function renderMindmapInspector(node) {
+          const { inspector } = getMindmapEls();
+          if (!inspector) return;
+          inspector.textContent = "";
+          if (!node) {
+            inspector.classList.remove("is-visible");
+            inspector.setAttribute("aria-hidden", "true");
+            return;
+          }
+
+          const header = document.createElement("div");
+          header.className = "mindmap-inspector-header";
+
+          const titleWrap = document.createElement("div");
+          const type = document.createElement("div");
+          type.className = "mindmap-inspector-type";
+          const dot = document.createElement("span");
+          dot.className = "mindmap-inspector-dot";
+          dot.style.background = getMindmapTypeColor(node.type);
+          const typeLabel = document.createElement("span");
+          typeLabel.textContent =
+            node.depth === 0 ? "Document" : (MINDMAP_TYPE_LABEL[node.type] || "Concept");
+          type.appendChild(dot);
+          type.appendChild(typeLabel);
+
+          const title = document.createElement("h3");
+          title.className = "mindmap-inspector-title";
+          title.textContent = node.label || "Untitled concept";
+          titleWrap.appendChild(type);
+          titleWrap.appendChild(title);
+
+          const close = document.createElement("button");
+          close.type = "button";
+          close.className = "mindmap-inspector-close";
+          close.setAttribute("aria-label", "Close concept details");
+          close.innerHTML =
+            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+          close.addEventListener("click", clearMindmapFocusedNode);
+
+          header.appendChild(titleWrap);
+          header.appendChild(close);
+          inspector.appendChild(header);
+
+          if (node.summary) {
+            const summary = document.createElement("p");
+            summary.className = "mindmap-inspector-summary";
+            summary.textContent = node.summary;
+            inspector.appendChild(summary);
+          }
+
+          if (node.depth > 0) {
+            const actions = document.createElement("div");
+            actions.className = "mindmap-inspector-actions";
+            const jump = document.createElement("button");
+            jump.type = "button";
+            jump.className = "mindmap-inspector-action";
+            jump.textContent = "Open section";
+            jump.addEventListener("click", () => jumpToMindmapSource(node));
+            actions.appendChild(jump);
+            inspector.appendChild(actions);
+          }
+
+          const connections = getMindmapConnectedNodes(node);
+          if (connections.length) {
+            const section = document.createElement("div");
+            section.className = "mindmap-inspector-section";
+            const sectionTitle = document.createElement("p");
+            sectionTitle.className = "mindmap-inspector-section-title";
+            sectionTitle.textContent = `Connections (${connections.length})`;
+            section.appendChild(sectionTitle);
+
+            const list = document.createElement("div");
+            list.className = "mindmap-connection-list";
+            for (const item of connections) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "mindmap-connection";
+              button.addEventListener("click", () => {
+                focusMindmapNode(item.node.id, { center: true });
+              });
+
+              const itemDot = document.createElement("span");
+              itemDot.className = "mindmap-connection-dot";
+              itemDot.style.background = getMindmapTypeColor(item.node.type);
+
+              const body = document.createElement("span");
+              const label = document.createElement("span");
+              label.className = "mindmap-connection-label";
+              label.textContent = item.node.label || "Untitled concept";
+              const meta = document.createElement("span");
+              meta.className = "mindmap-connection-meta";
+              meta.textContent = item.relation;
+              body.appendChild(label);
+              body.appendChild(meta);
+
+              button.appendChild(itemDot);
+              button.appendChild(body);
+              list.appendChild(button);
+            }
+            section.appendChild(list);
+            inspector.appendChild(section);
+          }
+
+          inspector.classList.add("is-visible");
+          inspector.setAttribute("aria-hidden", "false");
+        }
+
+        function updateMindmapFocusSurface() {
+          const activeId = mindmapState.activeNodeId;
+          const activeNode = activeId ? getMindmapNodeById(activeId) : null;
+          const focus = activeNode ? getMindmapFocusNeighborhood(activeId) : null;
+          const nodeEls = document.querySelectorAll("#mindmapNodes .mm-node");
+          const edgeEls = document.querySelectorAll("#mindmapEdges .mm-edge");
+
+          nodeEls.forEach((el) => {
+            const id = el.getAttribute("data-id");
+            const isFocused = !!activeNode && id === activeId;
+            const isRelated = !!focus && focus.related.has(id);
+            el.classList.toggle("is-focused", isFocused);
+            el.classList.toggle("is-related", !!activeNode && isRelated && !isFocused);
+            el.classList.toggle("is-muted", !!activeNode && !isRelated);
+            if (isFocused) {
+              el.setAttribute("aria-pressed", "true");
+            } else {
+              el.removeAttribute("aria-pressed");
+            }
+          });
+
+          edgeEls.forEach((el) => {
+            const from = el.getAttribute("data-from");
+            const to = el.getAttribute("data-to");
+            const isActive = !!focus && focus.activeEdges.has(`${from}->${to}`);
+            el.classList.toggle("is-active", isActive);
+            el.classList.toggle("is-muted", !!activeNode && !isActive);
+          });
+
+          renderMindmapInspector(activeNode);
+        }
+
+        function centerMindmapNode(node) {
+          const { stage, svgRoot } = getMindmapEls();
+          if (!stage || !svgRoot || !node) return;
+          const rect = stage.getBoundingClientRect();
+          const targetScale = Math.max(
+            mindmapState.scale,
+            Math.min(1.25, Math.max(mindmapState.baseScale * 1.55, mindmapState.baseScale)),
+          );
+          svgRoot.classList.remove("is-interactive");
+          mindmapState.scale = targetScale;
+          mindmapState.tx = rect.width / 2 - node.x * targetScale;
+          mindmapState.ty = rect.height / 2 - node.y * targetScale;
+          applyMindmapTransform();
+        }
+
+        function focusMindmapNode(id, options) {
+          const node = getMindmapNodeById(id);
+          if (!node) return;
+          mindmapState.activeNodeId = id;
+          updateMindmapFocusSurface();
+          if (!options || options.center !== false) {
+            centerMindmapNode(node);
+          }
+        }
+
+        function clearMindmapFocusedNode() {
+          if (!mindmapState.activeNodeId) return;
+          mindmapState.activeNodeId = null;
+          updateMindmapFocusSurface();
+        }
+
+        function getMindmapSearchResults(query) {
+          if (!mindmapState.laid || !query.trim()) return [];
+          const tokens = query
+            .toLowerCase()
+            .split(/\s+/)
+            .map((token) => token.trim())
+            .filter(Boolean);
+          if (!tokens.length) return [];
+
+          return mindmapState.laid.nodes
+            .filter((node) => node.depth > 0)
+            .map((node) => {
+              const label = String(node.label || "");
+              const typeLabel = MINDMAP_TYPE_LABEL[node.type] || "";
+              const haystack = `${label} ${typeLabel} ${node.summary || ""}`.toLowerCase();
+              if (!tokens.every((token) => haystack.includes(token))) return null;
+              let score = 0;
+              const lowerLabel = label.toLowerCase();
+              if (lowerLabel === query.toLowerCase()) score += 10;
+              if (lowerLabel.startsWith(query.toLowerCase())) score += 6;
+              if (lowerLabel.includes(query.toLowerCase())) score += 3;
+              score += Math.max(0, 4 - node.depth);
+              return { node, score };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.score - a.score || a.node.label.localeCompare(b.node.label))
+            .slice(0, 8)
+            .map((entry) => entry.node);
+        }
+
+        function hideMindmapSearchResults() {
+          const { searchResults } = getMindmapEls();
+          if (!searchResults) return;
+          searchResults.classList.add("is-hidden");
+          searchResults.textContent = "";
+        }
+
+        function renderMindmapSearchResults() {
+          const { searchInput, searchResults } = getMindmapEls();
+          if (!searchInput || !searchResults) return;
+          const query = searchInput.value.trim();
+          searchResults.textContent = "";
+          if (!query) {
+            hideMindmapSearchResults();
+            return;
+          }
+
+          const results = getMindmapSearchResults(query);
+          if (!results.length) {
+            const empty = document.createElement("div");
+            empty.className = "mindmap-search-result";
+            empty.setAttribute("aria-disabled", "true");
+            const spacer = document.createElement("span");
+            const label = document.createElement("span");
+            label.className = "mindmap-search-result-label";
+            label.textContent = "No matches";
+            empty.appendChild(spacer);
+            empty.appendChild(label);
+            searchResults.appendChild(empty);
+          } else {
+            for (const node of results) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "mindmap-search-result";
+              button.setAttribute("role", "option");
+              button.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                searchInput.value = "";
+                hideMindmapSearchResults();
+                focusMindmapNode(node.id, { center: true });
+              });
+
+              const dot = document.createElement("span");
+              dot.className = "mindmap-search-result-dot";
+              dot.style.background = getMindmapTypeColor(node.type);
+              const body = document.createElement("span");
+              const label = document.createElement("span");
+              label.className = "mindmap-search-result-label";
+              label.textContent = node.label || "Untitled concept";
+              const type = document.createElement("span");
+              type.className = "mindmap-search-result-type";
+              type.textContent = MINDMAP_TYPE_LABEL[node.type] || "Concept";
+              body.appendChild(label);
+              body.appendChild(type);
+              button.appendChild(dot);
+              button.appendChild(body);
+              searchResults.appendChild(button);
+            }
+          }
+          searchResults.classList.remove("is-hidden");
+        }
+
         function wireMindmapInteractions() {
           const els = getMindmapEls();
-          const { viewer, stage, svg, svgRoot } = els;
+          const { viewer, stage, svgRoot, searchInput } = els;
           if (!viewer || !stage) return;
 
           // Close button
@@ -11086,6 +11825,26 @@ Paste markdown on the left, open a local file, or drag one into the page.
             }
           });
 
+          if (searchInput) {
+            searchInput.addEventListener("input", renderMindmapSearchResults);
+            searchInput.addEventListener("focus", renderMindmapSearchResults);
+            searchInput.addEventListener("keydown", (event) => {
+              if (event.key === "Escape") {
+                searchInput.value = "";
+                hideMindmapSearchResults();
+                searchInput.blur();
+                return;
+              }
+              if (event.key !== "Enter") return;
+              const first = getMindmapSearchResults(searchInput.value.trim())[0];
+              if (!first) return;
+              event.preventDefault();
+              searchInput.value = "";
+              hideMindmapSearchResults();
+              focusMindmapNode(first.id, { center: true });
+            });
+          }
+
           // Keyboard — global shortcut to open (Cmd/Ctrl+M)
           document.addEventListener("keydown", (event) => {
             const mod = event.metaKey || event.ctrlKey;
@@ -11117,6 +11876,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           // Drag to pan (only when starting on empty space, not on a node).
           stage.addEventListener("pointerdown", (event) => {
             if (event.target.closest(".mm-node")) return;
+            if (event.target.closest(".mindmap-search, .mindmap-inspector")) return;
             mindmapState.isPanning = true;
             mindmapState.panStartX = event.clientX;
             mindmapState.panStartY = event.clientY;
@@ -11146,6 +11906,13 @@ Paste markdown on the left, open a local file, or drag one into the page.
           // Backdrop click closes
           viewer.addEventListener("click", (event) => {
             if (event.target === viewer) closeMindmapViewer();
+          });
+
+          stage.addEventListener("click", (event) => {
+            if (event.target.closest(".mm-node")) return;
+            if (event.target.closest(".mindmap-search, .mindmap-inspector")) return;
+            clearMindmapFocusedNode();
+            hideMindmapSearchResults();
           });
         }
 
@@ -11301,9 +12068,18 @@ Paste markdown on the left, open a local file, or drag one into the page.
           nodesG.addEventListener("click", (event) => {
             const g = event.target.closest(".mm-node");
             if (!g) return;
+            event.preventDefault();
+            event.stopPropagation();
             const id = g.getAttribute("data-id");
-            if (!mindmapState.laid) return;
-            const node = mindmapState.laid.nodes.find((n) => n.id === id);
+            focusMindmapNode(id, { center: true });
+          });
+          nodesG.addEventListener("dblclick", (event) => {
+            const g = event.target.closest(".mm-node");
+            if (!g) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const id = g.getAttribute("data-id");
+            const node = getMindmapNodeById(id);
             if (node && node.depth > 0) jumpToMindmapSource(node);
           });
           nodesG.addEventListener("keydown", (event) => {
@@ -11312,8 +12088,13 @@ Paste markdown on the left, open a local file, or drag one into the page.
             if (!g) return;
             event.preventDefault();
             const id = g.getAttribute("data-id");
-            const node = mindmapState.laid && mindmapState.laid.nodes.find((n) => n.id === id);
-            if (node && node.depth > 0) jumpToMindmapSource(node);
+            const node = getMindmapNodeById(id);
+            if (!node) return;
+            if (event.key === "Enter" && mindmapState.activeNodeId === id && node.depth > 0) {
+              jumpToMindmapSource(node);
+              return;
+            }
+            focusMindmapNode(id, { center: true });
           });
         }
 
