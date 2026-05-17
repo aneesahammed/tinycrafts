@@ -630,6 +630,867 @@
     };
   }
 
+  function slugifyLibraryText(text) {
+    return String(text || "")
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9\s/-]/g, " ")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/\/+/g, "/")
+      .replace(/^\/+|\/+$/g, "");
+  }
+
+  function slugifyLibraryAnchorText(text) {
+    return String(text || "")
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  function normalizeLibraryPath(path) {
+    const parts = [];
+    String(path || "")
+      .replace(/\\/g, "/")
+      .split("/")
+      .forEach(function (part) {
+        if (!part || part === ".") return;
+        if (part === "..") {
+          parts.pop();
+          return;
+        }
+        parts.push(part);
+      });
+    return parts.join("/");
+  }
+
+  function getLibraryPathDir(path) {
+    const normalized = normalizeLibraryPath(path);
+    const index = normalized.lastIndexOf("/");
+    return index === -1 ? "" : normalized.slice(0, index);
+  }
+
+  function getLibraryPathBase(path) {
+    const normalized = normalizeLibraryPath(path);
+    const index = normalized.lastIndexOf("/");
+    return index === -1 ? normalized : normalized.slice(index + 1);
+  }
+
+  function stripLibraryExtension(name) {
+    return String(name || "").replace(/\.(md|markdown|mdown|mkdn|txt)$/i, "");
+  }
+
+  function titleFromLibraryPath(path) {
+    const base = stripLibraryExtension(getLibraryPathBase(path));
+    return String(base || "Untitled")
+      .replace(/[-_]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, function (char) {
+        return char.toUpperCase();
+      });
+  }
+
+  function cleanLibraryInlineMarkdown(text) {
+    return String(text || "")
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+      .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, function (_match, target, alias) {
+        return alias || target;
+      })
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/[*_~]/g, "")
+      .replace(/<\/?[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function splitFrontmatter(markdown) {
+    const text = String(markdown || "");
+    if (!text.startsWith("---")) {
+      return { frontmatter: "", body: text };
+    }
+    const match = text.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)([\s\S]*)$/);
+    if (!match) return { frontmatter: "", body: text };
+    return {
+      frontmatter: match[1] || "",
+      body: match[2] || "",
+    };
+  }
+
+  function normalizeCategoryValue(value) {
+    return String(value || "")
+      .trim()
+      .replace(/^['"]|['"]$/g, "")
+      .trim();
+  }
+
+  function parseLibraryFrontmatterCategories(frontmatter) {
+    const categories = [];
+    const seen = Object.create(null);
+    let activeList = false;
+
+    function add(value) {
+      const normalized = normalizeCategoryValue(value);
+      if (!normalized || seen[normalized]) return;
+      seen[normalized] = true;
+      categories.push(normalized);
+    }
+
+    String(frontmatter || "")
+      .split(/\r?\n/)
+      .forEach(function (line) {
+        const match = line.match(/^\s*(tags?|topics?|categor(?:y|ies))\s*:\s*(.*?)\s*$/i);
+        if (!match) {
+          if (activeList) {
+            const item = line.match(/^\s*-\s+(.+?)\s*$/);
+            if (item) {
+              add(item[1]);
+              return;
+            }
+            if (!line.trim()) return;
+            activeList = false;
+          }
+          return;
+        }
+        const raw = match[2].trim();
+        activeList = !raw;
+        if (!raw) return;
+        if (raw[0] === "[" && raw[raw.length - 1] === "]") {
+          raw
+            .slice(1, -1)
+            .split(",")
+            .forEach(add);
+          activeList = false;
+          return;
+        }
+        raw.split(/\s*,\s*/).forEach(add);
+        activeList = false;
+      });
+
+    return categories;
+  }
+
+  function resolveLibraryMarkdownTarget(currentPath, target) {
+    const cleanTarget = String(target || "")
+      .trim()
+      .replace(/^<|>$/g, "")
+      .split("#")[0]
+      .split("?")[0]
+      .trim();
+    if (
+      !cleanTarget ||
+      /^[a-z][a-z0-9+.-]*:/i.test(cleanTarget) ||
+      cleanTarget.startsWith("#")
+    ) {
+      return "";
+    }
+    const baseDir = getLibraryPathDir(currentPath);
+    const resolved = normalizeLibraryPath(
+      (baseDir ? baseDir + "/" : "") + cleanTarget,
+    );
+    return resolved;
+  }
+
+  function resolveLibraryWikiTarget(currentPath, target) {
+    const raw = String(target || "")
+      .trim()
+      .split("#")[0]
+      .trim();
+    if (!raw) return "";
+    const baseDir = getLibraryPathDir(currentPath);
+    const parts = raw.split("/").map(slugifyLibraryText).filter(Boolean);
+    const targetPath = parts.join("/");
+    if (!targetPath) return "";
+    const withExtension = /\.(md|markdown|mdown|mkdn|txt)$/i.test(targetPath)
+      ? targetPath
+      : targetPath + ".md";
+    return normalizeLibraryPath((baseDir ? baseDir + "/" : "") + withExtension);
+  }
+
+  function clipLibrarySummary(text, maxChars) {
+    const normalized = cleanLibraryInlineMarkdown(text);
+    if (!normalized || normalized.length <= maxChars) return normalized;
+    const clipped = normalized.slice(0, Math.max(0, maxChars - 1));
+    const boundary = clipped.lastIndexOf(" ");
+    return (boundary > 48 ? clipped.slice(0, boundary) : clipped).trim() + "...";
+  }
+
+  function extractLibrarySummary(body) {
+    const lines = String(body || "").split(/\r?\n/);
+    const paragraph = [];
+    let inFence = false;
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (/^(```|~~~)/.test(line.trim())) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      if (/^ {0,3}#{1,6}\s+/.test(line)) {
+        if (paragraph.length) break;
+        continue;
+      }
+      if (!line.trim()) {
+        if (paragraph.length) break;
+        continue;
+      }
+      if (/^ {0,3}[-*+]\s+/.test(line.trim())) {
+        if (paragraph.length) break;
+        continue;
+      }
+      paragraph.push(line.trim());
+    }
+    return clipLibrarySummary(paragraph.join(" "), 180);
+  }
+
+  function parseLibraryMarkdownContext(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const path = normalizeLibraryPath(source.path);
+    const split = splitFrontmatter(source.text);
+    const categories = parseLibraryFrontmatterCategories(split.frontmatter);
+    const lines = String(split.body || "").split(/\r?\n/);
+    const headings = [];
+    const links = [];
+    let title = "";
+    let inFence = false;
+    let inRelatedSection = false;
+
+    function addLink(link) {
+      if (!link.normalizedPath) return;
+      links.push(link);
+    }
+
+    lines.forEach(function (line) {
+      if (/^(```|~~~)/.test(line.trim())) {
+        inFence = !inFence;
+        return;
+      }
+      if (inFence) return;
+
+      const headingMatch = line.match(/^ {0,3}(#{1,6})[ \t]+(.+?)\s*#*\s*$/);
+      if (headingMatch) {
+        const text = cleanLibraryInlineMarkdown(headingMatch[2]);
+        const heading = {
+          level: headingMatch[1].length,
+          text: text,
+          anchor: slugifyLibraryAnchorText(text),
+        };
+        headings.push(heading);
+        if (!title && heading.level === 1) title = heading.text;
+        inRelatedSection = /^related concepts?$/i.test(heading.text);
+        return;
+      }
+
+      line.replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, function (_match, target, alias) {
+        const label = cleanLibraryInlineMarkdown(alias || target);
+        addLink({
+          label: label || cleanLibraryInlineMarkdown(target),
+          rawTarget: String(target || "").trim(),
+          normalizedPath: resolveLibraryWikiTarget(path, target),
+          kind: "wikilink",
+          inRelatedSection: inRelatedSection,
+        });
+        return _match;
+      });
+
+      line.replace(/(^|[^!])\[([^\]]+)\]\(([^)]+)\)/g, function (_match, prefix, label, target) {
+        addLink({
+          label: cleanLibraryInlineMarkdown(label),
+          rawTarget: String(target || "").trim(),
+          normalizedPath: resolveLibraryMarkdownTarget(path, target),
+          kind: "markdown",
+          inRelatedSection: inRelatedSection,
+        });
+        return _match;
+      });
+    });
+
+    return {
+      path: path,
+      title: title || titleFromLibraryPath(path),
+      summary: extractLibrarySummary(split.body),
+      categories: categories,
+      headings: headings,
+      links: links,
+    };
+  }
+
+  function buildLibraryKnownPathMaps(docs) {
+    const byPath = new Map();
+    const byTitleSlug = new Map();
+    const byBaseSlug = new Map();
+
+    function setUnique(map, key, value) {
+      if (!key || !value) return;
+      if (!map.has(key)) {
+        map.set(key, value);
+        return;
+      }
+      if (map.get(key) !== value) {
+        map.set(key, null);
+      }
+    }
+
+    docs.forEach(function (doc) {
+      byPath.set(doc.path, doc);
+      setUnique(byTitleSlug, slugifyLibraryText(doc.title), doc.path);
+      setUnique(
+        byBaseSlug,
+        slugifyLibraryText(stripLibraryExtension(getLibraryPathBase(doc.path))),
+        doc.path,
+      );
+    });
+
+    return {
+      byPath: byPath,
+      byTitleSlug: byTitleSlug,
+      byBaseSlug: byBaseSlug,
+    };
+  }
+
+  function resolveLibraryContextLink(link, maps) {
+    const normalized = normalizeLibraryPath(link && link.normalizedPath);
+    if (normalized && maps.byPath.has(normalized)) return normalized;
+    if (link && link.kind === "wikilink") {
+      const slug = slugifyLibraryText(link.rawTarget || link.label);
+      return maps.byTitleSlug.get(slug) || maps.byBaseSlug.get(slug) || "";
+    }
+    return "";
+  }
+
+  function dedupeByPath(items) {
+    const seen = new Set();
+    const output = [];
+    items.forEach(function (item) {
+      if (!item || !item.path || seen.has(item.path)) return;
+      seen.add(item.path);
+      output.push(item);
+    });
+    return output;
+  }
+
+  function buildLibraryMindmapContext(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const currentPath = normalizeLibraryPath(source.currentPath);
+    const files = Array.isArray(source.files) ? source.files : [];
+    const currentMarkdown = String(source.currentMarkdown || "");
+    const parsedDocs = [];
+    const seenPaths = new Set();
+
+    function addDoc(file) {
+      const filePath = normalizeLibraryPath(file && file.path);
+      if (!filePath || seenPaths.has(filePath) || !isSupportedLibraryFile(filePath)) {
+        return;
+      }
+      seenPaths.add(filePath);
+      parsedDocs.push(
+        parseLibraryMarkdownContext({
+          path: filePath,
+          text: String(file && file.text ? file.text : ""),
+        }),
+      );
+    }
+
+    files.forEach(addDoc);
+    if (currentPath) {
+      const existingIndex = parsedDocs.findIndex(function (doc) {
+        return doc.path === currentPath;
+      });
+      const currentDoc = parseLibraryMarkdownContext({
+        path: currentPath,
+        text: currentMarkdown,
+      });
+      if (existingIndex === -1) {
+        parsedDocs.unshift(currentDoc);
+      } else {
+        parsedDocs[existingIndex] = currentDoc;
+      }
+    }
+
+    const maps = buildLibraryKnownPathMaps(parsedDocs);
+    const current =
+      maps.byPath.get(currentPath) ||
+      parseLibraryMarkdownContext({ path: currentPath, text: currentMarkdown });
+
+    const outboundLinks = dedupeByPath(
+      current.links
+        .map(function (link) {
+          const resolvedPath = resolveLibraryContextLink(link, maps);
+          const target = maps.byPath.get(resolvedPath);
+          if (!target || resolvedPath === current.path) return null;
+          return {
+            path: resolvedPath,
+            title: target.title,
+            label: link.label,
+            summary: target.summary,
+            categories: target.categories.slice(),
+            related: Boolean(link.inRelatedSection),
+            kind: link.kind,
+          };
+        })
+        .filter(Boolean),
+    );
+
+    const backlinkCounts = new Map();
+    const backlinks = dedupeByPath(
+      parsedDocs
+        .filter(function (doc) {
+          return doc.path !== current.path;
+        })
+        .map(function (doc) {
+          let count = 0;
+          doc.links.forEach(function (link) {
+            if (resolveLibraryContextLink(link, maps) === current.path) {
+              count += 1;
+            }
+          });
+          if (!count) return null;
+          backlinkCounts.set(doc.path, count);
+          return {
+            path: doc.path,
+            title: doc.title,
+            summary: doc.summary,
+            categories: doc.categories.slice(),
+            occurrenceCount: count,
+          };
+        })
+        .filter(Boolean),
+    );
+
+    const outboundByPath = new Map();
+    outboundLinks.forEach(function (item) {
+      outboundByPath.set(item.path, item);
+    });
+    const backlinkByPath = new Map();
+    backlinks.forEach(function (item) {
+      backlinkByPath.set(item.path, item);
+    });
+
+    const neighborPaths = new Set(
+      outboundLinks.concat(backlinks).map(function (item) {
+        return item.path;
+      }),
+    );
+    const neighbors = Array.from(neighborPaths)
+      .map(function (path) {
+        const doc = maps.byPath.get(path);
+        const outbound = outboundByPath.get(path);
+        const inbound = backlinkByPath.get(path);
+        return {
+          path: path,
+          title: doc ? doc.title : titleFromLibraryPath(path),
+          summary: doc ? doc.summary : "",
+          categories: doc ? doc.categories.slice() : [],
+          backlinkCount: backlinkCounts.get(path) || 0,
+          direction: outbound && inbound ? "bidirectional" : outbound ? "outbound" : "inbound",
+          related: Boolean(outbound && outbound.related),
+        };
+      })
+      .sort(function (a, b) {
+        if (a.related !== b.related) return a.related ? -1 : 1;
+        return compareLibraryNames(a.title, b.title);
+      });
+
+    return {
+      current: current,
+      files: parsedDocs,
+      outboundLinks: outboundLinks,
+      backlinks: backlinks,
+      neighbors: neighbors,
+      stats: {
+        fileCount: parsedDocs.length,
+        neighborCount: neighbors.length,
+      },
+    };
+  }
+
+  function makeMindmapGraphId(prefix, text, usedIds) {
+    const base = prefix + "-" + (slugifyLibraryText(text) || "item");
+    let id = base;
+    let index = 2;
+    while (usedIds.has(id)) {
+      id = base + "-" + index;
+      index += 1;
+    }
+    usedIds.add(id);
+    return id;
+  }
+
+  function createLibraryContextMindmapGraph(context) {
+    const source = context && typeof context === "object" ? context : {};
+    const current = source.current || {};
+    const usedIds = new Set(["root"]);
+    const nodes = [];
+    const edges = [];
+    const sectionIdByAnchor = new Map();
+    const headings = Array.isArray(current.headings) ? current.headings : [];
+    const sectionHeadings = headings.filter(function (heading) {
+      return heading && heading.level > 1 && heading.text;
+    });
+
+    sectionHeadings.slice(0, 12).forEach(function (heading) {
+      const id = makeMindmapGraphId("section", heading.anchor || heading.text, usedIds);
+      sectionIdByAnchor.set(heading.anchor, id);
+      nodes.push({
+        id: id,
+        label: heading.text,
+        type: "feature",
+        summary: "Section from the current document.",
+        sourceAnchor: heading.anchor || null,
+        parent: "root",
+      });
+    });
+
+    const relatedParent =
+      sectionIdByAnchor.get("related-concepts") ||
+      (nodes[0] && nodes[0].id) ||
+      "root";
+    const neighbors = Array.isArray(source.neighbors) ? source.neighbors : [];
+    neighbors.slice(0, Math.max(0, 24 - nodes.length)).forEach(function (neighbor) {
+      const id = makeMindmapGraphId("related", neighbor.title || neighbor.path, usedIds);
+      nodes.push({
+        id: id,
+        label: neighbor.title || titleFromLibraryPath(neighbor.path),
+        type: neighbor.direction === "inbound" ? "dependency" : "feature",
+        summary: neighbor.summary || "Linked page in the active library folder.",
+        sourceAnchor: null,
+        parent: relatedParent,
+      });
+      edges.push({
+        from: id,
+        to: relatedParent,
+        kind: neighbor.direction === "inbound" ? "depends_on" : "supports",
+      });
+    });
+
+    if (!nodes.length && current.summary) {
+      nodes.push({
+        id: makeMindmapGraphId("summary", current.title || "summary", usedIds),
+        label: "Summary",
+        type: "feature",
+        summary: current.summary,
+        sourceAnchor: null,
+        parent: "root",
+      });
+    }
+
+    return {
+      root: {
+        id: "root",
+        label: current.title || "Library Document",
+        summary: current.summary || "Deterministic map from the active library context.",
+      },
+      nodes: nodes,
+      edges: edges,
+    };
+  }
+
+  function formatLibraryMindmapContextForPrompt(context) {
+    const source = context && typeof context === "object" ? context : {};
+    const current = source.current || {};
+    const headings = Array.isArray(current.headings) ? current.headings : [];
+    const anchors = headings
+      .map(function (heading) {
+        return heading && heading.anchor;
+      })
+      .filter(Boolean);
+    const lines = [
+      "LIBRARY_CONTEXT",
+      "This context is deterministic. Treat available_anchors and library links as authoritative.",
+      "current: " +
+        (current.title || "Untitled") +
+        " (" +
+        (current.path || "") +
+        ")",
+      "available_anchors: " + (anchors.length ? anchors.join(", ") : "none"),
+    ];
+
+    if (Array.isArray(current.categories) && current.categories.length) {
+      lines.push("categories: " + current.categories.join(", "));
+    }
+
+    const outbound = Array.isArray(source.outboundLinks)
+      ? source.outboundLinks
+      : [];
+    lines.push("outbound_links:");
+    if (outbound.length) {
+      outbound.slice(0, 16).forEach(function (item) {
+        lines.push(
+          "- " +
+            (item.label || item.title || item.path) +
+            " -> " +
+            item.path +
+            (item.related ? " related_section=true" : ""),
+        );
+      });
+    } else {
+      lines.push("- none");
+    }
+
+    const backlinks = Array.isArray(source.backlinks) ? source.backlinks : [];
+    lines.push("backlinks:");
+    if (backlinks.length) {
+      backlinks.slice(0, 16).forEach(function (item) {
+        lines.push(
+          "- " +
+            (item.title || item.path) +
+            " -> current occurrence_count=" +
+            (item.occurrenceCount || 1),
+        );
+      });
+    } else {
+      lines.push("- none");
+    }
+
+    const neighbors = Array.isArray(source.neighbors) ? source.neighbors : [];
+    lines.push("neighbors:");
+    if (neighbors.length) {
+      neighbors.slice(0, 18).forEach(function (item) {
+        lines.push(
+          "- " +
+            (item.title || item.path) +
+            " (" +
+            item.path +
+            ") direction=" +
+            (item.direction || "related") +
+            (item.related ? " related=true" : "") +
+            (item.summary ? " summary=\"" + item.summary.replace(/"/g, "'") + "\"" : ""),
+        );
+      });
+    } else {
+      lines.push("- none");
+    }
+
+    return lines.join("\n");
+  }
+
+  function groundMindmapGraphWithLibraryContext(graph, context) {
+    const sourceGraph = graph && typeof graph === "object" ? graph : {};
+    const sourceContext = context && typeof context === "object" ? context : {};
+    const current = sourceContext.current || {};
+    const allowedAnchors = new Set(
+      (Array.isArray(current.headings) ? current.headings : [])
+        .map(function (heading) {
+          return heading && heading.anchor;
+        })
+        .filter(Boolean),
+    );
+
+    return {
+      root: Object.assign({}, sourceGraph.root || {}),
+      nodes: (Array.isArray(sourceGraph.nodes) ? sourceGraph.nodes : []).map(function (node) {
+        const next = Object.assign({}, node);
+        if (next.sourceAnchor && !allowedAnchors.has(next.sourceAnchor)) {
+          next.sourceAnchor = null;
+        }
+        return next;
+      }),
+      edges: (Array.isArray(sourceGraph.edges) ? sourceGraph.edges : []).map(function (edge) {
+        return Object.assign({}, edge);
+      }),
+    };
+  }
+
+  function normalizeMindmapGraphReferences(graph, options) {
+    const source = graph && typeof graph === "object" ? graph : {};
+    const settings = options && typeof options === "object" ? options : {};
+    const allowedNodeTypes = new Set(
+      Array.isArray(settings.allowedNodeTypes) ? settings.allowedNodeTypes : [],
+    );
+    const allowedEdgeKinds = new Set(
+      Array.isArray(settings.allowedEdgeKinds) ? settings.allowedEdgeKinds : [],
+    );
+    const fallbackNodeType =
+      typeof settings.fallbackNodeType === "string"
+        ? settings.fallbackNodeType
+        : "feature";
+    const fallbackEdgeKind =
+      typeof settings.fallbackEdgeKind === "string"
+        ? settings.fallbackEdgeKind
+        : "supports";
+    const root = Object.assign(
+      {
+        id: "root",
+        label: "Document",
+        summary: "",
+      },
+      source.root && typeof source.root === "object" ? source.root : {},
+    );
+    root.id = "root";
+    if (typeof root.label !== "string" || !root.label.trim()) {
+      root.label = "Document";
+    }
+    if (typeof root.summary !== "string") {
+      root.summary = "";
+    }
+
+    const usedIds = new Set(["root"]);
+    const remap = new Map([["root", "root"]]);
+    const nodes = [];
+
+    function makeNodeId(node, index) {
+      const raw = node && typeof node.id === "string" ? node.id.trim() : "";
+      const fallback =
+        node && typeof node.label === "string" && node.label.trim()
+          ? slugifyLibraryAnchorText(node.label)
+          : "node-" + (index + 1);
+      const base = slugifyLibraryAnchorText(raw || fallback) || "node-" + (index + 1);
+      let id = base;
+      let suffix = 2;
+      while (usedIds.has(id)) {
+        id = base + "-" + suffix;
+        suffix += 1;
+      }
+      usedIds.add(id);
+      if (raw && !remap.has(raw)) {
+        remap.set(raw, id);
+      }
+      return id;
+    }
+
+    (Array.isArray(source.nodes) ? source.nodes : []).forEach(function (node, index) {
+      if (!node || typeof node !== "object") return;
+      const next = Object.assign({}, node);
+      next.id = makeNodeId(next, index);
+      if (typeof next.label !== "string" || !next.label.trim()) {
+        next.label = next.id;
+      }
+      if (typeof settings.normalizeNodeType === "function") {
+        next.type = settings.normalizeNodeType(next.type);
+      }
+      if (allowedNodeTypes.size && !allowedNodeTypes.has(next.type)) {
+        next.type = allowedNodeTypes.has(fallbackNodeType)
+          ? fallbackNodeType
+          : Array.from(allowedNodeTypes)[0];
+      }
+      if (typeof next.summary !== "string") {
+        next.summary = "";
+      }
+      if (typeof next.sourceAnchor !== "string") {
+        next.sourceAnchor = null;
+      }
+      nodes.push(next);
+    });
+
+    const aliasToId = new Map();
+    function addAlias(value, id) {
+      const raw = String(value || "").trim();
+      if (!raw || !id) return;
+      const aliases = [raw, slugifyLibraryAnchorText(raw), slugifyLibraryText(raw)];
+      aliases.forEach(function (alias) {
+        if (!alias) return;
+        if (!aliasToId.has(alias)) {
+          aliasToId.set(alias, id);
+        } else if (aliasToId.get(alias) !== id) {
+          aliasToId.set(alias, null);
+        }
+      });
+    }
+
+    addAlias("root", "root");
+    addAlias(root.label, "root");
+    (Array.isArray(settings.rootAliases) ? settings.rootAliases : []).forEach(function (alias) {
+      addAlias(alias, "root");
+    });
+    nodes.forEach(function (node) {
+      addAlias(node.id, node.id);
+      addAlias(node.label, node.id);
+      addAlias(node.sourceAnchor, node.id);
+    });
+
+    function resolveReference(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      if (remap.has(raw)) return remap.get(raw);
+      if (usedIds.has(raw)) return raw;
+      const direct = aliasToId.get(raw);
+      if (direct) return direct;
+      const anchorSlug = slugifyLibraryAnchorText(raw);
+      const anchorMatch = aliasToId.get(anchorSlug);
+      if (anchorMatch) return anchorMatch;
+      const pathSlug = slugifyLibraryText(raw);
+      const pathMatch = aliasToId.get(pathSlug);
+      return pathMatch || "";
+    }
+
+    nodes.forEach(function (node) {
+      const parent = resolveReference(node.parent);
+      node.parent = parent && usedIds.has(parent) && parent !== node.id ? parent : "root";
+    });
+
+    const maxDepth = Number.isFinite(Number(settings.maxDepth))
+      ? Math.max(1, Number(settings.maxDepth))
+      : 3;
+    const byId = new Map();
+    nodes.forEach(function (node) {
+      byId.set(node.id, node);
+    });
+
+    function repairDepth(id, stack) {
+      if (id === "root") return 0;
+      const node = byId.get(id);
+      if (!node) return 0;
+      if (stack.indexOf(id) !== -1) {
+        node.parent = "root";
+        return 1;
+      }
+      const parentDepth = repairDepth(node.parent, stack.concat(id));
+      if (parentDepth + 1 > maxDepth) {
+        node.parent = "root";
+        return 1;
+      }
+      return parentDepth + 1;
+    }
+
+    nodes.forEach(function (node) {
+      repairDepth(node.id, []);
+    });
+
+    const edgeSeen = new Set();
+    const edges = [];
+    (Array.isArray(source.edges) ? source.edges : []).forEach(function (edge) {
+      if (!edge || typeof edge !== "object") return;
+      const from = resolveReference(edge.from);
+      const to = resolveReference(edge.to);
+      if (!from || !to || !usedIds.has(from) || !usedIds.has(to)) return;
+      if (from === to) return;
+      const kind =
+        typeof settings.normalizeEdgeKind === "function"
+          ? settings.normalizeEdgeKind(edge.kind)
+          : edge.kind;
+      if (allowedEdgeKinds.size && !allowedEdgeKinds.has(kind)) {
+        if (!allowedEdgeKinds.has(fallbackEdgeKind)) return;
+      }
+      const safeKind =
+        allowedEdgeKinds.size && !allowedEdgeKinds.has(kind)
+          ? fallbackEdgeKind
+          : kind;
+      const key = from + "->" + to + "->" + String(safeKind || "");
+      if (edgeSeen.has(key)) return;
+      edgeSeen.add(key);
+      edges.push(Object.assign({}, edge, {
+        from: from,
+        to: to,
+        kind: safeKind,
+      }));
+    });
+
+    return {
+      root: root,
+      nodes: nodes,
+      edges: edges,
+    };
+  }
+
   function getReaderRefreshState(input) {
     const source = input && typeof input === "object" ? input : {};
     const sourceMode = String(source.sourceMode || "editor");
@@ -734,6 +1595,8 @@
     SUPPORTED_EXTENSIONS: SUPPORTED_EXTENSIONS.slice(),
     SHARE_FRAGMENT_PREFIX,
     compareLibraryNames,
+    buildLibraryMindmapContext,
+    createLibraryContextMindmapGraph,
     createShareSnapshotFragment,
     createDirectoryNode,
     createFileNode,
@@ -744,11 +1607,15 @@
     getReaderAuthoringState,
     getReaderRefreshState,
     getReaderSaveState,
+    groundMindmapGraphWithLibraryContext,
     isSupportedLibraryFile,
+    formatLibraryMindmapContextForPrompt,
     normalizeLibraryFolderIdSet,
     normalizeLibraryMeta,
+    normalizeMindmapGraphReferences,
     normalizePathKey,
     orderLibraryFolders,
+    parseLibraryMarkdownContext,
     parseShareSnapshotFragment,
     prepareImportedLibraryEntries,
     shapeLibraryTree,

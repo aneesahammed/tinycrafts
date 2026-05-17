@@ -486,3 +486,474 @@ test("describes share request state for empty, small, and large docs", () => {
     },
   );
 });
+
+test("extracts wiki links, related concepts, frontmatter categories, and heading anchors", () => {
+  const parsed = core.parseLibraryMarkdownContext?.({
+    path: "concepts/algorithm.md",
+    text: [
+      "---",
+      "tags: [framework, operations]",
+      "category: decision-making",
+      "---",
+      "# The Algorithm",
+      "",
+      "A 5-step decision framework for [[Requirement Hygiene]].",
+      "",
+      "## The Steps (in order)",
+      "",
+      "Use [Delete Harder](delete-harder.md) before acceleration.",
+      "",
+      "## Business / Team",
+      "",
+      "Works for internal wikis too.",
+      "",
+      "## Related Concepts",
+      "",
+      "- [Operational Cadence](../ops/cadence.md)",
+      "- [[Automation Trap]]",
+    ].join("\n"),
+  });
+
+  assert.deepEqual(
+    {
+      path: parsed.path,
+      title: parsed.title,
+      categories: parsed.categories,
+      headings: parsed.headings,
+      links: parsed.links.map((link) => ({
+        label: link.label,
+        rawTarget: link.rawTarget,
+        normalizedPath: link.normalizedPath,
+        kind: link.kind,
+        inRelatedSection: link.inRelatedSection,
+      })),
+    },
+    {
+      path: "concepts/algorithm.md",
+      title: "The Algorithm",
+      categories: ["framework", "operations", "decision-making"],
+      headings: [
+        { level: 1, text: "The Algorithm", anchor: "the-algorithm" },
+        {
+          level: 2,
+          text: "The Steps (in order)",
+          anchor: "the-steps-in-order",
+        },
+        {
+          level: 2,
+          text: "Business / Team",
+          anchor: "business-team",
+        },
+        {
+          level: 2,
+          text: "Related Concepts",
+          anchor: "related-concepts",
+        },
+      ],
+      links: [
+        {
+          label: "Requirement Hygiene",
+          rawTarget: "Requirement Hygiene",
+          normalizedPath: "concepts/requirement-hygiene.md",
+          kind: "wikilink",
+          inRelatedSection: false,
+        },
+        {
+          label: "Delete Harder",
+          rawTarget: "delete-harder.md",
+          normalizedPath: "concepts/delete-harder.md",
+          kind: "markdown",
+          inRelatedSection: false,
+        },
+        {
+          label: "Operational Cadence",
+          rawTarget: "../ops/cadence.md",
+          normalizedPath: "ops/cadence.md",
+          kind: "markdown",
+          inRelatedSection: true,
+        },
+        {
+          label: "Automation Trap",
+          rawTarget: "Automation Trap",
+          normalizedPath: "concepts/automation-trap.md",
+          kind: "wikilink",
+          inRelatedSection: true,
+        },
+      ],
+    },
+  );
+});
+
+test("parses YAML list frontmatter categories", () => {
+  const parsed = core.parseLibraryMarkdownContext?.({
+    path: "concepts/wiki.md",
+    text: [
+      "---",
+      "tags:",
+      "  - knowledge-base",
+      "  - llm",
+      "topics:",
+      "  - synthesis",
+      "category: systems",
+      "---",
+      "# LLM Wiki",
+    ].join("\n"),
+  });
+
+  assert.deepEqual(parsed.categories, [
+    "knowledge-base",
+    "llm",
+    "synthesis",
+    "systems",
+  ]);
+});
+
+test("builds library mindmap context with outbound links, backlinks, and neighbors", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "concepts/algorithm.md",
+    currentMarkdown: [
+      "# The Algorithm",
+      "",
+      "See [[Requirement Hygiene]] and [Delete Harder](delete-harder.md).",
+      "",
+      "## Related Concepts",
+      "",
+      "- [[Automation Trap]]",
+    ].join("\n"),
+    files: [
+      {
+        path: "concepts/requirement-hygiene.md",
+        text: "# Requirement Hygiene\n\nEvery requirement needs an owner.",
+      },
+      {
+        path: "concepts/delete-harder.md",
+        text: "# Delete Harder\n\nRemove before simplifying.",
+      },
+      {
+        path: "concepts/automation-trap.md",
+        text: "# Automation Trap\n\nNever automate a broken process.",
+      },
+      {
+        path: "ops/cadence.md",
+        text: "# Operational Cadence\n\nRelated to [[The Algorithm]].",
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    {
+      currentTitle: context.current.title,
+      outbound: context.outboundLinks.map((item) => item.path),
+      backlinks: context.backlinks.map((item) => item.path),
+      neighbors: context.neighbors.map((item) => ({
+        path: item.path,
+        title: item.title,
+        direction: item.direction,
+        related: item.related,
+      })),
+    },
+    {
+      currentTitle: "The Algorithm",
+      outbound: [
+        "concepts/requirement-hygiene.md",
+        "concepts/delete-harder.md",
+        "concepts/automation-trap.md",
+      ],
+      backlinks: ["ops/cadence.md"],
+      neighbors: [
+        {
+          path: "concepts/automation-trap.md",
+          title: "Automation Trap",
+          direction: "outbound",
+          related: true,
+        },
+        {
+          path: "concepts/delete-harder.md",
+          title: "Delete Harder",
+          direction: "outbound",
+          related: false,
+        },
+        {
+          path: "ops/cadence.md",
+          title: "Operational Cadence",
+          direction: "inbound",
+          related: false,
+        },
+        {
+          path: "concepts/requirement-hygiene.md",
+          title: "Requirement Hygiene",
+          direction: "outbound",
+          related: false,
+        },
+      ],
+    },
+  );
+});
+
+test("does not resolve ambiguous wiki titles to an arbitrary duplicate page", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "current.md",
+    currentMarkdown: "# Current\n\nSee [[Overview]].",
+    files: [
+      {
+        path: "product/index.md",
+        text: "# Overview\n\nProduct overview.",
+      },
+      {
+        path: "engineering/index.md",
+        text: "# Overview\n\nEngineering overview.",
+      },
+    ],
+  });
+
+  assert.deepEqual(context.outboundLinks, []);
+  assert.deepEqual(context.neighbors, []);
+});
+
+test("repairs graph edges that point at the root label slug", () => {
+  const graph = core.normalizeMindmapGraphReferences?.({
+    root: {
+      id: "root",
+      label: "Project Architecture Overview",
+      summary: "A developer reference.",
+    },
+    nodes: [
+      {
+        id: "http-status-codes",
+        label: "Status Code Reference",
+        type: "feature",
+        summary: "",
+        sourceAnchor: "http-status-codes",
+        parent: "root",
+      },
+      {
+        id: "text-formatting",
+        label: "Text Formatting",
+        type: "feature",
+        summary: "",
+        sourceAnchor: "text-formatting",
+        parent: "root",
+      },
+    ],
+    edges: [
+      {
+        from: "http-status-codes",
+        to: "project-architecture-overview",
+        kind: "supports",
+      },
+      {
+        from: "text-formatting",
+        to: "http-status-codes",
+        kind: "part_of",
+      },
+    ],
+  });
+
+  assert.deepEqual(graph.edges, [
+    {
+      from: "http-status-codes",
+      to: "root",
+      kind: "supports",
+    },
+    {
+      from: "text-formatting",
+      to: "http-status-codes",
+      kind: "part_of",
+    },
+  ]);
+});
+
+test("drops unresolved graph edges instead of failing a usable graph", () => {
+  const graph = core.normalizeMindmapGraphReferences?.({
+    root: { id: "root", label: "Usable Graph", summary: "" },
+    nodes: [
+      {
+        id: "known",
+        label: "Known",
+        type: "feature",
+        summary: "",
+        sourceAnchor: null,
+        parent: "missing-parent",
+      },
+      {
+        id: "child",
+        label: "Child",
+        type: "feature",
+        summary: "",
+        sourceAnchor: null,
+        parent: "known",
+      },
+    ],
+    edges: [
+      { from: "known", to: "missing-node", kind: "supports" },
+      { from: "known", to: "child", kind: "supports" },
+    ],
+  });
+
+  assert.equal(graph.nodes[0].parent, "root");
+  assert.deepEqual(graph.edges, [
+    { from: "known", to: "child", kind: "supports" },
+  ]);
+});
+
+test("uses caller fallbacks for invalid node types and edge kinds", () => {
+  const graph = core.normalizeMindmapGraphReferences?.(
+    {
+      root: { id: "root", label: "Resilient Graph", summary: "" },
+      nodes: [
+        {
+          id: "concept-a",
+          label: "Concept A",
+          type: "concept",
+          summary: "",
+          sourceAnchor: null,
+          parent: "root",
+        },
+        {
+          id: "concept-b",
+          label: "Concept B",
+          type: "feature",
+          summary: "",
+          sourceAnchor: null,
+          parent: "root",
+        },
+      ],
+      edges: [{ from: "concept-a", to: "concept-b", kind: "relates_to" }],
+    },
+    {
+      allowedNodeTypes: ["feature", "goal"],
+      fallbackNodeType: "feature",
+      allowedEdgeKinds: ["supports", "depends_on"],
+      fallbackEdgeKind: "supports",
+    },
+  );
+
+  assert.equal(graph.nodes[0].type, "feature");
+  assert.deepEqual(graph.edges, [
+    { from: "concept-a", to: "concept-b", kind: "supports" },
+  ]);
+});
+
+test("creates a deterministic concept graph from library context when no LLM is available", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "concepts/algorithm.md",
+    currentMarkdown: [
+      "# The Algorithm",
+      "",
+      "A 5-step decision framework.",
+      "",
+      "## Summary",
+      "Question requirements before acting.",
+      "",
+      "## Key Points",
+      "Delete, simplify, accelerate, then automate.",
+      "",
+      "## Related Concepts",
+      "- [[Requirement Hygiene]]",
+    ].join("\n"),
+    files: [
+      {
+        path: "concepts/requirement-hygiene.md",
+        text: "# Requirement Hygiene\n\nEvery requirement needs an owner.",
+      },
+    ],
+  });
+  const graph = core.createLibraryContextMindmapGraph?.(context);
+
+  assert.deepEqual(
+    {
+      root: graph.root,
+      labels: graph.nodes.map((node) => node.label),
+      anchors: graph.nodes.map((node) => node.sourceAnchor),
+      edges: graph.edges,
+    },
+    {
+      root: {
+        id: "root",
+        label: "The Algorithm",
+        summary: "A 5-step decision framework.",
+      },
+      labels: ["Summary", "Key Points", "Related Concepts", "Requirement Hygiene"],
+      anchors: ["summary", "key-points", "related-concepts", null],
+      edges: [
+        {
+          from: "related-requirement-hygiene",
+          to: "section-related-concepts",
+          kind: "supports",
+        },
+      ],
+    },
+  );
+});
+
+test("formats library mindmap context as authoritative prompt context", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "concepts/algorithm.md",
+    currentMarkdown: [
+      "# The Algorithm",
+      "",
+      "See [[Requirement Hygiene]].",
+      "",
+      "## Summary",
+      "A decision framework.",
+    ].join("\n"),
+    files: [
+      {
+        path: "concepts/requirement-hygiene.md",
+        text: "# Requirement Hygiene\n\nEvery requirement needs an owner.",
+      },
+    ],
+  });
+
+  const formatted = core.formatLibraryMindmapContextForPrompt?.(context);
+
+  assert.match(formatted, /LIBRARY_CONTEXT/);
+  assert.match(formatted, /current: The Algorithm \(concepts\/algorithm\.md\)/);
+  assert.match(formatted, /available_anchors: the-algorithm, summary/);
+  assert.match(
+    formatted,
+    /outbound_links:\n- Requirement Hygiene -> concepts\/requirement-hygiene\.md/,
+  );
+  assert.match(
+    formatted,
+    /neighbors:\n- Requirement Hygiene \(concepts\/requirement-hygiene\.md\) direction=outbound/,
+  );
+});
+
+test("grounds generated graph anchors to headings from library context", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "concepts/algorithm.md",
+    currentMarkdown: "# The Algorithm\n\n## Summary\n\n## Key Points",
+    files: [],
+  });
+  const grounded = core.groundMindmapGraphWithLibraryContext?.(
+    {
+      root: { id: "root", label: "The Algorithm", summary: "" },
+      nodes: [
+        {
+          id: "a",
+          label: "Summary",
+          type: "feature",
+          summary: "",
+          sourceAnchor: "summary",
+          parent: "root",
+        },
+        {
+          id: "b",
+          label: "Invented",
+          type: "feature",
+          summary: "",
+          sourceAnchor: "not-real",
+          parent: "root",
+        },
+      ],
+      edges: [],
+    },
+    context,
+  );
+
+  assert.deepEqual(
+    grounded.nodes.map((node) => node.sourceAnchor),
+    ["summary", null],
+  );
+});

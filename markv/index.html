@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-qFvKG/O2EbHIgRI+GIa7RFuwjw2z5CUMnWYS4O+VkGE=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-n1JY6sCJRSKrOpP+wYXoc9y6nXotWTea++42n6Q9xXw=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -26,6 +26,7 @@
 
     <script src="../assets/analytics.js"></script>
     <script src="assets/library-core.js"></script>
+    <script src="assets/visual-blocks.js"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -1637,6 +1638,132 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .editor-toolbar {
+          transition: opacity 0s;
+          transform: none;
+        }
+      }
+
+      .visual-block-caret-mirror {
+        position: absolute;
+        visibility: hidden;
+        top: 0;
+        left: -99999px;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        pointer-events: none;
+      }
+
+      .visual-block-menu {
+        position: absolute;
+        z-index: 1001;
+        box-sizing: border-box;
+        width: min(340px, calc(100vw - 20px));
+        max-height: min(360px, calc(100vh - 24px));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 6px;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--bg-raised) 96%, var(--bg-subtle));
+        color: var(--fg-default);
+        box-shadow:
+          0 16px 44px rgba(0, 0, 0, 0.12),
+          0 2px 8px rgba(0, 0, 0, 0.06);
+        font-family: var(--font-sans);
+        opacity: 0;
+        transform: translateY(3px) scale(0.99);
+        transform-origin: top left;
+        transition:
+          opacity var(--motion-micro) var(--ease-out),
+          transform var(--motion-micro) var(--ease-out);
+      }
+
+      :root[data-theme="dark"] .visual-block-menu {
+        box-shadow:
+          0 18px 50px rgba(0, 0, 0, 0.48),
+          0 2px 8px rgba(0, 0, 0, 0.28);
+      }
+
+      .visual-block-menu[hidden] {
+        display: none;
+      }
+
+      .visual-block-menu.is-open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+
+      .visual-block-menu__section {
+        padding: 7px 8px 5px;
+        color: var(--fg-subtle);
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+
+      .visual-block-menu__section:not(:first-child) {
+        margin-top: 4px;
+        border-top: 1px solid var(--border-soft);
+      }
+
+      .visual-block-menu__item {
+        display: grid;
+        gap: 2px;
+        padding: 8px 9px;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        cursor: default;
+        user-select: none;
+        -webkit-user-select: none;
+        transition:
+          background-color var(--motion-micro) var(--ease-out),
+          border-color var(--motion-micro) var(--ease-out),
+          transform var(--motion-micro) var(--ease-out);
+      }
+
+      .visual-block-menu__item[aria-selected="true"] {
+        border-color: color-mix(in srgb, var(--accent-fg) 28%, transparent);
+        background: color-mix(in srgb, var(--accent-fg) 10%, transparent);
+      }
+
+      .visual-block-menu__item:active {
+        transform: translateY(1px);
+      }
+
+      .visual-block-menu__title {
+        color: var(--fg-default);
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.25;
+      }
+
+      .visual-block-menu__description {
+        color: var(--fg-muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .visual-block-menu__empty {
+        padding: 18px 12px;
+        color: var(--fg-muted);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      @media (max-width: 640px) {
+        .visual-block-menu {
+          width: min(320px, calc(100vw - 20px));
+          max-height: min(320px, calc(100vh - 24px));
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .visual-block-menu,
+        .visual-block-menu__item {
           transition: opacity 0s;
           transform: none;
         }
@@ -12222,6 +12349,10 @@ Paste markdown on the left, open a local file, or drag one into the page.
 REQUIREMENTS:
 - Return ONLY valid JSON matching the schema. No prose, no markdown fences.
 - The supplied document may be raw markdown or a structure-focused digest. Treat headings, anchor lines, and excerpts as authoritative.
+- If LIBRARY_CONTEXT is present, treat it as deterministic context from the active library folder.
+- sourceAnchor must be null or one of the listed available_anchors. Do not invent anchors.
+- Prefer explicit outbound_links, backlinks, Related Concepts, and neighbors when choosing cross-tree edges.
+- Use linked library pages to improve labels and summaries, but keep the map centered on the current document.
 - Root = the document itself. Label: 1-4 words capturing what this doc IS.
 - Primary nodes (parent: "root"): 4-7 load-bearing concepts a reader must understand.
 - Secondary nodes: decomposition of a primary, max 3-4 children per primary.
@@ -12524,6 +12655,161 @@ Return JSON only.`;
           };
         }
 
+        function getMindmapFallbackPath() {
+          const rawName = String(state.currentName || "document.md").trim();
+          return rawName || "document.md";
+        }
+
+        function getOrderedLibraryMindmapPaths(folder, currentPath) {
+          if (
+            !folder ||
+            !folder.fileHandlesByPath ||
+            typeof folder.fileHandlesByPath.keys !== "function"
+          ) {
+            return [];
+          }
+          const currentDir = String(currentPath || "").split("/").slice(0, -1).join("/");
+          return Array.from(folder.fileHandlesByPath.keys())
+            .filter(function (path) {
+              return path && path !== currentPath;
+            })
+            .sort(function (a, b) {
+              const aDir = String(a).split("/").slice(0, -1).join("/");
+              const bDir = String(b).split("/").slice(0, -1).join("/");
+              const aSame = aDir === currentDir ? 0 : 1;
+              const bSame = bDir === currentDir ? 0 : 1;
+              if (aSame !== bSame) return aSame - bSame;
+              if (typeof libraryCore.compareLibraryNames === "function") {
+                return libraryCore.compareLibraryNames(a, b);
+              }
+              return String(a).localeCompare(String(b), undefined, {
+                numeric: true,
+                sensitivity: "base",
+              });
+            });
+        }
+
+        async function readLibraryMindmapFile(folder, path) {
+          if (!folder || !folder.fileHandlesByPath) return null;
+          const handle = folder.fileHandlesByPath.get(path);
+          if (!handle || typeof handle.getFile !== "function") return null;
+          try {
+            const file = await handle.getFile();
+            return {
+              path: path,
+              text: await file.text(),
+            };
+          } catch (error) {
+            console.warn("[mindmap] skipped unreadable library context file", {
+              path: path,
+              error: error && error.message ? error.message : String(error),
+            });
+            return null;
+          }
+        }
+
+        async function buildActiveLibraryMindmapContext(markdown) {
+          if (typeof libraryCore.buildLibraryMindmapContext !== "function") {
+            return null;
+          }
+
+          const currentPath =
+            state.sourceMode === "library" && state.libraryActiveFilePath
+              ? state.libraryActiveFilePath
+              : getMindmapFallbackPath();
+          const files = [];
+          const folder =
+            state.sourceMode === "library" && state.libraryActiveFolderId
+              ? getLibraryFolderById(state.libraryActiveFolderId)
+              : null;
+
+          if (folder && folder.status === "ready") {
+            const paths = getOrderedLibraryMindmapPaths(folder, currentPath);
+            for (const path of paths) {
+              const item = await readLibraryMindmapFile(folder, path);
+              if (item) files.push(item);
+              if (files.length % 20 === 0) await yieldToUi();
+            }
+          }
+
+          return libraryCore.buildLibraryMindmapContext({
+            currentPath: currentPath,
+            currentMarkdown: markdown,
+            files: files,
+          });
+        }
+
+        function getMindmapLibraryContextCacheKey(context) {
+          if (!context || typeof context !== "object") return "";
+          const compact = {
+            current: context.current && context.current.path,
+            outbound: (context.outboundLinks || []).map(function (item) {
+              return [item.path, item.related ? 1 : 0];
+            }),
+            backlinks: (context.backlinks || []).map(function (item) {
+              return [item.path, item.occurrenceCount || 1];
+            }),
+            neighbors: (context.neighbors || []).map(function (item) {
+              return [item.path, item.direction, item.summary || ""];
+            }),
+          };
+          try {
+            return JSON.stringify(compact);
+          } catch (_error) {
+            return "";
+          }
+        }
+
+        function formatMindmapLibraryContext(context) {
+          if (
+            !context ||
+            typeof libraryCore.formatLibraryMindmapContextForPrompt !== "function"
+          ) {
+            return "";
+          }
+          return libraryCore.formatLibraryMindmapContextForPrompt(context);
+        }
+
+        function groundMindmapGraphToLibraryContext(graph, context) {
+          if (
+            context &&
+            typeof libraryCore.groundMindmapGraphWithLibraryContext === "function"
+          ) {
+            return libraryCore.groundMindmapGraphWithLibraryContext(graph, context);
+          }
+          return graph;
+        }
+
+        function createDeterministicMindmapGraph(markdown, context) {
+          const sourceContext =
+            context ||
+            (typeof libraryCore.buildLibraryMindmapContext === "function"
+              ? libraryCore.buildLibraryMindmapContext({
+                  currentPath: getMindmapFallbackPath(),
+                  currentMarkdown: markdown,
+                  files: [],
+                })
+              : null);
+          if (
+            !sourceContext ||
+            typeof libraryCore.createLibraryContextMindmapGraph !== "function"
+          ) {
+            return null;
+          }
+          return libraryCore.createLibraryContextMindmapGraph(sourceContext);
+        }
+
+        function buildMindmapExtractionSource(markdown, libraryContext) {
+          const source = buildMindmapDocumentSource(markdown);
+          const formattedContext = formatMindmapLibraryContext(libraryContext);
+          if (!formattedContext) return source;
+          return {
+            mode: source.mode + "+library_context",
+            text: source.text + "\n\n---\n\n" + formattedContext,
+            truncated: source.truncated,
+          };
+        }
+
         function getMindmapGroqResponseFormat(model) {
           const normalized = String(model || "").trim().toLowerCase();
           if (normalized === "openai/gpt-oss-20b" || normalized === "openai/gpt-oss-120b") {
@@ -12560,13 +12846,14 @@ Return JSON only.`;
          * window.markvLLM = async ({system, user}) => string  returning raw text.
          * Throws on any validation failure.
          * @param {string} markdown
+         * @param {ReturnType<typeof buildActiveLibraryMindmapContext>} [libraryContext]
          * @returns {Promise<ConceptGraph>}
          */
-        async function extractConcepts(markdown) {
+        async function extractConcepts(markdown, libraryContext) {
           if (typeof window.markvLLM !== "function") {
             throw new Error("No LLM client registered (window.markvLLM is not set)");
           }
-          const source = buildMindmapDocumentSource(markdown);
+          const source = buildMindmapExtractionSource(markdown, libraryContext);
           const userPrompt =
             `Extract the concept graph for the following technical document.\n\n` +
             `SOURCE_MODE: ${source.mode}\n\nDOCUMENT:\n\n${source.text}`;
@@ -12575,7 +12862,10 @@ Return JSON only.`;
             user: userPrompt,
             maxCompletionTokens: MINDMAP_MAX_COMPLETION_TOKENS,
           });
-          return parseAndValidateGraph(raw);
+          return groundMindmapGraphToLibraryContext(
+            parseAndValidateGraph(raw),
+            libraryContext,
+          );
         }
 
         /**
@@ -12730,6 +13020,20 @@ Return JSON only.`;
           if (!Array.isArray(parsed.nodes)) throw new Error("Graph.nodes must be an array");
           if (parsed.nodes.length === 0) throw new Error("Graph has no nodes");
           if (parsed.nodes.length > 30) throw new Error(`Graph has too many nodes (${parsed.nodes.length})`);
+
+          if (
+            typeof libraryCore.normalizeMindmapGraphReferences === "function"
+          ) {
+            parsed = libraryCore.normalizeMindmapGraphReferences(parsed, {
+              maxDepth: 3,
+              allowedNodeTypes: MINDMAP_NODE_TYPE_ENUM,
+              fallbackNodeType: "feature",
+              normalizeNodeType: normalizeMindmapNodeType,
+              allowedEdgeKinds: MINDMAP_EDGE_KIND_ENUM,
+              fallbackEdgeKind: "supports",
+              normalizeEdgeKind: normalizeMindmapEdgeKind,
+            });
+          }
 
           const seen = new Set(["root"]);
           const allowedTypes = new Set(Object.keys(MINDMAP_TYPE_LABEL));
@@ -19352,7 +19656,12 @@ Return JSON only.`;
             return;
           }
 
-          const docHash = await hashString(rawMarkdown);
+          const libraryContext = await buildActiveLibraryMindmapContext(rawMarkdown);
+          const libraryContextCacheKey =
+            getMindmapLibraryContextCacheKey(libraryContext);
+          const docHash = await hashString(
+            rawMarkdown + "\n\n::library-context::" + libraryContextCacheKey,
+          );
           if (docHash !== mindmapState.currentDocHash) {
             resetMindmapState({ closeViewer: false });
           }
@@ -19391,12 +19700,22 @@ Return JSON only.`;
             return;
           }
 
-          // No LLM client configured? Bail out with a clear CTA instead of a raw error.
           if (typeof window.markvLLM !== "function") {
-            showMindmapError(
-              "Configure an LLM client to extract concepts. Open the chat panel once to register the client, then try again.",
-              "no_client",
+            const fallbackGraph = createDeterministicMindmapGraph(
+              rawMarkdown,
+              libraryContext,
             );
+            if (fallbackGraph && fallbackGraph.nodes && fallbackGraph.nodes.length >= 3) {
+              mindmapState.currentGraph = fallbackGraph;
+              mindmapState.laid = computeRadialLayout(fallbackGraph);
+              renderMindmap(mindmapState.laid);
+              requestAnimationFrame(() => fitMindmapToView(false));
+            } else {
+              showMindmapError(
+                "Configure an LLM client for semantic extraction. This document does not have enough headings or library links for the local fallback graph.",
+                "no_client",
+              );
+            }
             return;
           }
 
@@ -19404,7 +19723,7 @@ Return JSON only.`;
           mindmapState.isLoading = true;
           if (loading) loading.classList.remove("is-hidden");
           try {
-            const graph = await extractConcepts(rawMarkdown);
+            const graph = await extractConcepts(rawMarkdown, libraryContext);
             if (!graph.nodes || graph.nodes.length < 3) {
               throw new Error(
                 "This document is too short or too abstract to map meaningfully. Try a document with at least a few sections.",
@@ -25026,6 +25345,7 @@ Return JSON only.`;
       })();
     </script>
 
+    <script src="assets/visual-block-menu.js"></script>
     <!-- Keeps the toolbar's segmented View-mode pill visually in
          sync with body.edit-mode-active / body.mindmap-open. -->
     <script src="assets/toolbar-sync.js"></script>
