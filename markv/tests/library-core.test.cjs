@@ -486,3 +486,240 @@ test("describes share request state for empty, small, and large docs", () => {
     },
   );
 });
+
+test("extracts a deterministic knowledge page from markdown", () => {
+  const page = core.extractKnowledgePage?.({
+    folderId: "docs",
+    path: "guides/intro.md",
+    markdown: [
+      "# Intro Guide",
+      "",
+      "Use [[API Reference|the API]] with [Local Note](../notes/setup.md).",
+      "",
+      "## Install",
+      "",
+      "Tags: #getting-started #API",
+      "",
+      "```",
+      "[ignored](secret.md) #ignored",
+      "```",
+    ].join("\n"),
+    lastModified: 123,
+  });
+
+  assert.equal(page.folderId, "docs");
+  assert.equal(page.path, "guides/intro.md");
+  assert.equal(page.title, "Intro Guide");
+  assert.deepEqual(
+    page.headings.map((heading) => heading.text),
+    ["Intro Guide", "Install"],
+  );
+  assert.deepEqual(page.tags, ["API", "getting-started"]);
+  assert.deepEqual(
+    page.outgoingLinks.map((link) => ({
+      kind: link.kind,
+      targetRef: link.targetRef,
+      label: link.label,
+    })),
+    [
+      { kind: "wikilink", targetRef: "api reference", label: "the API" },
+      {
+        kind: "markdown",
+        targetRef: "notes/setup.md",
+        label: "Local Note",
+      },
+    ],
+  );
+});
+
+test("creates stable 128-bit knowledge fingerprints", () => {
+  const first = core.extractKnowledgePage?.({
+    folderId: "docs",
+    path: "a.md",
+    markdown: "# A\n\nBody",
+  });
+  const same = core.extractKnowledgePage?.({
+    folderId: "docs",
+    path: "a.md",
+    markdown: "# A\n\nBody",
+  });
+  const changed = core.extractKnowledgePage?.({
+    folderId: "docs",
+    path: "a.md",
+    markdown: "# A\n\nChanged",
+  });
+
+  assert.match(first.markdownHash, /^[a-f0-9]{32}$/);
+  assert.equal(first.markdownHash, same.markdownHash);
+  assert.notEqual(first.markdownHash, changed.markdownHash);
+});
+
+test("extracts unicode tags and robust local link forms", () => {
+  const page = core.extractKnowledgePage?.({
+    folderId: "docs",
+    path: "guides/intro.md",
+    markdown: [
+      "# Intro",
+      "",
+      "Tags: #café #研究-notes #api/v2",
+      "",
+      "See [[#Install]] and [Setup Guide](<../notes/setup guide.md>).",
+      "Skip image ![Diagram](../assets/graph.png).",
+      "",
+      "## Install",
+    ].join("\n"),
+  });
+
+  assert.deepEqual(page.tags, ["api/v2", "café", "研究-notes"]);
+  assert.deepEqual(
+    page.outgoingLinks.map((link) => ({
+      kind: link.kind,
+      targetRef: link.targetRef,
+      targetAnchor: link.targetAnchor,
+      label: link.label,
+    })),
+    [
+      {
+        kind: "wikilink",
+        targetRef: "",
+        targetAnchor: "install",
+        label: "Install",
+      },
+      {
+        kind: "markdown",
+        targetRef: "notes/setup guide.md",
+        targetAnchor: "",
+        label: "Setup Guide",
+      },
+    ],
+  );
+});
+
+test("resolves knowledge links and leaves missing targets as ghosts", () => {
+  const pages = [
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "a.md",
+      markdown: "# A\n\nSee [[B]] and [[Missing]].",
+    }),
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "b.md",
+      markdown: "# B\n\nBack to [[A]].",
+    }),
+  ];
+  const links = core.createKnowledgeLinkRecords?.(pages);
+
+  const toB = links.find((link) => link.sourcePath === "a.md" && link.targetRef === "b");
+  const missing = links.find(
+    (link) => link.sourcePath === "a.md" && link.targetRef === "missing",
+  );
+
+  assert.equal(toB.targetPath, "b.md");
+  assert.equal(toB.targetKey, "docs::b.md");
+  assert.equal(missing.targetKey, "");
+  assert.equal(missing.targetPath, "");
+});
+
+test("keeps ambiguous duplicate title aliases unresolved", () => {
+  const pages = [
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "a.md",
+      markdown: "# Same\n\nAlpha.",
+    }),
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "b.md",
+      markdown: "# Same\n\nBeta.",
+    }),
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "c.md",
+      markdown: "# C\n\nSee [[Same]].",
+    }),
+  ];
+  const links = core.createKnowledgeLinkRecords?.(pages);
+  const ambiguous = links.find((link) => link.sourcePath === "c.md");
+
+  assert.equal(ambiguous.targetRef, "same");
+  assert.equal(ambiguous.targetKey, "");
+  assert.equal(ambiguous.targetPath, "");
+});
+
+test("builds inbound, outbound, and related knowledge connections", () => {
+  const pages = [
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "a.md",
+      markdown: "# A\n\n#shared\n\nSee [[B]].",
+    }),
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "b.md",
+      markdown: "# B\n\n#shared\n\nBack to [[A]].",
+    }),
+    core.extractKnowledgePage?.({
+      folderId: "docs",
+      path: "c.md",
+      markdown: "# C\n\n#other",
+    }),
+  ];
+  const links = core.createKnowledgeLinkRecords?.(pages);
+  const connections = core.buildKnowledgeConnections?.(
+    pages,
+    links,
+    "docs::a.md",
+  );
+
+  assert.equal(connections.outgoing.length, 1);
+  assert.equal(connections.outgoing[0].targetPath, "b.md");
+  assert.equal(connections.inbound.length, 1);
+  assert.equal(connections.inbound[0].sourcePath, "b.md");
+  assert.deepEqual(
+    connections.related.map((page) => page.path),
+    ["b.md"],
+  );
+});
+
+test("filters large folder graphs to active neighborhood plus top degree", () => {
+  const pages = Array.from({ length: 305 }, (_, index) => ({
+    key: "docs::" + index + ".md",
+    folderId: "docs",
+    path: index + ".md",
+    title: String(index),
+    lastModified: index,
+  }));
+  const links = [
+    {
+      sourceKey: "docs::0.md",
+      targetKey: "docs::1.md",
+    },
+    {
+      sourceKey: "docs::1.md",
+      targetKey: "docs::2.md",
+    },
+    {
+      sourceKey: "docs::304.md",
+      targetKey: "docs::303.md",
+    },
+  ];
+
+  const selected = core.selectKnowledgeGraphNodes?.(pages, links, {
+    activeKey: "docs::0.md",
+    threshold: 300,
+    topN: 2,
+  });
+
+  assert.equal(selected.filtered, true);
+  assert.equal(selected.keys.includes("docs::0.md"), true);
+  assert.equal(selected.keys.includes("docs::1.md"), true);
+  assert.equal(selected.keys.includes("docs::2.md"), true);
+  assert.equal(selected.keys.includes("docs::304.md"), true);
+});
+
+test("normalizes unknown AI concept types to a safe concept node", () => {
+  assert.equal(core.normalizeKnowledgeConceptType?.("tool"), "concept");
+  assert.equal(core.normalizeKnowledgeConceptType?.("success metric"), "success_metric");
+  assert.equal(core.normalizeKnowledgeConceptType?.("unexpected-kind"), "concept");
+});

@@ -630,6 +630,485 @@
     };
   }
 
+  function normalizeKnowledgePath(path) {
+    return String(path || "")
+      .replace(/\\/g, "/")
+      .replace(/^\.?\//, "")
+      .replace(/\/+/g, "/")
+      .replace(/^\/+|\/+$/g, "");
+  }
+
+  function getKnowledgeKey(folderId, path) {
+    return String(folderId || "") + "::" + normalizeKnowledgePath(path);
+  }
+
+  function normalizeKnowledgeText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function cleanKnowledgeInlineMarkdown(value) {
+    return normalizeKnowledgeText(
+      String(value || "")
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "$1")
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/[*_~]/g, "")
+        .replace(/<\/?[^>]+>/g, ""),
+    );
+  }
+
+  function slugifyKnowledgeText(value) {
+    return cleanKnowledgeInlineMarkdown(value)
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
+  }
+
+  function stripKnowledgeMarkdownNoise(markdown) {
+    return String(markdown || "")
+      .replace(/```[\s\S]*?```/g, "\n")
+      .replace(/~~~[\s\S]*?~~~/g, "\n")
+      .replace(/`[^`\n]*`/g, " ");
+  }
+
+  function basenameWithoutExtension(path) {
+    const cleanPath = normalizeKnowledgePath(path);
+    const name = cleanPath.split("/").pop() || cleanPath || "Untitled";
+    return name.replace(/\.(md|markdown|mdown|mkdn|txt)$/i, "");
+  }
+
+  function normalizeKnowledgeAlias(value) {
+    return cleanKnowledgeInlineMarkdown(value)
+      .toLowerCase()
+      .replace(/\.(md|markdown|mdown|mkdn|txt)$/i, "")
+      .replace(/[_-]+/g, " ")
+      .replace(/[^\p{L}\p{N}\s/]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function addUniqueString(list, value) {
+    const normalized = String(value || "").trim();
+    if (!normalized || list.indexOf(normalized) !== -1) return;
+    list.push(normalized);
+  }
+
+  function createContentFingerprint(text) {
+    const value = String(text || "");
+    let h1 = 0x811c9dc5 ^ value.length;
+    let h2 = 0x1000193 ^ value.length;
+    let h3 = 0x9e3779b9 ^ value.length;
+    let h4 = 0x85ebca6b ^ value.length;
+    for (let index = 0; index < value.length; index += 1) {
+      const code = value.charCodeAt(index);
+      h1 = Math.imul(h1 ^ code, 0x01000193);
+      h2 = Math.imul(h2 ^ code, 0x85ebca6b);
+      h3 = Math.imul(h3 ^ code, 0xc2b2ae35);
+      h4 = Math.imul(h4 ^ code, 0x27d4eb2f);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 0x85ebca6b);
+    h2 = Math.imul(h2 ^ (h2 >>> 13), 0xc2b2ae35);
+    h3 = Math.imul(h3 ^ (h3 >>> 16), 0x27d4eb2f);
+    h4 = Math.imul(h4 ^ (h4 >>> 15), 0x165667b1);
+    return [h1, h2, h3, h4]
+      .map(function (part) {
+        return (part >>> 0).toString(16).padStart(8, "0");
+      })
+      .join("");
+  }
+
+  function extractKnowledgeHeadings(markdown) {
+    const lines = String(markdown || "").split(/\r?\n/);
+    const headings = [];
+    let inFence = false;
+
+    lines.forEach(function (line) {
+      const trimmed = line.trim();
+      if (/^(```|~~~)/.test(trimmed)) {
+        inFence = !inFence;
+        return;
+      }
+      if (inFence) return;
+
+      const match = line.match(/^ {0,3}(#{1,6})[ \t]+(.+?)\s*#*\s*$/);
+      if (!match) return;
+      const text = cleanKnowledgeInlineMarkdown(match[2]);
+      if (!text) return;
+      headings.push({
+        level: match[1].length,
+        text: text,
+        anchor: slugifyKnowledgeText(text),
+      });
+    });
+
+    return headings;
+  }
+
+  function extractKnowledgeTags(markdown) {
+    const text = stripKnowledgeMarkdownNoise(markdown)
+      .replace(/\[\[[^\]]+\]\]/g, " ")
+      .replace(/^ {0,3}#{1,6}[ \t]+.+$/gm, " ");
+    const tags = [];
+    const seen = Object.create(null);
+    const pattern = /(^|[\s([{>])#([\p{L}][\p{L}\p{N}_/-]{1,48})(?=$|[\s.,;:!?()[\]{}<>])/gu;
+    let match;
+    while ((match = pattern.exec(text))) {
+      const tag = match[2].replace(/\/+$/g, "");
+      const normalized = tag.toLowerCase();
+      if (!normalized || seen[normalized]) continue;
+      seen[normalized] = true;
+      tags.push(tag);
+    }
+    return tags.sort(compareLibraryNames);
+  }
+
+  function splitKnowledgeTarget(rawTarget) {
+    const raw = String(rawTarget || "").trim();
+    const hashIndex = raw.indexOf("#");
+    const target = hashIndex === -1 ? raw : raw.slice(0, hashIndex);
+    const anchor = hashIndex === -1 ? "" : raw.slice(hashIndex + 1);
+    return {
+      target: target.trim(),
+      anchor: anchor.trim(),
+    };
+  }
+
+  function isExternalKnowledgeHref(href) {
+    return /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(String(href || "").trim());
+  }
+
+  function normalizeKnowledgeTargetRef(target, sourcePath) {
+    const rawTarget = String(target || "").trim();
+    if (!rawTarget) return "";
+    if (isExternalKnowledgeHref(rawTarget)) return "";
+
+    let cleanTarget = rawTarget.replace(/\\/g, "/").replace(/^\.?\//, "");
+    try {
+      cleanTarget = decodeURIComponent(cleanTarget);
+    } catch (_error) {}
+
+    if (/\.(md|markdown|mdown|mkdn|txt)$/i.test(cleanTarget)) {
+      const sourceParts = normalizeKnowledgePath(sourcePath).split("/");
+      sourceParts.pop();
+      const baseParts = cleanTarget.startsWith("/")
+        ? []
+        : sourceParts.filter(Boolean);
+      cleanTarget.split("/").forEach(function (part) {
+        if (!part || part === ".") return;
+        if (part === "..") {
+          baseParts.pop();
+        } else {
+          baseParts.push(part);
+        }
+      });
+      return normalizeKnowledgePath(baseParts.join("/"));
+    }
+
+    return normalizeKnowledgeAlias(cleanTarget);
+  }
+
+  function extractKnowledgeOutgoingLinks(markdown, sourcePath) {
+    const text = stripKnowledgeMarkdownNoise(markdown);
+    const links = [];
+    const seen = Object.create(null);
+
+    function addLink(kind, rawTarget, label) {
+      const split = splitKnowledgeTarget(rawTarget);
+      const targetRef = normalizeKnowledgeTargetRef(split.target, sourcePath);
+      const anchor = split.anchor ? slugifyKnowledgeText(split.anchor) : "";
+      if (!targetRef && !anchor) return;
+      const id = kind + "::" + targetRef + "::" + anchor + "::" + label;
+      if (seen[id]) return;
+      seen[id] = true;
+      links.push({
+        kind: kind,
+        targetRef: targetRef,
+        targetAnchor: anchor,
+        rawTarget: String(rawTarget || "").trim(),
+        label: cleanKnowledgeInlineMarkdown(label || split.target || split.anchor),
+      });
+    }
+
+    text.replace(/!?\[\[([^\]|]*(?:#[^\]|]+)?)(?:\|([^\]]+))?\]\]/g, function (
+      _match,
+      target,
+      alias,
+    ) {
+      addLink("wikilink", target, alias || "");
+      return _match;
+    });
+
+    text.replace(/(!)?\[([^\]\n]+)\]\(\s*(<[^>]+>|[^)\n]+?)(?:\s+["'][^"']*["'])?\s*\)/g, function (
+      _match,
+      isImage,
+      label,
+      href,
+    ) {
+      if (isImage) return _match;
+      href = String(href || "").trim();
+      if (href.charAt(0) === "<" && href.charAt(href.length - 1) === ">") {
+        href = href.slice(1, -1).trim();
+      }
+      if (!href || href.charAt(0) === "#" || isExternalKnowledgeHref(href)) {
+        return _match;
+      }
+      addLink("markdown", href, label);
+      return _match;
+    });
+
+    return links;
+  }
+
+  function extractKnowledgePage(input) {
+    const source = input && typeof input === "object" ? input : {};
+    const folderId = String(source.folderId || "");
+    const path = normalizeKnowledgePath(source.path);
+    const markdown = String(source.markdown || "");
+    const headings = extractKnowledgeHeadings(markdown);
+    const aliases = [];
+    const baseTitle = basenameWithoutExtension(path);
+    const h1 = headings.find(function (heading) {
+      return heading.level === 1;
+    });
+    const title = (h1 && h1.text) || baseTitle || "Untitled";
+
+    [title, baseTitle, path.replace(/\.(md|markdown|mdown|mkdn|txt)$/i, "")].forEach(
+      function (alias) {
+        addUniqueString(aliases, normalizeKnowledgeAlias(alias));
+      },
+    );
+
+    headings.slice(0, 8).forEach(function (heading) {
+      addUniqueString(aliases, normalizeKnowledgeAlias(heading.text));
+    });
+
+    return {
+      key: getKnowledgeKey(folderId, path),
+      folderId: folderId,
+      path: path,
+      title: title,
+      aliases: aliases,
+      headings: headings,
+      tags: extractKnowledgeTags(markdown),
+      outgoingLinks: extractKnowledgeOutgoingLinks(markdown, path),
+      markdownHash: createContentFingerprint(markdown),
+      lastModified: Number(source.lastModified) || 0,
+      indexedAt: Number(source.indexedAt) || Date.now(),
+    };
+  }
+
+  function buildKnowledgeAliasIndex(pages) {
+    const index = new Map();
+    (Array.isArray(pages) ? pages : []).forEach(function (page) {
+      if (!page || !page.key) return;
+      const refs = [normalizeKnowledgePath(page.path)];
+      (Array.isArray(page.aliases) ? page.aliases : []).forEach(function (alias) {
+        refs.push(alias);
+      });
+      refs.forEach(function (ref) {
+        const normalized = normalizeKnowledgeTargetRef(ref, page.path);
+        if (!normalized) return;
+        if (index.has(normalized) && index.get(normalized) !== page) {
+          index.set(normalized, null);
+          return;
+        }
+        if (index.has(normalized)) return;
+        index.set(normalized, page);
+      });
+    });
+    return index;
+  }
+
+  function createKnowledgeLinkRecords(pages) {
+    const pageList = Array.isArray(pages) ? pages : [];
+    const aliasIndex = buildKnowledgeAliasIndex(pageList);
+    const records = [];
+
+    pageList.forEach(function (page) {
+      (Array.isArray(page.outgoingLinks) ? page.outgoingLinks : []).forEach(
+        function (link, index) {
+          const targetPage = link.targetRef ? aliasIndex.get(link.targetRef) : null;
+          records.push({
+            id: page.key + "->" + (link.targetRef || link.targetAnchor || "target") + "#" + index,
+            folderId: page.folderId,
+            sourceKey: page.key,
+            sourcePath: page.path,
+            targetKey: targetPage ? targetPage.key : "",
+            targetPath: targetPage ? targetPage.path : "",
+            targetRef: link.targetRef || "",
+            targetAnchor: link.targetAnchor || "",
+            label: link.label || link.rawTarget || link.targetRef || "Link",
+            kind: link.kind || "link",
+          });
+        },
+      );
+    });
+
+    return records;
+  }
+
+  function buildKnowledgeConnections(pages, links, activeKey) {
+    const pageList = Array.isArray(pages) ? pages : [];
+    const linkList = Array.isArray(links) ? links : [];
+    const byKey = new Map();
+    pageList.forEach(function (page) {
+      if (page && page.key) byKey.set(page.key, page);
+    });
+    const active = byKey.get(activeKey) || null;
+    const outgoing = linkList.filter(function (link) {
+      return link && link.sourceKey === activeKey;
+    });
+    const inbound = linkList.filter(function (link) {
+      return link && link.targetKey === activeKey;
+    });
+    const activeTags = new Set(
+      (active && Array.isArray(active.tags) ? active.tags : []).map(function (tag) {
+        return String(tag).toLowerCase();
+      }),
+    );
+    const activeHeadings = new Set(
+      (active && Array.isArray(active.headings) ? active.headings : []).map(
+        function (heading) {
+          return normalizeKnowledgeAlias(heading && heading.text);
+        },
+      ),
+    );
+    const related = pageList
+      .filter(function (page) {
+        return page && page.key !== activeKey;
+      })
+      .map(function (page) {
+        let score = 0;
+        (Array.isArray(page.tags) ? page.tags : []).forEach(function (tag) {
+          if (activeTags.has(String(tag).toLowerCase())) score += 4;
+        });
+        (Array.isArray(page.headings) ? page.headings : []).forEach(function (heading) {
+          if (activeHeadings.has(normalizeKnowledgeAlias(heading && heading.text))) {
+            score += 1;
+          }
+        });
+        return { page: page, score: score };
+      })
+      .filter(function (item) {
+        return item.score > 0;
+      })
+      .sort(function (a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return compareLibraryNames(a.page.title, b.page.title);
+      })
+      .slice(0, 8)
+      .map(function (item) {
+        return item.page;
+      });
+
+    return {
+      active: active,
+      outgoing: outgoing,
+      inbound: inbound,
+      related: related,
+    };
+  }
+
+  function selectKnowledgeGraphNodes(pages, links, options) {
+    const source = options && typeof options === "object" ? options : {};
+    const threshold = Number(source.threshold) || 300;
+    const topN = Number(source.topN) || 50;
+    const activeKey = String(source.activeKey || "");
+    const pageList = Array.isArray(pages) ? pages : [];
+    const linkList = Array.isArray(links) ? links : [];
+    if (pageList.length <= threshold) {
+      return {
+        keys: pageList.map(function (page) {
+          return page.key;
+        }),
+        filtered: false,
+      };
+    }
+
+    const degree = new Map();
+    const neighbors = new Map();
+    function touch(key) {
+      if (!key) return;
+      degree.set(key, (degree.get(key) || 0) + 1);
+      if (!neighbors.has(key)) neighbors.set(key, new Set());
+    }
+    linkList.forEach(function (link) {
+      if (!link || !link.sourceKey || !link.targetKey) return;
+      touch(link.sourceKey);
+      touch(link.targetKey);
+      neighbors.get(link.sourceKey).add(link.targetKey);
+      neighbors.get(link.targetKey).add(link.sourceKey);
+    });
+
+    const selected = new Set();
+    if (activeKey) {
+      selected.add(activeKey);
+      const firstHop = neighbors.get(activeKey) || new Set();
+      firstHop.forEach(function (key) {
+        selected.add(key);
+        const secondHop = neighbors.get(key) || new Set();
+        secondHop.forEach(function (secondKey) {
+          selected.add(secondKey);
+        });
+      });
+    }
+
+    pageList
+      .slice()
+      .sort(function (a, b) {
+        const degreeDelta = (degree.get(b.key) || 0) - (degree.get(a.key) || 0);
+        if (degreeDelta) return degreeDelta;
+        return (Number(b.lastModified) || 0) - (Number(a.lastModified) || 0);
+      })
+      .slice(0, topN)
+      .forEach(function (page) {
+        selected.add(page.key);
+      });
+
+    return {
+      keys: pageList
+        .map(function (page) {
+          return page.key;
+        })
+        .filter(function (key) {
+          return selected.has(key);
+        }),
+      filtered: true,
+    };
+  }
+
+  const KNOWLEDGE_CONCEPT_TYPE_ALIASES = {
+    goal: "goal",
+    goals: "goal",
+    non_goal: "non_goal",
+    nongoal: "non_goal",
+    feature: "feature",
+    tool: "concept",
+    concept: "concept",
+    term: "concept",
+    constraint: "constraint",
+    dependency: "dependency",
+    actor: "actor",
+    assumption: "assumption",
+    open_question: "open_question",
+    question: "open_question",
+    success_metric: "success_metric",
+    metric: "success_metric",
+  };
+
+  function normalizeKnowledgeConceptType(type) {
+    const canonical = String(type || "concept")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+    return KNOWLEDGE_CONCEPT_TYPE_ALIASES[canonical] || "concept";
+  }
+
   function getReaderRefreshState(input) {
     const source = input && typeof input === "object" ? input : {};
     const sourceMode = String(source.sourceMode || "editor");
@@ -741,16 +1220,25 @@
     getClearedLibraryCollectionState,
     getFolderConflict,
     getLibraryDirectoryPaths,
+    buildKnowledgeConnections,
+    createKnowledgeLinkRecords,
+    extractKnowledgePage,
     getReaderAuthoringState,
     getReaderRefreshState,
     getReaderSaveState,
+    getKnowledgeKey,
     isSupportedLibraryFile,
+    normalizeKnowledgeConceptType,
+    normalizeKnowledgePath,
+    normalizeKnowledgeTargetRef,
     normalizeLibraryFolderIdSet,
     normalizeLibraryMeta,
     normalizePathKey,
     orderLibraryFolders,
     parseShareSnapshotFragment,
     prepareImportedLibraryEntries,
+    selectKnowledgeGraphNodes,
+    slugifyKnowledgeText,
     shapeLibraryTree,
     shouldAutoRestoreLastFile,
     sortLibraryEntries,

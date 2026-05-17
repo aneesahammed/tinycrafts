@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEIC → PNG Converter</title>
+<script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117; color: #e2e8f0;
+    min-height: 100vh; padding: 32px 16px;
+  }
+  h1 { text-align:center; font-size:1.6rem; font-weight:700; margin-bottom:6px; color:#f8fafc; }
+  .subtitle { text-align:center; font-size:0.85rem; color:#64748b; margin-bottom:8px; }
+  #libStatus { text-align:center; font-size:.82rem; margin-bottom:24px; color:#f59e0b; min-height:18px; }
+  .container { max-width:680px; margin:0 auto; }
+
+  #dropzone {
+    border:2px dashed #334155; border-radius:16px; padding:48px 24px;
+    text-align:center; cursor:pointer; transition:border-color .2s,background .2s;
+    background:#1e2433;
+  }
+  #dropzone.over { border-color:#6366f1; background:#1e2040; }
+  #dropzone svg { margin-bottom:12px; opacity:.5; }
+  #dropzone p { font-size:.95rem; color:#94a3b8; }
+  #dropzone span { color:#6366f1; font-weight:600; }
+  #fileInput { display:none; }
+
+  .actions { display:flex; gap:10px; margin-top:20px; justify-content:flex-end; }
+  .btn {
+    padding:9px 18px; border-radius:8px; border:none; font-size:.875rem;
+    font-weight:600; cursor:pointer; transition:opacity .15s,transform .1s;
+    display:flex; align-items:center; gap:6px;
+  }
+  .btn:active { transform:scale(.97); }
+  .btn:disabled { opacity:.35; cursor:not-allowed; }
+  .btn-primary { background:#6366f1; color:#fff; }
+  .btn-secondary { background:#1e293b; color:#94a3b8; border:1px solid #334155; }
+  .btn-green { background:#059669; color:#fff; }
+
+  #fileList { margin-top:24px; display:flex; flex-direction:column; gap:10px; }
+  .file-item {
+    background:#1e2433; border:1px solid #2d3748; border-radius:10px;
+    padding:12px 16px; display:flex; align-items:center; gap:12px;
+  }
+  .file-icon { font-size:1.4rem; flex-shrink:0; }
+  .file-info { flex:1; min-width:0; }
+  .file-name { font-size:.875rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .file-size { font-size:.75rem; color:#64748b; margin-top:2px; }
+  .file-status { font-size:.75rem; margin-top:3px; }
+  .status-pending   { color:#64748b; }
+  .status-converting{ color:#f59e0b; }
+  .status-done      { color:#10b981; }
+  .status-error     { color:#ef4444; }
+  .progress-bar-wrap { width:100%; background:#0f1117; border-radius:4px; height:4px; margin-top:6px; overflow:hidden; }
+  .progress-bar { height:100%; background:#6366f1; border-radius:4px; width:0%; transition:width .3s; }
+
+  .dl-btn {
+    padding:5px 12px; background:#0f4c32; border:1px solid #059669; color:#10b981;
+    border-radius:6px; font-size:.75rem; font-weight:600; cursor:pointer;
+    white-space:nowrap; flex-shrink:0; transition:background .15s;
+  }
+  .dl-btn:hover { background:#065f46; }
+  .dl-btn:disabled { opacity:.3; cursor:not-allowed; }
+  #summary { margin-top:16px; font-size:.8rem; color:#475569; text-align:right; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>HEIC → PNG</h1>
+  <p class="subtitle">Batch convert HEIC/HEIF images to PNG — fully local, nothing uploaded</p>
+  <p id="libStatus">⏳ Checking libraries…</p>
+
+  <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="#6366f1" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+    </svg>
+    <p><span>Click to browse</span> or drag & drop HEIC files here</p>
+    <p style="margin-top:6px;font-size:.78rem;color:#475569;">.heic and .heif supported</p>
+    <input type="file" id="fileInput" multiple accept=".heic,.heif,image/heic,image/heif">
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-secondary" id="clearBtn" disabled onclick="clearAll()">Clear</button>
+    <button class="btn btn-primary" id="convertBtn" disabled onclick="convertAll()">Convert All</button>
+    <button class="btn btn-green" id="dlAllBtn" disabled onclick="downloadAll()">⬇ Download All</button>
+  </div>
+  <div id="summary"></div>
+  <div id="fileList"></div>
+</div>
+
+<script>
+const libStatus = document.getElementById('libStatus');
+
+// Verify libraries loaded correctly
+window.addEventListener('load', () => {
+  const h2a = typeof heic2any !== 'undefined';
+  const jsz = typeof JSZip !== 'undefined';
+  if (h2a && jsz) {
+    libStatus.textContent = '✅ Ready to convert';
+    libStatus.style.color = '#10b981';
+  } else {
+    const missing = [!h2a && 'heic2any', !jsz && 'JSZip'].filter(Boolean).join(', ');
+    libStatus.textContent = `❌ Failed to load: ${missing}. Try refreshing.`;
+    libStatus.style.color = '#ef4444';
+  }
+});
+
+const fileInput  = document.getElementById('fileInput');
+const dropzone   = document.getElementById('dropzone');
+const fileListEl = document.getElementById('fileList');
+const convertBtn = document.getElementById('convertBtn');
+const clearBtn   = document.getElementById('clearBtn');
+const dlAllBtn   = document.getElementById('dlAllBtn');
+const summaryEl  = document.getElementById('summary');
+
+let files = []; // {file, name, blob, status}
+
+fileInput.addEventListener('change', e => { addFiles([...e.target.files]); fileInput.value = ''; });
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('over');
+  addFiles([...e.dataTransfer.files]);
+});
+
+function addFiles(incoming) {
+  const valid = incoming.filter(f =>
+    /\.(heic|heif)$/i.test(f.name) || f.type === 'image/heic' || f.type === 'image/heif'
+  );
+  if (!valid.length) { alert('Please add .heic or .heif files only.'); return; }
+  valid.forEach(f => {
+    if (!files.find(x => x.name === f.name && x.file.size === f.size))
+      files.push({ file: f, name: f.name, blob: null, status: 'pending' });
+  });
+  renderList();
+  updateButtons();
+}
+
+function renderList() {
+  fileListEl.innerHTML = '';
+  files.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'file-item';
+    const kb = (item.file.size / 1024).toFixed(1) + ' KB';
+    el.innerHTML = `
+      <div class="file-icon">🖼</div>
+      <div class="file-info">
+        <div class="file-name" title="${item.name}">${item.name}</div>
+        <div class="file-size">${kb}</div>
+        <div class="file-status status-${item.status}" id="st-${i}">${statusLabel(item.status)}</div>
+        <div class="progress-bar-wrap" id="pw-${i}" style="display:none">
+          <div class="progress-bar" id="pb-${i}"></div>
+        </div>
+      </div>
+      <button class="dl-btn" id="dl-${i}" onclick="downloadOne(${i})" ${item.blob ? '' : 'disabled'}>⬇ PNG</button>
+    `;
+    fileListEl.appendChild(el);
+  });
+  updateSummary();
+}
+
+const statusLabel = s => ({ pending:'⏳ Waiting', converting:'⚙️ Converting…', done:'✅ Done', error:'❌ Failed' }[s]);
+
+function setStatus(i, s) {
+  files[i].status = s;
+  const st = document.getElementById(`st-${i}`);
+  if (st) { st.className = `file-status status-${s}`; st.textContent = statusLabel(s); }
+  const pw = document.getElementById(`pw-${i}`);
+  if (pw) pw.style.display = s === 'converting' ? 'block' : 'none';
+  const dl = document.getElementById(`dl-${i}`);
+  if (dl) dl.disabled = s !== 'done';
+}
+
+function animateProgress(i) {
+  const bar = document.getElementById(`pb-${i}`);
+  if (!bar) return;
+  let w = 0;
+  const iv = setInterval(() => {
+    w = Math.min(w + Math.random() * 14, 88);
+    bar.style.width = w + '%';
+    if (files[i].status !== 'converting') { bar.style.width = '100%'; clearInterval(iv); }
+  }, 130);
+}
+
+function updateButtons() {
+  convertBtn.disabled = !files.some(f => f.status === 'pending');
+  clearBtn.disabled   = !files.length;
+  dlAllBtn.disabled   = !files.some(f => f.status === 'done');
+}
+
+function updateSummary() {
+  if (!files.length) { summaryEl.textContent = ''; return; }
+  summaryEl.textContent = `${files.filter(f => f.status === 'done').length} / ${files.length} converted`;
+}
+
+async function convertAll() {
+  if (typeof heic2any === 'undefined') {
+    alert('heic2any library not loaded. Please refresh the page.'); return;
+  }
+  convertBtn.disabled = true;
+  for (let i = 0; i < files.length; i++) {
+    if (files[i].status !== 'pending') continue;
+    setStatus(i, 'converting');
+    animateProgress(i);
+    try {
+      const result = await heic2any({ blob: files[i].file, toType: 'image/png', quality: 1 });
+      files[i].blob = Array.isArray(result) ? result[0] : result;
+      files[i].status = 'done';
+    } catch (err) {
+      console.error(files[i].name, err);
+      files[i].status = 'error';
+    }
+    setStatus(i, files[i].status);
+  }
+  updateButtons();
+  updateSummary();
+}
+
+function downloadOne(i) {
+  const item = files[i];
+  if (!item.blob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(item.blob);
+  a.download = item.name.replace(/\.(heic|heif)$/i, '.png');
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function downloadAll() {
+  const done = files.filter(f => f.status === 'done');
+  if (!done.length) return;
+  dlAllBtn.disabled = true;
+  dlAllBtn.textContent = '⏳ Zipping…';
+  try {
+    const zip = new JSZip();
+    done.forEach(item => zip.file(item.name.replace(/\.(heic|heif)$/i, '.png'), item.blob));
+    const zblob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zblob);
+    a.download = 'converted-images.zip';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch(e) {
+    // Fallback: download individually
+    done.forEach((item, idx) => setTimeout(() => downloadOne(files.indexOf(item)), idx * 400));
+  }
+  dlAllBtn.disabled = false;
+  dlAllBtn.textContent = '⬇ Download All';
+}
+
+function clearAll() {
+  files = [];
+  fileListEl.innerHTML = '';
+  summaryEl.textContent = '';
+  updateButtons();
+}
+</script>
+</body>
+</html>

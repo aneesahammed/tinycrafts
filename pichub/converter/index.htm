@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Converter</title>
+    <style>
+      :root {
+        --foreground: #000000;
+        --background: #ffffff;
+        --accents-1: #fafafa;
+        --accents-2: #eaeaea;
+        --accents-3: #999999;
+        --accents-4: #888888;
+        --accents-5: #666666;
+        --accents-6: #444444;
+        --accents-7: #333333;
+        --accents-8: #111111;
+        --border: #eaeaea;
+        --radius: 6px;
+        --font-sans:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+          "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+          sans-serif;
+        --error: #e00;
+        --warning-bg: #fffbf0;
+        --warning-border: #f5e1a3;
+        --warning-text: #6b5900;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--background);
+        color: var(--foreground);
+        line-height: 1.5;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 80px 20px;
+        width: 100%;
+      }
+
+      /* Header */
+      header {
+        margin-bottom: 40px;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 32px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin-bottom: 8px;
+      }
+
+      p.subtitle {
+        color: var(--accents-5);
+        font-size: 16px;
+        font-weight: 400;
+      }
+
+      /* Upload Area */
+      .upload-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        background: var(--background);
+        position: relative;
+        margin-bottom: 32px;
+      }
+
+      .upload-card:hover {
+        border-color: var(--foreground);
+      }
+
+      .upload-card.dragover {
+        background: var(--accents-1);
+        border-color: var(--foreground);
+      }
+
+      .upload-icon {
+        margin-bottom: 16px;
+        color: var(--foreground);
+      }
+
+      .upload-text {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .upload-subtext {
+        font-size: 14px;
+        color: var(--accents-5);
+        margin-top: 4px;
+      }
+
+      #fileInput {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      /* Controls Grid */
+      .controls {
+        display: grid;
+        gap: 24px;
+        margin-bottom: 40px;
+        opacity: 0.3;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+
+      .controls.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .control-row {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        align-items: center;
+        gap: 16px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .control-row:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        font-size: 14px;
+        color: var(--accents-5);
+        font-weight: 500;
+      }
+
+      /* Select */
+      .select-wrapper {
+        position: relative;
+        width: 100%;
+      }
+
+      select {
+        width: 100%;
+        appearance: none;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0 12px;
+        height: 40px;
+        font-size: 14px;
+        color: var(--foreground);
+        font-family: inherit;
+        cursor: pointer;
+        transition: border-color 0.15s ease;
+      }
+
+      select:hover {
+        border-color: var(--accents-5);
+      }
+
+      select:focus {
+        outline: none;
+        border-color: var(--foreground);
+      }
+
+      .select-wrapper::after {
+        content: "";
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid var(--foreground);
+        pointer-events: none;
+      }
+
+      /* Slider */
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: transparent;
+      }
+
+      input[type="range"]:focus {
+        outline: none;
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: var(--foreground);
+        cursor: pointer;
+        margin-top: -6px;
+        border: 2px solid var(--background);
+        box-shadow: 0 0 0 1px var(--border);
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: var(--accents-2);
+        border-radius: 2px;
+      }
+
+      /* Info Display */
+      .info-text {
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+      }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        padding: 0 24px;
+        font-size: 14px;
+        font-weight: 500;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-decoration: none;
+        width: 100%;
+      }
+
+      .btn-primary {
+        background: var(--foreground);
+        color: var(--background);
+        border: 1px solid var(--foreground);
+      }
+
+      .btn-primary:hover {
+        background: transparent;
+        color: var(--foreground);
+      }
+
+      /* Preview Area */
+      .preview-section {
+        display: none;
+        margin-top: 40px;
+      }
+
+      .comparison {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      @media (max-width: 600px) {
+        .comparison {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .image-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--accents-1);
+      }
+
+      .image-wrapper {
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .image-wrapper img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .image-meta {
+        border-top: 1px solid var(--border);
+        padding: 12px;
+        background: var(--background);
+        font-size: 12px;
+        color: var(--accents-5);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .meta-val {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+
+      /* Utilities */
+      canvas {
+        display: none;
+      }
+      .hidden {
+        display: none;
+      }
+
+      .badge {
+        font-size: 12px;
+        background: var(--foreground);
+        color: var(--background);
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 8px;
+      }
+
+      .badge-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--accents-5);
+      }
+
+      /* Error/Warning state for size increase */
+      .badge-warning {
+        border: 1px solid #eba0ac;
+        color: #e00;
+        background: #fff5f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Image Converter</h1>
+        <p class="subtitle">Secure, local image processing.</p>
+      </header>
+
+      <!-- Hidden Canvas -->
+      <canvas id="canvas"></canvas>
+
+      <!-- Upload -->
+      <div class="upload-card" id="dropZone">
+        <input
+          type="file"
+          id="fileInput"
+          accept="image/jpeg,image/png,image/webp,image/bmp,image/avif"
+        />
+        <div class="upload-icon">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+        </div>
+        <div class="upload-text">Upload an image</div>
+        <div class="upload-subtext" id="fileName">
+          Supports JPEG, PNG, WEBP, AVIF, BMP
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls" id="controls">
+        <div class="control-row">
+          <div class="label">Format</div>
+          <div class="select-wrapper">
+            <select id="formatSelect">
+              <option value="image/jpeg">JPEG</option>
+              <option value="image/png">PNG</option>
+              <option value="image/webp">WebP</option>
+              <option value="image/avif">AVIF</option>
+              <option value="image/bmp">BMP</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-row" id="qualityRow">
+          <div class="label">Quality</div>
+          <div
+            style="display: flex; align-items: center; gap: 16px; width: 100%"
+          >
+            <!-- Changed default from 0.92 to 0.80 for better size optimization -->
+            <input
+              type="range"
+              id="qualitySlider"
+              min="0.01"
+              max="1.0"
+              step="0.01"
+              value="0.80"
+            />
+            <span class="info-text" id="qualityValue">80%</span>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <div class="label">Result</div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              width: 100%;
+            "
+          >
+            <div class="info-text" id="sizeDisplay">-</div>
+            <span
+              class="badge badge-outline"
+              id="savingBadge"
+              style="display: none"
+              >0%</span
+            >
+          </div>
+        </div>
+
+        <div style="padding-top: 16px">
+          <a id="downloadBtn" class="btn btn-primary">Download Image</a>
+        </div>
+      </div>
+
+      <!-- Previews -->
+      <div class="preview-section" id="previews">
+        <div class="comparison">
+          <div class="image-card">
+            <div class="image-wrapper">
+              <img id="originalImg" alt="Original" />
+            </div>
+            <div class="image-meta">
+              <span>Original</span>
+              <span class="meta-val" id="origMeta">-</span>
+            </div>
+          </div>
+          <div class="image-card">
+            <div class="image-wrapper">
+              <img id="convertedImg" alt="Converted" />
+            </div>
+            <div class="image-meta">
+              <span>Converted</span>
+              <span class="meta-val" id="convMeta">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Elements
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const fileName = document.getElementById("fileName");
+      const controls = document.getElementById("controls");
+      const previews = document.getElementById("previews");
+
+      const formatSelect = document.getElementById("formatSelect");
+      const qualityRow = document.getElementById("qualityRow");
+      const qualitySlider = document.getElementById("qualitySlider");
+      const qualityValue = document.getElementById("qualityValue");
+
+      const sizeDisplay = document.getElementById("sizeDisplay");
+      const savingBadge = document.getElementById("savingBadge");
+      const downloadBtn = document.getElementById("downloadBtn");
+
+      const originalImg = document.getElementById("originalImg");
+      const convertedImg = document.getElementById("convertedImg");
+      const origMeta = document.getElementById("origMeta");
+      const convMeta = document.getElementById("convMeta");
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // State
+      let currentFile = null;
+      let originalImage = null;
+      let processing = false;
+
+      // Utils
+      const formatBytes = (bytes) => {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+      };
+
+      // UI Handlers
+      const updateQualityVisibility = () => {
+        const fmt = formatSelect.value;
+        // Hide quality for lossless-only formats
+        if (fmt === "image/png" || fmt === "image/bmp") {
+          qualityRow.style.display = "none";
+        } else {
+          qualityRow.style.display = "grid"; // Restore grid layout
+        }
+      };
+
+      // Core Process
+      const processImage = () => {
+        if (!originalImage) return;
+
+        const format = formatSelect.value;
+        const quality = parseFloat(qualitySlider.value);
+
+        // Set canvas
+        canvas.width = originalImage.width;
+        canvas.height = originalImage.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // FIX: JPEG/BMP do not support transparency.
+        // We must fill the background with white, otherwise it defaults to black.
+        if (format === "image/jpeg" || format === "image/bmp") {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.drawImage(originalImage, 0, 0);
+
+        // Convert
+        const dataUrl = canvas.toDataURL(format, quality);
+        convertedImg.src = dataUrl;
+
+        // Calc Size
+        const head = "data:" + format + ";base64,";
+        const size = Math.round(((dataUrl.length - head.length) * 3) / 4);
+
+        // UI Updates
+        sizeDisplay.textContent = formatBytes(size);
+        convMeta.textContent = format.split("/")[1].toUpperCase();
+
+        // Savings
+        const diff = size - currentFile.size;
+        const percent = Math.round(
+          ((size - currentFile.size) / currentFile.size) * 100,
+        );
+
+        savingBadge.style.display = "inline-block";
+        savingBadge.className = "badge"; // reset class
+
+        if (percent > 0) {
+          savingBadge.textContent = `+${percent}%`;
+          // Warning style for size increase
+          savingBadge.classList.add("badge-warning");
+        } else {
+          savingBadge.textContent = `${percent}%`;
+          // Black bg for savings
+          savingBadge.style.background = "var(--foreground)";
+          savingBadge.style.color = "var(--background)";
+          savingBadge.style.border = "none";
+        }
+
+        // Download Link
+        const ext = format.split("/")[1];
+        const name = currentFile.name.split(".").slice(0, -1).join(".");
+        downloadBtn.href = dataUrl;
+        downloadBtn.download = `${name}-converted.${ext}`;
+      };
+
+      const handleFile = (file) => {
+        if (!file.type.startsWith("image/")) {
+          alert("Please upload an image file");
+          return;
+        }
+
+        currentFile = file;
+        fileName.textContent = file.name;
+        dropZone.style.borderColor = "var(--foreground)";
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            originalImage = img;
+            originalImg.src = e.target.result;
+            origMeta.textContent = formatBytes(file.size);
+
+            controls.classList.add("active");
+            previews.style.display = "block";
+
+            updateQualityVisibility();
+            processImage();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+
+      // Listeners
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+      });
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+      });
+
+      formatSelect.addEventListener("change", () => {
+        updateQualityVisibility();
+        processImage();
+      });
+
+      qualitySlider.addEventListener("input", (e) => {
+        qualityValue.textContent = Math.round(e.target.value * 100) + "%";
+        if (!processing) {
+          processing = true;
+          setTimeout(() => {
+            processImage();
+            processing = false;
+          }, 100);
+        }
+      });
+    </script>
+  </body>
+</html>

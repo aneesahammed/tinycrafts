@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-tvt2WcNGeGkcXrkP/8U5dLFRe3lbAuHRBrCOWg5JzpQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-pXtF7TxT6rkzVNU78UtlFkgDkCG8K4WbqfhahuUyU/w=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -161,6 +161,16 @@
         --mm-node-padding-x: 20px;
         --mm-node-padding-y: 14px;
         --mm-node-gap-min: 28px;
+        --graph-bg: var(--bg-canvas);
+        --graph-node: var(--bg-raised);
+        --graph-node-active: color-mix(in srgb, var(--accent-fg) 12%, var(--bg-raised));
+        --graph-node-muted: var(--bg-muted);
+        --graph-node-external: color-mix(in srgb, var(--fg-muted) 14%, var(--bg-raised));
+        --graph-edge: color-mix(in srgb, var(--fg-muted) 52%, transparent);
+        --graph-edge-strong: var(--accent-fg);
+        --graph-text: var(--fg-default);
+        --graph-text-muted: var(--fg-muted);
+        --graph-focus: var(--accent-fg);
 
         /* ── Motion system ────────────────────────────────────────
            Calm & bliss curve — gentle ease-out, never bouncy.
@@ -245,6 +255,8 @@
         --mm-edge-opacity-secondary: 0.26;
         --mm-edge-opacity-tertiary: 0.16;
         --mm-node-bg-selected: rgba(120, 170, 230, 0.08);
+        --graph-node-active: color-mix(in srgb, var(--accent-fg) 16%, var(--bg-raised));
+        --graph-node-external: color-mix(in srgb, var(--fg-muted) 18%, var(--bg-raised));
       }
 
       /* Font stacks */
@@ -3069,6 +3081,333 @@
         100% { background-color: transparent; }
       }
 
+      /* ============================================================
+         Knowledge Connections
+         ============================================================ */
+
+      .knowledge-connections-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1180;
+        background: color-mix(in srgb, var(--bg-canvas) 40%, transparent);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--motion-small) var(--ease-out);
+      }
+
+      .knowledge-connections-overlay.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .knowledge-connections-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1181;
+        width: min(420px, 100vw);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-raised);
+        border-left: 1px solid var(--border-default);
+        box-shadow: -16px 0 48px rgba(0, 0, 0, 0.12);
+        transform: translateX(100%);
+        transition: transform var(--motion-panel) var(--ease-out);
+      }
+
+      .knowledge-connections-panel.is-open {
+        transform: translateX(0);
+      }
+
+      .knowledge-connections-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px 22px 16px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .knowledge-connections-title {
+        margin: 0;
+        font: 500 18px/1.2 var(--font-serif);
+        color: var(--fg-default);
+      }
+
+      .knowledge-connections-subtitle {
+        margin: 5px 0 0;
+        color: var(--fg-muted);
+        font: 400 12px/1.45 var(--font-sans);
+      }
+
+      .knowledge-connections-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+      }
+
+      .knowledge-icon-btn {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--fg-muted);
+        background: transparent;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .knowledge-icon-btn:hover,
+      .knowledge-icon-btn:focus-visible {
+        color: var(--fg-default);
+        border-color: var(--border-strong);
+        background: var(--bg-subtle);
+      }
+
+      .knowledge-icon-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .knowledge-ai-icon-btn:not(:disabled) {
+        color: var(--accent-fg);
+      }
+
+      .knowledge-icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .knowledge-connections-body {
+        flex: 1;
+        overflow: auto;
+        padding: 18px 22px 28px;
+      }
+
+      .knowledge-status {
+        margin: 0 0 14px;
+        color: var(--fg-muted);
+        font: 400 12px/1.45 var(--font-sans);
+      }
+
+      .knowledge-stale-badge,
+      .knowledge-ghost-badge {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 7px;
+        border-radius: 999px;
+        border: 1px solid var(--border-default);
+        color: var(--fg-muted);
+        background: var(--bg-subtle);
+        font: 600 10px/1 var(--font-sans);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .knowledge-section {
+        margin: 0 0 24px;
+      }
+
+      .knowledge-section h3 {
+        margin: 0 0 9px;
+        color: var(--fg-default);
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .knowledge-list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .knowledge-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 38px;
+        padding: 8px 10px;
+        color: var(--fg-default);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font: 400 13px/1.35 var(--font-sans);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .knowledge-row:hover,
+      .knowledge-row:focus-visible {
+        background: var(--bg-subtle);
+        border-color: var(--border-default);
+      }
+
+      .knowledge-row[disabled] {
+        cursor: default;
+        color: var(--fg-muted);
+      }
+
+      .knowledge-row-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .knowledge-row-meta {
+        color: var(--fg-muted);
+        font: 500 10px/1 var(--font-sans);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .knowledge-empty {
+        margin: 0;
+        color: var(--fg-muted);
+        font: 400 13px/1.5 var(--font-serif);
+      }
+
+      .knowledge-ai-card {
+        display: grid;
+        gap: 13px;
+        padding: 14px;
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--bg-subtle);
+      }
+
+      .knowledge-ai-card.is-stale {
+        border-style: dashed;
+      }
+
+      .knowledge-ai-overview {
+        margin: 0;
+        color: var(--fg-default);
+        font: 400 14px/1.55 var(--font-serif);
+      }
+
+      .knowledge-ai-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .knowledge-ai-list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--fg-default);
+        font: 400 12px/1.5 var(--font-sans);
+      }
+
+      .knowledge-ai-list li + li {
+        margin-top: 5px;
+      }
+
+      .knowledge-ai-subhead {
+        margin: 0 0 5px;
+        color: var(--fg-muted);
+        font: 700 10px/1 var(--font-sans);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .knowledge-ai-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .knowledge-ai-btn {
+        min-height: 32px;
+        padding: 0 11px;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: var(--bg-raised);
+        color: var(--fg-default);
+        font: 600 12px/1 var(--font-sans);
+        cursor: pointer;
+      }
+
+      .knowledge-ai-btn:hover,
+      .knowledge-ai-btn:focus-visible {
+        border-color: var(--border-strong);
+        background: var(--bg-canvas);
+      }
+
+      .knowledge-ai-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .knowledge-ai-note {
+        margin: 0;
+        color: var(--fg-muted);
+        font: 400 12px/1.45 var(--font-sans);
+      }
+
+      .knowledge-mini-graph {
+        width: 100%;
+        height: 180px;
+        display: block;
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--graph-bg);
+      }
+
+      .knowledge-graph-meta {
+        margin: 0 0 10px;
+        color: var(--fg-muted);
+        font: 400 12px/1.45 var(--font-sans);
+      }
+
+      .knowledge-graph-node rect {
+        fill: var(--graph-node);
+        stroke: var(--border-strong);
+      }
+
+      .knowledge-graph-node[data-active="true"] rect {
+        fill: var(--graph-node-active);
+        stroke: var(--graph-focus);
+      }
+
+      .knowledge-graph-node[data-ghost="true"] rect {
+        fill: var(--graph-node-external);
+        stroke-dasharray: 4 4;
+      }
+
+      .knowledge-graph-node text {
+        fill: var(--graph-text);
+        font: 500 12px/1 var(--font-sans);
+        pointer-events: none;
+      }
+
+      .knowledge-graph-edge {
+        stroke: var(--graph-edge);
+        stroke-width: 1.4;
+        fill: none;
+      }
+
+      @media (max-width: 720px) {
+        .knowledge-connections-overlay.is-open {
+          background: var(--bg-canvas);
+        }
+        .knowledge-connections-panel {
+          width: 100vw;
+          border-left: 0;
+          box-shadow: none;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .mm-jump-flash { animation: none; }
       }
@@ -5785,14 +6124,14 @@
 
         <span class="tb-divider" aria-hidden="true"></span>
 
-        <!-- ── Cluster: Mindmap, share & settings — Concept map · Snapshot link · Preferences ── -->
-        <div class="tb-group" role="group" aria-label="Mindmap, share, and settings" data-mv-overflow-section="Explore">
+        <!-- ── Cluster: Connections, share & settings — Knowledge links · Snapshot link · Preferences ── -->
+        <div class="tb-group" role="group" aria-label="Connections, share, and settings" data-mv-overflow-section="Explore">
           <button
             id="mindmapBtn"
             type="button"
             class="btn"
-            title="Open concept mindmap"
-            aria-label="Open concept mindmap"
+            title="Open document connections"
+            aria-label="Open document connections"
             aria-pressed="false"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -5806,7 +6145,7 @@
               <path d="M12 12 L5.5 18"></path>
               <path d="M12 12 L18.5 18"></path>
             </svg>
-            <span>Mindmap</span>
+            <span>Connections</span>
           </button>
 
           <button
@@ -6209,6 +6548,93 @@ Drop a .md file anywhere on the page, or open one with the Open button."
       </div>
 
       <div
+        id="knowledgeConnectionsOverlay"
+        class="knowledge-connections-overlay"
+        hidden
+        aria-hidden="true"
+      ></div>
+      <aside
+        id="knowledgeConnectionsPanel"
+        class="knowledge-connections-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="knowledgeConnectionsTitle"
+        aria-describedby="knowledgeConnectionsSubtitle"
+        aria-hidden="true"
+        hidden
+      >
+        <header class="knowledge-connections-header">
+          <div>
+            <h2 id="knowledgeConnectionsTitle" class="knowledge-connections-title">
+              Connections
+            </h2>
+            <p id="knowledgeConnectionsSubtitle" class="knowledge-connections-subtitle">
+              Links and nearby notes from the active folder.
+            </p>
+          </div>
+          <div class="knowledge-connections-actions">
+            <button
+              id="knowledgeAiInsightBtn"
+              type="button"
+              class="knowledge-icon-btn knowledge-ai-icon-btn"
+              title="Generate AI comprehension"
+              aria-label="Generate AI comprehension"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 2 4 14h7l-1 8 10-12h-7l1-8z"></path>
+              </svg>
+            </button>
+            <button
+              id="knowledgeRefreshBtn"
+              type="button"
+              class="knowledge-icon-btn"
+              title="Re-index local folder links"
+              aria-label="Re-index local folder links"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+                <polyline points="21 4 21 10 15 10"></polyline>
+              </svg>
+            </button>
+            <button
+              id="knowledgeGraphOpenBtn"
+              type="button"
+              class="knowledge-icon-btn"
+              title="Open full folder graph"
+              aria-label="Open full folder graph"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="2.2"></circle>
+                <circle cx="5" cy="6" r="1.8"></circle>
+                <circle cx="19" cy="6" r="1.8"></circle>
+                <circle cx="6" cy="19" r="1.8"></circle>
+                <circle cx="18" cy="19" r="1.8"></circle>
+                <path d="M12 12 6.4 7.2"></path>
+                <path d="M12 12 17.6 7.2"></path>
+                <path d="M12 12 7.4 17.8"></path>
+                <path d="M12 12 16.6 17.8"></path>
+              </svg>
+            </button>
+            <button
+              id="knowledgeConnectionsCloseBtn"
+              type="button"
+              class="knowledge-icon-btn"
+              title="Close connections"
+              aria-label="Close connections"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </header>
+        <div id="knowledgeConnectionsBody" class="knowledge-connections-body">
+          <p class="knowledge-status">Open a library document to build its graph.</p>
+        </div>
+      </aside>
+
+      <div
         id="mindmapViewer"
         class="mindmap-viewer"
         role="dialog"
@@ -6222,13 +6648,13 @@ Drop a .md file anywhere on the page, or open one with the Open button."
           <div class="mindmap-viewer-header">
             <div class="mindmap-viewer-title-wrap">
               <h2 id="mindmapViewerTitle" class="mindmap-viewer-title">
-                Concept Mindmap
+                Folder Graph
               </h2>
               <p id="mindmapViewerHelp" class="mindmap-viewer-help">
-                Click a linked concept to jump to its section. Drag to pan, scroll to zoom.
+                Active folder only. Click a note to open it. Drag to pan, scroll to zoom.
               </p>
             </div>
-            <div class="mindmap-viewer-actions" aria-label="Mindmap viewer actions">
+            <div class="mindmap-viewer-actions" aria-label="Folder graph viewer actions">
               <button
                 id="mindmapZoomOutBtn"
                 type="button"
@@ -6275,20 +6701,39 @@ Drop a .md file anywhere on the page, or open one with the Open button."
                 id="mindmapRegenerateBtn"
                 type="button"
                 class="mindmap-viewer-btn"
-                title="Regenerate from current document"
+                title="Refresh folder graph index"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 12a9 9 0 1 1-3-6.7"></path>
                   <polyline points="21 4 21 10 15 10"></polyline>
                 </svg>
-                <span>Regenerate</span>
+                <span>Refresh</span>
+              </button>
+              <button
+                id="knowledgeGraphShowAllBtn"
+                type="button"
+                class="mindmap-viewer-btn"
+                title="Show every indexed file in this folder"
+                hidden
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="6" cy="6" r="2"></circle>
+                  <circle cx="18" cy="6" r="2"></circle>
+                  <circle cx="6" cy="18" r="2"></circle>
+                  <circle cx="18" cy="18" r="2"></circle>
+                  <path d="M8 6h8"></path>
+                  <path d="M6 8v8"></path>
+                  <path d="M18 8v8"></path>
+                  <path d="M8 18h8"></path>
+                </svg>
+                <span>Show all</span>
               </button>
               <button
                 id="mindmapCloseBtn"
                 type="button"
                 class="mindmap-viewer-btn"
                 title="Close (Esc)"
-                aria-label="Close mindmap viewer"
+                aria-label="Close folder graph viewer"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -6298,7 +6743,7 @@ Drop a .md file anywhere on the page, or open one with the Open button."
             </div>
           </div>
 
-          <div id="mindmapLegend" class="mindmap-legend" aria-label="Concept type legend"></div>
+          <div id="mindmapLegend" class="mindmap-legend" aria-label="Folder graph summary"></div>
 
           <div id="mindmapStage" class="mindmap-viewer-stage">
             <svg id="mindmapSvg" class="mindmap-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mindmapViewerTitle" aria-describedby="mindmapSrList">
@@ -6318,7 +6763,7 @@ Drop a .md file anywhere on the page, or open one with the Open button."
 
             <div id="mindmapLoading" class="mm-state-wrap is-hidden">
               <div class="mm-spinner" aria-hidden="true"></div>
-              <p class="mm-state-label">Extracting concepts…</p>
+              <p class="mm-state-label">Indexing folder graph…</p>
             </div>
 
             <div id="mindmapError" class="mm-state-wrap is-hidden">
@@ -10076,9 +10521,13 @@ Drop a .md file anywhere on the page, or open one with the Open button."
         const HIGHLIGHT_STORAGE_KEY = "md-viewer-highlights";
         const DRAFT_HIGHLIGHT_STORAGE_KEY = "md-viewer-draft-highlights";
         const LIBRARY_DB_NAME = "md-viewer-library";
-        const LIBRARY_DB_VERSION = 1;
+        const LIBRARY_DB_VERSION = 2;
         const LIBRARY_FOLDER_STORE = "folders";
         const LIBRARY_META_STORE = "libraryMeta";
+        const KNOWLEDGE_PAGE_STORE = "knowledgePages";
+        const KNOWLEDGE_LINK_STORE = "knowledgeLinks";
+        const AI_INSIGHT_STORE = "aiInsights";
+        const GRAPH_META_STORE = "graphMeta";
         const LIBRARY_LIMITS = Object.freeze({
           maxDepth: 12,
           maxFiles: 2000,
@@ -10190,6 +10639,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           assumption: "--ont-example",
           open_question: "--ont-unknown",
           success_metric: "--ont-explanation",
+          concept: "--accent-fg",
         };
 
         const MINDMAP_TYPE_LABEL = {
@@ -10202,6 +10652,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
           assumption: "Assumption",
           open_question: "Open question",
           success_metric: "Success metric",
+          concept: "Concept",
         };
 
         /** @type {ConceptGraph} */
@@ -11304,6 +11755,10 @@ Paste markdown on the left, open a local file, or drag one into the page.
             const id = g.getAttribute("data-id");
             if (!mindmapState.laid) return;
             const node = mindmapState.laid.nodes.find((n) => n.id === id);
+            if (node && node.graphPath) {
+              openKnowledgeGraphNode(node);
+              return;
+            }
             if (node && node.depth > 0) jumpToMindmapSource(node);
           });
           nodesG.addEventListener("keydown", (event) => {
@@ -11313,6 +11768,10 @@ Paste markdown on the left, open a local file, or drag one into the page.
             event.preventDefault();
             const id = g.getAttribute("data-id");
             const node = mindmapState.laid && mindmapState.laid.nodes.find((n) => n.id === id);
+            if (node && node.graphPath) {
+              openKnowledgeGraphNode(node);
+              return;
+            }
             if (node && node.depth > 0) jumpToMindmapSource(node);
           });
         }
@@ -11507,6 +11966,7 @@ Return JSON only.`;
           "assumption",
           "open_question",
           "success_metric",
+          "concept",
         ];
 
         const MINDMAP_EDGE_KIND_ENUM = [
@@ -11914,12 +12374,23 @@ Return JSON only.`;
           metrics: "success_metric",
           kpi: "success_metric",
           kpis: "success_metric",
+          concept: "concept",
+          concepts: "concept",
+          term: "concept",
+          terms: "concept",
+          topic: "concept",
+          topics: "concept",
+          tool: "concept",
+          tools: "concept",
         };
 
         function normalizeMindmapNodeType(type) {
-          if (typeof type !== "string") return type;
+          if (typeof type !== "string") return "concept";
+          if (typeof libraryCore.normalizeKnowledgeConceptType === "function") {
+            return libraryCore.normalizeKnowledgeConceptType(type);
+          }
           const canonical = type.trim().toLowerCase().replace(/[\s-]+/g, "_");
-          return MINDMAP_TYPE_ALIASES[canonical] || canonical;
+          return MINDMAP_TYPE_ALIASES[canonical] || "concept";
         }
 
         function normalizeMindmapEdgeKind(kind) {
@@ -11968,7 +12439,7 @@ Return JSON only.`;
             parentById.set(n.id, n.parent);
             if (!n.label || typeof n.label !== "string") throw new Error(`Node ${n.id} missing label`);
             n.type = normalizeMindmapNodeType(n.type);
-            if (!allowedTypes.has(n.type)) throw new Error(`Node ${n.id} has invalid type: ${n.type}`);
+            if (!allowedTypes.has(n.type)) n.type = "concept";
             if (!n.parent || typeof n.parent !== "string") n.parent = "root";
             if (typeof n.summary !== "string") n.summary = "";
             if (typeof n.sourceAnchor !== "string" && n.sourceAnchor !== null) n.sourceAnchor = null;
@@ -12200,6 +12671,17 @@ Return JSON only.`;
           libraryPendingImportToken: 0,
           libraryIsOpen: false,
           libraryNextScanRevision: 0,
+          knowledgeSweepTimers: {},
+          knowledgeSweepTokens: {},
+          knowledgeMutationQueues: {},
+          knowledgeConnectionsOpen: false,
+          knowledgeConnectionsLastFocused: null,
+          knowledgeConnectionsRenderTimer: 0,
+          knowledgeAiInsightInFlight: false,
+          knowledgeTransientAiInsights: {},
+          knowledgeGraphLastFocused: null,
+          knowledgeGraphCurrent: null,
+          knowledgeGraphShowAllFolderIds: {},
           highlightMemoryBuckets: {
             local: {},
             session: {},
@@ -12991,6 +13473,16 @@ Return JSON only.`;
           state.libraryNextScanRevision = nextState.libraryNextScanRevision;
           state.libraryPendingImportTargetFolderId = "";
           state.libraryPendingImportToken = 0;
+          Object.keys(state.knowledgeSweepTimers || {}).forEach(function (folderId) {
+            const timer = state.knowledgeSweepTimers[folderId];
+            if (window.cancelIdleCallback) {
+              window.cancelIdleCallback(timer);
+            } else {
+              window.clearTimeout(timer);
+            }
+          });
+          state.knowledgeSweepTimers = {};
+          state.knowledgeSweepTokens = {};
 
           if (options.renderDrawer) {
             renderLibraryDrawer();
@@ -13040,6 +13532,7 @@ Return JSON only.`;
           if (state.libraryDbPromise) return state.libraryDbPromise;
           state.libraryDbPromise = new Promise(function (resolve, reject) {
             const request = indexedDB.open(LIBRARY_DB_NAME, LIBRARY_DB_VERSION);
+            let settled = false;
             request.onupgradeneeded = function () {
               const db = request.result;
               if (!db.objectStoreNames.contains(LIBRARY_FOLDER_STORE)) {
@@ -13048,12 +13541,71 @@ Return JSON only.`;
               if (!db.objectStoreNames.contains(LIBRARY_META_STORE)) {
                 db.createObjectStore(LIBRARY_META_STORE, { keyPath: "key" });
               }
+              if (!db.objectStoreNames.contains(KNOWLEDGE_PAGE_STORE)) {
+                const store = db.createObjectStore(KNOWLEDGE_PAGE_STORE, {
+                  keyPath: "key",
+                });
+                store.createIndex("folderId", "folderId", { unique: false });
+                store.createIndex("folderPath", ["folderId", "path"], {
+                  unique: true,
+                });
+                store.createIndex("markdownHash", "markdownHash", {
+                  unique: false,
+                });
+              }
+              if (!db.objectStoreNames.contains(KNOWLEDGE_LINK_STORE)) {
+                const store = db.createObjectStore(KNOWLEDGE_LINK_STORE, {
+                  keyPath: "id",
+                });
+                store.createIndex("folderId", "folderId", { unique: false });
+                store.createIndex("sourceKey", "sourceKey", { unique: false });
+                store.createIndex("targetKey", "targetKey", { unique: false });
+                store.createIndex("targetRef", "targetRef", { unique: false });
+              }
+              if (!db.objectStoreNames.contains(AI_INSIGHT_STORE)) {
+                const store = db.createObjectStore(AI_INSIGHT_STORE, {
+                  keyPath: "key",
+                });
+                store.createIndex("folderId", "folderId", { unique: false });
+                store.createIndex("pageKey", "pageKey", { unique: false });
+              }
+              if (!db.objectStoreNames.contains(GRAPH_META_STORE)) {
+                db.createObjectStore(GRAPH_META_STORE, { keyPath: "key" });
+              }
             };
             request.onsuccess = function () {
-              resolve(request.result);
+              const db = request.result;
+              db.onversionchange = function () {
+                db.close();
+                state.libraryDbPromise = null;
+                setStatus(
+                  "Storage was updated in another tab. Reload MarkV to continue.",
+                  { announce: true },
+                );
+              };
+              settled = true;
+              resolve(db);
+            };
+            request.onblocked = function () {
+              state.libraryDbPromise = null;
+              const error = new Error(
+                "Storage upgrade is blocked by another open MarkV tab.",
+              );
+              setStatus(
+                "Close other MarkV tabs, then reload to finish storage upgrade.",
+                { announce: true },
+              );
+              if (!settled) {
+                settled = true;
+                reject(error);
+              }
             };
             request.onerror = function () {
-              reject(request.error);
+              state.libraryDbPromise = null;
+              if (!settled) {
+                settled = true;
+                reject(request.error);
+              }
             };
           });
           return state.libraryDbPromise;
@@ -13125,12 +13677,20 @@ Return JSON only.`;
         function libraryClearAllFromDb() {
           return openLibraryDb().then(function (db) {
             return new Promise(function (resolve, reject) {
-              const tx = db.transaction(
-                [LIBRARY_FOLDER_STORE, LIBRARY_META_STORE],
-                "readwrite",
-              );
-              tx.objectStore(LIBRARY_FOLDER_STORE).clear();
-              tx.objectStore(LIBRARY_META_STORE).clear();
+              const stores = [
+                LIBRARY_FOLDER_STORE,
+                LIBRARY_META_STORE,
+                KNOWLEDGE_PAGE_STORE,
+                KNOWLEDGE_LINK_STORE,
+                AI_INSIGHT_STORE,
+                GRAPH_META_STORE,
+              ].filter(function (name) {
+                return db.objectStoreNames.contains(name);
+              });
+              const tx = db.transaction(stores, "readwrite");
+              stores.forEach(function (name) {
+                tx.objectStore(name).clear();
+              });
               tx.oncomplete = function () {
                 resolve();
               };
@@ -13207,6 +13767,518 @@ Return JSON only.`;
               };
             });
           });
+        }
+
+        function removeLegacyMindmapCaches() {
+          if (!window.localStorage) return;
+          [
+            "markv:mindmap-cache:v1",
+            "markv:mindmap-cache:v2",
+            "markv:mindmap-cache:v3",
+          ].forEach(function (key) {
+            removeStorage(window.localStorage, key);
+          });
+        }
+
+        function getKnowledgePageKey(folderId, path) {
+          if (typeof libraryCore.getKnowledgeKey === "function") {
+            return libraryCore.getKnowledgeKey(folderId, path);
+          }
+          return String(folderId || "") + "::" + String(path || "");
+        }
+
+        function createKnowledgePage(folderId, path, markdown, meta) {
+          meta = meta || {};
+          if (typeof libraryCore.extractKnowledgePage === "function") {
+            return libraryCore.extractKnowledgePage({
+              folderId: folderId,
+              path: path,
+              markdown: markdown,
+              lastModified: meta.lastModified || 0,
+              indexedAt: Date.now(),
+            });
+          }
+          const title = String(path || "Untitled").split("/").pop();
+          return {
+            key: getKnowledgePageKey(folderId, path),
+            folderId: folderId,
+            path: path,
+            title: title,
+            aliases: [title.replace(/\.[^.]+$/, "").toLowerCase()],
+            headings: [],
+            tags: [],
+            outgoingLinks: [],
+            markdownHash: String(markdown || "").length + ":" + title,
+            lastModified: meta.lastModified || 0,
+            indexedAt: Date.now(),
+          };
+        }
+
+        function knowledgeReadByFolder(storeName, folderId) {
+          if (!canUseLibraryStorage()) return Promise.resolve([]);
+          return openLibraryDb().then(function (db) {
+            if (!db.objectStoreNames.contains(storeName)) return [];
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(storeName, "readonly");
+              const store = tx.objectStore(storeName);
+              const index = store.index("folderId");
+              const request = index.getAll(IDBKeyRange.only(folderId));
+              request.onsuccess = function () {
+                resolve(request.result || []);
+              };
+              request.onerror = function () {
+                reject(request.error);
+              };
+            });
+          });
+        }
+
+        function knowledgeGetFolderPages(folderId) {
+          return knowledgeReadByFolder(KNOWLEDGE_PAGE_STORE, folderId);
+        }
+
+        function knowledgeGetFolderLinks(folderId) {
+          return knowledgeReadByFolder(KNOWLEDGE_LINK_STORE, folderId);
+        }
+
+        function knowledgeGetAllPages() {
+          if (!canUseLibraryStorage()) return Promise.resolve([]);
+          return openLibraryDb().then(function (db) {
+            if (!db.objectStoreNames.contains(KNOWLEDGE_PAGE_STORE)) return [];
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(KNOWLEDGE_PAGE_STORE, "readonly");
+              const request = tx.objectStore(KNOWLEDGE_PAGE_STORE).getAll();
+              request.onsuccess = function () {
+                resolve(request.result || []);
+              };
+              request.onerror = function () {
+                reject(request.error);
+              };
+            });
+          });
+        }
+
+        function knowledgeGetAiInsight(pageKey) {
+          if (!pageKey) return Promise.resolve(null);
+          if (!canUseLibraryStorage()) {
+            return Promise.resolve(
+              state.knowledgeTransientAiInsights[pageKey] || null,
+            );
+          }
+          return openLibraryDb().then(function (db) {
+            if (!db.objectStoreNames.contains(AI_INSIGHT_STORE)) return null;
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(AI_INSIGHT_STORE, "readonly");
+              const request = tx.objectStore(AI_INSIGHT_STORE).get(pageKey);
+              request.onsuccess = function () {
+                resolve(request.result || null);
+              };
+              request.onerror = function () {
+                reject(request.error);
+              };
+            });
+          });
+        }
+
+        function knowledgePutAiInsight(record) {
+          if (!record || !record.key) return Promise.resolve();
+          if (!canUseLibraryStorage()) {
+            state.knowledgeTransientAiInsights[record.key] = record;
+            return Promise.resolve();
+          }
+          return openLibraryDb().then(function (db) {
+            if (!db.objectStoreNames.contains(AI_INSIGHT_STORE)) return;
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(AI_INSIGHT_STORE, "readwrite");
+              tx.objectStore(AI_INSIGHT_STORE).put(record);
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        function enqueueKnowledgeMutation(folderId, task) {
+          const key = folderId || "__global";
+          const previous =
+            state.knowledgeMutationQueues[key] || Promise.resolve();
+          const run = previous.catch(function () {}).then(task);
+          const cleanup = run.catch(function () {}).then(function () {
+            if (state.knowledgeMutationQueues[key] === cleanup) {
+              delete state.knowledgeMutationQueues[key];
+            }
+          });
+          state.knowledgeMutationQueues[key] = cleanup;
+          return run;
+        }
+
+        function knowledgeDeleteByIndexInTransaction(
+          store,
+          indexName,
+          value,
+          onDone,
+          onError,
+        ) {
+          const index = store.index(indexName);
+          const request = index.openCursor(IDBKeyRange.only(value));
+          request.onsuccess = function () {
+            const cursor = request.result;
+            if (!cursor) {
+              onDone();
+              return;
+            }
+            cursor.delete();
+            cursor.continue();
+          };
+          request.onerror = function () {
+            onError(request.error);
+          };
+        }
+
+        function knowledgeClearFolder(folderId, options) {
+          if (!canUseLibraryStorage() || !folderId) return Promise.resolve();
+          const includeAi = Boolean(options && options.includeAi);
+          return enqueueKnowledgeMutation(folderId, async function () {
+            const db = await openLibraryDb();
+            const stores = [
+              KNOWLEDGE_PAGE_STORE,
+              KNOWLEDGE_LINK_STORE,
+              GRAPH_META_STORE,
+            ]
+              .concat(includeAi ? [AI_INSIGHT_STORE] : [])
+              .filter(function (name, index, list) {
+                return list.indexOf(name) === index;
+              })
+              .filter(function (name) {
+                return db.objectStoreNames.contains(name);
+              });
+            if (!stores.length) return Promise.resolve();
+            await new Promise(function (resolve, reject) {
+              const tx = db.transaction(stores, "readwrite");
+              let failed = false;
+              function fail(error) {
+                if (failed) return;
+                failed = true;
+                try {
+                  tx.abort();
+                } catch (_error) {}
+                reject(error);
+              }
+              function deleteIndex(storeName, indexName) {
+                if (stores.indexOf(storeName) === -1) return;
+                knowledgeDeleteByIndexInTransaction(
+                  tx.objectStore(storeName),
+                  indexName,
+                  folderId,
+                  function () {},
+                  fail,
+                );
+              }
+              deleteIndex(KNOWLEDGE_PAGE_STORE, "folderId");
+              deleteIndex(KNOWLEDGE_LINK_STORE, "folderId");
+              deleteIndex(AI_INSIGHT_STORE, "folderId");
+              if (stores.indexOf(GRAPH_META_STORE) !== -1) {
+                tx.objectStore(GRAPH_META_STORE).delete("folder::" + folderId);
+              }
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+              tx.onabort = function () {
+                reject(tx.error || new Error("Folder clear was aborted."));
+              };
+            });
+            onKnowledgeIndexChanged(folderId);
+          });
+        }
+
+        function createKnowledgeLinksForPages(pages) {
+          if (typeof libraryCore.createKnowledgeLinkRecords === "function") {
+            return libraryCore.createKnowledgeLinkRecords(pages);
+          }
+          return [];
+        }
+
+        async function knowledgeReplaceFolderIndex(folderId, pages) {
+          if (!canUseLibraryStorage() || !folderId) return;
+          const pageList = Array.isArray(pages) ? pages : [];
+          const links = createKnowledgeLinksForPages(pageList);
+          await enqueueKnowledgeMutation(folderId, async function () {
+            const db = await openLibraryDb();
+            await new Promise(function (resolve, reject) {
+              const tx = db.transaction(
+                [KNOWLEDGE_PAGE_STORE, KNOWLEDGE_LINK_STORE, GRAPH_META_STORE],
+                "readwrite",
+              );
+              const pageStore = tx.objectStore(KNOWLEDGE_PAGE_STORE);
+              const linkStore = tx.objectStore(KNOWLEDGE_LINK_STORE);
+              let deletesLeft = 2;
+              let failed = false;
+              function putReplacement() {
+                if (failed) return;
+                deletesLeft -= 1;
+                if (deletesLeft > 0) return;
+                pageList.forEach(function (page) {
+                  pageStore.put(page);
+                });
+                links.forEach(function (link) {
+                  linkStore.put(link);
+                });
+                tx.objectStore(GRAPH_META_STORE).put({
+                  key: "folder::" + folderId,
+                  folderId: folderId,
+                  pageCount: pageList.length,
+                  linkCount: links.length,
+                  indexedAt: Date.now(),
+                });
+              }
+              function fail(error) {
+                if (failed) return;
+                failed = true;
+                try {
+                  tx.abort();
+                } catch (_error) {}
+                reject(error);
+              }
+              knowledgeDeleteByIndexInTransaction(
+                pageStore,
+                "folderId",
+                folderId,
+                putReplacement,
+                fail,
+              );
+              knowledgeDeleteByIndexInTransaction(
+                linkStore,
+                "folderId",
+                folderId,
+                putReplacement,
+                fail,
+              );
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+              tx.onabort = function () {
+                reject(tx.error || new Error("Folder graph replacement was aborted."));
+              };
+            });
+            onKnowledgeIndexChanged(folderId);
+          });
+        }
+
+        function knowledgePageAliasesChanged(previous, next) {
+          if (!previous) return true;
+          const before = (Array.isArray(previous.aliases) ? previous.aliases : [])
+            .slice()
+            .sort()
+            .join("\n");
+          const after = (Array.isArray(next.aliases) ? next.aliases : [])
+            .slice()
+            .sort()
+            .join("\n");
+          return before !== after || previous.title !== next.title;
+        }
+
+        async function knowledgeUpsertPageAndOutgoingLinks(page) {
+          if (!page || !page.folderId || !page.key) return;
+          await enqueueKnowledgeMutation(page.folderId, async function () {
+            const existingPages = await knowledgeGetFolderPages(page.folderId);
+            const existingLinks = await knowledgeGetFolderLinks(page.folderId);
+            const byKey = new Map();
+            existingPages.forEach(function (item) {
+              if (item && item.key) byKey.set(item.key, item);
+            });
+            const previous = byKey.get(page.key) || null;
+            byKey.set(page.key, page);
+            const pages = Array.from(byKey.values());
+            const rebuildAllLinks = knowledgePageAliasesChanged(previous, page);
+            const nextLinks = rebuildAllLinks
+              ? createKnowledgeLinksForPages(pages)
+              : createKnowledgeLinksForPages(pages).filter(function (link) {
+                  return link.sourceKey === page.key;
+                });
+            const linkCount = rebuildAllLinks
+              ? nextLinks.length
+              : existingLinks.filter(function (link) {
+                  return link && link.sourceKey !== page.key;
+                }).length + nextLinks.length;
+            const db = await openLibraryDb();
+            await new Promise(function (resolve, reject) {
+              const tx = db.transaction(
+                [KNOWLEDGE_PAGE_STORE, KNOWLEDGE_LINK_STORE, GRAPH_META_STORE],
+                "readwrite",
+              );
+              const linkStore = tx.objectStore(KNOWLEDGE_LINK_STORE);
+              const deleteIndex = rebuildAllLinks ? "folderId" : "sourceKey";
+              const deleteValue = rebuildAllLinks ? page.folderId : page.key;
+              function putUpdated() {
+                tx.objectStore(KNOWLEDGE_PAGE_STORE).put(page);
+                nextLinks.forEach(function (link) {
+                  linkStore.put(link);
+                });
+                tx.objectStore(GRAPH_META_STORE).put({
+                  key: "folder::" + page.folderId,
+                  folderId: page.folderId,
+                  pageCount: pages.length,
+                  linkCount: linkCount,
+                  indexedAt: Date.now(),
+                });
+              }
+              function fail(error) {
+                try {
+                  tx.abort();
+                } catch (_error) {}
+                reject(error);
+              }
+              knowledgeDeleteByIndexInTransaction(
+                linkStore,
+                deleteIndex,
+                deleteValue,
+                putUpdated,
+                fail,
+              );
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+              tx.onabort = function () {
+                reject(tx.error || new Error("Page graph update was aborted."));
+              };
+            });
+            onKnowledgeIndexChanged(page.folderId);
+          });
+        }
+
+        async function indexActiveLibraryFileFromMarkdown(markdown, meta) {
+          if (
+            !state.libraryActiveFolderId ||
+            !state.libraryActiveFilePath ||
+            !canUseLibraryStorage()
+          ) {
+            return;
+          }
+          const page = createKnowledgePage(
+            state.libraryActiveFolderId,
+            state.libraryActiveFilePath,
+            markdown,
+            meta,
+          );
+          await knowledgeUpsertPageAndOutgoingLinks(page).catch(function (error) {
+            console.warn("[knowledge] active file index failed", error);
+          });
+        }
+
+        function scheduleKnowledgeFolderSweep(folderId, reason) {
+          if (!folderId || !canUseLibraryStorage()) return;
+          const existing = state.knowledgeSweepTimers[folderId];
+          if (existing) {
+            if (window.cancelIdleCallback) {
+              window.cancelIdleCallback(existing);
+            } else {
+              window.clearTimeout(existing);
+            }
+          }
+          const token = Date.now() + Math.random();
+          state.knowledgeSweepTokens[folderId] = token;
+          const runner = function () {
+            delete state.knowledgeSweepTimers[folderId];
+            runKnowledgeFolderSweep(folderId, token, reason).catch(function (error) {
+              console.warn("[knowledge] folder sweep failed", {
+                folderId: folderId,
+                reason: reason,
+                error: error && error.message ? error.message : String(error),
+              });
+            });
+          };
+          state.knowledgeSweepTimers[folderId] = window.requestIdleCallback
+            ? window.requestIdleCallback(runner, { timeout: 1800 })
+            : window.setTimeout(runner, 250);
+        }
+
+        async function runKnowledgeFolderSweep(folderId, token, reason) {
+          if (state.knowledgeSweepTokens[folderId] !== token) return;
+          const folder = getLibraryFolderById(folderId);
+          if (!folder || folder.status !== "ready") return;
+
+          const pages = [];
+          if (folder.sourceType === "snapshot") {
+            const files = Array.isArray(folder.snapshotFiles)
+              ? folder.snapshotFiles
+              : [];
+            for (let index = 0; index < files.length; index += 1) {
+              if (state.knowledgeSweepTokens[folderId] !== token) return;
+              const file = files[index];
+              if (!file || !libraryIsSupportedFile(file.path)) continue;
+              pages.push(
+                createKnowledgePage(folderId, file.path, file.text || "", {
+                  lastModified: file.lastModified || 0,
+                }),
+              );
+              if (index % LIBRARY_LIMITS.yieldEvery === 0) {
+                await yieldToUi();
+              }
+            }
+          } else {
+            const handles =
+              folder.fileHandlesByPath &&
+              typeof folder.fileHandlesByPath.entries === "function"
+                ? Array.from(folder.fileHandlesByPath.entries())
+                : [];
+            for (let index = 0; index < handles.length; index += 1) {
+              if (state.knowledgeSweepTokens[folderId] !== token) return;
+              const path = handles[index][0];
+              const handle = handles[index][1];
+              try {
+                const file = await handle.getFile();
+                pages.push(
+                  createKnowledgePage(folderId, path, await file.text(), {
+                    lastModified: Number(file.lastModified) || 0,
+                  }),
+                );
+              } catch (error) {
+                console.warn("[knowledge] skipped unreadable file", {
+                  folderId: folderId,
+                  path: path,
+                  error: error && error.message ? error.message : String(error),
+                });
+              }
+              if (index % LIBRARY_LIMITS.yieldEvery === 0) {
+                await yieldToUi();
+              }
+            }
+          }
+
+          if (state.knowledgeSweepTokens[folderId] !== token) return;
+          await knowledgeReplaceFolderIndex(folderId, pages);
+          if (reason && reason !== "silent") {
+            setStatus(
+              (folder.displayLabel || folder.name || "Folder") +
+                " • graph indexed",
+            );
+          }
+        }
+
+        function onKnowledgeIndexChanged(folderId) {
+          if (state.knowledgeConnectionsOpen) {
+            scheduleKnowledgeConnectionsRender();
+          }
+          if (
+            state.knowledgeGraphCurrent &&
+            state.knowledgeGraphCurrent.folderId === folderId
+          ) {
+            renderKnowledgeGraphViewer(folderId).catch(function (error) {
+              console.warn("[knowledge] graph refresh failed", error);
+            });
+          }
         }
 
         async function queryLibraryPermission(handle) {
@@ -13316,6 +14388,13 @@ Return JSON only.`;
           }
 
           renderLibraryDrawer();
+          if (folder.status === "ready") {
+            scheduleKnowledgeFolderSweep(folder.id, "snapshot");
+          } else {
+            knowledgeClearFolder(folder.id).catch(function (error) {
+              console.warn("[knowledge] failed to clear empty snapshot index", error);
+            });
+          }
         }
 
         async function scanLibraryFolder(folder) {
@@ -13435,6 +14514,13 @@ Return JSON only.`;
           }
 
           renderLibraryDrawer();
+          if (folder.status === "ready") {
+            scheduleKnowledgeFolderSweep(folder.id, "scan");
+          } else {
+            knowledgeClearFolder(folder.id).catch(function (error) {
+              console.warn("[knowledge] failed to clear empty folder index", error);
+            });
+          }
         }
 
         function clampNumber(value, min, max) {
@@ -16189,6 +17275,9 @@ Return JSON only.`;
           updateUiState();
           render("library");
           renderLibraryDrawer();
+          indexActiveLibraryFileFromMarkdown(markdown, {
+            lastModified: Number(file.lastModified) || 0,
+          });
 
           if (canUseLibraryStorage()) {
             await persistLibraryMeta().catch(function (error) {
@@ -16249,6 +17338,16 @@ Return JSON only.`;
             return folder.id !== folderId;
           });
           const removed = getLibraryFolderById(folderId);
+          const pendingSweep = state.knowledgeSweepTimers[folderId];
+          if (pendingSweep) {
+            if (window.cancelIdleCallback) {
+              window.cancelIdleCallback(pendingSweep);
+            } else {
+              window.clearTimeout(pendingSweep);
+            }
+          }
+          delete state.knowledgeSweepTimers[folderId];
+          delete state.knowledgeSweepTokens[folderId];
           state.libraryFolders = nextFolders;
           applyLibraryFolderOrder();
 
@@ -16266,6 +17365,9 @@ Return JSON only.`;
           }
 
           if (canUseLibraryStorage()) {
+            await knowledgeClearFolder(folderId, { includeAi: true }).catch(function (error) {
+              console.warn("[knowledge] failed to delete folder graph", error);
+            });
             await libraryDeleteFolderFromDb(folderId).catch(function (error) {
               console.warn("[library] failed to delete folder from db", error);
             });
@@ -18031,6 +19133,9 @@ Return JSON only.`;
               await writeMarkdownToHandle(state.libraryCurrentFileHandle, markdown);
               state.currentName =
                 state.libraryCurrentFileHandle.name || suggestedName;
+              await indexActiveLibraryFileFromMarkdown(markdown, {
+                lastModified: Date.now(),
+              });
               markDocumentSaved("library");
               setStatus("Saved • " + nowString(), {
                 announce: true,
@@ -18109,7 +19214,11 @@ Return JSON only.`;
           });
 
           setEditorMarkdown("");
+          closeKnowledgeConnections({ restoreFocus: false });
           resetMindmapState({ closeViewer: true });
+          state.knowledgeGraphCurrent = null;
+          state.knowledgeGraphShowAllFolderIds = {};
+          state.knowledgeTransientAiInsights = {};
 
           removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
           removeStorage(window.sessionStorage, SESSION_META_KEY);
@@ -18505,6 +19614,7 @@ Return JSON only.`;
         wireMindmapInteractions();
         wireMindmapNodeClicks();
         wireMindmapHover();
+        wireKnowledgeConnectionsUi();
 
         function parseMindmapRetryDelayMs(value) {
           const raw = String(value || "").trim();
@@ -18690,16 +19800,1216 @@ Return JSON only.`;
           errorPane.classList.remove("is-hidden");
         }
 
+        function getKnowledgeEls() {
+          return {
+            overlay: document.getElementById("knowledgeConnectionsOverlay"),
+            panel: document.getElementById("knowledgeConnectionsPanel"),
+            body: document.getElementById("knowledgeConnectionsBody"),
+            closeBtn: document.getElementById("knowledgeConnectionsCloseBtn"),
+            aiBtn: document.getElementById("knowledgeAiInsightBtn"),
+            graphBtn: document.getElementById("knowledgeGraphOpenBtn"),
+            refreshBtn: document.getElementById("knowledgeRefreshBtn"),
+            subtitle: document.getElementById("knowledgeConnectionsSubtitle"),
+          };
+        }
+
+        function getActiveKnowledgeFolder() {
+          return state.libraryActiveFolderId
+            ? getLibraryFolderById(state.libraryActiveFolderId)
+            : null;
+        }
+
+        function getActiveKnowledgePageKey() {
+          return state.libraryActiveFolderId && state.libraryActiveFilePath
+            ? getKnowledgePageKey(
+                state.libraryActiveFolderId,
+                state.libraryActiveFilePath,
+              )
+            : "";
+        }
+
+        function normalizeKnowledgeTargetRef(targetRef) {
+          if (typeof libraryCore.normalizeKnowledgeTargetRef === "function") {
+            return libraryCore.normalizeKnowledgeTargetRef(targetRef, "");
+          }
+          return String(targetRef || "").toLowerCase().trim();
+        }
+
+        function buildKnowledgePageMaps(pages) {
+          const byKey = new Map();
+          const byRef = new Map();
+          (Array.isArray(pages) ? pages : []).forEach(function (page) {
+            if (!page || !page.key) return;
+            byKey.set(page.key, page);
+            [page.path].concat(page.aliases || []).forEach(function (ref) {
+              const normalized = normalizeKnowledgeTargetRef(ref);
+              if (normalized && !byRef.has(normalized)) {
+                byRef.set(normalized, page);
+              }
+            });
+          });
+          return { byKey: byKey, byRef: byRef };
+        }
+
+        function findExternalKnowledgePage(targetRef, allPages, activeFolderId) {
+          const normalized = normalizeKnowledgeTargetRef(targetRef);
+          if (!normalized) return null;
+          for (const page of Array.isArray(allPages) ? allPages : []) {
+            if (!page || page.folderId === activeFolderId) continue;
+            const refs = [page.path].concat(page.aliases || []);
+            for (const ref of refs) {
+              if (normalizeKnowledgeTargetRef(ref) === normalized) {
+                return page;
+              }
+            }
+          }
+          return null;
+        }
+
+        function describeKnowledgeTarget(link, maps, allPages, activeFolderId) {
+          if (link.targetKey && maps.byKey.has(link.targetKey)) {
+            const page = maps.byKey.get(link.targetKey);
+            return {
+              title: page.title || page.path,
+              path: page.path,
+              folderId: page.folderId,
+              page: page,
+              ghost: false,
+              external: false,
+            };
+          }
+          const externalPage = findExternalKnowledgePage(
+            link.targetRef,
+            allPages,
+            activeFolderId,
+          );
+          if (externalPage) {
+            return {
+              title: externalPage.title || externalPage.path,
+              path: externalPage.path,
+              folderId: externalPage.folderId,
+              page: externalPage,
+              ghost: true,
+              external: true,
+            };
+          }
+          return {
+            title: link.label || link.targetRef || "Unresolved link",
+            path: link.targetRef || "",
+            folderId: "",
+            page: null,
+            ghost: true,
+            external: false,
+          };
+        }
+
+        function knowledgeRowButton(item, relation) {
+          const disabled = !item.folderId || !item.path;
+          const meta = item.external
+            ? "External"
+            : item.ghost
+              ? "Missing"
+              : relation;
+          return (
+            '<li>' +
+            '<button type="button" class="knowledge-row" role="link"' +
+            (disabled ? " disabled" : "") +
+            ' data-folder-id="' +
+            escapeHtml(item.folderId || "") +
+            '" data-path="' +
+            escapeHtml(item.path || "") +
+            '">' +
+            '<span class="knowledge-row-title">' +
+            escapeHtml(item.title || "Untitled") +
+            "</span>" +
+            '<span class="knowledge-row-meta">' +
+            escapeHtml(meta) +
+            "</span>" +
+            "</button>" +
+            "</li>"
+          );
+        }
+
+        function renderKnowledgeSection(title, items, relation) {
+          if (!items.length) {
+            return (
+              '<section class="knowledge-section">' +
+              "<h3>" +
+              escapeHtml(title) +
+              "</h3>" +
+              '<p class="knowledge-empty">None yet.</p>' +
+              "</section>"
+            );
+          }
+          return (
+            '<section class="knowledge-section">' +
+            "<h3>" +
+            escapeHtml(title) +
+            "</h3>" +
+            '<ul class="knowledge-list" role="list">' +
+            items
+              .map(function (item) {
+                return knowledgeRowButton(item, relation);
+              })
+              .join("") +
+            "</ul></section>"
+          );
+        }
+
+        function hasConfiguredKnowledgeLlm() {
+          return Boolean(
+            typeof window.markvCallTextLlm === "function" &&
+              typeof window.markvHasConfiguredLlm === "function" &&
+              window.markvHasConfiguredLlm(),
+          );
+        }
+
+        function getKnowledgeLlmLabel() {
+          if (typeof window.markvGetLlmSettings !== "function") return "AI";
+          try {
+            const settings = window.markvGetLlmSettings();
+            return settings && settings.provider === "groq" ? "Groq" : "Ollama";
+          } catch (_error) {
+            return "AI";
+          }
+        }
+
+        function getKnowledgeDocumentMarkdown() {
+          if (els.editor && typeof els.editor.value === "string") {
+            return els.editor.value;
+          }
+          const preview = document.getElementById("preview");
+          return preview ? preview.innerText || "" : "";
+        }
+
+        function trimKnowledgePromptText(text, maxChars) {
+          const clean = String(text || "").replace(/\s+$/g, "");
+          if (clean.length <= maxChars) return clean;
+          const head = Math.floor(maxChars * 0.65);
+          const tail = Math.max(800, maxChars - head - 80);
+          return (
+            clean.slice(0, head) +
+            "\n\n[...middle omitted for length...]\n\n" +
+            clean.slice(-tail)
+          );
+        }
+
+        function extractKnowledgeJsonObject(raw) {
+          const text = String(raw || "").trim();
+          if (!text) return null;
+          try {
+            return JSON.parse(text);
+          } catch (_error) {}
+          const match = text.match(/\{[\s\S]*\}/);
+          if (!match) return null;
+          try {
+            return JSON.parse(match[0]);
+          } catch (_error) {
+            return null;
+          }
+        }
+
+        function normalizeKnowledgeAiInsight(raw) {
+          const parsed = extractKnowledgeJsonObject(raw) || {};
+          function list(value, max) {
+            const source = Array.isArray(value) ? value : [];
+            return source
+              .map(function (item) {
+                return String(item || "").replace(/\s+/g, " ").trim();
+              })
+              .filter(Boolean)
+              .slice(0, max);
+          }
+          const overview = String(parsed.overview || raw || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 900);
+          return {
+            overview: overview || "No AI overview was returned.",
+            keyIdeas: list(parsed.keyIdeas, 5),
+            readingPath: list(parsed.readingPath, 5),
+            relationships: list(parsed.relationships, 5),
+            questions: list(parsed.questions, 4),
+          };
+        }
+
+        function renderKnowledgeAiList(title, items) {
+          if (!items || !items.length) return "";
+          return (
+            "<div>" +
+            '<p class="knowledge-ai-subhead">' +
+            escapeHtml(title) +
+            "</p>" +
+            '<ul class="knowledge-ai-list">' +
+            items
+              .map(function (item) {
+                return "<li>" + escapeHtml(item) + "</li>";
+              })
+              .join("") +
+            "</ul></div>"
+          );
+        }
+
+        function renderKnowledgeAiSection(active, insight, insightStale, canUseAi) {
+          const provider = getKnowledgeLlmLabel();
+          const busy = state.knowledgeAiInsightInFlight;
+          const buttonText = insight
+            ? insightStale
+              ? "Regenerate AI insight"
+              : "Refresh AI insight"
+            : "Generate AI insight";
+          const actionButton =
+            '<button type="button" class="knowledge-ai-btn" data-knowledge-action="generate-ai"' +
+            (busy || !canUseAi || !active ? " disabled" : "") +
+            ">" +
+            escapeHtml(busy ? "Generating..." : buttonText) +
+            "</button>";
+
+          if (!insight) {
+            return (
+              '<section class="knowledge-section"><h3>Comprehension</h3>' +
+              '<div class="knowledge-ai-card">' +
+              '<p class="knowledge-ai-overview">Local links show references. AI insight synthesizes what this document is saying and how to read it.</p>' +
+              '<div class="knowledge-ai-actions">' +
+              actionButton +
+              '<p class="knowledge-ai-note">' +
+              (canUseAi
+                ? escapeHtml(provider + " will analyze the current document.")
+                : 'Connect Groq or Ollama in AI settings to generate comprehension.') +
+              "</p></div></div></section>"
+            );
+          }
+
+          const payload = insight.insight || insight;
+          return (
+            '<section class="knowledge-section"><h3>Comprehension</h3>' +
+            '<div class="knowledge-ai-card' +
+            (insightStale ? " is-stale" : "") +
+            '">' +
+            '<p class="knowledge-ai-overview">' +
+            escapeHtml(payload.overview || "No overview available.") +
+            "</p>" +
+            '<div class="knowledge-ai-grid">' +
+            renderKnowledgeAiList("Key ideas", payload.keyIdeas) +
+            renderKnowledgeAiList("Reading path", payload.readingPath) +
+            renderKnowledgeAiList("Relationships", payload.relationships) +
+            renderKnowledgeAiList("Questions to keep in mind", payload.questions) +
+            "</div>" +
+            '<div class="knowledge-ai-actions">' +
+            (insightStale
+              ? '<span class="knowledge-stale-badge">Outdated</span>'
+              : '<span class="knowledge-stale-badge">AI</span>') +
+            actionButton +
+            '<p class="knowledge-ai-note">' +
+            escapeHtml(
+              provider +
+                " insight" +
+                (insight.generatedAt
+                  ? " generated " + new Date(insight.generatedAt).toLocaleString()
+                  : ""),
+            ) +
+            "</p></div></div></section>"
+          );
+        }
+
+        function buildKnowledgeAiMessages(data, active, outgoing, inbound, related) {
+          const title = active ? active.title || active.path || "Current document" : "Current document";
+          const localFacts = [
+            "Outbound links: " +
+              (outgoing.length
+                ? outgoing.map(function (item) { return item.title; }).join(", ")
+                : "none"),
+            "Inbound backlinks: " +
+              (inbound.length
+                ? inbound.map(function (item) { return item.title; }).join(", ")
+                : "none"),
+            "Related documents: " +
+              (related.length
+                ? related.map(function (item) { return item.title; }).join(", ")
+                : "none"),
+          ].join("\n");
+          const markdown = trimKnowledgePromptText(getKnowledgeDocumentMarkdown(), 12000);
+          return [
+            {
+              role: "system",
+              content:
+                "You are MarkV's comprehension layer. Produce a concise reader-facing synthesis for a markdown document. Return ONLY JSON with this exact shape: {\"overview\": string, \"keyIdeas\": string[], \"readingPath\": string[], \"relationships\": string[], \"questions\": string[]}. Keep overview under 120 words. keyIdeas, readingPath, relationships, and questions must each contain at most 5 short items. Be specific to the document; do not praise the document or mention that you are an AI.",
+            },
+            {
+              role: "user",
+              content:
+                "Document title: " +
+                title +
+                "\nScope: " +
+                (data.folder
+                  ? "active folder " + (data.folder.displayLabel || data.folder.name)
+                  : "single current document") +
+                "\n\nLocal deterministic context:\n" +
+                localFacts +
+                "\n\nMarkdown:\n" +
+                markdown,
+            },
+          ];
+        }
+
+        function createKnowledgeMiniGraphSvg(active, outgoing, inbound, related) {
+          const center = { x: 190, y: 90 };
+          const items = [];
+          outgoing.slice(0, 3).forEach(function (item) {
+            items.push({ item: item, relation: "out" });
+          });
+          inbound.slice(0, 3).forEach(function (item) {
+            items.push({ item: item, relation: "in" });
+          });
+          related.slice(0, 4).forEach(function (item) {
+            items.push({ item: item, relation: "related" });
+          });
+          const unique = [];
+          const seen = new Set();
+          items.forEach(function (entry) {
+            const key =
+              entry.item.folderId + "::" + entry.item.path + "::" + entry.item.title;
+            if (seen.has(key)) return;
+            seen.add(key);
+            unique.push(entry);
+          });
+          if (!active || !unique.length) {
+            return '<p class="knowledge-empty">No neighborhood graph yet.</p>';
+          }
+          const radius = 70;
+          const nodes = unique.slice(0, 10).map(function (entry, index) {
+            const angle = -Math.PI / 2 + (index / Math.max(1, unique.length)) * Math.PI * 2;
+            return {
+              entry: entry,
+              x: center.x + Math.cos(angle) * radius,
+              y: center.y + Math.sin(angle) * radius,
+            };
+          });
+          return (
+            '<svg class="knowledge-mini-graph" viewBox="0 0 380 180" role="img" aria-label="Small neighborhood graph">' +
+            nodes
+              .map(function (node) {
+                return (
+                  '<path class="knowledge-graph-edge" d="M' +
+                  center.x +
+                  " " +
+                  center.y +
+                  "L" +
+                  node.x.toFixed(1) +
+                  " " +
+                  node.y.toFixed(1) +
+                  '"></path>'
+                );
+              })
+              .join("") +
+            '<g class="knowledge-graph-node" data-active="true"><rect x="' +
+            (center.x - 44) +
+            '" y="' +
+            (center.y - 15) +
+            '" width="88" height="30" rx="8"></rect><text x="' +
+            center.x +
+            '" y="' +
+            (center.y + 4) +
+            '" text-anchor="middle">' +
+            escapeHtml((active.title || active.path || "Current").slice(0, 12)) +
+            "</text></g>" +
+            nodes
+              .map(function (node) {
+                return (
+                  '<g class="knowledge-graph-node" data-ghost="' +
+                  String(Boolean(node.entry.item.ghost)) +
+                  '"><rect x="' +
+                  (node.x - 38).toFixed(1) +
+                  '" y="' +
+                  (node.y - 13).toFixed(1) +
+                  '" width="76" height="26" rx="8"></rect><text x="' +
+                  node.x.toFixed(1) +
+                  '" y="' +
+                  (node.y + 4).toFixed(1) +
+                  '" text-anchor="middle">' +
+                  escapeHtml((node.entry.item.title || "").slice(0, 10)) +
+                  "</text></g>"
+                );
+              })
+              .join("") +
+            "</svg>"
+          );
+        }
+
+        async function getCurrentKnowledgeData() {
+          const folder = getActiveKnowledgeFolder();
+          const activeKey = getActiveKnowledgePageKey();
+          if (!folder || !activeKey) {
+            const markdown = els.editor ? els.editor.value || "" : "";
+            const page = createKnowledgePage("", state.currentName || "current.md", markdown, {
+              lastModified: Date.now(),
+            });
+            return {
+              folder: null,
+              activeKey: page.key,
+              pages: [page],
+              links: createKnowledgeLinksForPages([page]),
+              allPages: [page],
+            };
+          }
+
+          let pages = await knowledgeGetFolderPages(folder.id);
+          let links = await knowledgeGetFolderLinks(folder.id);
+          let allPages = await knowledgeGetAllPages();
+          if (
+            !pages.some(function (page) {
+              return page && page.key === activeKey;
+            }) &&
+            state.libraryActiveFilePath &&
+            els.editor
+          ) {
+            const activePage = createKnowledgePage(
+              folder.id,
+              state.libraryActiveFilePath,
+              els.editor.value || "",
+              { lastModified: Date.now() },
+            );
+            pages = pages.concat(activePage);
+            links = createKnowledgeLinksForPages(pages);
+            if (
+              !allPages.some(function (page) {
+                return page && page.key === activePage.key;
+              })
+            ) {
+              allPages = allPages.concat(activePage);
+            }
+          }
+          return {
+            folder: folder,
+            activeKey: activeKey,
+            pages: pages,
+            links: links,
+            allPages: allPages,
+          };
+        }
+
+        function scheduleKnowledgeConnectionsRender() {
+          if (!state.knowledgeConnectionsOpen) return;
+          if (state.knowledgeConnectionsRenderTimer) {
+            window.clearTimeout(state.knowledgeConnectionsRenderTimer);
+          }
+          state.knowledgeConnectionsRenderTimer = window.setTimeout(function () {
+            state.knowledgeConnectionsRenderTimer = 0;
+            renderKnowledgeConnections().catch(function (error) {
+              console.warn("[knowledge] connection refresh failed", error);
+            });
+          }, 80);
+        }
+
+        async function renderKnowledgeConnections() {
+          const elsK = getKnowledgeEls();
+          if (!elsK.body) return;
+          const data = await getCurrentKnowledgeData();
+          const maps = buildKnowledgePageMaps(data.pages);
+          const active = maps.byKey.get(data.activeKey) || data.pages[0] || null;
+          const insight = active ? await knowledgeGetAiInsight(active.key) : null;
+          const insightStale = Boolean(
+            insight &&
+              insight.markdownHash &&
+              active &&
+              insight.markdownHash !== active.markdownHash,
+          );
+          const connections =
+            typeof libraryCore.buildKnowledgeConnections === "function"
+              ? libraryCore.buildKnowledgeConnections(
+                  data.pages,
+                  data.links,
+                  data.activeKey,
+                )
+              : { outgoing: [], inbound: [], related: [] };
+          const outgoing = connections.outgoing.map(function (link) {
+            return describeKnowledgeTarget(
+              link,
+              maps,
+              data.allPages,
+              data.folder ? data.folder.id : "",
+            );
+          });
+          const inbound = connections.inbound
+            .map(function (link) {
+              const source = maps.byKey.get(link.sourceKey);
+              return source
+                ? {
+                    title: source.title || source.path,
+                    path: source.path,
+                    folderId: source.folderId,
+                    page: source,
+                    ghost: false,
+                    external: false,
+                  }
+                : null;
+            })
+            .filter(Boolean);
+          const related = connections.related.map(function (page) {
+            return {
+              title: page.title || page.path,
+              path: page.path,
+              folderId: page.folderId,
+              page: page,
+              ghost: false,
+              external: false,
+            };
+          });
+
+          if (elsK.subtitle) {
+            elsK.subtitle.textContent = data.folder
+              ? "Active folder: " + (data.folder.displayLabel || data.folder.name)
+              : "Current document only. Add it to a folder for backlinks.";
+          }
+          if (elsK.graphBtn) {
+            elsK.graphBtn.disabled = !data.folder;
+          }
+          if (elsK.refreshBtn) {
+            elsK.refreshBtn.disabled = !data.folder;
+            elsK.refreshBtn.title = data.folder
+              ? "Re-index local folder links"
+              : "Local link indexing needs a library folder";
+          }
+          const canUseAi = hasConfiguredKnowledgeLlm();
+          if (elsK.aiBtn) {
+            elsK.aiBtn.disabled =
+              !active || !canUseAi || state.knowledgeAiInsightInFlight;
+            elsK.aiBtn.title = canUseAi
+              ? "Generate AI comprehension"
+              : "Connect Groq or Ollama in AI settings";
+          }
+
+          const staleHtml = insightStale
+            ? '<span class="knowledge-stale-badge">AI insight stale</span>'
+            : "";
+          const status = data.folder
+            ? data.pages.length +
+              " indexed " +
+              (data.pages.length === 1 ? "file" : "files") +
+              " in this folder. " +
+              staleHtml
+            : "Connections are deterministic for this document; folder backlinks are unavailable. " +
+              staleHtml;
+
+          elsK.body.innerHTML =
+            '<p class="knowledge-status">' +
+            status +
+            "</p>" +
+            renderKnowledgeAiSection(active, insight, insightStale, canUseAi) +
+            '<section class="knowledge-section"><h3>Neighborhood</h3>' +
+            createKnowledgeMiniGraphSvg(active, outgoing, inbound, related) +
+            "</section>" +
+            renderKnowledgeSection("Outbound", outgoing, "Link") +
+            renderKnowledgeSection("Inbound", inbound, "Backlink") +
+            renderKnowledgeSection("Related", related, "Related");
+        }
+
+        async function generateKnowledgeAiInsight() {
+          if (state.knowledgeAiInsightInFlight) return;
+          const data = await getCurrentKnowledgeData();
+          const maps = buildKnowledgePageMaps(data.pages);
+          const active = maps.byKey.get(data.activeKey) || data.pages[0] || null;
+          if (!active) return;
+          if (
+            typeof window.markvCallTextLlm !== "function" ||
+            !hasConfiguredKnowledgeLlm()
+          ) {
+            setStatus("Connect Groq or Ollama in AI settings first.", {
+              announce: true,
+            });
+            if (typeof window.__openGlobalSettings === "function") {
+              window.__openGlobalSettings();
+            }
+            return;
+          }
+
+          const connections =
+            typeof libraryCore.buildKnowledgeConnections === "function"
+              ? libraryCore.buildKnowledgeConnections(
+                  data.pages,
+                  data.links,
+                  data.activeKey,
+                )
+              : { outgoing: [], inbound: [], related: [] };
+          const outgoing = connections.outgoing.map(function (link) {
+            return describeKnowledgeTarget(
+              link,
+              maps,
+              data.allPages,
+              data.folder ? data.folder.id : "",
+            );
+          });
+          const inbound = connections.inbound
+            .map(function (link) {
+              const source = maps.byKey.get(link.sourceKey);
+              return source
+                ? {
+                    title: source.title || source.path,
+                    path: source.path,
+                    folderId: source.folderId,
+                    page: source,
+                    ghost: false,
+                    external: false,
+                  }
+                : null;
+            })
+            .filter(Boolean);
+          const related = connections.related.map(function (page) {
+            return {
+              title: page.title || page.path,
+              path: page.path,
+              folderId: page.folderId,
+              page: page,
+              ghost: false,
+              external: false,
+            };
+          });
+
+          state.knowledgeAiInsightInFlight = true;
+          renderKnowledgeConnections().catch(function (error) {
+            console.warn("[knowledge] ai busy render failed", error);
+          });
+          setStatus("Generating AI comprehension...", { announce: true });
+
+          try {
+            const raw = await window.markvCallTextLlm(
+              buildKnowledgeAiMessages(data, active, outgoing, inbound, related),
+              {
+                stream: false,
+                maxCompletionTokens: 900,
+                responseFormat: { type: "json_object" },
+              },
+            );
+            const insight = normalizeKnowledgeAiInsight(raw);
+            await knowledgePutAiInsight({
+              key: active.key,
+              pageKey: active.key,
+              folderId: active.folderId || "",
+              path: active.path || "",
+              markdownHash: active.markdownHash || "",
+              provider: getKnowledgeLlmLabel().toLowerCase(),
+              generatedAt: Date.now(),
+              insight: insight,
+            });
+            setStatus("AI comprehension updated.", { announce: true });
+          } catch (error) {
+            console.warn("[knowledge] AI insight failed", error);
+            setStatus(
+              "AI comprehension failed • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true },
+            );
+          } finally {
+            state.knowledgeAiInsightInFlight = false;
+            renderKnowledgeConnections().catch(function (error) {
+              console.warn("[knowledge] ai refresh render failed", error);
+            });
+          }
+        }
+
+        function openKnowledgeConnections() {
+          const elsK = getKnowledgeEls();
+          if (!elsK.overlay || !elsK.panel) return;
+          state.knowledgeConnectionsLastFocused =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
+          state.knowledgeConnectionsOpen = true;
+          elsK.overlay.hidden = false;
+          elsK.panel.hidden = false;
+          requestAnimationFrame(function () {
+            elsK.overlay.classList.add("is-open");
+            elsK.overlay.setAttribute("aria-hidden", "false");
+            elsK.panel.classList.add("is-open");
+            elsK.panel.setAttribute("aria-hidden", "false");
+            if (elsK.closeBtn) elsK.closeBtn.focus();
+          });
+          const btn = document.getElementById("mindmapBtn");
+          if (btn) {
+            btn.setAttribute("aria-pressed", "true");
+            btn.setAttribute("aria-expanded", "true");
+          }
+          renderKnowledgeConnections().catch(function (error) {
+            console.warn("[knowledge] failed to render connections", error);
+            if (elsK.body) {
+              elsK.body.innerHTML =
+                '<p class="knowledge-status">Connections could not be loaded.</p>';
+            }
+          });
+        }
+
+        function closeKnowledgeConnections(options) {
+          options = options || {};
+          const elsK = getKnowledgeEls();
+          if (!elsK.overlay || !elsK.panel) return;
+          const btn = document.getElementById("mindmapBtn");
+          const restoreTarget =
+            options.restoreFocus === false
+              ? null
+              : state.knowledgeConnectionsLastFocused || btn;
+          if (
+            document.activeElement instanceof HTMLElement &&
+            elsK.panel.contains(document.activeElement)
+          ) {
+            if (restoreTarget && typeof restoreTarget.focus === "function") {
+              try { restoreTarget.focus(); } catch (_error) {}
+            }
+            if (elsK.panel.contains(document.activeElement)) {
+              try { document.activeElement.blur(); } catch (_error) {}
+            }
+          }
+          state.knowledgeConnectionsOpen = false;
+          if (state.knowledgeConnectionsRenderTimer) {
+            window.clearTimeout(state.knowledgeConnectionsRenderTimer);
+            state.knowledgeConnectionsRenderTimer = 0;
+          }
+          elsK.overlay.classList.remove("is-open");
+          elsK.panel.classList.remove("is-open");
+          elsK.overlay.setAttribute("aria-hidden", "true");
+          elsK.panel.setAttribute("aria-hidden", "true");
+          if (btn) {
+            btn.setAttribute("aria-pressed", "false");
+            btn.setAttribute("aria-expanded", "false");
+          }
+          window.setTimeout(function () {
+            if (!state.knowledgeConnectionsOpen) {
+              elsK.overlay.hidden = true;
+              elsK.panel.hidden = true;
+            }
+          }, 260);
+          if (options.restoreFocus !== false) {
+            if (restoreTarget && typeof restoreTarget.focus === "function") {
+              try { restoreTarget.focus(); } catch (_error) {}
+            }
+          }
+        }
+
+        async function openKnowledgeTarget(folderId, path) {
+          if (!folderId || !path) return;
+          await loadFromLibrarySelection(folderId, path, {
+            closeDrawerOnMobile: false,
+            quiet: false,
+            userInitiated: true,
+          });
+          if (isCoarsePointer()) {
+            closeKnowledgeConnections({ restoreFocus: false });
+          } else {
+            renderKnowledgeConnections().catch(function (error) {
+              console.warn("[knowledge] connection rerender failed", error);
+            });
+          }
+        }
+
+        function getKnowledgeFocusableElements() {
+          const panel = getKnowledgeEls().panel;
+          if (!panel || panel.hidden) return [];
+          return Array.from(
+            panel.querySelectorAll(
+              'button, [href], [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter(function (element) {
+            return !element.disabled && element.offsetParent !== null;
+          });
+        }
+
+        function wireKnowledgeConnectionsUi() {
+          const elsK = getKnowledgeEls();
+          if (!elsK.overlay || !elsK.panel) return;
+          elsK.overlay.addEventListener("click", function () {
+            closeKnowledgeConnections();
+          });
+          if (elsK.closeBtn) {
+            elsK.closeBtn.addEventListener("click", function () {
+              closeKnowledgeConnections();
+            });
+          }
+          if (elsK.refreshBtn) {
+            elsK.refreshBtn.addEventListener("click", function () {
+              const folder = getActiveKnowledgeFolder();
+              if (!folder) return;
+              scheduleKnowledgeFolderSweep(folder.id, "manual");
+              setStatus("Re-indexing local folder links...", { announce: true });
+            });
+          }
+          if (elsK.aiBtn) {
+            elsK.aiBtn.addEventListener("click", function () {
+              generateKnowledgeAiInsight().catch(function (error) {
+                console.warn("[knowledge] AI insight action failed", error);
+              });
+            });
+          }
+          if (elsK.graphBtn) {
+            elsK.graphBtn.addEventListener("click", function () {
+              const folder = getActiveKnowledgeFolder();
+              if (!folder) return;
+              openKnowledgeGraphViewer(folder.id);
+            });
+          }
+          if (elsK.body) {
+            elsK.body.addEventListener("click", function (event) {
+              const aiAction = event.target.closest(
+                '[data-knowledge-action="generate-ai"]',
+              );
+              if (aiAction) {
+                generateKnowledgeAiInsight().catch(function (error) {
+                  console.warn("[knowledge] AI insight action failed", error);
+                });
+                return;
+              }
+              const row = event.target.closest(".knowledge-row");
+              if (!row || row.disabled) return;
+              openKnowledgeTarget(
+                row.getAttribute("data-folder-id") || "",
+                row.getAttribute("data-path") || "",
+              );
+            });
+            elsK.body.addEventListener("keydown", function (event) {
+              if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+              const rows = Array.from(
+                elsK.body.querySelectorAll(".knowledge-row:not([disabled])"),
+              );
+              const index = rows.indexOf(document.activeElement);
+              if (index === -1) return;
+              event.preventDefault();
+              const offset = event.key === "ArrowDown" ? 1 : -1;
+              const next = rows[(index + offset + rows.length) % rows.length];
+              if (next) next.focus();
+            });
+          }
+          elsK.panel.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              closeKnowledgeConnections();
+              return;
+            }
+            if (event.key !== "Tab") return;
+            const focusables = getKnowledgeFocusableElements();
+            if (!focusables.length) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
+          });
+        }
+
+        async function buildKnowledgeGraphModel(folderId) {
+          const folder = getLibraryFolderById(folderId);
+          const pages = await knowledgeGetFolderPages(folderId);
+          const links = await knowledgeGetFolderLinks(folderId);
+          const allPages = await knowledgeGetAllPages();
+          const maps = buildKnowledgePageMaps(pages);
+          const activeKey = getActiveKnowledgePageKey();
+          const showAll = Boolean(state.knowledgeGraphShowAllFolderIds[folderId]);
+          const selected =
+            showAll
+              ? {
+                  keys: pages.map(function (page) {
+                    return page.key;
+                  }),
+                  filtered: false,
+                }
+              : typeof libraryCore.selectKnowledgeGraphNodes === "function"
+              ? libraryCore.selectKnowledgeGraphNodes(pages, links, {
+                  activeKey: activeKey,
+                  threshold: 300,
+                  topN: 50,
+                })
+              : {
+                  keys: pages.map(function (page) {
+                    return page.key;
+                  }),
+                  filtered: false,
+                };
+          const selectedKeys = new Set(selected.keys);
+          const nodes = [];
+          const nodeById = new Map();
+          pages.forEach(function (page) {
+            if (!selectedKeys.has(page.key)) return;
+            const node = {
+              id: page.key,
+              key: page.key,
+              folderId: page.folderId,
+              path: page.path,
+              label: page.title || page.path,
+              type: "concept",
+              summary: page.path,
+              depth: page.key === activeKey ? 0 : 1,
+              ghost: false,
+              external: false,
+              graphPath: page.path,
+            };
+            nodes.push(node);
+            nodeById.set(node.id, node);
+          });
+          const graphLinks = [];
+          links.forEach(function (link) {
+            if (!selectedKeys.has(link.sourceKey)) return;
+            let targetId = link.targetKey;
+            if (targetId && !selectedKeys.has(targetId)) return;
+            if (!targetId) {
+              const external = describeKnowledgeTarget(
+                link,
+                maps,
+                allPages,
+                folderId,
+              );
+              targetId =
+                "ghost::" +
+                (external.folderId || folderId) +
+                "::" +
+                (external.path || link.targetRef || link.label);
+              if (!nodeById.has(targetId)) {
+                const node = {
+                  id: targetId,
+                  key: "",
+                  folderId: external.folderId || "",
+                  path: external.path || "",
+                  label: external.title || link.label || "External",
+                  type: "concept",
+                  summary: external.external
+                    ? "External folder"
+                    : "Unresolved link",
+                  depth: 2,
+                  ghost: true,
+                  external: external.external,
+                  graphPath: external.path || "",
+                };
+                nodes.push(node);
+                nodeById.set(targetId, node);
+              }
+            }
+            if (!nodeById.has(link.sourceKey) || !nodeById.has(targetId)) return;
+            graphLinks.push({
+              source: link.sourceKey,
+              target: targetId,
+              kind: link.kind || "link",
+            });
+          });
+          return {
+            folder: folder,
+            pages: pages,
+            links: graphLinks,
+            nodes: nodes,
+            activeKey: activeKey,
+            filtered: selected.filtered,
+            showAll: showAll,
+          };
+        }
+
+        function compareKnowledgeGraphLabels(a, b) {
+          if (typeof libraryCore.compareLibraryNames === "function") {
+            return libraryCore.compareLibraryNames(a, b);
+          }
+          return String(a || "").localeCompare(String(b || ""), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+        }
+
+        function layoutKnowledgeGraph(model) {
+          const nodes = model.nodes.slice();
+          const activeId =
+            model.activeKey && nodes.some(function (node) {
+              return node.id === model.activeKey;
+            })
+              ? model.activeKey
+              : nodes[0] && nodes[0].id;
+          const neighbors = new Map();
+          nodes.forEach(function (node) {
+            neighbors.set(node.id, new Set());
+          });
+          model.links.forEach(function (link) {
+            if (!neighbors.has(link.source) || !neighbors.has(link.target)) return;
+            neighbors.get(link.source).add(link.target);
+            neighbors.get(link.target).add(link.source);
+          });
+          const depth = new Map();
+          if (activeId) depth.set(activeId, 0);
+          const queue = activeId ? [activeId] : [];
+          while (queue.length) {
+            const current = queue.shift();
+            const nextDepth = (depth.get(current) || 0) + 1;
+            (neighbors.get(current) || new Set()).forEach(function (neighbor) {
+              if (depth.has(neighbor) || nextDepth > 3) return;
+              depth.set(neighbor, nextDepth);
+              queue.push(neighbor);
+            });
+          }
+          nodes.forEach(function (node) {
+            node.depth = Math.min(depth.get(node.id) || 3, 3);
+          });
+
+          const byDepth = [0, 1, 2, 3].map(function (level) {
+            return nodes
+              .filter(function (node) {
+                return node.depth === level;
+              })
+              .sort(function (a, b) {
+                return compareKnowledgeGraphLabels(a.label, b.label);
+              });
+          });
+          byDepth[0].forEach(function (node, index) {
+            node.x = index * 220;
+            node.y = 0;
+          });
+          [1, 2, 3].forEach(function (level) {
+            const ring = byDepth[level];
+            const radius = level === 1 ? 280 : level === 2 ? 520 : 760;
+            ring.forEach(function (node, index) {
+              const angle =
+                -Math.PI / 2 + (index / Math.max(1, ring.length)) * Math.PI * 2;
+              node.x = Math.cos(angle) * radius;
+              node.y = Math.sin(angle) * radius;
+            });
+          });
+          const byId = new Map(
+            nodes.map(function (node) {
+              return [node.id, node];
+            }),
+          );
+          const treeEdges = model.links
+            .map(function (link) {
+              const from = byId.get(link.source);
+              const to = byId.get(link.target);
+              if (!from || !to) return null;
+              return {
+                from: from,
+                to: to,
+                depth: Math.max(from.depth, to.depth, 1),
+              };
+            })
+            .filter(Boolean);
+          const root = byId.get(activeId) || nodes[0] || {
+            id: "root",
+            label: model.folder ? model.folder.name : "Folder",
+            type: "root",
+            depth: 0,
+            x: 0,
+            y: 0,
+            children: [],
+          };
+          root.children = nodes.filter(function (node) {
+            return node.id !== root.id && node.depth === 1;
+          });
+          return {
+            root: root,
+            nodes: nodes,
+            treeEdges: treeEdges,
+            crossEdges: [],
+            filtered: model.filtered,
+            showAll: model.showAll,
+            pageCount: model.pages.length,
+          };
+        }
+
+        async function renderKnowledgeGraphViewer(folderId) {
+          const model = await buildKnowledgeGraphModel(folderId);
+          state.knowledgeGraphCurrent = {
+            folderId: folderId,
+            model: model,
+          };
+          const laid = layoutKnowledgeGraph(model);
+          mindmapState.currentGraph = model;
+          mindmapState.laid = laid;
+          renderMindmap(laid);
+          const legend = document.getElementById("mindmapLegend");
+          const showAllBtn = document.getElementById("knowledgeGraphShowAllBtn");
+          if (showAllBtn) {
+            const label = model.showAll ? "Use filtered view" : "Show all";
+            const span = showAllBtn.querySelector("span");
+            showAllBtn.hidden = !(model.filtered || model.showAll);
+            showAllBtn.setAttribute("aria-pressed", model.showAll ? "true" : "false");
+            showAllBtn.title = model.showAll
+              ? "Return to the readable filtered graph"
+              : "Show every indexed file in this folder";
+            if (span) span.textContent = label;
+          }
+          if (legend) {
+            legend.textContent = "";
+            const meta = document.createElement("span");
+            meta.className = "mindmap-legend-chip";
+            meta.textContent =
+              (model.folder ? model.folder.displayLabel || model.folder.name : "Folder") +
+              " · " +
+              model.pages.length +
+              " indexed files" +
+              (laid.filtered ? " · filtered view" : laid.showAll ? " · full view" : "");
+            legend.appendChild(meta);
+          }
+          requestAnimationFrame(function () {
+            fitMindmapToView(false);
+          });
+        }
+
+        function openKnowledgeGraphViewer(folderId) {
+          if (!folderId) return;
+          openMindmapViewer();
+          const loading = getMindmapEls().loading;
+          if (loading) loading.classList.remove("is-hidden");
+          renderKnowledgeGraphViewer(folderId)
+            .catch(function (error) {
+              showMindmapError(
+                "Folder graph could not be loaded: " +
+                  (error && error.message ? error.message : String(error)),
+                "graph_failed",
+              );
+            })
+            .finally(function () {
+              if (loading) loading.classList.add("is-hidden");
+            });
+        }
+
+        function openKnowledgeGraphNode(node) {
+          if (!node || !node.folderId || !node.graphPath) return;
+          openKnowledgeTarget(node.folderId, node.graphPath).catch(function (error) {
+            console.warn("[knowledge] graph node open failed", error);
+          });
+          closeMindmapViewer();
+        }
+
+        document.addEventListener("markv:render-complete", function () {
+          scheduleKnowledgeConnectionsRender();
+        });
+
         document.getElementById("mindmapBtn").addEventListener("click", () => {
-          runMindmapPipeline({ force: false });
+          if (state.knowledgeConnectionsOpen) {
+            closeKnowledgeConnections();
+            return;
+          }
+          openKnowledgeConnections();
         });
 
         document.getElementById("mindmapRegenerateBtn").addEventListener("click", () => {
-          runMindmapPipeline({ force: true });
+          const folder = getActiveKnowledgeFolder();
+          if (!folder) return;
+          scheduleKnowledgeFolderSweep(folder.id, "manual");
+          renderKnowledgeGraphViewer(folder.id).catch(function (error) {
+            console.warn("[knowledge] graph refresh failed", error);
+          });
+        });
+
+        document.getElementById("knowledgeGraphShowAllBtn").addEventListener("click", () => {
+          const current = state.knowledgeGraphCurrent;
+          const folderId = current && current.folderId;
+          if (!folderId) return;
+          if (state.knowledgeGraphShowAllFolderIds[folderId]) {
+            delete state.knowledgeGraphShowAllFolderIds[folderId];
+          } else {
+            state.knowledgeGraphShowAllFolderIds[folderId] = true;
+          }
+          renderKnowledgeGraphViewer(folderId).catch(function (error) {
+            console.warn("[knowledge] graph show-all toggle failed", error);
+          });
         });
 
         document.getElementById("mindmapRetryBtn").addEventListener("click", () => {
-          runMindmapPipeline({ force: true });
+          const folder = getActiveKnowledgeFolder();
+          if (folder) openKnowledgeGraphViewer(folder.id);
         });
 
         els.fileInput.addEventListener("change", async function (event) {
@@ -18821,6 +21131,7 @@ Return JSON only.`;
         }
 
         async function init() {
+          removeLegacyMindmapCaches();
           const sessionMeta = readSessionMeta();
           const savedContent = readStorage(
             window.sessionStorage,
@@ -18928,6 +21239,16 @@ Return JSON only.`;
           } else {
             sunIcon.style.display = "";
             moonIcon.style.display = "none";
+          }
+          if (
+            state.knowledgeGraphCurrent &&
+            state.knowledgeGraphCurrent.folderId
+          ) {
+            renderKnowledgeGraphViewer(state.knowledgeGraphCurrent.folderId).catch(
+              function (error) {
+                console.warn("[knowledge] theme graph redraw failed", error);
+              },
+            );
           }
         }
 
