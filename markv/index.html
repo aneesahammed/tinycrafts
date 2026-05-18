@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-VHP6La3Jm3jbZ8ns7oS3i0aqqNwvXpSE1hTGfZtcq6A=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-BjB5+M8Sz3HjrRVGhq41KAHCYGDcJFNO2ao9lnuJq8k=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -12222,7 +12222,11 @@ Paste markdown on the left, open a local file, or drag one into the page.
             inspector.appendChild(summary);
           }
 
-          if (node.depth > 0) {
+          const sourceTarget =
+            node.depth > 0
+              ? resolveMindmapTarget(node, document.getElementById("preview"))
+              : null;
+          if (sourceTarget) {
             const actions = document.createElement("div");
             actions.className = "mindmap-inspector-actions";
             const jump = document.createElement("button");
@@ -12630,15 +12634,6 @@ Paste markdown on the left, open a local file, or drag one into the page.
           target = tryAnchor(slugifyMindmapText(node.label));
           if (target) return target;
 
-          let ancestorId = node.parent;
-          while (ancestorId) {
-            const ancestor = getMindmapNodeById(ancestorId);
-            if (!ancestor) break;
-            target = tryAnchor(ancestor.sourceAnchor);
-            if (target) return target;
-            ancestorId = ancestor.parent;
-          }
-
           const headings = Array.from(preview.querySelectorAll("h1, h2, h3, h4, h5, h6"));
           if (headings.length === 0) return null;
 
@@ -12668,6 +12663,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
             const headingText = heading.textContent.trim();
             const headingSlug = slugifyMindmapText(headingText);
             let score = 0;
+            let labelMatches = 0;
 
             if (headingSlug && headingSlug === slugifyMindmapText(node.label)) score += 8;
 
@@ -12681,18 +12677,45 @@ Paste markdown on the left, open a local file, or drag one into the page.
             );
 
             for (const token of labelTokens) {
-              if (headingTokens.has(token)) score += 3;
+              if (headingTokens.has(token)) {
+                score += 3;
+                labelMatches += 1;
+              }
             }
             for (const token of summaryTokens) {
               if (headingTokens.has(token)) score += 1;
             }
 
             if (!best || score > best.score) {
-              best = { heading, score };
+              best = { heading, score, labelMatches };
             }
           }
 
-          return best && best.score > 0 ? best.heading : null;
+          if (best && best.score >= 3 && best.labelMatches > 0) {
+            return best.heading;
+          }
+
+          let ancestorId = node.parent;
+          while (ancestorId) {
+            const ancestor = getMindmapNodeById(ancestorId);
+            if (!ancestor) break;
+            const ancestorTokens = new Set(
+              String(ancestor.label || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .map(normalizeMindmapToken)
+                .filter((token) => token.length > 2),
+            );
+            const hasAncestorOverlap = labelTokens.some((token) =>
+              ancestorTokens.has(token),
+            );
+            target = tryAnchor(ancestor.sourceAnchor);
+            if (target && hasAncestorOverlap) return target;
+            ancestorId = ancestor.parent;
+          }
+
+          return null;
         }
 
         function scrollMindmapSourceTarget(target) {
