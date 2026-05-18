@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v23";
+const CACHE_VERSION = "v24";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   "./assets/pwa.js",
   "./assets/sample-developer.md",
   "./assets/toolbar-sync.js",
-  "./assets/toolbar-mobile.js",
+  "./assets/toolbar-mobile.js?v=2",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png",

@@ -241,15 +241,14 @@
     backdrop.addEventListener("click", function () { closeSheet(); });
 
     // Most actions inside the sheet imply "I'm done with the menu"
-    // (Open, Save, Reload, Mindmap, Share, Settings, Clear, Reading,
-    // Theme, Insights). Auto-refresh is a checkbox label — we let
-    // the user toggle without dismissing. The reading preset radios
-    // are only visible inside the Reading panel which opens on top
-    // of the sheet, so they aren't reachable here.
+    // (Save, Reload, Mindmap, Share, Settings, Clear, Theme, Insights).
+    // Auto-refresh is a checkbox label, and Reading owns a nested panel,
+    // so both stay in place for continued interaction.
     sheetBody.addEventListener("click", function (e) {
       var target = e.target;
       if (!target || !target.closest) return;
       if (target.closest(".auto-refresh")) return;
+      if (target.closest(".reading-settings")) return;
       var btn = target.closest(".btn");
       if (!btn) return;
       // Defer one tick so the button's own handler fires first

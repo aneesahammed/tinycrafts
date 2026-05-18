@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Ov6h0AwAad72C3yQJRLrCteeoCI5UyN5aXEjmF7MF48=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-uN0xZHLAIhwlFmMJY5cNfkkAFBC3LL0ZmBelyUUmFVY=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -2029,22 +2029,25 @@
         }
       }
       .reader-outline__link {
-        display: -webkit-box;
+        display: block;
         box-sizing: border-box;
         max-width: 100%;
         padding: 4.5px 0 4.5px 10px;
-        overflow: hidden;
         border-left: 2px solid transparent;
         color: var(--fg-muted);
         font-size: 12.5px;
         line-height: 1.25;
         text-decoration: none;
-        overflow-wrap: anywhere;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
         transition:
           border-color var(--motion-micro) var(--ease-calm),
           color var(--motion-micro) var(--ease-calm);
+      }
+      .reader-outline__text {
+        display: -webkit-box;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
       }
       .reader-outline__link[data-level="3"] {
         padding-left: 18px;
@@ -14231,7 +14234,9 @@ Return JSON only.`;
                 '"' +
                 (index === 0 ? ' aria-current="true"' : "") +
                 ">" +
+                '<span class="reader-outline__text">' +
                 escapeHtml(text) +
+                "</span>" +
                 "</a></li>"
               );
             })
@@ -27507,6 +27512,6 @@ Return JSON only.`;
     <script src="assets/toolbar-sync.js"></script>
     <!-- ≤640px: teleports secondary toolbar groups into a bottom
          sheet ("⋯ More") so the mobile header collapses to one row. -->
-    <script src="assets/toolbar-mobile.js"></script>
+    <script src="assets/toolbar-mobile.js?v=2"></script>
   </body>
 </html>
