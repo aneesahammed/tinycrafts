@@ -9,11 +9,14 @@
 
   const SUPPORTED_EXTENSIONS = [".md", ".markdown", ".mdown", ".mkdn", ".txt"];
   const SHARE_FRAGMENT_PREFIX = "#mkv=";
+  const SHARE_SHORT_FRAGMENT_PREFIX = "#m:";
   const SHARE_FORMAT_VERSION = "v1";
   const SHARE_CODEC_GZIP = "g";
   const SHARE_CODEC_PLAIN = "p";
   const SHARE_CODEC_COMPACT = "c";
   const SHARE_CODEC_COMPACT_GZIP = "h";
+  const SHARE_V2_FLAG_EDIT = 1;
+  const SHARE_V2_FLAG_HAS_NAME = 2;
   const SHARE_PROGRESS_THRESHOLD_BYTES = 12000;
 
   function toLower(value) {
@@ -177,6 +180,59 @@
     };
   }
 
+  function encodeCompactShareSnapshotV2Bytes(input) {
+    const payload = normalizeShareSnapshotPayload(input);
+    const nameBytes = payload.name
+      ? getUtf8Bytes(payload.name)
+      : new Uint8Array(0);
+    const textBytes = getUtf8Bytes(payload.text);
+    let flags = payload.view === "edit" ? SHARE_V2_FLAG_EDIT : 0;
+    if (nameBytes.length) flags |= SHARE_V2_FLAG_HAS_NAME;
+
+    const chunks = [new Uint8Array([flags])];
+    if (nameBytes.length) {
+      chunks.push(encodeUnsignedVarint(nameBytes.length), nameBytes);
+    }
+    chunks.push(textBytes);
+    return concatByteArrays(chunks);
+  }
+
+  function decodeCompactShareSnapshotV2Bytes(bytes) {
+    const list = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    if (!list.length) {
+      throw new Error("Empty compact snapshot payload");
+    }
+
+    const decoder = getTextDecoder();
+    if (!decoder) {
+      throw new Error("TextDecoder is unavailable in this browser.");
+    }
+
+    const flags = list[0];
+    let textStart = 1;
+    let name = "";
+
+    if ((flags & SHARE_V2_FLAG_HAS_NAME) === SHARE_V2_FLAG_HAS_NAME) {
+      const nameLengthMeta = decodeUnsignedVarint(list, textStart);
+      const nameStart = nameLengthMeta.nextIndex;
+      const nameEnd = nameStart + nameLengthMeta.value;
+      if (nameEnd > list.length) {
+        throw new Error("Compact snapshot payload is truncated");
+      }
+      name = decoder.decode(list.slice(nameStart, nameEnd));
+      textStart = nameEnd;
+    }
+
+    return {
+      name: name,
+      text: decoder.decode(list.slice(textStart)),
+      view:
+        (flags & SHARE_V2_FLAG_EDIT) === SHARE_V2_FLAG_EDIT
+          ? "edit"
+          : "preview",
+    };
+  }
+
   function encodeBase64Url(bytes) {
     if (
       typeof Buffer !== "undefined" &&
@@ -247,7 +303,7 @@
   }
 
   async function createShareSnapshotFragment(input) {
-    const compactBytes = encodeCompactShareSnapshotBytes(input);
+    const compactBytes = encodeCompactShareSnapshotV2Bytes(input);
     let codec = SHARE_CODEC_COMPACT;
     let finalBytes = compactBytes;
 
@@ -260,11 +316,8 @@
     } catch (_error) {}
 
     return (
-      SHARE_FRAGMENT_PREFIX +
-      SHARE_FORMAT_VERSION +
-      "." +
+      SHARE_SHORT_FRAGMENT_PREFIX +
       codec +
-      "." +
       encodeBase64Url(finalBytes)
     );
   }
@@ -282,7 +335,7 @@
 
     let estimatedPlainBytes = 0;
     try {
-      estimatedPlainBytes = encodeCompactShareSnapshotBytes(payload).length;
+      estimatedPlainBytes = encodeCompactShareSnapshotV2Bytes(payload).length;
     } catch (_error) {
       return {
         canShare: false,
@@ -304,6 +357,30 @@
     const raw = String(fragment || "").trim();
     const hashIndex = raw.indexOf("#");
     const normalized = hashIndex >= 0 ? raw.slice(hashIndex) : raw;
+    if (normalized.startsWith(SHARE_SHORT_FRAGMENT_PREFIX)) {
+      const body = normalized.slice(SHARE_SHORT_FRAGMENT_PREFIX.length);
+      const codec = body.charAt(0);
+      const encoded = body.slice(1);
+      if (
+        (codec !== SHARE_CODEC_COMPACT && codec !== SHARE_CODEC_COMPACT_GZIP) ||
+        !encoded
+      ) {
+        return null;
+      }
+
+      try {
+        const bytes = decodeBase64Url(encoded);
+        const restoredBytes = await decompressShareBytes(bytes, codec);
+        return {
+          version: 2,
+          codec: codec,
+          payload: decodeCompactShareSnapshotV2Bytes(restoredBytes),
+        };
+      } catch (_error) {
+        return null;
+      }
+    }
+
     if (!normalized.startsWith(SHARE_FRAGMENT_PREFIX)) return null;
 
     const body = normalized.slice(SHARE_FRAGMENT_PREFIX.length);
@@ -1491,6 +1568,55 @@
     };
   }
 
+  function createReaderConnectionsModel(context, options) {
+    const source = context && typeof context === "object" ? context : {};
+    const current = source.current || {};
+    const neighbors = Array.isArray(source.neighbors) ? source.neighbors : [];
+    if (!neighbors.length) return null;
+
+    const maxNeighbors = Math.max(
+      1,
+      Number(options && options.maxNeighbors) || 10,
+    );
+    const visible = neighbors.slice(0, maxNeighbors).map(function (item) {
+      return {
+        path: item.path || "",
+        title: item.title || titleFromLibraryPath(item.path),
+        summary: item.summary || "",
+        direction: item.direction || "related",
+        related: Boolean(item.related),
+        backlinkCount: Number(item.backlinkCount) || 0,
+        categories: Array.isArray(item.categories) ? item.categories.slice() : [],
+      };
+    });
+
+    return {
+      current: {
+        path: current.path || "",
+        title: current.title || titleFromLibraryPath(current.path),
+        summary: current.summary || "",
+        categories: Array.isArray(current.categories)
+          ? current.categories.slice()
+          : [],
+      },
+      neighbors: visible,
+      stats: {
+        neighborCount: neighbors.length,
+        visibleCount: visible.length,
+        hiddenCount: Math.max(0, neighbors.length - visible.length),
+        outboundCount: Array.isArray(source.outboundLinks)
+          ? source.outboundLinks.length
+          : 0,
+        backlinkCount: Array.isArray(source.backlinks)
+          ? source.backlinks.length
+          : 0,
+        relatedCount: neighbors.filter(function (item) {
+          return item && item.related;
+        }).length,
+      },
+    };
+  }
+
   function getReaderRefreshState(input) {
     const source = input && typeof input === "object" ? input : {};
     const sourceMode = String(source.sourceMode || "editor");
@@ -1594,8 +1720,10 @@
   return {
     SUPPORTED_EXTENSIONS: SUPPORTED_EXTENSIONS.slice(),
     SHARE_FRAGMENT_PREFIX,
+    SHARE_SHORT_FRAGMENT_PREFIX,
     compareLibraryNames,
     buildLibraryMindmapContext,
+    createReaderConnectionsModel,
     createLibraryContextMindmapGraph,
     createShareSnapshotFragment,
     createDirectoryNode,

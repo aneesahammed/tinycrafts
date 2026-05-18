@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-n1JY6sCJRSKrOpP+wYXoc9y6nXotWTea++42n6Q9xXw=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-a0OL3JbDj9VQ/Ueovxl93cu92E3CriTtTtb3pXiIIvE=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
 
     <script src="../assets/analytics.js"></script>
-    <script src="assets/library-core.js"></script>
+    <script src="assets/library-core.js?v=14"></script>
     <script src="assets/visual-blocks.js?v=12"></script>
     <script src="assets/pwa.js"></script>
     <script>
@@ -1858,6 +1858,19 @@
       .preview-pane {
         padding: 72px max(24px, calc((100% - 740px) / 2)) 128px;
       }
+      .preview-pane.has-reader-rail {
+        display: grid;
+        grid-template-columns: minmax(0, var(--reading-measure)) minmax(220px, 264px);
+        justify-content: center;
+        align-items: start;
+        column-gap: clamp(32px, 5vw, 76px);
+        padding-inline: 32px;
+      }
+      .preview-pane.has-reader-rail .markdown-body {
+        width: 100%;
+        max-width: min(var(--reading-measure), 100%);
+        margin: 0;
+      }
       .preview-pane.is-empty-state {
         display: flex;
         align-items: center;
@@ -1872,6 +1885,368 @@
       .preview-pane:focus-visible {
         outline: 2px solid var(--accent-fg);
         outline-offset: -2px;
+      }
+
+      .reader-rail {
+        position: sticky;
+        top: calc(var(--toolbar-h, 52px) + 42px);
+        width: 100%;
+        max-width: 248px;
+        font-family: var(--font-sans);
+        color: var(--fg-default);
+      }
+      .reader-rail[hidden] {
+        display: none;
+      }
+      .reader-rail__section + .reader-rail__section {
+        margin-top: 22px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-soft);
+      }
+      .reader-rail__header,
+      .reader-connections__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .reader-rail__title,
+      .reader-connections__title {
+        margin: 0;
+        color: var(--fg-muted);
+        font-family: var(--font-sans);
+        font-size: 10.5px;
+        font-weight: 650;
+        letter-spacing: 0.13em;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+      .reader-outline-toggle {
+        display: none;
+      }
+      .reader-outline {
+        display: grid;
+        gap: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .reader-outline__link {
+        display: block;
+        padding: 4.5px 0 4.5px 10px;
+        border-left: 2px solid transparent;
+        color: var(--fg-muted);
+        font-size: 12.5px;
+        line-height: 1.25;
+        text-decoration: none;
+        transition:
+          border-color var(--motion-micro) var(--ease-calm),
+          color var(--motion-micro) var(--ease-calm);
+      }
+      .reader-outline__link[data-level="3"] {
+        padding-left: 18px;
+        color: var(--fg-subtle);
+        font-size: 12px;
+      }
+      .reader-outline__link[data-level="4"] {
+        padding-left: 26px;
+        color: var(--fg-subtle);
+        font-size: 11.5px;
+      }
+      .reader-outline__link:hover,
+      .reader-outline__link:focus-visible,
+      .reader-outline__link[aria-current="true"] {
+        border-left-color: var(--accent-fg);
+        color: var(--fg-default);
+      }
+      .reader-outline__link:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 3px;
+      }
+      .reader-connections__badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 6px;
+        border: 1px solid var(--border-soft);
+        border-radius: 999px;
+        color: var(--fg-muted);
+        background: color-mix(in srgb, var(--bg-raised) 84%, transparent);
+        font-size: 10.5px;
+        line-height: 1;
+      }
+      .reader-connections__badge::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent-fg);
+        opacity: 0.72;
+      }
+      .reader-connections__panel {
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+      :root[data-theme="dark"] .reader-connections__panel,
+      :root[data-theme="dark"] .reader-connections__badge {
+        background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
+      }
+      .reader-connections__graph {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1.35;
+        background:
+          radial-gradient(
+            circle at 50% 46%,
+            color-mix(in srgb, var(--accent-fg) 5%, transparent),
+            transparent 54%
+          ),
+          var(--bg-subtle);
+      }
+      .reader-connections__edge {
+        stroke: color-mix(in srgb, var(--fg-subtle) 42%, transparent);
+        stroke-width: 1;
+      }
+      .reader-connections__edge[data-direction="inbound"] {
+        stroke-dasharray: 3 4;
+      }
+      .reader-connections__node {
+        fill: color-mix(in srgb, var(--fg-muted) 46%, var(--bg-raised));
+        stroke: var(--bg-raised);
+        stroke-width: 2;
+      }
+      .reader-connections__node[data-direction="outbound"] {
+        fill: color-mix(in srgb, var(--accent-fg) 68%, #6b8fb9);
+      }
+      .reader-connections__node[data-direction="inbound"] {
+        fill: color-mix(in srgb, var(--fg-muted) 62%, #8fb38e);
+      }
+      .reader-connections__node[data-direction="bidirectional"] {
+        fill: color-mix(in srgb, var(--accent-fg) 52%, #caa35c);
+      }
+      .reader-connections__node[data-related="true"] {
+        r: 5.5px;
+      }
+      .reader-connections__root {
+        fill: var(--accent-fg);
+        stroke: var(--bg-raised);
+        stroke-width: 2.5;
+      }
+      .reader-connections__root-label {
+        fill: var(--fg-muted);
+        font-family: var(--font-sans);
+        font-size: 10px;
+        font-weight: 540;
+      }
+      .reader-connections__meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--border-soft);
+      }
+      .reader-connections__stat {
+        display: grid;
+        gap: 2px;
+        padding: 8px 7px;
+        text-align: center;
+      }
+      .reader-connections__stat + .reader-connections__stat {
+        border-left: 1px solid var(--border-soft);
+      }
+      .reader-connections__stat strong {
+        color: var(--fg-default);
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        font-weight: 600;
+        line-height: 1;
+      }
+      .reader-connections__stat span {
+        color: var(--fg-subtle);
+        font-size: 10px;
+        line-height: 1.2;
+      }
+      .reader-connections__list {
+        display: grid;
+        gap: 0;
+        margin-top: 9px;
+      }
+      .reader-connection {
+        display: grid;
+        grid-template-columns: 7px minmax(0, 1fr);
+        gap: 8px;
+        width: 100%;
+        padding: 6px 0;
+        border: 0;
+        border-top: 1px solid var(--border-soft);
+        border-radius: 0;
+        color: inherit;
+        background: transparent;
+        text-align: left;
+      }
+      button.reader-connection {
+        cursor: pointer;
+      }
+      button.reader-connection:hover .reader-connection__title,
+      button.reader-connection:focus-visible .reader-connection__title {
+        color: var(--accent-fg);
+      }
+      button.reader-connection:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 3px;
+      }
+      .reader-connection__dot {
+        width: 6px;
+        height: 6px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--fg-muted) 52%, var(--bg-raised));
+      }
+      .reader-connection__dot[data-direction="outbound"] {
+        background: color-mix(in srgb, var(--accent-fg) 68%, #6b8fb9);
+      }
+      .reader-connection__dot[data-direction="inbound"] {
+        background: color-mix(in srgb, var(--fg-muted) 62%, #8fb38e);
+      }
+      .reader-connection__dot[data-direction="bidirectional"] {
+        background: color-mix(in srgb, var(--accent-fg) 52%, #caa35c);
+      }
+      .reader-connection__title {
+        display: block;
+        overflow: hidden;
+        color: var(--fg-default);
+        font-size: 12.5px;
+        font-weight: 540;
+        line-height: 1.28;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: color var(--motion-micro) var(--ease-calm);
+      }
+      .reader-connection__detail {
+        display: block;
+        margin-top: 1px;
+        overflow: hidden;
+        color: var(--fg-subtle);
+        font-size: 11px;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .reader-connections__more {
+        margin: 7px 0 0;
+        color: var(--fg-subtle);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      @media (max-width: 1120px) {
+        .preview-pane.has-reader-rail {
+          display: block;
+          padding: 72px max(24px, calc((100% - 740px) / 2)) 128px;
+        }
+        .preview-pane.has-reader-rail .markdown-body {
+          margin: 0 auto;
+        }
+        .reader-rail {
+          position: static;
+          max-width: min(var(--reading-measure), 100%);
+          margin: 48px auto 0;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .preview-pane.has-reader-rail {
+          padding: 40px 22px 96px;
+        }
+        .reader-rail {
+          margin-top: 38px;
+        }
+        .reader-rail__section + .reader-rail__section {
+          margin-top: 18px;
+          padding-top: 18px;
+        }
+        .reader-outline-section .reader-rail__header {
+          display: none;
+        }
+        .reader-outline-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          width: 100%;
+          min-height: 42px;
+          padding: 0;
+          border: 0;
+          border-radius: 0;
+          color: var(--fg-default);
+          background: transparent;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
+        }
+        .reader-outline-toggle:focus-visible {
+          outline: 2px solid var(--accent-fg);
+          outline-offset: 4px;
+        }
+        .reader-outline-toggle__kicker {
+          display: block;
+          color: var(--fg-muted);
+          font-size: 10.5px;
+          font-weight: 650;
+          letter-spacing: 0.13em;
+          line-height: 1.2;
+          text-transform: uppercase;
+        }
+        .reader-outline-toggle__summary {
+          display: block;
+          margin-top: 4px;
+          color: var(--fg-subtle);
+          font-size: 12px;
+          line-height: 1.2;
+        }
+        .reader-outline-toggle__chevron {
+          width: 8px;
+          height: 8px;
+          margin-right: 2px;
+          border-right: 1.5px solid currentColor;
+          border-bottom: 1.5px solid currentColor;
+          color: var(--fg-muted);
+          transform: rotate(45deg);
+          transition: transform var(--motion-small) var(--ease-calm);
+        }
+        .reader-outline-section.is-open .reader-outline-toggle__chevron {
+          transform: rotate(225deg);
+        }
+        .reader-outline-section .reader-outline {
+          display: none;
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid var(--border-soft);
+        }
+        .reader-outline-section.is-open .reader-outline {
+          display: grid;
+        }
+        .reader-outline__link {
+          padding-block: 6px;
+          font-size: 13px;
+        }
+        .reader-outline__link[data-level="3"] {
+          font-size: 12.5px;
+        }
+        .reader-outline__link[data-level="4"] {
+          font-size: 12px;
+        }
+        .reader-connections__graph {
+          display: none;
+        }
+        .reader-connections__panel {
+          box-shadow: none;
+        }
+        .reader-connections__meta {
+          border-top: 0;
+        }
       }
 
       /* ============================================================
@@ -6571,6 +6946,12 @@ Drop a .md file anywhere on the page, or open one with the Open button."
           tabindex="0"
         >
           <article id="preview" class="markdown-body"></article>
+          <aside
+            id="readerConnections"
+            class="reader-rail"
+            aria-label="Document navigation and local connections"
+            hidden
+          ></aside>
         </section>
       </main>
 
@@ -12866,25 +13247,6 @@ Return JSON only.`;
           return graph;
         }
 
-        function createDeterministicMindmapGraph(markdown, context) {
-          const sourceContext =
-            context ||
-            (typeof libraryCore.buildLibraryMindmapContext === "function"
-              ? libraryCore.buildLibraryMindmapContext({
-                  currentPath: getMindmapFallbackPath(),
-                  currentMarkdown: markdown,
-                  files: [],
-                })
-              : null);
-          if (
-            !sourceContext ||
-            typeof libraryCore.createLibraryContextMindmapGraph !== "function"
-          ) {
-            return null;
-          }
-          return libraryCore.createLibraryContextMindmapGraph(sourceContext);
-        }
-
         function buildMindmapExtractionSource(markdown, libraryContext) {
           const source = buildMindmapDocumentSource(markdown);
           const formattedContext = formatMindmapLibraryContext(libraryContext);
@@ -13195,6 +13557,7 @@ Return JSON only.`;
           brandDirty: document.getElementById("brandDirty"),
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
+          readerConnections: document.getElementById("readerConnections"),
           openFileBtn: document.getElementById("openFileBtn"),
           saveBtn: document.getElementById("saveBtn"),
           shareBtn: document.getElementById("shareBtn"),
@@ -13392,6 +13755,470 @@ Return JSON only.`;
           });
         }
 
+        const READER_OUTLINE_MAX_ITEMS = 14;
+        const READER_CONNECTIONS_MAX_NEIGHBORS = 10;
+        let readerConnectionsRequestToken = 0;
+        let readerOutlineHeadings = [];
+        let readerOutlineRaf = 0;
+
+        function hideReaderRail() {
+          readerOutlineHeadings = [];
+          if (els.readerConnections) {
+            els.readerConnections.hidden = true;
+            els.readerConnections.textContent = "";
+          }
+          if (els.previewPane) {
+            els.previewPane.classList.remove("has-reader-rail");
+          }
+        }
+
+        function getReaderHeadingText(heading) {
+          if (!heading) return "";
+          const clone = heading.cloneNode(true);
+          clone.querySelectorAll(".heading-anchor").forEach(function (anchor) {
+            anchor.remove();
+          });
+          return String(clone.textContent || "")
+            .replace(/\s+/g, " ")
+            .replace(/^#\s*/, "")
+            .trim();
+        }
+
+        function collectReaderOutlineItems() {
+          if (!els.preview) return [];
+          let headings = Array.from(
+            els.preview.querySelectorAll(":scope > :is(h2, h3, h4)[id]"),
+          );
+          if (!headings.length) {
+            headings = Array.from(
+              els.preview.querySelectorAll(":scope > :is(h1, h2, h3)[id]"),
+            );
+          }
+          return headings
+            .map(function (heading) {
+              return {
+                id: heading.id,
+                text: getReaderHeadingText(heading),
+                level: Number(heading.tagName.slice(1)) || 2,
+              };
+            })
+            .filter(function (item) {
+              return item.id && item.text;
+            })
+            .slice(0, READER_OUTLINE_MAX_ITEMS);
+        }
+
+        function setReaderOutlineActive(id) {
+          if (!els.readerConnections) return;
+          const links = Array.from(
+            els.readerConnections.querySelectorAll("[data-reader-outline-id]"),
+          );
+          let activeText = "";
+          links.forEach(function (link) {
+            const isActive = link.getAttribute("data-reader-outline-id") === id;
+            if (isActive) {
+              link.setAttribute("aria-current", "true");
+              activeText = link.textContent.trim();
+            } else {
+              link.removeAttribute("aria-current");
+            }
+          });
+          const summary = els.readerConnections.querySelector(
+            "[data-reader-outline-summary]",
+          );
+          if (summary) {
+            const count = links.length;
+            const countText = count === 1 ? "1 section" : count + " sections";
+            summary.textContent = activeText
+              ? activeText + " · " + countText
+              : countText;
+          }
+        }
+
+        function updateReaderOutlineActive() {
+          readerOutlineRaf = 0;
+          if (
+            !els.readerConnections ||
+            els.readerConnections.hidden ||
+            !readerOutlineHeadings.length
+          ) {
+            return;
+          }
+          readerOutlineHeadings = readerOutlineHeadings.filter(function (heading) {
+            return heading && document.contains(heading);
+          });
+          if (!readerOutlineHeadings.length) return;
+          const threshold = Math.max(
+            96,
+            (Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--toolbar-h")) || 52) +
+              48,
+          );
+          let active = readerOutlineHeadings[0];
+          for (const heading of readerOutlineHeadings) {
+            if (heading.getBoundingClientRect().top <= threshold) {
+              active = heading;
+            } else {
+              break;
+            }
+          }
+          setReaderOutlineActive(active.id);
+        }
+
+        function scheduleReaderOutlineActiveUpdate() {
+          if (readerOutlineRaf) return;
+          readerOutlineRaf = window.requestAnimationFrame(updateReaderOutlineActive);
+        }
+
+        function renderReaderOutlineSection(items) {
+          if (!items.length) return "";
+          const countText =
+            items.length === 1 ? "1 section" : items.length + " sections";
+          const list = items
+            .map(function (item, index) {
+              const level = Math.min(4, Math.max(2, item.level || 2));
+              return (
+                '<li class="reader-outline__item">' +
+                '<a class="reader-outline__link" href="#' +
+                encodeURIComponent(item.id) +
+                '" data-reader-outline-id="' +
+                escapeHtml(item.id) +
+                '" data-level="' +
+                escapeHtml(String(level)) +
+                '"' +
+                (index === 0 ? ' aria-current="true"' : "") +
+                ">" +
+                escapeHtml(item.text) +
+                "</a></li>"
+              );
+            })
+            .join("");
+
+          return (
+            '<section class="reader-rail__section reader-outline-section" data-reader-outline-section aria-label="On this page">' +
+            '<div class="reader-rail__header">' +
+            '<h2 id="readerOutlineTitle" class="reader-rail__title">On this page</h2>' +
+            "</div>" +
+            '<button class="reader-outline-toggle" type="button" data-reader-outline-toggle aria-expanded="false" aria-controls="readerOutlineList">' +
+            "<span>" +
+            '<span class="reader-outline-toggle__kicker">On this page</span>' +
+            '<span class="reader-outline-toggle__summary" data-reader-outline-summary>' +
+            escapeHtml(countText) +
+            "</span>" +
+            "</span>" +
+            '<span class="reader-outline-toggle__chevron" aria-hidden="true"></span>' +
+            "</button>" +
+            '<ol id="readerOutlineList" class="reader-outline">' +
+            list +
+            "</ol></section>"
+          );
+        }
+
+        function clipReaderConnectionLabel(value, maxChars) {
+          const text = String(value || "").replace(/\s+/g, " ").trim();
+          if (!text || text.length <= maxChars) return text;
+          return text.slice(0, Math.max(0, maxChars - 1)).trim() + "…";
+        }
+
+        function getReaderConnectionLabel(item) {
+          if (!item) return "Connection";
+          if (item.related) return "Related concept";
+          if (item.direction === "inbound") {
+            const count = Number(item.backlinkCount) || 1;
+            return count === 1 ? "Backlink" : count + " backlinks";
+          }
+          if (item.direction === "bidirectional") return "Two-way link";
+          return "Linked page";
+        }
+
+        function canOpenReaderConnection(path) {
+          if (state.sourceMode !== "library" || !state.libraryActiveFolderId) {
+            return false;
+          }
+          const folder = getLibraryFolderById(state.libraryActiveFolderId);
+          return Boolean(
+            folder &&
+              folder.fileHandlesByPath &&
+              typeof folder.fileHandlesByPath.has === "function" &&
+              folder.fileHandlesByPath.has(path),
+          );
+        }
+
+        function renderReaderConnectionsGraph(model) {
+          const nodes = model.neighbors || [];
+          const count = nodes.length;
+          const centerX = 110;
+          const centerY = 76;
+          const radius = count <= 4 ? 42 : 53;
+          const edgeParts = [];
+          const nodeParts = [];
+
+          nodes.forEach(function (item, index) {
+            const angle = -Math.PI / 2 + (index / Math.max(1, count)) * Math.PI * 2;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius * 0.82;
+            const nodeRadius = item.related ? 5.5 : 4.4;
+            edgeParts.push(
+              '<line class="reader-connections__edge" data-direction="' +
+                escapeHtml(item.direction || "related") +
+                '" x1="' +
+                centerX +
+                '" y1="' +
+                centerY +
+                '" x2="' +
+                x.toFixed(1) +
+                '" y2="' +
+                y.toFixed(1) +
+                '"></line>',
+            );
+            nodeParts.push(
+              '<circle class="reader-connections__node" data-direction="' +
+                escapeHtml(item.direction || "related") +
+                '" data-related="' +
+                (item.related ? "true" : "false") +
+                '" cx="' +
+                x.toFixed(1) +
+                '" cy="' +
+                y.toFixed(1) +
+                '" r="' +
+                nodeRadius +
+                '"><title>' +
+                escapeHtml(item.title || item.path || "Connection") +
+                "</title></circle>",
+            );
+          });
+
+          const label = clipReaderConnectionLabel(model.current.title, 24);
+          return (
+            '<svg class="reader-connections__graph" viewBox="0 0 220 150" role="img" aria-label="Local graph around the current document">' +
+            '<g aria-hidden="true">' +
+            edgeParts.join("") +
+            '<circle class="reader-connections__root" cx="' +
+            centerX +
+            '" cy="' +
+            centerY +
+            '" r="7"></circle>' +
+            nodeParts.join("") +
+            '<text class="reader-connections__root-label" x="' +
+            centerX +
+            '" y="105" text-anchor="middle">' +
+            escapeHtml(label) +
+            "</text>" +
+            "</g></svg>"
+          );
+        }
+
+        function renderReaderConnectionsSection(model) {
+          if (!model) return "";
+          const stats = model.stats || {};
+          const categoryText = (model.current.categories || [])
+            .slice(0, 2)
+            .join(", ");
+          const list = (model.neighbors || [])
+            .slice(0, 4)
+            .map(function (item) {
+              const openable = canOpenReaderConnection(item.path);
+              const tag = openable ? "button" : "div";
+              const attrs = openable
+                ? ' type="button" data-reader-path="' + escapeHtml(item.path) + '"'
+                : "";
+              return (
+                "<" +
+                tag +
+                ' class="reader-connection"' +
+                attrs +
+                ">" +
+                '<span class="reader-connection__dot" data-direction="' +
+                escapeHtml(item.direction || "related") +
+                '"></span>' +
+                "<span>" +
+                '<span class="reader-connection__title">' +
+                escapeHtml(item.title || item.path || "Connection") +
+                "</span>" +
+                '<span class="reader-connection__detail">' +
+                escapeHtml(getReaderConnectionLabel(item)) +
+                (item.summary ? " · " + escapeHtml(clipReaderConnectionLabel(item.summary, 56)) : "") +
+                "</span>" +
+                "</span>" +
+                "</" +
+                tag +
+                ">"
+              );
+            })
+            .join("");
+
+          const more =
+            stats.hiddenCount > 0
+              ? '<p class="reader-connections__more">+' +
+                escapeHtml(String(stats.hiddenCount)) +
+                " more local connection" +
+                (stats.hiddenCount === 1 ? "" : "s") +
+                "</p>"
+              : "";
+
+          return (
+            '<section class="reader-rail__section reader-connections" aria-labelledby="readerConnectionsTitle">' +
+            '<div class="reader-connections__header">' +
+            '<h2 id="readerConnectionsTitle" class="reader-connections__title">Connections</h2>' +
+            '<span class="reader-connections__badge">Local</span>' +
+            "</div>" +
+            '<div class="reader-connections__panel">' +
+            renderReaderConnectionsGraph(model) +
+            '<div class="reader-connections__meta" aria-label="Connection summary">' +
+            '<span class="reader-connections__stat"><strong>' +
+            escapeHtml(String(stats.outboundCount || 0)) +
+            "</strong><span>links</span></span>" +
+            '<span class="reader-connections__stat"><strong>' +
+            escapeHtml(String(stats.backlinkCount || 0)) +
+            "</strong><span>backlinks</span></span>" +
+            '<span class="reader-connections__stat"><strong>' +
+            escapeHtml(String(stats.relatedCount || 0)) +
+            "</strong><span>related</span></span>" +
+            "</div></div>" +
+            (categoryText
+              ? '<p class="reader-connections__more">Tags: ' +
+                escapeHtml(categoryText) +
+                "</p>"
+              : "") +
+            '<div class="reader-connections__list">' +
+            list +
+            "</div>" +
+            more +
+            "</section>"
+          );
+        }
+
+        function renderReaderRail(outlineItems, connectionsModel) {
+          if (!els.readerConnections || !els.previewPane) return;
+          const outline = Array.isArray(outlineItems) ? outlineItems : [];
+          const html =
+            renderReaderOutlineSection(outline) +
+            renderReaderConnectionsSection(connectionsModel);
+          if (!html) {
+            hideReaderRail();
+            return;
+          }
+          readerOutlineHeadings = outline
+            .map(function (item) {
+              return els.preview.querySelector("#" + CSS.escape(item.id));
+            })
+            .filter(Boolean);
+          els.readerConnections.innerHTML = html;
+          els.readerConnections.hidden = false;
+          els.previewPane.classList.add("has-reader-rail");
+          scheduleReaderOutlineActiveUpdate();
+        }
+
+        async function refreshReaderRail(markdown, generation) {
+          const token = ++readerConnectionsRequestToken;
+          if (!markdown.trim()) {
+            hideReaderRail();
+            return;
+          }
+
+          const outlineItems = collectReaderOutlineItems();
+          renderReaderRail(outlineItems, null);
+
+          if (
+            state.sourceMode !== "library" ||
+            !state.libraryActiveFolderId ||
+            typeof libraryCore.createReaderConnectionsModel !== "function"
+          ) {
+            return;
+          }
+
+          try {
+            const context = await buildActiveLibraryMindmapContext(markdown);
+            if (
+              token !== readerConnectionsRequestToken ||
+              generation !== state.previewRenderGeneration
+            ) {
+              return;
+            }
+            const model = libraryCore.createReaderConnectionsModel(context, {
+              maxNeighbors: READER_CONNECTIONS_MAX_NEIGHBORS,
+            });
+            renderReaderRail(outlineItems, model);
+          } catch (error) {
+            if (
+              token !== readerConnectionsRequestToken ||
+              generation !== state.previewRenderGeneration
+            ) {
+              return;
+            }
+            console.warn("[reader-rail] connections failed", error);
+            renderReaderRail(outlineItems, null);
+          }
+        }
+
+        function wireReaderRail() {
+          if (!els.readerConnections) return;
+          els.readerConnections.addEventListener("click", async function (event) {
+            const outlineToggle = event.target.closest(
+              "[data-reader-outline-toggle]",
+            );
+            if (
+              outlineToggle &&
+              els.readerConnections.contains(outlineToggle)
+            ) {
+              const section = outlineToggle.closest(
+                "[data-reader-outline-section]",
+              );
+              if (!section) return;
+              const isOpen = !section.classList.contains("is-open");
+              section.classList.toggle("is-open", isOpen);
+              outlineToggle.setAttribute(
+                "aria-expanded",
+                isOpen ? "true" : "false",
+              );
+              return;
+            }
+            const outlineLink = event.target.closest("[data-reader-outline-id]");
+            if (outlineLink && els.readerConnections.contains(outlineLink)) {
+              event.preventDefault();
+              const id = outlineLink.getAttribute("data-reader-outline-id") || "";
+              const target = id
+                ? els.preview.querySelector("#" + CSS.escape(id))
+                : null;
+              if (target) {
+                target.scrollIntoView({
+                  behavior: prefersReducedMotion() ? "auto" : "smooth",
+                  block: "start",
+                });
+                setReaderOutlineActive(id);
+              }
+              if (
+                window.matchMedia &&
+                window.matchMedia("(max-width: 720px)").matches
+              ) {
+                const section = outlineLink.closest(
+                  "[data-reader-outline-section]",
+                );
+                const toggle = section
+                  ? section.querySelector("[data-reader-outline-toggle]")
+                  : null;
+                if (section && toggle) {
+                  section.classList.remove("is-open");
+                  toggle.setAttribute("aria-expanded", "false");
+                }
+              }
+              return;
+            }
+            const trigger = event.target.closest("[data-reader-path]");
+            if (!trigger || !els.readerConnections.contains(trigger)) return;
+            const path = trigger.getAttribute("data-reader-path") || "";
+            if (!path || !canOpenReaderConnection(path)) return;
+            await loadFromLibrarySelection(state.libraryActiveFolderId, path, {
+              userInitiated: true,
+            });
+          });
+          window.addEventListener("scroll", scheduleReaderOutlineActiveUpdate, {
+            passive: true,
+          });
+          window.addEventListener("resize", scheduleReaderOutlineActiveUpdate, {
+            passive: true,
+          });
+        }
+
         function markEditorContentChanged() {
           state.contentVersion += 1;
           clearSelectionController();
@@ -13478,8 +14305,7 @@ Return JSON only.`;
         function canUsePersistentLibrary() {
           return Boolean(
             window.showDirectoryPicker &&
-              window.isSecureContext &&
-              typeof indexedDB !== "undefined",
+              window.isSecureContext,
           );
         }
 
@@ -13495,6 +14321,21 @@ Return JSON only.`;
 
         function canUseAnyLibrary() {
           return canUsePersistentLibrary() || canUseLibraryFolderImport();
+        }
+
+        async function persistLibraryFolderBestEffort(record, label) {
+          if (!canUseLibraryStorage()) return false;
+          try {
+            await libraryPutFolderInDb(record);
+            await persistLibraryMeta();
+            return true;
+          } catch (error) {
+            console.warn(
+              "[library] failed to persist " + (label || "folder"),
+              error,
+            );
+            return false;
+          }
         }
 
         function libraryIsSupportedFile(name) {
@@ -16359,11 +17200,18 @@ Return JSON only.`;
         }
 
         function clearSnapshotHashIfPresent() {
-          const prefix =
+          const legacyPrefix =
             typeof libraryCore.SHARE_FRAGMENT_PREFIX === "string"
               ? libraryCore.SHARE_FRAGMENT_PREFIX
               : "#mkv=";
-          if (!String(window.location.hash || "").startsWith(prefix)) return;
+          const shortPrefix =
+            typeof libraryCore.SHARE_SHORT_FRAGMENT_PREFIX === "string"
+              ? libraryCore.SHARE_SHORT_FRAGMENT_PREFIX
+              : "#m:";
+          const hash = String(window.location.hash || "");
+          if (!hash.startsWith(legacyPrefix) && !hash.startsWith(shortPrefix)) {
+            return;
+          }
           updateAddressBarHash("");
         }
 
@@ -17552,10 +18400,10 @@ Return JSON only.`;
           }
 
           applyLibraryFolderOrder();
-          if (canUseLibraryStorage()) {
-            await libraryPutFolderInDb(record);
-            await persistLibraryMeta();
-          }
+          const persisted = await persistLibraryFolderBestEffort(
+            record,
+            "folder snapshot",
+          );
           renderLibraryDrawer();
           await scanLibraryFolder(record);
 
@@ -17576,8 +18424,12 @@ Return JSON only.`;
             setStatus(
               record.displayLabel +
                 (replaceFolderId
-                  ? " • snapshot refreshed"
-                  : " • added as a folder snapshot"),
+                  ? persisted
+                    ? " • snapshot refreshed"
+                    : " • snapshot refreshed for this session"
+                  : persisted
+                    ? " • added as a folder snapshot"
+                    : " • added as a folder snapshot for this session"),
               {
                 announce: true,
               },
@@ -17631,15 +18483,21 @@ Return JSON only.`;
             });
             state.libraryFolders.push(record);
             applyLibraryFolderOrder();
-            if (canUseLibraryStorage()) {
-              await libraryPutFolderInDb(record);
-              await persistLibraryMeta();
-            }
+            const persisted = await persistLibraryFolderBestEffort(
+              record,
+              "folder add",
+            );
             renderLibraryDrawer();
             await scanLibraryFolder(record);
-            setStatus(record.displayLabel + " • added to library", {
-              announce: true,
-            });
+            setStatus(
+              record.displayLabel +
+                (persisted
+                  ? " • added to library"
+                  : " • added to library for this session"),
+              {
+                announce: true,
+              },
+            );
           } catch (error) {
             if (error && error.name === "AbortError") return;
             setStatus(
@@ -18849,6 +19707,10 @@ Return JSON only.`;
             applyHighlightsToPreview();
           });
           state.previewRenderGeneration = generation;
+          refreshReaderRail(markdown, generation).catch(function (error) {
+            console.warn("[reader-rail] refresh failed", error);
+            hideReaderRail();
+          });
           if (hasMermaidBlocks(markdown)) {
             renderMermaidBlocks(generation);
           }
@@ -19676,6 +20538,7 @@ Return JSON only.`;
         wireMindmapInteractions();
         wireMindmapNodeClicks();
         wireMindmapHover();
+        wireReaderRail();
 
         function parseMindmapRetryDelayMs(value) {
           const raw = String(value || "").trim();
@@ -19787,21 +20650,10 @@ Return JSON only.`;
           }
 
           if (typeof window.markvLLM !== "function") {
-            const fallbackGraph = createDeterministicMindmapGraph(
-              rawMarkdown,
-              libraryContext,
+            showMindmapError(
+              "Configure an LLM client for AI-assisted concept extraction. Local deterministic connections are shown on the reading page when this document is opened from a library folder.",
+              "no_client",
             );
-            if (fallbackGraph && fallbackGraph.nodes && fallbackGraph.nodes.length >= 3) {
-              mindmapState.currentGraph = fallbackGraph;
-              mindmapState.laid = computeRadialLayout(fallbackGraph);
-              renderMindmap(mindmapState.laid);
-              requestAnimationFrame(() => fitMindmapToView(false));
-            } else {
-              showMindmapError(
-                "Configure an LLM client for semantic extraction. This document does not have enough headings or library links for the local fallback graph.",
-                "no_client",
-              );
-            }
             return;
           }
 

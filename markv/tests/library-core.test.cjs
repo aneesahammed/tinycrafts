@@ -400,11 +400,11 @@ test("creates a versioned share fragment and parses it back", async () => {
     view: "preview",
   });
 
-  assert.match(fragment, /^#mkv=v1\.[cgph]\.[A-Za-z0-9_-]+$/);
+  assert.match(fragment, /^#m:[ch][A-Za-z0-9_-]+$/);
 
   const parsed = await core.parseShareSnapshotFragment?.(fragment);
   assert.deepEqual(parsed, {
-    version: 1,
+    version: 2,
     codec: parsed.codec,
     payload: {
       name: "notes.md",
@@ -412,6 +412,22 @@ test("creates a versioned share fragment and parses it back", async () => {
       view: "preview",
     },
   });
+});
+
+test("uses a shorter share fragment for unnamed drafts", async () => {
+  const text = "# Quick note\n\nSmall payload.";
+  const fragment = await core.createShareSnapshotFragment?.({
+    text,
+    currentName: "",
+    view: "preview",
+  });
+  const legacyBytes = Buffer.concat([
+    Buffer.from([0, 0]),
+    Buffer.from(text, "utf8"),
+  ]);
+  const legacyFragment = "#mkv=v1.c." + encodeBase64Url(legacyBytes);
+
+  assert.ok(fragment.length < legacyFragment.length);
 });
 
 test("parses legacy plain-json share fragments", async () => {
@@ -441,6 +457,7 @@ test("parses legacy plain-json share fragments", async () => {
 test("ignores malformed or unrelated share fragments", async () => {
   assert.equal(await core.parseShareSnapshotFragment?.(""), null);
   assert.equal(await core.parseShareSnapshotFragment?.("#section-1"), null);
+  assert.equal(await core.parseShareSnapshotFragment?.("#m:xabc"), null);
   assert.equal(await core.parseShareSnapshotFragment?.("#mkv=v1"), null);
   assert.equal(await core.parseShareSnapshotFragment?.("#mkv=v2.g.abc"), null);
 });
@@ -832,6 +849,89 @@ test("uses caller fallbacks for invalid node types and edge kinds", () => {
   assert.deepEqual(graph.edges, [
     { from: "concept-a", to: "concept-b", kind: "supports" },
   ]);
+});
+
+test("creates a lean reader connections model from deterministic context", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "docs/current.md",
+    currentMarkdown: [
+      "---",
+      "tags: [platform, docs]",
+      "---",
+      "# Current Doc",
+      "",
+      "See [[Runbook]] and [[Architecture]].",
+      "",
+      "## Related Concepts",
+      "- [[Glossary]]",
+    ].join("\n"),
+    files: [
+      { path: "docs/runbook.md", text: "# Runbook\n\nOperational steps." },
+      { path: "docs/architecture.md", text: "# Architecture\n\nSystem shape." },
+      { path: "docs/glossary.md", text: "# Glossary\n\nShared terms." },
+      { path: "docs/retro.md", text: "# Retro\n\nLinks to [[Current Doc]]." },
+    ],
+  });
+
+  const model = core.createReaderConnectionsModel?.(context, {
+    maxNeighbors: 3,
+  });
+
+  assert.deepEqual(
+    {
+      title: model.current.title,
+      categories: model.current.categories,
+      stats: model.stats,
+      neighbors: model.neighbors.map((item) => ({
+        path: item.path,
+        title: item.title,
+        direction: item.direction,
+        related: item.related,
+      })),
+    },
+    {
+      title: "Current Doc",
+      categories: ["platform", "docs"],
+      stats: {
+        neighborCount: 4,
+        visibleCount: 3,
+        hiddenCount: 1,
+        outboundCount: 3,
+        backlinkCount: 1,
+        relatedCount: 1,
+      },
+      neighbors: [
+        {
+          path: "docs/glossary.md",
+          title: "Glossary",
+          direction: "outbound",
+          related: true,
+        },
+        {
+          path: "docs/architecture.md",
+          title: "Architecture",
+          direction: "outbound",
+          related: false,
+        },
+        {
+          path: "docs/retro.md",
+          title: "Retro",
+          direction: "inbound",
+          related: false,
+        },
+      ],
+    },
+  );
+});
+
+test("omits reader connections model when a document has no neighbors", () => {
+  const context = core.buildLibraryMindmapContext?.({
+    currentPath: "docs/current.md",
+    currentMarkdown: "# Current Doc\n\nNo links.",
+    files: [],
+  });
+
+  assert.equal(core.createReaderConnectionsModel?.(context), null);
 });
 
 test("creates a deterministic concept graph from library context when no LLM is available", () => {
