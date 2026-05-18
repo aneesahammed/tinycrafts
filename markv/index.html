@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-HxBFG404eDRVdjGjc7MquOXvCBLPLpKKewPIcxNSpfQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-749wpr/KE2C9DRASnQdUl6aT2TlPERCN0YucVUCzIjU=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -2036,13 +2036,7 @@
         width: 100%;
         aspect-ratio: 1.35;
         touch-action: manipulation;
-        background:
-          radial-gradient(
-            circle at 50% 46%,
-            color-mix(in srgb, var(--accent-fg) 5%, transparent),
-            transparent 54%
-          ),
-          var(--bg-subtle);
+        background: var(--bg-subtle);
       }
       .reader-connections__edge {
         stroke: color-mix(in srgb, var(--fg-subtle) 42%, transparent);
@@ -2100,8 +2094,14 @@
       .reader-connections__root-label {
         fill: var(--fg-muted);
         font-family: var(--font-sans);
-        font-size: 10px;
+        font-size: 9.5px;
         font-weight: 540;
+        letter-spacing: 0.005em;
+        paint-order: stroke;
+        stroke: var(--bg-subtle);
+        stroke-linejoin: round;
+        stroke-width: 5px;
+        transition: opacity var(--motion-micro) var(--ease-calm);
       }
       .reader-connections__meta {
         display: grid;
@@ -2119,15 +2119,24 @@
       }
       .reader-connections__stat strong {
         color: var(--fg-default);
-        font-family: var(--font-mono);
-        font-size: 12.5px;
+        font-family: var(--font-sans);
+        font-size: 12px;
         font-weight: 600;
         line-height: 1;
+        font-variant-numeric: tabular-nums;
+        transition: color var(--motion-micro) var(--ease-calm);
       }
       .reader-connections__stat span {
         color: var(--fg-subtle);
         font-size: 10px;
         line-height: 1.2;
+      }
+      .reader-connections__stat[data-empty="true"] {
+        opacity: 0.45;
+      }
+      .reader-connections__stat[data-empty="true"] strong {
+        color: var(--fg-subtle);
+        font-weight: 500;
       }
       .reader-connections__list {
         display: grid;
@@ -14115,6 +14124,7 @@ Return JSON only.`;
             const nodeRadius = item.related ? 5.5 : 4.4;
             const openable = canOpenReaderConnection(item.path);
             const itemTitle = item.title || item.path || "Connection";
+            const pointLabel = clipReaderConnectionLabel(itemTitle, 30);
             edgeParts.push(
               '<line class="reader-connections__edge" data-direction="' +
                 escapeHtml(item.direction || "related") +
@@ -14135,6 +14145,8 @@ Return JSON only.`;
                 x.toFixed(1) +
                 '" data-y="' +
                 y.toFixed(1) +
+                '" data-reader-label="' +
+                escapeHtml(pointLabel) +
                 '"' +
                 (openable
                   ? ' role="link" tabindex="0" data-reader-path="' +
@@ -14154,15 +14166,15 @@ Return JSON only.`;
                 y.toFixed(1) +
                 '" r="' +
                 nodeRadius +
-                '"><title>' +
-                escapeHtml(itemTitle) +
-                "</title></circle></g>",
+                '"></circle></g>',
             );
           });
 
           const label = clipReaderConnectionLabel(model.current.title, 24);
           return (
-            '<svg class="reader-connections__graph" viewBox="0 0 220 150" role="img" aria-label="Connections around the current document">' +
+            '<svg class="reader-connections__graph" viewBox="0 0 220 150" role="img" aria-label="Connections around the current document" data-reader-root-label="' +
+            escapeHtml(label) +
+            '">' +
             '<g aria-hidden="true" class="reader-connections__edges">' +
             edgeParts.join("") +
             "</g>" +
@@ -14174,7 +14186,7 @@ Return JSON only.`;
             '" r="7"></circle>' +
             '<text class="reader-connections__root-label" x="' +
             centerX +
-            '" y="105" text-anchor="middle">' +
+            '" y="96" text-anchor="middle">' +
             escapeHtml(label) +
             "</text>" +
             "</g>" +
@@ -14240,13 +14252,19 @@ Return JSON only.`;
             '<div class="reader-connections__panel">' +
             renderReaderConnectionsGraph(model) +
             '<div class="reader-connections__meta" aria-label="Connection summary">' +
-            '<span class="reader-connections__stat"><strong>' +
+            '<span class="reader-connections__stat" data-empty="' +
+            (stats.outboundCount ? "false" : "true") +
+            '"><strong>' +
             escapeHtml(String(stats.outboundCount || 0)) +
             "</strong><span>links</span></span>" +
-            '<span class="reader-connections__stat"><strong>' +
+            '<span class="reader-connections__stat" data-empty="' +
+            (stats.backlinkCount ? "false" : "true") +
+            '"><strong>' +
             escapeHtml(String(stats.backlinkCount || 0)) +
             "</strong><span>backlinks</span></span>" +
-            '<span class="reader-connections__stat"><strong>' +
+            '<span class="reader-connections__stat" data-empty="' +
+            (stats.relatedCount ? "false" : "true") +
+            '"><strong>' +
             escapeHtml(String(stats.relatedCount || 0)) +
             "</strong><span>related</span></span>" +
             "</div></div>" +
@@ -14350,6 +14368,14 @@ Return JSON only.`;
           });
         }
 
+        function setReaderConnectionsGraphLabel(graph, label) {
+          if (!graph) return;
+          const labelEl = graph.querySelector(".reader-connections__root-label");
+          if (!labelEl) return;
+          labelEl.textContent =
+            label || graph.getAttribute("data-reader-root-label") || "";
+        }
+
         function updateReaderConnectionsGraphMotion(event, graph) {
           if (!graph || prefersReducedMotion()) return;
           const rect = graph.getBoundingClientRect();
@@ -14440,6 +14466,13 @@ Return JSON only.`;
           els.readerConnections.addEventListener("pointermove", function (event) {
             const graph = event.target.closest(".reader-connections__graph");
             if (!graph || !els.readerConnections.contains(graph)) return;
+            const point = event.target.closest("[data-reader-label]");
+            setReaderConnectionsGraphLabel(
+              graph,
+              point && graph.contains(point)
+                ? point.getAttribute("data-reader-label")
+                : "",
+            );
             updateReaderConnectionsGraphMotion(event, graph);
           });
           els.readerConnections.addEventListener("pointerout", function (event) {
@@ -14452,6 +14485,27 @@ Return JSON only.`;
               return;
             }
             resetReaderConnectionsGraphMotion(graph);
+            setReaderConnectionsGraphLabel(graph, "");
+          });
+          els.readerConnections.addEventListener("focusin", function (event) {
+            const point = event.target.closest("[data-reader-label]");
+            if (!point || !els.readerConnections.contains(point)) return;
+            const graph = point.closest(".reader-connections__graph");
+            setReaderConnectionsGraphLabel(
+              graph,
+              point.getAttribute("data-reader-label"),
+            );
+          });
+          els.readerConnections.addEventListener("focusout", function (event) {
+            const graph = event.target.closest(".reader-connections__graph");
+            if (
+              !graph ||
+              !els.readerConnections.contains(graph) ||
+              graph.contains(event.relatedTarget)
+            ) {
+              return;
+            }
+            setReaderConnectionsGraphLabel(graph, "");
           });
           window.addEventListener("scroll", scheduleReaderOutlineActiveUpdate, {
             passive: true,
