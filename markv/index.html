@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-a5YE0WmXT/ynq5/I706J4MHKjAkyb75YVakNG0xQrTY=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-7Sraf15VHX6P/aNqors9CgTmdEiWikKlt/WJfXqfTDQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -1888,10 +1888,16 @@
       }
 
       .reader-rail {
+        --reader-rail-top: calc(var(--toolbar-h, 52px) + 42px);
         position: sticky;
-        top: calc(var(--toolbar-h, 52px) + 42px);
+        top: var(--reader-rail-top);
+        display: flex;
+        flex-direction: column;
         width: 100%;
         max-width: 248px;
+        max-height: calc(100dvh - var(--reader-rail-top) - 28px);
+        padding-bottom: 28px;
+        box-sizing: border-box;
         font-family: var(--font-sans);
         color: var(--fg-default);
       }
@@ -1925,21 +1931,45 @@
       .reader-outline-toggle {
         display: none;
       }
+      .reader-outline-section {
+        min-height: 0;
+      }
       .reader-outline {
         display: grid;
         gap: 0;
         margin: 0;
-        padding: 0;
+        max-height: min(42dvh, 360px);
+        padding: 0 4px 0 0;
         list-style: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+      }
+      .reader-outline__item {
+        min-width: 0;
+      }
+      .reader-outline::-webkit-scrollbar {
+        width: 5px;
+      }
+      .reader-outline::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--fg-subtle) 34%, transparent);
       }
       .reader-outline__link {
-        display: block;
+        display: -webkit-box;
+        box-sizing: border-box;
+        max-width: 100%;
         padding: 4.5px 0 4.5px 10px;
+        overflow: hidden;
         border-left: 2px solid transparent;
         color: var(--fg-muted);
         font-size: 12.5px;
         line-height: 1.25;
         text-decoration: none;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         transition:
           border-color var(--motion-micro) var(--ease-calm),
           color var(--motion-micro) var(--ease-calm);
@@ -2156,7 +2186,14 @@
         .reader-rail {
           position: static;
           max-width: min(var(--reading-measure), 100%);
+          max-height: none;
           margin: 48px auto 0;
+          padding-bottom: 0;
+        }
+        .reader-outline {
+          max-height: none;
+          overflow: visible;
+          scrollbar-gutter: auto;
         }
       }
 
@@ -2225,9 +2262,12 @@
         }
         .reader-outline-section .reader-outline {
           display: none;
+          max-height: min(46dvh, 360px);
           margin-top: 10px;
           padding-top: 10px;
           border-top: 1px solid var(--border-soft);
+          overflow-y: auto;
+          scrollbar-gutter: stable;
         }
         .reader-outline-section.is-open .reader-outline {
           display: grid;
@@ -13818,11 +13858,13 @@ Return JSON only.`;
             els.readerConnections.querySelectorAll("[data-reader-outline-id]"),
           );
           let activeText = "";
+          let activeLink = null;
           links.forEach(function (link) {
             const isActive = link.getAttribute("data-reader-outline-id") === id;
             if (isActive) {
               link.setAttribute("aria-current", "true");
               activeText = link.textContent.trim();
+              activeLink = link;
             } else {
               link.removeAttribute("aria-current");
             }
@@ -13836,6 +13878,24 @@ Return JSON only.`;
             summary.textContent = activeText
               ? activeText + " · " + countText
               : countText;
+          }
+          scrollReaderOutlineItemIntoView(activeLink);
+        }
+
+        function scrollReaderOutlineItemIntoView(link) {
+          if (!link) return;
+          const list = link.closest(".reader-outline");
+          if (!list || list.scrollHeight <= list.clientHeight + 1) return;
+          const linkTop = link.offsetTop;
+          const linkBottom = linkTop + link.offsetHeight;
+          const viewTop = list.scrollTop;
+          const viewBottom = viewTop + list.clientHeight;
+          const buffer = 18;
+
+          if (linkTop < viewTop + buffer) {
+            list.scrollTop = Math.max(0, linkTop - buffer);
+          } else if (linkBottom > viewBottom - buffer) {
+            list.scrollTop = linkBottom - list.clientHeight + buffer;
           }
         }
 
@@ -13880,6 +13940,7 @@ Return JSON only.`;
           const list = items
             .map(function (item, index) {
               const level = Math.min(4, Math.max(2, item.level || 2));
+              const text = String(item.text || "");
               return (
                 '<li class="reader-outline__item">' +
                 '<a class="reader-outline__link" href="#' +
@@ -13888,10 +13949,12 @@ Return JSON only.`;
                 escapeHtml(item.id) +
                 '" data-level="' +
                 escapeHtml(String(level)) +
+                '" title="' +
+                escapeHtml(text) +
                 '"' +
                 (index === 0 ? ' aria-current="true"' : "") +
                 ">" +
-                escapeHtml(item.text) +
+                escapeHtml(text) +
                 "</a></li>"
               );
             })
