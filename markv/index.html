@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-a0OL3JbDj9VQ/Ueovxl93cu92E3CriTtTtb3pXiIIvE=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-a5YE0WmXT/ynq5/I706J4MHKjAkyb75YVakNG0xQrTY=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -1964,26 +1964,6 @@
         outline: 2px solid var(--accent-fg);
         outline-offset: 3px;
       }
-      .reader-connections__badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 2px 6px;
-        border: 1px solid var(--border-soft);
-        border-radius: 999px;
-        color: var(--fg-muted);
-        background: color-mix(in srgb, var(--bg-raised) 84%, transparent);
-        font-size: 10.5px;
-        line-height: 1;
-      }
-      .reader-connections__badge::before {
-        content: "";
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: var(--accent-fg);
-        opacity: 0.72;
-      }
       .reader-connections__panel {
         border: 1px solid var(--border-soft);
         border-radius: 8px;
@@ -1991,14 +1971,14 @@
         box-shadow: var(--shadow-sm);
         overflow: hidden;
       }
-      :root[data-theme="dark"] .reader-connections__panel,
-      :root[data-theme="dark"] .reader-connections__badge {
+      :root[data-theme="dark"] .reader-connections__panel {
         background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
       }
       .reader-connections__graph {
         display: block;
         width: 100%;
         aspect-ratio: 1.35;
+        touch-action: manipulation;
         background:
           radial-gradient(
             circle at 50% 46%,
@@ -2014,10 +1994,25 @@
       .reader-connections__edge[data-direction="inbound"] {
         stroke-dasharray: 3 4;
       }
+      .reader-connections__point {
+        outline: none;
+        transform-box: fill-box;
+        transform-origin: center;
+        transition:
+          opacity var(--motion-micro) var(--ease-calm),
+          transform var(--motion-small) var(--ease-calm);
+        will-change: transform;
+      }
+      .reader-connections__point[data-openable="true"] {
+        cursor: pointer;
+      }
       .reader-connections__node {
         fill: color-mix(in srgb, var(--fg-muted) 46%, var(--bg-raised));
         stroke: var(--bg-raised);
         stroke-width: 2;
+        transition:
+          stroke-width var(--motion-micro) var(--ease-calm),
+          opacity var(--motion-micro) var(--ease-calm);
       }
       .reader-connections__node[data-direction="outbound"] {
         fill: color-mix(in srgb, var(--accent-fg) 68%, #6b8fb9);
@@ -2030,6 +2025,15 @@
       }
       .reader-connections__node[data-related="true"] {
         r: 5.5px;
+      }
+      .reader-connections__point[data-openable="true"]:hover
+        .reader-connections__node,
+      .reader-connections__point[data-openable="true"]:focus-visible
+        .reader-connections__node {
+        stroke-width: 3;
+      }
+      .reader-connections__point:focus-visible .reader-connections__node {
+        stroke: var(--accent-fg);
       }
       .reader-connections__root {
         fill: var(--accent-fg);
@@ -13957,6 +13961,8 @@ Return JSON only.`;
             const x = centerX + Math.cos(angle) * radius;
             const y = centerY + Math.sin(angle) * radius * 0.82;
             const nodeRadius = item.related ? 5.5 : 4.4;
+            const openable = canOpenReaderConnection(item.path);
+            const itemTitle = item.title || item.path || "Connection";
             edgeParts.push(
               '<line class="reader-connections__edge" data-direction="' +
                 escapeHtml(item.direction || "related") +
@@ -13971,6 +13977,21 @@ Return JSON only.`;
                 '"></line>',
             );
             nodeParts.push(
+              '<g class="reader-connections__point" data-reader-graph-node data-openable="' +
+                (openable ? "true" : "false") +
+                '" data-x="' +
+                x.toFixed(1) +
+                '" data-y="' +
+                y.toFixed(1) +
+                '"' +
+                (openable
+                  ? ' role="link" tabindex="0" data-reader-path="' +
+                    escapeHtml(item.path) +
+                    '" aria-label="Open ' +
+                    escapeHtml(itemTitle) +
+                    '"'
+                  : ' aria-label="' + escapeHtml(itemTitle) + '"') +
+                ">" +
               '<circle class="reader-connections__node" data-direction="' +
                 escapeHtml(item.direction || "related") +
                 '" data-related="' +
@@ -13982,27 +14003,31 @@ Return JSON only.`;
                 '" r="' +
                 nodeRadius +
                 '"><title>' +
-                escapeHtml(item.title || item.path || "Connection") +
-                "</title></circle>",
+                escapeHtml(itemTitle) +
+                "</title></circle></g>",
             );
           });
 
           const label = clipReaderConnectionLabel(model.current.title, 24);
           return (
-            '<svg class="reader-connections__graph" viewBox="0 0 220 150" role="img" aria-label="Local graph around the current document">' +
-            '<g aria-hidden="true">' +
+            '<svg class="reader-connections__graph" viewBox="0 0 220 150" role="img" aria-label="Connections around the current document">' +
+            '<g aria-hidden="true" class="reader-connections__edges">' +
             edgeParts.join("") +
+            "</g>" +
+            '<g aria-hidden="true" class="reader-connections__root-group">' +
             '<circle class="reader-connections__root" cx="' +
             centerX +
             '" cy="' +
             centerY +
             '" r="7"></circle>' +
-            nodeParts.join("") +
             '<text class="reader-connections__root-label" x="' +
             centerX +
             '" y="105" text-anchor="middle">' +
             escapeHtml(label) +
             "</text>" +
+            "</g>" +
+            '<g class="reader-connections__points">' +
+            nodeParts.join("") +
             "</g></svg>"
           );
         }
@@ -14059,7 +14084,6 @@ Return JSON only.`;
             '<section class="reader-rail__section reader-connections" aria-labelledby="readerConnectionsTitle">' +
             '<div class="reader-connections__header">' +
             '<h2 id="readerConnectionsTitle" class="reader-connections__title">Connections</h2>' +
-            '<span class="reader-connections__badge">Local</span>' +
             "</div>" +
             '<div class="reader-connections__panel">' +
             renderReaderConnectionsGraph(model) +
@@ -14150,6 +14174,42 @@ Return JSON only.`;
           }
         }
 
+        async function openReaderConnectionPath(path) {
+          if (!path || !canOpenReaderConnection(path)) return false;
+          await loadFromLibrarySelection(state.libraryActiveFolderId, path, {
+            userInitiated: true,
+          });
+          return true;
+        }
+
+        function resetReaderConnectionsGraphMotion(graph) {
+          if (!graph) return;
+          graph.querySelectorAll("[data-reader-graph-node]").forEach(function (node) {
+            node.style.transform = "";
+          });
+        }
+
+        function updateReaderConnectionsGraphMotion(event, graph) {
+          if (!graph || prefersReducedMotion()) return;
+          const rect = graph.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+          const pointerX = ((event.clientX - rect.left) / rect.width) * 220;
+          const pointerY = ((event.clientY - rect.top) / rect.height) * 150;
+          graph.querySelectorAll("[data-reader-graph-node]").forEach(function (node) {
+            const nodeX = Number(node.getAttribute("data-x")) || 0;
+            const nodeY = Number(node.getAttribute("data-y")) || 0;
+            const dx = pointerX - nodeX;
+            const dy = pointerY - nodeY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const influence = Math.max(0, 1 - distance / 82);
+            const maxShift = node.getAttribute("data-openable") === "true" ? 5 : 3;
+            const x = clampNumber(dx * influence * 0.07, -maxShift, maxShift);
+            const y = clampNumber(dy * influence * 0.07, -maxShift, maxShift);
+            node.style.transform =
+              "translate(" + x.toFixed(2) + "px, " + y.toFixed(2) + "px)";
+          });
+        }
+
         function wireReaderRail() {
           if (!els.readerConnections) return;
           els.readerConnections.addEventListener("click", async function (event) {
@@ -14206,10 +14266,31 @@ Return JSON only.`;
             const trigger = event.target.closest("[data-reader-path]");
             if (!trigger || !els.readerConnections.contains(trigger)) return;
             const path = trigger.getAttribute("data-reader-path") || "";
-            if (!path || !canOpenReaderConnection(path)) return;
-            await loadFromLibrarySelection(state.libraryActiveFolderId, path, {
-              userInitiated: true,
-            });
+            await openReaderConnectionPath(path);
+          });
+          els.readerConnections.addEventListener("keydown", async function (event) {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            const trigger = event.target.closest("[data-reader-path]");
+            if (!trigger || !els.readerConnections.contains(trigger)) return;
+            event.preventDefault();
+            const path = trigger.getAttribute("data-reader-path") || "";
+            await openReaderConnectionPath(path);
+          });
+          els.readerConnections.addEventListener("pointermove", function (event) {
+            const graph = event.target.closest(".reader-connections__graph");
+            if (!graph || !els.readerConnections.contains(graph)) return;
+            updateReaderConnectionsGraphMotion(event, graph);
+          });
+          els.readerConnections.addEventListener("pointerout", function (event) {
+            const graph = event.target.closest(".reader-connections__graph");
+            if (
+              !graph ||
+              !els.readerConnections.contains(graph) ||
+              graph.contains(event.relatedTarget)
+            ) {
+              return;
+            }
+            resetReaderConnectionsGraphMotion(graph);
           });
           window.addEventListener("scroll", scheduleReaderOutlineActiveUpdate, {
             passive: true,
