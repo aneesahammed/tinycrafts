@@ -841,6 +841,23 @@
           transform var(--motion-micro) var(--ease-out),
           box-shadow var(--motion-micro) var(--ease-out);
       }
+      .btn-prefix {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 15px;
+        height: 15px;
+        margin-top: -1px;
+        font-family: var(--font-sans);
+        font-size: 17px;
+        font-weight: 400;
+        line-height: 1;
+        color: color-mix(in srgb, var(--fg-muted) 85%, transparent);
+      }
+      .btn:hover .btn-prefix,
+      .btn:focus-visible .btn-prefix {
+        color: var(--fg-default);
+      }
       /* Pressed-state underline: a calm alternative to a full
          segmented-pill slider. When a toggle button (Edit, Mindmap,
          Reading, Library, etc.) enters aria-pressed=true, a thin
@@ -1963,6 +1980,8 @@
         list-style: none;
         overflow: visible;
         scrollbar-gutter: auto;
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
       }
       .reader-rail.has-reader-connections .reader-outline {
         max-height: min(42dvh, 360px);
@@ -1979,9 +1998,36 @@
       .reader-outline::-webkit-scrollbar {
         width: 5px;
       }
+      .reader-outline::-webkit-scrollbar-track {
+        background: transparent;
+      }
       .reader-outline::-webkit-scrollbar-thumb {
         border-radius: 999px;
+        background: transparent;
+      }
+      .reader-outline:focus-within,
+      .reader-outline-section:focus-within .reader-outline {
+        scrollbar-color:
+          color-mix(in srgb, var(--fg-subtle) 34%, transparent)
+          transparent;
+      }
+      .reader-outline:focus-within::-webkit-scrollbar-thumb,
+      .reader-outline-section:focus-within
+        .reader-outline::-webkit-scrollbar-thumb {
         background: color-mix(in srgb, var(--fg-subtle) 34%, transparent);
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .reader-outline:hover,
+        .reader-outline-section:hover .reader-outline {
+          scrollbar-color:
+            color-mix(in srgb, var(--fg-subtle) 34%, transparent)
+            transparent;
+        }
+        .reader-outline:hover::-webkit-scrollbar-thumb,
+        .reader-outline-section:hover
+          .reader-outline::-webkit-scrollbar-thumb {
+          background: color-mix(in srgb, var(--fg-subtle) 34%, transparent);
+        }
       }
       .reader-outline__link {
         display: -webkit-box;
@@ -6499,26 +6545,11 @@
           <button
             id="newDocumentBtn"
             type="button"
-            class="btn"
-            title="New markdown document"
+            class="btn btn--new"
+            title="New entry"
             data-mv-overflow-section="File"
           >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
-              <path d="M14 2v5h5"/>
-              <path d="M12 12v6"/>
-              <path d="M9 15h6"/>
-            </svg>
+            <span class="btn-prefix" aria-hidden="true">+</span>
             New
           </button>
 
