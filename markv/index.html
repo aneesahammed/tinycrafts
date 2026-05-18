@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-7Sraf15VHX6P/aNqors9CgTmdEiWikKlt/WJfXqfTDQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-VHP6La3Jm3jbZ8ns7oS3i0aqqNwvXpSE1hTGfZtcq6A=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -1895,11 +1895,15 @@
         flex-direction: column;
         width: 100%;
         max-width: 248px;
-        max-height: calc(100dvh - var(--reader-rail-top) - 28px);
-        padding-bottom: 28px;
+        max-height: none;
+        padding-bottom: 0;
         box-sizing: border-box;
         font-family: var(--font-sans);
         color: var(--fg-default);
+      }
+      .reader-rail.has-reader-connections {
+        max-height: calc(100dvh - var(--reader-rail-top) - 28px);
+        padding-bottom: 28px;
       }
       .reader-rail[hidden] {
         display: none;
@@ -1938,9 +1942,15 @@
         display: grid;
         gap: 0;
         margin: 0;
-        max-height: min(42dvh, 360px);
-        padding: 0 4px 0 0;
+        max-height: none;
+        padding: 0;
         list-style: none;
+        overflow: visible;
+        scrollbar-gutter: auto;
+      }
+      .reader-rail.has-reader-connections .reader-outline {
+        max-height: min(42dvh, 360px);
+        padding-right: 4px;
         overflow-x: hidden;
         overflow-y: auto;
         overscroll-behavior: contain;
@@ -2262,10 +2272,12 @@
         }
         .reader-outline-section .reader-outline {
           display: none;
-          max-height: min(46dvh, 360px);
           margin-top: 10px;
           padding-top: 10px;
           border-top: 1px solid var(--border-soft);
+        }
+        .reader-rail.has-reader-connections .reader-outline-section .reader-outline {
+          max-height: min(46dvh, 360px);
           overflow-y: auto;
           scrollbar-gutter: stable;
         }
@@ -12683,6 +12695,22 @@ Paste markdown on the left, open a local file, or drag one into the page.
           return best && best.score > 0 ? best.heading : null;
         }
 
+        function scrollMindmapSourceTarget(target) {
+          if (!target) return;
+          const toolbarHeight =
+            Number.parseFloat(
+              getComputedStyle(document.documentElement).getPropertyValue("--toolbar-h"),
+            ) || 52;
+          const targetTop =
+            target.getBoundingClientRect().top + window.scrollY - toolbarHeight - 24;
+          window.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: "auto",
+          });
+          target.classList.add("mm-jump-flash");
+          setTimeout(() => target.classList.remove("mm-jump-flash"), 1800);
+        }
+
         function jumpToMindmapSource(node) {
           if (!node) return;
 
@@ -12692,12 +12720,9 @@ Paste markdown on the left, open a local file, or drag one into the page.
           if (!target) return;
 
           closeMindmapViewer();
-          target.scrollIntoView({
-            behavior: prefersReducedMotion() ? "auto" : "smooth",
-            block: "start",
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => scrollMindmapSourceTarget(target));
           });
-          target.classList.add("mm-jump-flash");
-          setTimeout(() => target.classList.remove("mm-jump-flash"), 1800);
         }
 
         function wireMindmapNodeClicks() {
@@ -13810,6 +13835,7 @@ Return JSON only.`;
           if (els.readerConnections) {
             els.readerConnections.hidden = true;
             els.readerConnections.textContent = "";
+            els.readerConnections.classList.remove("has-reader-connections");
           }
           if (els.previewPane) {
             els.previewPane.classList.remove("has-reader-rail");
@@ -13848,8 +13874,7 @@ Return JSON only.`;
             })
             .filter(function (item) {
               return item.id && item.text;
-            })
-            .slice(0, READER_OUTLINE_MAX_ITEMS);
+            });
         }
 
         function setReaderOutlineActive(id) {
@@ -14177,20 +14202,29 @@ Return JSON only.`;
         function renderReaderRail(outlineItems, connectionsModel) {
           if (!els.readerConnections || !els.previewPane) return;
           const outline = Array.isArray(outlineItems) ? outlineItems : [];
+          const connectionsHtml = renderReaderConnectionsSection(connectionsModel);
+          const hasConnections = Boolean(connectionsHtml);
+          const visibleOutline = hasConnections
+            ? outline.slice(0, READER_OUTLINE_MAX_ITEMS)
+            : outline;
           const html =
-            renderReaderOutlineSection(outline) +
-            renderReaderConnectionsSection(connectionsModel);
+            renderReaderOutlineSection(visibleOutline) +
+            connectionsHtml;
           if (!html) {
             hideReaderRail();
             return;
           }
-          readerOutlineHeadings = outline
+          readerOutlineHeadings = visibleOutline
             .map(function (item) {
               return els.preview.querySelector("#" + CSS.escape(item.id));
             })
             .filter(Boolean);
           els.readerConnections.innerHTML = html;
           els.readerConnections.hidden = false;
+          els.readerConnections.classList.toggle(
+            "has-reader-connections",
+            hasConnections,
+          );
           els.previewPane.classList.add("has-reader-rail");
           scheduleReaderOutlineActiveUpdate();
         }
