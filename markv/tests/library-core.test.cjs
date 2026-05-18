@@ -321,6 +321,22 @@ test("describes save capabilities for live and export-only sources", () => {
 
   assert.deepEqual(
     core.getReaderSaveState?.({
+      sourceMode: "untitled",
+      hasFileHandle: false,
+      hasLibraryFileHandle: false,
+      librarySourceType: "",
+      hasContent: false,
+      currentName: "Untitled 1",
+    }),
+    {
+      canSave: true,
+      saveAction: "pick-save-target",
+      saveLabel: "Save",
+    },
+  );
+
+  assert.deepEqual(
+    core.getReaderSaveState?.({
       sourceMode: "editor",
       hasFileHandle: false,
       hasLibraryFileHandle: false,

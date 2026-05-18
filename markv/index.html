@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-749wpr/KE2C9DRASnQdUl6aT2TlPERCN0YucVUCzIjU=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-2Yy2oilANRb7Kb+r1dU3zAvNksfso+aiXKUHWFeJKBA=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -25,7 +25,7 @@
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
 
     <script src="assets/analytics.js"></script>
-    <script src="assets/library-core.js?v=14"></script>
+    <script src="assets/library-core.js?v=15"></script>
     <script src="assets/visual-blocks.js?v=12"></script>
     <script src="assets/pwa.js"></script>
     <script>
@@ -5361,6 +5361,135 @@
         line-height: 1.6;
         color: var(--fg-subtle);
       }
+      .lib-drafts {
+        margin: 0;
+        padding: 8px 0 12px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .lib-drafts + .lib-folder {
+        margin-top: 8px;
+      }
+      .lib-section-label {
+        display: block;
+        padding: 0 12px 6px;
+        font-family: var(--font-sans);
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--fg-subtle);
+      }
+      .lib-draft-node {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+      }
+      .lib-draft-row {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 10px;
+        border: 0;
+        background: transparent;
+        border-radius: 7px;
+        color: var(--fg-muted);
+        font: inherit;
+        font-size: 12.5px;
+        text-align: left;
+        cursor: pointer;
+        transition:
+          background-color 140ms ease,
+          color 140ms ease;
+      }
+      .lib-draft-row:hover {
+        background: var(--bg-subtle);
+        color: var(--fg-default);
+      }
+      .lib-draft-row.is-active {
+        color: var(--fg-default);
+        font-weight: 500;
+      }
+      .lib-draft-row.is-active::before {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 6px;
+        bottom: 6px;
+        width: 2px;
+        border-radius: 1px;
+        background: color-mix(in srgb, var(--accent-fg) 55%, transparent);
+      }
+      .lib-draft-dot {
+        width: 14px;
+        height: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--fg-subtle);
+        flex-shrink: 0;
+      }
+      .lib-draft-dot::before {
+        content: "";
+        width: 7px;
+        height: 9px;
+        border: 1.3px solid currentColor;
+        border-radius: 2px;
+        opacity: 0.52;
+      }
+      .lib-draft-row[data-dirty="true"] .lib-draft-dot::before {
+        width: 6px;
+        height: 6px;
+        border: 0;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent-fg) 62%, transparent);
+        opacity: 0.95;
+      }
+      .lib-draft-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .lib-draft-discard {
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--fg-subtle);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        flex-shrink: 0;
+        transition:
+          opacity 140ms ease,
+          color 140ms ease,
+          background-color 140ms ease;
+      }
+      .lib-draft-node:hover .lib-draft-discard,
+      .lib-draft-node:focus-within .lib-draft-discard {
+        opacity: 1;
+      }
+      .lib-draft-discard:hover {
+        color: color-mix(in srgb, var(--alert-warning) 72%, var(--fg-default));
+        background: var(--bg-subtle);
+      }
+      .lib-draft-discard svg {
+        width: 13px;
+        height: 13px;
+      }
+      @media (hover: none) {
+        .lib-draft-discard {
+          opacity: 0.55;
+        }
+      }
       .lib-folder {
         margin: 0;
         padding: 10px 0 4px;
@@ -5572,6 +5701,8 @@
         background: color-mix(in srgb, var(--accent-fg) 55%, transparent);
       }
       .lib-tree-row:focus-visible,
+      .lib-draft-row:focus-visible,
+      .lib-draft-discard:focus-visible,
       .lib-close:focus-visible,
       .lib-toggle-all:focus-visible,
       .lib-folder-toggle:focus-visible,
@@ -6361,10 +6492,36 @@
         ></div>
         <div class="spacer"></div>
 
-        <!-- ── Cluster: File — Open · Library · Save ────────────
+        <!-- ── Cluster: File — New · Open · Library · Save ──────
              Save auto-hides in preview mode via existing CSS
              `body.preview-mode #saveBtn { display: none !important }`. -->
         <div class="tb-group" role="group" aria-label="File">
+          <button
+            id="newDocumentBtn"
+            type="button"
+            class="btn"
+            title="New markdown document"
+            data-mv-overflow-section="File"
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+              <path d="M14 2v5h5"/>
+              <path d="M12 12v6"/>
+              <path d="M9 15h6"/>
+            </svg>
+            New
+          </button>
+
           <button
             id="openFileBtn"
             type="button"
@@ -11128,6 +11285,10 @@ Drop a .md file anywhere on the page, or open one with the Open button."
         const LIBRARY_DB_VERSION = 2;
         const LIBRARY_FOLDER_STORE = "folders";
         const LIBRARY_META_STORE = "libraryMeta";
+        const UNTITLED_DRAFT_DB_NAME = "md-viewer-untitled-drafts";
+        const UNTITLED_DRAFT_DB_VERSION = 1;
+        const UNTITLED_DRAFT_STORE = "drafts";
+        const UNTITLED_DRAFT_BACKUP_KEY = "md-viewer-untitled-drafts-backup";
         const LIBRARY_LIMITS = Object.freeze({
           maxDepth: 12,
           maxFiles: 2000,
@@ -11185,7 +11346,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
 
 - Reload button to bypass stale previews
 - Auto refresh for opened file handles
-- Draft restore stays inside the current tab only
+- Untitled drafts restore after reopen
 - Readable typography for long documents
 
 ## Table
@@ -11194,7 +11355,7 @@ Paste markdown on the left, open a local file, or drag one into the page.
 | --- | --- |
 | Open .md | Loads a local file directly |
 | Live preview | Renders while you type |
-| Privacy mode | Keeps drafts in-session and blocks remote images |
+| Privacy mode | Keeps local drafts private and blocks remote images |
 
 > This page is intentionally simple and privacy-first.`;
 
@@ -13700,6 +13861,7 @@ Return JSON only.`;
           editor: document.getElementById("editor"),
           preview: document.getElementById("preview"),
           readerConnections: document.getElementById("readerConnections"),
+          newDocumentBtn: document.getElementById("newDocumentBtn"),
           openFileBtn: document.getElementById("openFileBtn"),
           saveBtn: document.getElementById("saveBtn"),
           shareBtn: document.getElementById("shareBtn"),
@@ -13858,6 +14020,10 @@ Return JSON only.`;
           mermaidViewerLastFocused: null,
           mermaidViewerDrag: null,
           hasSessionDraft: false,
+          untitledDraftDbPromise: null,
+          untitledDrafts: [],
+          untitledDraftId: "",
+          untitledDraftWriteTimer: null,
           sharedSnapshotMeta: null,
           shareInFlight: false,
           sharePendingMayTakeTime: false,
@@ -14598,6 +14764,338 @@ Return JSON only.`;
         }
         window.addEventListener("pagehide", __flushSessionContent);
 
+        var __pendingUntitledDraftWrites = new Map();
+        var __pendingUntitledDraftFlush = null;
+
+        function canUseUntitledDraftStorage() {
+          return typeof indexedDB !== "undefined";
+        }
+
+        function createUntitledDraftId() {
+          return (
+            "draft_" +
+            Date.now().toString(36) +
+            "_" +
+            Math.random().toString(36).slice(2, 8)
+          );
+        }
+
+        function normalizeUntitledDraftRecord(raw, fallbackTitle) {
+          const source = raw && typeof raw === "object" ? raw : {};
+          const now = Date.now();
+          const id =
+            typeof source.id === "string" && source.id
+              ? source.id
+              : createUntitledDraftId();
+          const title =
+            typeof source.title === "string" && source.title.trim()
+              ? source.title.trim()
+              : fallbackTitle || "Untitled 1";
+          const createdAt = Number(source.createdAt) || now;
+          const updatedAt = Number(source.updatedAt) || createdAt;
+          const lastActive = Number(source.lastActive) || updatedAt;
+          return {
+            id: id,
+            title: title,
+            content: typeof source.content === "string" ? source.content : "",
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            lastActive: lastActive,
+            dirty: Boolean(source.dirty),
+          };
+        }
+
+        function sortUntitledDrafts(list) {
+          return (Array.isArray(list) ? list.slice() : []).sort(function (a, b) {
+            return (
+              (Number(b.lastActive) || 0) - (Number(a.lastActive) || 0) ||
+              (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0) ||
+              String(a.title || "").localeCompare(String(b.title || ""))
+            );
+          });
+        }
+
+        function upsertUntitledDraftInState(record) {
+          const normalized = normalizeUntitledDraftRecord(record);
+          const next = state.untitledDrafts.slice();
+          const index = next.findIndex(function (draft) {
+            return draft.id === normalized.id;
+          });
+          if (index === -1) {
+            next.push(normalized);
+          } else {
+            next[index] = normalized;
+          }
+          state.untitledDrafts = sortUntitledDrafts(next);
+          return normalized;
+        }
+
+        function getUntitledDraftById(id) {
+          return state.untitledDrafts.find(function (draft) {
+            return draft.id === id;
+          }) || null;
+        }
+
+        function isUntitledDraftMode() {
+          return state.sourceMode === "untitled" && Boolean(state.untitledDraftId);
+        }
+
+        function getActiveUntitledDraft() {
+          return isUntitledDraftMode()
+            ? getUntitledDraftById(state.untitledDraftId)
+            : null;
+        }
+
+        function getNextUntitledDraftTitle() {
+          let max = 0;
+          state.untitledDrafts.forEach(function (draft) {
+            const match = /^Untitled\s+(\d+)$/i.exec(String(draft.title || ""));
+            if (!match) return;
+            const value = Number(match[1]);
+            if (Number.isFinite(value)) max = Math.max(max, value);
+          });
+          return "Untitled " + (max + 1);
+        }
+
+        function writeUntitledDraftBackup() {
+          writeStorage(
+            window.localStorage,
+            UNTITLED_DRAFT_BACKUP_KEY,
+            JSON.stringify({
+              drafts: state.untitledDrafts.map(function (draft) {
+                return normalizeUntitledDraftRecord(draft);
+              }),
+              updatedAt: Date.now(),
+            }),
+          );
+        }
+
+        function readUntitledDraftBackup() {
+          const raw = readStorage(
+            window.localStorage,
+            UNTITLED_DRAFT_BACKUP_KEY,
+            "",
+          );
+          if (!raw) return [];
+          try {
+            const parsed = JSON.parse(raw);
+            const list = Array.isArray(parsed)
+              ? parsed
+              : Array.isArray(parsed && parsed.drafts)
+                ? parsed.drafts
+                : [];
+            return list.map(function (item, index) {
+              return normalizeUntitledDraftRecord(
+                item,
+                "Untitled " + (index + 1),
+              );
+            });
+          } catch (_error) {
+            return [];
+          }
+        }
+
+        function openUntitledDraftDb() {
+          if (!canUseUntitledDraftStorage()) {
+            return Promise.reject(new Error("IndexedDB is unavailable"));
+          }
+          if (state.untitledDraftDbPromise) return state.untitledDraftDbPromise;
+          state.untitledDraftDbPromise = new Promise(function (resolve, reject) {
+            const request = indexedDB.open(
+              UNTITLED_DRAFT_DB_NAME,
+              UNTITLED_DRAFT_DB_VERSION,
+            );
+            request.onupgradeneeded = function () {
+              const db = request.result;
+              if (!db.objectStoreNames.contains(UNTITLED_DRAFT_STORE)) {
+                db.createObjectStore(UNTITLED_DRAFT_STORE, { keyPath: "id" });
+              }
+            };
+            request.onsuccess = function () {
+              resolve(request.result);
+            };
+            request.onerror = function () {
+              reject(request.error);
+            };
+          });
+          return state.untitledDraftDbPromise;
+        }
+
+        function untitledDraftGetAllFromDb() {
+          return openUntitledDraftDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(UNTITLED_DRAFT_STORE, "readonly");
+              const request = tx.objectStore(UNTITLED_DRAFT_STORE).getAll();
+              request.onsuccess = function () {
+                resolve(request.result || []);
+              };
+              request.onerror = function () {
+                reject(request.error);
+              };
+            });
+          });
+        }
+
+        function untitledDraftPutInDb(record) {
+          const normalized = normalizeUntitledDraftRecord(record);
+          return openUntitledDraftDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(UNTITLED_DRAFT_STORE, "readwrite");
+              tx.objectStore(UNTITLED_DRAFT_STORE).put(normalized);
+              tx.oncomplete = function () {
+                resolve(normalized);
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        function untitledDraftDeleteFromDb(id) {
+          if (!canUseUntitledDraftStorage()) return Promise.resolve();
+          return openUntitledDraftDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(UNTITLED_DRAFT_STORE, "readwrite");
+              tx.objectStore(UNTITLED_DRAFT_STORE).delete(id);
+              tx.oncomplete = function () {
+                resolve();
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
+        }
+
+        function mergeUntitledDraftLists(primary, backup) {
+          const byId = new Map();
+          (Array.isArray(primary) ? primary : []).forEach(function (item, index) {
+            const draft = normalizeUntitledDraftRecord(
+              item,
+              "Untitled " + (index + 1),
+            );
+            byId.set(draft.id, draft);
+          });
+          (Array.isArray(backup) ? backup : []).forEach(function (item, index) {
+            const draft = normalizeUntitledDraftRecord(
+              item,
+              "Untitled " + (index + 1),
+            );
+            const existing = byId.get(draft.id);
+            if (!existing || draft.updatedAt > existing.updatedAt) {
+              byId.set(draft.id, draft);
+            }
+          });
+          return sortUntitledDrafts(Array.from(byId.values()));
+        }
+
+        async function restoreUntitledDraftsFromStorage(sessionMeta) {
+          const backupDrafts = readUntitledDraftBackup();
+          let storedDrafts = [];
+          if (canUseUntitledDraftStorage()) {
+            try {
+              storedDrafts = await untitledDraftGetAllFromDb();
+            } catch (error) {
+              console.warn("[drafts] restore failed", error);
+            }
+          }
+
+          state.untitledDrafts = mergeUntitledDraftLists(
+            storedDrafts,
+            backupDrafts,
+          );
+
+          if (state.untitledDrafts.length) {
+            const preferredId =
+              sessionMeta &&
+              typeof sessionMeta.untitledDraftId === "string" &&
+              sessionMeta.untitledDraftId
+                ? sessionMeta.untitledDraftId
+                : "";
+            state.untitledDraftId = getUntitledDraftById(preferredId)
+              ? preferredId
+              : state.untitledDrafts[0].id;
+            writeUntitledDraftBackup();
+          } else {
+            state.untitledDraftId = "";
+          }
+
+          renderLibraryDrawer();
+          return state.untitledDrafts.length > 0;
+        }
+
+        function scheduleUntitledDraftWrite(record) {
+          const normalized = normalizeUntitledDraftRecord(record);
+          __pendingUntitledDraftWrites.set(normalized.id, normalized);
+          writeUntitledDraftBackup();
+          if (__pendingUntitledDraftFlush != null) {
+            window.clearTimeout(__pendingUntitledDraftFlush);
+          }
+          __pendingUntitledDraftFlush = window.setTimeout(function () {
+            flushUntitledDraftWrites().catch(function (error) {
+              console.warn("[drafts] persist failed", error);
+            });
+          }, 180);
+        }
+
+        function flushUntitledDraftWrites() {
+          if (__pendingUntitledDraftFlush != null) {
+            window.clearTimeout(__pendingUntitledDraftFlush);
+            __pendingUntitledDraftFlush = null;
+          }
+          if (!__pendingUntitledDraftWrites.size) {
+            return Promise.resolve(false);
+          }
+
+          const records = Array.from(__pendingUntitledDraftWrites.values());
+          __pendingUntitledDraftWrites.clear();
+          writeUntitledDraftBackup();
+          if (!canUseUntitledDraftStorage()) {
+            return Promise.resolve(false);
+          }
+
+          return Promise.all(
+            records.map(function (record) {
+              return untitledDraftPutInDb(record);
+            }),
+          ).then(function () {
+            return true;
+          });
+        }
+
+        function captureActiveUntitledDraft(options) {
+          options = options || {};
+          const draft = getActiveUntitledDraft();
+          if (!draft) return null;
+
+          const now = Date.now();
+          const next = upsertUntitledDraftInState(
+            Object.assign({}, draft, {
+              content: els.editor.value || "",
+              updatedAt: now,
+              lastActive:
+                options.touchLastActive === false ? draft.lastActive : now,
+              dirty: options.dirty == null ? Boolean(state.dirty) : Boolean(options.dirty),
+            }),
+          );
+          scheduleUntitledDraftWrite(next);
+          renderLibraryDrawer();
+          return next;
+        }
+
+        function flushActiveUntitledDraft() {
+          captureActiveUntitledDraft({ touchLastActive: true });
+          return flushUntitledDraftWrites();
+        }
+
+        window.addEventListener("pagehide", function () {
+          if (isUntitledDraftMode()) {
+            captureActiveUntitledDraft({ touchLastActive: true });
+          }
+          flushUntitledDraftWrites().catch(function () {});
+        });
+
         function canUsePersistentLibrary() {
           return Boolean(
             window.showDirectoryPicker &&
@@ -14850,6 +15348,14 @@ Return JSON only.`;
               hasContent: hasContent,
               currentName: state.currentName,
             });
+          }
+
+          if (state.sourceMode === "untitled") {
+            return {
+              canSave: true,
+              saveAction: "pick-save-target",
+              saveLabel: "Save",
+            };
           }
 
           if (state.fileHandle) {
@@ -15116,6 +15622,7 @@ Return JSON only.`;
             return {
               hasSessionDraft: false,
               sourceMode: "editor",
+              untitledDraftId: "",
             };
           }
           try {
@@ -15126,11 +15633,16 @@ Return JSON only.`;
                 parsed && typeof parsed.sourceMode === "string"
                   ? parsed.sourceMode
                   : "editor",
+              untitledDraftId:
+                parsed && typeof parsed.untitledDraftId === "string"
+                  ? parsed.untitledDraftId
+                  : "",
             };
           } catch (_error) {
             return {
               hasSessionDraft: false,
               sourceMode: "editor",
+              untitledDraftId: "",
             };
           }
         }
@@ -15142,6 +15654,7 @@ Return JSON only.`;
             JSON.stringify({
               hasSessionDraft: Boolean(state.hasSessionDraft),
               sourceMode: state.sourceMode,
+              untitledDraftId: state.untitledDraftId || "",
             }),
           );
         }
@@ -16053,6 +16566,15 @@ Return JSON only.`;
         }
 
         function getHighlightStorageTarget() {
+          if (state.sourceMode === "untitled" && state.untitledDraftId) {
+            return {
+              storage: window.localStorage,
+              key: DRAFT_HIGHLIGHT_STORAGE_KEY,
+              bucket: "untitled::" + state.untitledDraftId,
+              scope: "local",
+            };
+          }
+
           if (state.currentName) {
             return {
               storage: window.localStorage,
@@ -17589,10 +18111,14 @@ Return JSON only.`;
           const next = payload && typeof payload === "object" ? payload : null;
           if (!next || typeof next.text !== "string") return false;
 
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
 
           setPrimaryFileHandle(null);
+          state.untitledDraftId = "";
           state.sourceMode = "editor";
           state.currentName = String(next.name || "").trim();
           state.baseHref = getSnapshotBaseUrl();
@@ -17648,11 +18174,15 @@ Return JSON only.`;
           const markdown = sections.join("\n\n").trim();
           if (!markdown) return false;
 
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
 
           setPrimaryFileHandle(null);
+          state.untitledDraftId = "";
           state.sourceMode = "editor";
           state.currentName = title || "Shared note";
           state.baseHref = getSnapshotBaseUrl();
@@ -17868,6 +18398,55 @@ Return JSON only.`;
           if (pathEl) pathEl.setAttribute("d", path);
         }
 
+        function renderLibraryDraftsSection() {
+          const drafts = sortUntitledDrafts(state.untitledDrafts);
+          if (!drafts.length) return "";
+
+          const rows = drafts
+            .map(function (draft) {
+              const isActive =
+                state.sourceMode === "untitled" &&
+                state.untitledDraftId === draft.id;
+              const title = draft.title || "Untitled";
+              const discardLabel = "Discard " + title;
+              return (
+                '<div class="lib-draft-node">' +
+                '<button type="button" class="lib-draft-row' +
+                (isActive ? " is-active" : "") +
+                '" data-kind="draft" data-action="open-draft" data-draft-id="' +
+                escapeHtml(draft.id) +
+                '" data-dirty="' +
+                (draft.dirty ? "true" : "false") +
+                '" title="' +
+                escapeHtml(title) +
+                '">' +
+                '<span class="lib-draft-dot" aria-hidden="true"></span>' +
+                '<span class="lib-draft-label">' +
+                escapeHtml(title) +
+                "</span>" +
+                "</button>" +
+                '<button type="button" class="lib-draft-discard" data-action="discard-draft" data-draft-id="' +
+                escapeHtml(draft.id) +
+                '" aria-label="' +
+                escapeHtml(discardLabel) +
+                '" title="' +
+                escapeHtml(discardLabel) +
+                '">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>' +
+                "</button>" +
+                "</div>"
+              );
+            })
+            .join("");
+
+          return (
+            '<section class="lib-drafts" aria-label="Drafts">' +
+            '<span class="lib-section-label">Drafts</span>' +
+            rows +
+            "</section>"
+          );
+        }
+
         function renderLibraryTreeNodes(nodes, folderId, depth) {
           return (nodes || [])
             .map(function (node) {
@@ -17953,8 +18532,9 @@ Return JSON only.`;
             els.librarySupportedNote.textContent = "";
           }
 
+          const draftsHtml = renderLibraryDraftsSection();
           if (!state.libraryFolders.length) {
-            els.libraryBody.innerHTML = els.libraryEmpty.outerHTML;
+            els.libraryBody.innerHTML = draftsHtml || els.libraryEmpty.outerHTML;
             return;
           }
 
@@ -18053,7 +18633,7 @@ Return JSON only.`;
             })
             .join("");
 
-          els.libraryBody.innerHTML = html;
+          els.libraryBody.innerHTML = draftsHtml + html;
         }
 
         function showLibraryDrawer() {
@@ -18149,7 +18729,18 @@ Return JSON only.`;
             const action = trigger.getAttribute("data-action");
             const folderId = trigger.getAttribute("data-folder-id") || "";
             const path = trigger.getAttribute("data-path") || "";
+            const draftId = trigger.getAttribute("data-draft-id") || "";
 
+            if (action === "open-draft") {
+              await loadUntitledDraft(draftId, {
+                userInitiated: true,
+              });
+              return;
+            }
+            if (action === "discard-draft") {
+              await discardUntitledDraft(draftId);
+              return;
+            }
             if (action === "toggle-folder") {
               toggleLibraryFolderCollapsed(folderId);
               return;
@@ -18455,6 +19046,10 @@ Return JSON only.`;
           const folder = getLibraryFolderById(folderId);
           if (!folder) return false;
 
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
+
           if (folder.status === "needs-permission" && folder.handle) {
             if (!options.userInitiated) return false;
             const permission = await requestLibraryPermission(folder.handle);
@@ -18490,6 +19085,7 @@ Return JSON only.`;
           detachSharedSnapshotContext();
 
           setPrimaryFileHandle(null);
+          state.untitledDraftId = "";
           state.libraryCurrentFileHandle = node.handle;
           state.libraryCurrentFolderHandle = folder.handle || null;
           state.libraryActiveFolderId = folder.id;
@@ -18519,6 +19115,200 @@ Return JSON only.`;
           if (options.closeDrawerOnMobile !== false && isCoarsePointer()) {
             hideLibraryDrawer({ restoreFocus: false });
           }
+          return true;
+        }
+
+        function clearUntitledDraftHighlightBucket(draftId) {
+          if (!draftId) return;
+          const buckets = readHighlightBuckets(
+            window.localStorage,
+            DRAFT_HIGHLIGHT_STORAGE_KEY,
+          );
+          delete buckets["untitled::" + draftId];
+          writeHighlightBuckets(
+            window.localStorage,
+            DRAFT_HIGHLIGHT_STORAGE_KEY,
+            buckets,
+          );
+          delete state.highlightMemoryBuckets.local["untitled::" + draftId];
+        }
+
+        async function deleteUntitledDraftRecord(draftId, options) {
+          options = options || {};
+          if (!draftId) return false;
+          const previousLength = state.untitledDrafts.length;
+          state.untitledDrafts = state.untitledDrafts.filter(function (draft) {
+            return draft.id !== draftId;
+          });
+          __pendingUntitledDraftWrites.delete(draftId);
+          if (state.untitledDraftId === draftId) {
+            state.untitledDraftId = "";
+          }
+          writeUntitledDraftBackup();
+          clearUntitledDraftHighlightBucket(draftId);
+
+          if (canUseUntitledDraftStorage()) {
+            await untitledDraftDeleteFromDb(draftId).catch(function (error) {
+              console.warn("[drafts] delete failed", error);
+            });
+          }
+
+          if (options.renderDrawer !== false) {
+            renderLibraryDrawer();
+          }
+          return state.untitledDrafts.length !== previousLength;
+        }
+
+        async function detachUntitledDraftAfterSave() {
+          if (!isUntitledDraftMode()) return;
+          const draftId = state.untitledDraftId;
+          if (!draftId) return;
+          await deleteUntitledDraftRecord(draftId, { renderDrawer: true });
+        }
+
+        async function loadUntitledDraft(draftId, options) {
+          options = options || {};
+          let draft = getUntitledDraftById(draftId);
+          if (!draft) return false;
+
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
+          draft = getUntitledDraftById(draftId);
+          if (!draft) return false;
+
+          stopAutoRefresh();
+          els.autoRefreshToggle.checked = false;
+          detachSharedSnapshotContext();
+          setPrimaryFileHandle(null);
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: false,
+          });
+
+          const now = Date.now();
+          const next = upsertUntitledDraftInState(
+            Object.assign({}, draft, {
+              lastActive: now,
+              updatedAt: draft.updatedAt || now,
+            }),
+          );
+          scheduleUntitledDraftWrite(next);
+
+          state.untitledDraftId = next.id;
+          state.sourceMode = "untitled";
+          state.currentName = next.title;
+          state.baseHref = window.location.href;
+          state.dirty = Boolean(next.dirty);
+          state.hasSessionDraft = false;
+          removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
+
+          setEditorMarkdown(next.content);
+          updateUiState();
+          render("untitled");
+          renderLibraryDrawer();
+
+          if (!options.quiet) {
+            setStatus(next.title + " • loaded", { announce: true });
+          }
+          if (options.closeDrawerOnMobile !== false && isCoarsePointer()) {
+            hideLibraryDrawer({ restoreFocus: false });
+          }
+          return true;
+        }
+
+        async function createUntitledDocument() {
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
+
+          stopAutoRefresh();
+          els.autoRefreshToggle.checked = false;
+          detachSharedSnapshotContext();
+          setPrimaryFileHandle(null);
+          await clearActiveLibrarySelection({
+            persist: true,
+            renderDrawer: false,
+          });
+
+          const now = Date.now();
+          const draft = upsertUntitledDraftInState({
+            id: createUntitledDraftId(),
+            title: getNextUntitledDraftTitle(),
+            content: "",
+            createdAt: now,
+            updatedAt: now,
+            lastActive: now,
+            dirty: false,
+          });
+
+          state.untitledDraftId = draft.id;
+          state.sourceMode = "untitled";
+          state.currentName = draft.title;
+          state.baseHref = window.location.href;
+          state.dirty = false;
+          state.hasSessionDraft = false;
+          removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
+          removeStorage(window.sessionStorage, SESSION_META_KEY);
+
+          setEditorMarkdown("");
+          updateUiState();
+          render("untitled");
+          renderLibraryDrawer();
+          scheduleUntitledDraftWrite(draft);
+          flushUntitledDraftWrites().catch(function (error) {
+            console.warn("[drafts] initial persist failed", error);
+          });
+
+          setMode("edit");
+          setStatus(draft.title + " • created", { announce: true });
+        }
+
+        async function discardUntitledDraft(draftId) {
+          const draft = getUntitledDraftById(draftId);
+          if (!draft) return false;
+          const wasActive =
+            state.sourceMode === "untitled" && state.untitledDraftId === draftId;
+          const contentToDiscard = wasActive ? els.editor.value : draft.content;
+
+          if (String(contentToDiscard || "").trim()) {
+            const confirmed = window.confirm(
+              "Discard " + draft.title + "? This cannot be undone.",
+            );
+            if (!confirmed) return false;
+          }
+
+          await deleteUntitledDraftRecord(draftId, { renderDrawer: false });
+
+          if (wasActive) {
+            const nextDraft = state.untitledDrafts[0];
+            if (nextDraft) {
+              await loadUntitledDraft(nextDraft.id, { quiet: true });
+            } else {
+              stopAutoRefresh();
+              els.autoRefreshToggle.checked = false;
+              detachSharedSnapshotContext();
+              setPrimaryFileHandle(null);
+              state.sourceMode = "editor";
+              state.currentName = "";
+              state.baseHref = window.location.href;
+              state.dirty = false;
+              state.hasSessionDraft = false;
+              state.highlightDocKey = "";
+              state.currentHighlights = [];
+              state.resolvedHighlights = [];
+              state.highlightTextModel = null;
+              removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
+              removeStorage(window.sessionStorage, SESSION_META_KEY);
+              setEditorMarkdown("");
+              updateUiState();
+              render("force");
+            }
+          } else {
+            renderLibraryDrawer();
+          }
+
+          setStatus(draft.title + " • discarded", { announce: true });
           return true;
         }
 
@@ -18871,10 +19661,16 @@ Return JSON only.`;
             /\.(md|markdown|mdown|mkdn|txt)$/i,
             "",
           );
+          const isUntitled = state.sourceMode === "untitled";
           const hasFile = Boolean(stripped);
           const hasContent = Boolean((els.editor.value || "").trim());
 
-          if (hasFile) {
+          if (isUntitled) {
+            els.brandName.textContent = rawName || "Untitled";
+            els.brandName.className = "brand-name is-untitled";
+            els.brandName.title = rawName || "Untitled";
+            document.title = (rawName || "Untitled") + " · MarkV";
+          } else if (hasFile) {
             els.brandName.textContent = stripped;
             els.brandName.className = "brand-name is-file";
             els.brandName.title = rawName;
@@ -18892,7 +19688,7 @@ Return JSON only.`;
           }
 
           if (els.brandDirty) {
-            els.brandDirty.hidden = !(hasFile && state.dirty);
+            els.brandDirty.hidden = !((hasFile || isUntitled) && state.dirty);
           }
         }
 
@@ -19924,8 +20720,12 @@ Return JSON only.`;
 
         function render(source) {
           const markdown = els.editor.value;
+          const documentKey =
+            state.sourceMode === "untitled"
+              ? state.untitledDraftId || state.currentName
+              : state.currentName;
           const documentToken =
-            (state.currentName || "__draft__") + "::" + state.sourceMode;
+            (documentKey || "__draft__") + "::" + state.sourceMode;
           const generation = state.previewRenderGeneration + 1;
           const editModeActive = isEditModeActive();
           const preserveEditorFocus =
@@ -20018,7 +20818,13 @@ Return JSON only.`;
 
           state.lastRenderedContentVersion = state.contentVersion;
           state.lastRenderedDocumentToken = documentToken;
-          scheduleSessionContentWrite(markdown);
+          if (state.sourceMode === "untitled") {
+            state.hasSessionDraft = false;
+            removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
+            captureActiveUntitledDraft({ touchLastActive: false });
+          } else {
+            scheduleSessionContentWrite(markdown);
+          }
           writeSessionMeta();
           updateUiState();
 
@@ -20037,7 +20843,9 @@ Return JSON only.`;
                     ? "loaded"
                     : source === "library"
                       ? "loaded"
-                    : "rendered";
+                      : source === "untitled"
+                        ? "loaded"
+                      : "rendered";
 
           const detail = source === "editor" ? "" : " • " + nowString();
           setStatus(label + action + detail);
@@ -20072,6 +20880,14 @@ Return JSON only.`;
         function scheduleRender() {
           window.clearTimeout(state.renderTimer);
           state.renderTimer = window.setTimeout(function () {
+            if (isUntitledDraftMode()) {
+              state.dirty = true;
+              state.hasSessionDraft = false;
+              captureActiveUntitledDraft({ dirty: true });
+              render("editor");
+              return;
+            }
+
             if (
               state.fileHandle ||
               state.sourceMode === "file" ||
@@ -20093,10 +20909,14 @@ Return JSON only.`;
         async function loadFromHandle(quiet) {
           if (!state.fileHandle) return;
 
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
           const file = await state.fileHandle.getFile();
           const markdown = await file.text();
           detachSharedSnapshotContext();
 
+          state.untitledDraftId = "";
           state.sourceMode = "handle";
           state.currentName = file.name;
           state.baseHref = window.location.href;
@@ -20122,6 +20942,9 @@ Return JSON only.`;
         async function loadFromFile(file) {
           if (!file) return;
 
+          await flushActiveUntitledDraft().catch(function (error) {
+            console.warn("[drafts] active draft flush failed", error);
+          });
           const markdown = await file.text();
 
           stopAutoRefresh();
@@ -20129,6 +20952,7 @@ Return JSON only.`;
           detachSharedSnapshotContext();
 
           setPrimaryFileHandle(null);
+          state.untitledDraftId = "";
           state.sourceMode = "file";
           state.currentName = file.name;
           state.baseHref = window.location.href;
@@ -20384,6 +21208,7 @@ Return JSON only.`;
                 stopAutoRefresh();
                 els.autoRefreshToggle.checked = false;
                 setPrimaryFileHandle(handle);
+                await detachUntitledDraftAfterSave();
                 state.currentName = handle.name || suggestedName;
                 state.baseHref = window.location.href;
                 await clearActiveLibrarySelection({
@@ -20398,7 +21223,9 @@ Return JSON only.`;
               }
 
               downloadMarkdown(markdown, suggestedName);
-              state.currentName = state.currentName || suggestedName;
+              await detachUntitledDraftAfterSave();
+              state.sourceMode = "editor";
+              state.currentName = suggestedName;
               markDocumentSaved(null);
               setStatus(suggestedName + " • downloaded • " + nowString(), {
                 announce: true,
@@ -20415,6 +21242,14 @@ Return JSON only.`;
         }
 
         async function clearAll() {
+          const activeDraft = getActiveUntitledDraft();
+          if (activeDraft && String(activeDraft.content || els.editor.value || "").trim()) {
+            const confirmed = window.confirm(
+              "Discard " + activeDraft.title + "? This cannot be undone.",
+            );
+            if (!confirmed) return;
+          }
+
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
@@ -20432,6 +21267,11 @@ Return JSON only.`;
           state.currentHighlights = [];
           state.resolvedHighlights = [];
           state.highlightTextModel = null;
+          if (activeDraft) {
+            await deleteUntitledDraftRecord(activeDraft.id, {
+              renderDrawer: false,
+            });
+          }
           await clearLibraryCollection({
             persist: true,
             renderDrawer: true,
@@ -20817,6 +21657,7 @@ Return JSON only.`;
           hideReadingPanel({ restoreFocus: false });
         });
 
+        els.newDocumentBtn.addEventListener("click", createUntitledDocument);
         els.openFileBtn.addEventListener("click", openFile);
         els.saveBtn.addEventListener("click", saveCurrentDocument);
         els.shareBtn.addEventListener("click", shareCurrentSnapshot);
@@ -21121,8 +21962,12 @@ Return JSON only.`;
             ? event.dataTransfer.getData("text/plain")
             : "";
           if (text) {
+            await flushActiveUntitledDraft().catch(function (error) {
+              console.warn("[drafts] active draft flush failed", error);
+            });
             stopAutoRefresh();
             els.autoRefreshToggle.checked = false;
+            state.untitledDraftId = "";
             state.sourceMode = "editor";
             state.currentName = "";
             setPrimaryFileHandle(null);
@@ -21174,6 +22019,8 @@ Return JSON only.`;
           const sharedSnapshot = await readSharedSnapshotFromLocation();
 
           state.hasSessionDraft = Boolean(sessionMeta.hasSessionDraft);
+          const hasStoredUntitledDrafts =
+            await restoreUntitledDraftsFromStorage(sessionMeta);
           applyReadingSettings(readReadingSettings());
           renderLibraryDrawer();
           updateUiState();
@@ -21194,13 +22041,36 @@ Return JSON only.`;
             return;
           }
 
-          setEditorMarkdown(savedContent || "");
-          render("force");
-
-          await restoreLibraryFromStorage(sessionMeta);
+          if (savedContent || state.hasSessionDraft) {
+            setEditorMarkdown(savedContent || "");
+            render("force");
+            await restoreLibraryFromStorage({
+              hasSessionDraft: true,
+            });
+          } else {
+            setEditorMarkdown("");
+            render("force");
+            await restoreLibraryFromStorage({
+              hasSessionDraft: hasStoredUntitledDrafts,
+            });
+          }
 
           if (
             state.sourceMode !== "library" &&
+            hasStoredUntitledDrafts &&
+            !hasPendingPrimaryHandle &&
+            !savedContent &&
+            !state.hasSessionDraft
+          ) {
+            await loadUntitledDraft(state.untitledDraftId, {
+              quiet: true,
+              closeDrawerOnMobile: false,
+            });
+          }
+
+          if (
+            state.sourceMode !== "library" &&
+            state.sourceMode !== "untitled" &&
             !state.hasSessionDraft &&
             !els.editor.value.trim() &&
             !hasPendingPrimaryHandle
@@ -21232,7 +22102,9 @@ Return JSON only.`;
             __flushSessionContent();
           },
           flushPendingWrites: function () {
-            return flushWritableHandleIfPermitted();
+            return flushActiveUntitledDraft().then(function () {
+              return flushWritableHandleIfPermitted();
+            });
           },
         };
 

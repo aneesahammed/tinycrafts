@@ -169,10 +169,25 @@
     function closeSheet(opts) {
       if (!sheet.classList.contains("is-open")) return;
       opts = opts || {};
+      var focusTarget =
+        !opts.noFocus
+          ? lastFocus && typeof lastFocus.focus === "function"
+            ? lastFocus
+            : moreBtn
+          : null;
+      if (focusTarget && sheet.contains(focusTarget)) {
+        focusTarget = moreBtn;
+      }
+      if (sheet.contains(document.activeElement)) {
+        if (focusTarget) {
+          try { focusTarget.focus(); } catch (_) {}
+        } else if (document.activeElement && document.activeElement.blur) {
+          try { document.activeElement.blur(); } catch (_) {}
+        }
+      }
       sheet.classList.remove("is-open");
       backdrop.classList.remove("is-open");
       moreBtn.setAttribute("aria-expanded", "false");
-      sheet.setAttribute("aria-hidden", "true");
       backdrop.setAttribute("aria-hidden", "true");
       document.body.classList.remove("mv-more-open");
       document.removeEventListener("keydown", onKeyDown);
@@ -182,6 +197,10 @@
       // reduced-motion (no transitionend fires).
       var done = function () {
         if (sheet.classList.contains("is-open")) return; // re-opened
+        if (sheet.contains(document.activeElement)) {
+          try { document.activeElement.blur(); } catch (_) {}
+        }
+        sheet.setAttribute("aria-hidden", "true");
         sheet.hidden = true;
         backdrop.hidden = true;
         sheet.removeEventListener("transitionend", done);
@@ -193,10 +212,6 @@
       sheet.addEventListener("transitionend", done);
       if (transitionTimer) clearTimeout(transitionTimer);
       transitionTimer = setTimeout(done, 360);
-
-      if (!opts.noFocus && lastFocus && typeof lastFocus.focus === "function") {
-        try { lastFocus.focus(); } catch (_) {}
-      }
     }
 
     function onKeyDown(e) {

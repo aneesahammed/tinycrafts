@@ -1660,6 +1660,7 @@
 
   function getReaderSaveState(input) {
     const source = input && typeof input === "object" ? input : {};
+    const sourceMode = String(source.sourceMode || "editor");
     const hasFileHandle = Boolean(source.hasFileHandle);
     const hasLibraryFileHandle = Boolean(source.hasLibraryFileHandle);
     const librarySourceType =
@@ -1669,6 +1670,14 @@
         : "";
     const hasContent = Boolean(source.hasContent);
     const currentName = String(source.currentName || "");
+
+    if (sourceMode === "untitled") {
+      return {
+        canSave: true,
+        saveAction: "pick-save-target",
+        saveLabel: "Save",
+      };
+    }
 
     if (hasFileHandle) {
       return {
