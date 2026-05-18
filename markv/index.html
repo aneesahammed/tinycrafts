@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-BjB5+M8Sz3HjrRVGhq41KAHCYGDcJFNO2ao9lnuJq8k=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-HxBFG404eDRVdjGjc7MquOXvCBLPLpKKewPIcxNSpfQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -24,7 +24,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png" />
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
 
-    <script src="../assets/analytics.js"></script>
+    <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=14"></script>
     <script src="assets/visual-blocks.js?v=12"></script>
     <script src="assets/pwa.js"></script>
@@ -2318,13 +2318,14 @@
           font-size: 12px;
         }
         .reader-connections__graph {
-          display: none;
+          height: clamp(150px, 42vw, 210px);
+          aspect-ratio: auto;
         }
         .reader-connections__panel {
           box-shadow: none;
         }
         .reader-connections__meta {
-          border-top: 0;
+          border-top: 1px solid var(--border-soft);
         }
       }
 
@@ -11098,7 +11099,7 @@ Drop a .md file anywhere on the page, or open one with the Open button."
         const HIGHLIGHT_STORAGE_KEY = "md-viewer-highlights";
         const DRAFT_HIGHLIGHT_STORAGE_KEY = "md-viewer-draft-highlights";
         const LIBRARY_DB_NAME = "md-viewer-library";
-        const LIBRARY_DB_VERSION = 1;
+        const LIBRARY_DB_VERSION = 2;
         const LIBRARY_FOLDER_STORE = "folders";
         const LIBRARY_META_STORE = "libraryMeta";
         const LIBRARY_LIMITS = Object.freeze({
