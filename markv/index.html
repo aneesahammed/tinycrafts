@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-2Yy2oilANRb7Kb+r1dU3zAvNksfso+aiXKUHWFeJKBA=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Ov6h0AwAad72C3yQJRLrCteeoCI5UyN5aXEjmF7MF48=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -794,7 +794,6 @@
           display: none;
         }
         /* Individual secondary buttons inside mixed groups. */
-        .toolbar #openFileBtn,
         .toolbar #saveBtn,
         .toolbar .ont-settings {
           display: none;
@@ -5209,7 +5208,7 @@
         display: none !important;
       }
 
-      /* ---------- Library Drawer ---------- */
+      /* ---------- Files Drawer ---------- */
       .lib-overlay {
         position: fixed;
         inset: 0;
@@ -5301,7 +5300,7 @@
         padding: 10px 18px 10px;
         flex-shrink: 0;
       }
-      .lib-add {
+      .lib-file-action {
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -5319,25 +5318,28 @@
           border-color 140ms ease,
           background-color 140ms ease;
       }
-      .lib-add:hover:not(:disabled) {
+      .lib-file-action:hover:not(:disabled) {
         color: var(--fg-default);
         border-color: var(--border-strong);
         background: var(--bg-subtle);
       }
-      .lib-add:focus-visible {
+      .lib-file-action:focus-visible {
         outline: none;
         box-shadow: 0 0 0 3px var(--selection);
       }
-      .lib-add:disabled {
+      .lib-file-action:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .lib-add-plus {
+      .lib-file-action-icon {
         display: inline-flex;
-        font-size: 14px;
-        line-height: 1;
         color: var(--fg-subtle);
         transform: translateY(-0.5px);
+      }
+      .lib-file-action-icon svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
       }
       .lib-toggle-all {
         appearance: none;
@@ -6538,7 +6540,7 @@
         ></div>
         <div class="spacer"></div>
 
-        <!-- ── Cluster: File — New · Open · Library · Save ──────
+        <!-- ── Cluster: File — New · Files · Save ───────────────
              Save auto-hides in preview mode via existing CSS
              `body.preview-mode #saveBtn { display: none !important }`. -->
         <div class="tb-group" role="group" aria-label="File">
@@ -6547,40 +6549,17 @@
             type="button"
             class="btn btn--new"
             title="New entry"
-            data-mv-overflow-section="File"
           >
             <span class="btn-prefix" aria-hidden="true">+</span>
             New
           </button>
 
           <button
-            id="openFileBtn"
-            type="button"
-            class="btn"
-            title="Open a local .md file"
-            data-mv-overflow-section="File"
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.75"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            Open
-          </button>
-
-          <button
             id="libraryToggleBtn"
             type="button"
             class="btn"
-            title="Open folder library"
+            title="Open files"
+            aria-label="Open files"
             aria-haspopup="dialog"
             aria-controls="libraryDrawer"
             aria-expanded="false"
@@ -6598,7 +6577,7 @@
             >
               <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5Z"/>
             </svg>
-            Library
+            Files
           </button>
 
           <button
@@ -7230,7 +7209,7 @@
             spellcheck="false"
             placeholder="# Start typing markdown...
 
-Drop a .md file anywhere on the page, or open one with the Open button."
+Drop a .md file anywhere on the page, or open one from Files."
           ></textarea>
         </section>
 
@@ -13986,6 +13965,8 @@ Return JSON only.`;
             els.libraryOverlay || document.getElementById("libraryOverlay");
           els.libraryDrawer =
             els.libraryDrawer || document.getElementById("libraryDrawer");
+          els.openFileBtn =
+            els.openFileBtn || document.getElementById("openFileBtn");
           els.libraryAddBtn =
             els.libraryAddBtn || document.getElementById("libraryAddBtn");
           els.libraryToggleAllBtn =
@@ -14004,6 +13985,7 @@ Return JSON only.`;
           return Boolean(
             els.libraryOverlay &&
               els.libraryDrawer &&
+              els.openFileBtn &&
               els.libraryAddBtn &&
               els.libraryToggleAllBtn &&
               els.libraryCloseBtn &&
@@ -18549,7 +18531,7 @@ Return JSON only.`;
           if (!supported) {
             els.librarySupportedNote.hidden = false;
             els.librarySupportedNote.textContent =
-              "This browser cannot add folders to the library yet.";
+              "This browser cannot open folders here yet.";
           } else if (state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders) {
             els.librarySupportedNote.hidden = false;
             els.librarySupportedNote.textContent =
@@ -18684,9 +18666,9 @@ Return JSON only.`;
           document.body.classList.add("library-open");
           renderLibraryDrawer();
           window.requestAnimationFrame(function () {
-            const focusTarget = els.libraryAddBtn.disabled
-              ? els.libraryCloseBtn
-              : els.libraryAddBtn;
+            const focusTarget =
+              els.openFileBtn ||
+              (els.libraryAddBtn.disabled ? els.libraryCloseBtn : els.libraryAddBtn);
             focusTarget.focus();
           });
         }
@@ -18743,6 +18725,9 @@ Return JSON only.`;
           });
           els.libraryOverlay.addEventListener("click", function () {
             hideLibraryDrawer();
+          });
+          els.openFileBtn.addEventListener("click", async function () {
+            await openFile();
           });
           els.libraryAddBtn.addEventListener("click", async function () {
             await addLibraryFolder();
@@ -19314,7 +19299,10 @@ Return JSON only.`;
           if (wasActive) {
             const nextDraft = state.untitledDrafts[0];
             if (nextDraft) {
-              await loadUntitledDraft(nextDraft.id, { quiet: true });
+              await loadUntitledDraft(nextDraft.id, {
+                quiet: true,
+                closeDrawerOnMobile: false,
+              });
             } else {
               stopAutoRefresh();
               els.autoRefreshToggle.checked = false;
@@ -19335,9 +19323,8 @@ Return JSON only.`;
               updateUiState();
               render("force");
             }
-          } else {
-            renderLibraryDrawer();
           }
+          renderLibraryDrawer();
 
           setStatus(draft.title + " • discarded", { announce: true });
           return true;
@@ -19348,7 +19335,7 @@ Return JSON only.`;
           if (!folder) return;
           if (folder.sourceType === "snapshot") {
             setStatus(
-              "This folder was imported as a snapshot • add it again to capture newer changes.",
+              "This folder was imported as a snapshot • open it again to capture newer changes.",
               { announce: true },
             );
             return;
@@ -19561,7 +19548,7 @@ Return JSON only.`;
           }
           if (state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders) {
             setStatus(
-              "Library limit reached • remove a folder before adding another.",
+              "Library limit reached • remove a folder before opening another.",
               { announce: true },
             );
             return;
@@ -19580,11 +19567,11 @@ Return JSON only.`;
             if (conflict) {
               setStatus(
                 conflict === "duplicate"
-                  ? "That folder is already in the library."
-                  : "That folder overlaps an existing library root.",
+                  ? "That folder is already open in Files."
+                  : "That folder overlaps an existing Files root.",
                 { announce: true },
               );
-              console.warn("[library] rejected folder add", {
+              console.warn("[library] rejected folder open", {
                 conflict: conflict,
                 name: handle.name,
               });
@@ -19602,15 +19589,15 @@ Return JSON only.`;
             applyLibraryFolderOrder();
             const persisted = await persistLibraryFolderBestEffort(
               record,
-              "folder add",
+              "folder open",
             );
             renderLibraryDrawer();
             await scanLibraryFolder(record);
             setStatus(
               record.displayLabel +
                 (persisted
-                  ? " • added to library"
-                  : " • added to library for this session"),
+                  ? " • opened in Files"
+                  : " • opened in Files for this session"),
               {
                 announce: true,
               },
@@ -19618,11 +19605,11 @@ Return JSON only.`;
           } catch (error) {
             if (error && error.name === "AbortError") return;
             setStatus(
-              "Could not add folder • " +
+              "Could not open folder • " +
                 (error && error.message ? error.message : String(error)),
               { announce: true },
             );
-            console.warn("[library] add folder failed", error);
+            console.warn("[library] open folder failed", error);
           }
         }
 
@@ -21109,6 +21096,9 @@ Return JSON only.`;
 
                 updateUiState();
                 await loadFromHandle(false);
+                if (state.libraryIsOpen) {
+                  hideLibraryDrawer({ restoreFocus: false });
+                }
                 return;
               }
             } catch (error) {
@@ -21689,7 +21679,6 @@ Return JSON only.`;
         });
 
         els.newDocumentBtn.addEventListener("click", createUntitledDocument);
-        els.openFileBtn.addEventListener("click", openFile);
         els.saveBtn.addEventListener("click", saveCurrentDocument);
         els.shareBtn.addEventListener("click", shareCurrentSnapshot);
         els.reloadBtn.addEventListener("click", reloadCurrent);
@@ -21912,6 +21901,9 @@ Return JSON only.`;
           const file = event.target.files && event.target.files[0];
           try {
             await loadFromFile(file);
+            if (file && state.libraryIsOpen) {
+              hideLibraryDrawer({ restoreFocus: false });
+            }
           } catch (error) {
             setStatus(
               "File load failed • " +
@@ -24565,7 +24557,7 @@ Return JSON only.`;
       </div>
     </div>
 
-    <!-- Folder Library Drawer -->
+    <!-- Files Drawer -->
     <div id="libraryOverlay" class="lib-overlay" aria-hidden="true"></div>
     <aside
       id="libraryDrawer"
@@ -24578,13 +24570,13 @@ Return JSON only.`;
     >
       <header class="lib-header">
         <div class="lib-header-copy">
-          <h2 id="libraryDrawerTitle" class="lib-header-title">Library</h2>
+          <h2 id="libraryDrawerTitle" class="lib-header-title">Files</h2>
         </div>
         <button
           id="libraryCloseBtn"
           type="button"
           class="lib-close"
-          aria-label="Close library"
+          aria-label="Close files"
         >
           <svg
             width="16"
@@ -24603,9 +24595,36 @@ Return JSON only.`;
         </button>
       </header>
       <div class="lib-actions">
-        <button id="libraryAddBtn" type="button" class="lib-add">
-          <span class="lib-add-plus" aria-hidden="true">+</span>
-          <span>Add folder</span>
+        <button id="openFileBtn" type="button" class="lib-file-action">
+          <span class="lib-file-action-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
+              <path d="M14 2v5h5" />
+            </svg>
+          </span>
+          <span>Open file</span>
+        </button>
+        <button id="libraryAddBtn" type="button" class="lib-file-action">
+          <span class="lib-file-action-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5Z" />
+            </svg>
+          </span>
+          <span>Open folder</span>
         </button>
         <button
           id="libraryToggleAllBtn"
@@ -24634,7 +24653,7 @@ Return JSON only.`;
       <div id="libraryBody" class="lib-body">
         <div id="libraryEmpty" class="lib-empty">
           <p class="lib-empty-title">Nothing here yet</p>
-          <p class="lib-empty-copy">Add a folder to begin reading.</p>
+          <p class="lib-empty-copy">Open a folder to begin reading.</p>
         </div>
       </div>
     </aside>
