@@ -28,6 +28,13 @@
     return false;
   }
 
+  function shortcutLabel(id) {
+    const shortcuts = window.MarkVShortcuts;
+    return shortcuts && typeof shortcuts.describe === "function"
+      ? shortcuts.describe(id)
+      : "";
+  }
+
   function createCommand(env, input) {
     const command = Object.assign(
       {
@@ -38,9 +45,13 @@
       },
       input || {},
     );
+    if (command.shortcutId && !command.shortcut) {
+      command.shortcut = shortcutLabel(command.shortcutId);
+    }
     const fields = [
       { value: command.title, weight: 86 },
       { value: command.subtitle, weight: 44 },
+      { value: command.shortcut, weight: 24 },
       { value: asList(command.keywords).join(" "), weight: 52 },
     ];
     command.searchFields = fields;
@@ -49,6 +60,26 @@
       command.disabledReason = "This command is unavailable right now.";
     }
     return command;
+  }
+
+  function runEditorCommand(env, action) {
+    return new Promise(function (resolve) {
+      if (
+        typeof env.isEditModeActive === "function" &&
+        !env.isEditModeActive() &&
+        typeof env.setMode === "function"
+      ) {
+        env.setMode("edit");
+      }
+
+      window.requestAnimationFrame(function () {
+        const commands = window.MarkVEditorCommands;
+        if (commands && typeof commands.run === "function") {
+          commands.run(action);
+        }
+        resolve();
+      });
+    });
   }
 
   function walkLibraryTree(nodes, callback) {
@@ -214,6 +245,7 @@
         title: "Save",
         subtitle: "Save the current document",
         keywords: ["save", "write", "download"],
+        shortcutId: "global.save",
         defaultRank: 50,
         disabled: !saveState.canSave,
         disabledReason: "There is nothing to save yet.",
@@ -234,6 +266,7 @@
         title: editMode ? "Show preview" : "Edit markdown",
         subtitle: "Toggle edit and preview mode",
         keywords: ["edit", "preview", "mode"],
+        shortcutId: "global.mode",
         defaultRank: 70,
         run: function () {
           env.setMode(editMode ? "preview" : "edit");
@@ -262,6 +295,86 @@
         keywords: ["reading", "settings", "font", "width", "spacing"],
         defaultRank: 90,
         run: env.showReadingPanel,
+      }),
+      createCommand(env, {
+        id: "command:format-bold",
+        title: "Bold",
+        subtitle: "Format the selection",
+        keywords: ["format", "markdown", "strong"],
+        shortcutId: "editor.bold",
+        defaultVisible: false,
+        defaultRank: 300,
+        run: function () { return runEditorCommand(env, "bold"); },
+      }),
+      createCommand(env, {
+        id: "command:format-italic",
+        title: "Italic",
+        subtitle: "Format the selection",
+        keywords: ["format", "markdown", "emphasis"],
+        shortcutId: "editor.italic",
+        defaultVisible: false,
+        defaultRank: 310,
+        run: function () { return runEditorCommand(env, "italic"); },
+      }),
+      createCommand(env, {
+        id: "command:format-inline-code",
+        title: "Inline code",
+        subtitle: "Wrap the selection in backticks",
+        keywords: ["format", "markdown", "code", "backtick"],
+        shortcutId: "editor.inline-code",
+        defaultVisible: false,
+        defaultRank: 320,
+        run: function () { return runEditorCommand(env, "inline-code"); },
+      }),
+      createCommand(env, {
+        id: "command:format-link",
+        title: "Link",
+        subtitle: "Add a markdown link to the selection",
+        keywords: ["format", "markdown", "link", "url"],
+        shortcutId: "editor.link",
+        defaultVisible: false,
+        defaultRank: 325,
+        run: function () { return runEditorCommand(env, "link"); },
+      }),
+      createCommand(env, {
+        id: "command:format-code-block",
+        title: "Code block",
+        subtitle: "Wrap lines in a fenced code block",
+        keywords: ["format", "markdown", "fence", "code"],
+        shortcutId: "editor.code-block",
+        defaultVisible: false,
+        defaultRank: 330,
+        run: function () { return runEditorCommand(env, "code-block"); },
+      }),
+      createCommand(env, {
+        id: "command:format-bullet-list",
+        title: "Bullet list",
+        subtitle: "Toggle unordered list markdown",
+        keywords: ["format", "markdown", "list", "unordered", "bullet"],
+        shortcutId: "editor.bullet-list",
+        defaultVisible: false,
+        defaultRank: 340,
+        run: function () { return runEditorCommand(env, "bullet-list"); },
+      }),
+      createCommand(env, {
+        id: "command:format-numbered-list",
+        title: "Numbered list",
+        subtitle: "Toggle ordered list markdown",
+        keywords: ["format", "markdown", "list", "ordered", "numbered"],
+        shortcutId: "editor.numbered-list",
+        defaultVisible: false,
+        defaultRank: 350,
+        run: function () { return runEditorCommand(env, "numbered-list"); },
+      }),
+      createCommand(env, {
+        id: "command:format-image",
+        title: "Image markdown",
+        subtitle: "Insert an image link",
+        keywords: ["format", "markdown", "image", "photo"],
+        shortcutId: "editor.image",
+        defaultVisible: false,
+        defaultRank: 360,
+        run: function () { return runEditorCommand(env, "image"); },
       }),
       createCommand(env, {
         id: "command:theme",

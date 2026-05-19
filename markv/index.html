@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-9UAWKFHzxa9wmo+FoBAfJ1SnEwhW7ooW8JU0I6Q8lhQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-BHk+QxXLuEmXLQ0oH8faH6NYjBbHpu7bjuP0n5aHU6E='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-6Bz5W1r79Baso2gpU652Ilm7cUDTExxRmWH8BW70JkY=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-oMjJ12IBg02OVXmcxqnXfMoqqgZWOOOHvOCYm2gZkZc='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -23,14 +23,16 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png" />
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
-    <link rel="stylesheet" href="assets/command-palette.css?v=1" />
+    <link rel="stylesheet" href="assets/command-palette.css?v=2" />
 
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=15"></script>
     <script src="assets/visual-blocks.js?v=12"></script>
+    <script src="assets/shortcut-registry.js?v=1"></script>
+    <script src="assets/editor-markdown-actions.js?v=1"></script>
     <script src="assets/command-palette-core.js?v=1"></script>
-    <script src="assets/command-palette-host.js?v=1"></script>
-    <script src="assets/command-palette.js?v=2"></script>
+    <script src="assets/command-palette-host.js?v=2"></script>
+    <script src="assets/command-palette.js?v=3"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -1582,6 +1584,7 @@
         user-select: none;
         -webkit-user-select: none;
         white-space: nowrap;
+        max-width: calc(100vw - 16px);
       }
       .editor-toolbar.visible {
         opacity: 1;
@@ -1592,6 +1595,12 @@
         display: flex;
         align-items: center;
         height: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+      }
+      .editor-toolbar .et-buttons::-webkit-scrollbar {
+        display: none;
       }
       .editor-toolbar.et-link-mode .et-buttons {
         display: none;
@@ -1613,10 +1622,11 @@
         align-items: center;
         justify-content: center;
         height: 44px;
-        min-width: 42px;
-        padding: 0 10px;
+        min-width: 38px;
+        padding: 0 9px;
         color: #fff;
         cursor: pointer;
+        flex: 0 0 auto;
         transition: color 140ms ease;
       }
       .editor-toolbar button:hover,
@@ -1661,6 +1671,11 @@
         font-size: 26px;
         transform: translateY(4px);
         display: inline-block;
+      }
+      .editor-toolbar .et-glyph-code {
+        font-family: var(--font-mono);
+        font-size: 18px;
+        font-weight: 700;
       }
       .editor-toolbar .et-link-input {
         all: unset;
@@ -6634,7 +6649,9 @@
             id="commandPaletteBtn"
             type="button"
             class="btn"
-            title="Search files and commands (Ctrl/Cmd+K)"
+            data-shortcut-id="global.search"
+            data-title-base="Search files and commands"
+            title="Search files and commands"
             aria-label="Search files and commands"
             aria-haspopup="dialog"
             aria-controls="commandPaletteDialog"
@@ -6648,7 +6665,9 @@
             id="saveBtn"
             type="button"
             class="btn"
-            title="Save current document (Ctrl/Cmd+S)"
+            data-shortcut-id="global.save"
+            data-title-base="Save current document"
+            title="Save current document"
             disabled
             hidden
             data-mv-overflow-section="File"
@@ -6667,7 +6686,9 @@
             id="modeToggleBtn"
             type="button"
             class="btn mode-toggle-btn"
-            title="Toggle edit mode (Ctrl/Cmd+E)"
+            data-shortcut-id="global.mode"
+            data-title-base="Toggle edit mode"
+            title="Toggle edit mode"
             aria-pressed="false"
           >
             <svg
@@ -7084,6 +7105,7 @@
             id="paletteShortcutHint"
             type="button"
             class="btn palette-shortcut-hint"
+            data-shortcut-id="global.search"
             aria-label="Open command palette"
           >⌘K</button>
 
@@ -7308,13 +7330,16 @@ Drop a .md file anywhere on the page, or open one from Files."
         hidden
       >
         <div class="et-buttons">
-          <button type="button" data-et-action="bold" title="Bold (Cmd/Ctrl+B)" aria-label="Bold">
+          <button type="button" data-et-action="bold" data-shortcut-id="editor.bold" data-title-base="Bold" title="Bold" aria-label="Bold">
             <span class="et-glyph et-glyph-b">B</span>
           </button>
-          <button type="button" data-et-action="italic" title="Italic (Cmd/Ctrl+I)" aria-label="Italic">
+          <button type="button" data-et-action="italic" data-shortcut-id="editor.italic" data-title-base="Italic" title="Italic" aria-label="Italic">
             <span class="et-glyph et-glyph-i">i</span>
           </button>
-          <button type="button" data-et-action="link" title="Link (Cmd/Ctrl+Shift+K)" aria-label="Link">
+          <button type="button" data-et-action="inline-code" data-shortcut-id="editor.inline-code" data-title-base="Inline code" title="Inline code" aria-label="Inline code">
+            <span class="et-glyph et-glyph-code">`</span>
+          </button>
+          <button type="button" data-et-action="link" data-shortcut-id="editor.link" data-title-base="Link" title="Link" aria-label="Link">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M6.5 9.5a2.8 2.8 0 0 0 4 0l2.4-2.4a2.8 2.8 0 0 0-4-4L7.7 4.3"/>
               <path d="M9.5 6.5a2.8 2.8 0 0 0-4 0L3.1 8.9a2.8 2.8 0 0 0 4 4l1.2-1.2"/>
@@ -7329,6 +7354,40 @@ Drop a .md file anywhere on the page, or open one from Files."
           </button>
           <button type="button" data-et-action="quote" title="Quote" aria-label="Quote">
             <span class="et-glyph et-glyph-q">&ldquo;</span>
+          </button>
+          <button type="button" data-et-action="code-block" data-shortcut-id="editor.code-block" data-title-base="Code block" title="Code block" aria-label="Code block">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5.8 4.2 2.2 8l3.6 3.8"/>
+              <path d="m10.2 4.2 3.6 3.8-3.6 3.8"/>
+              <path d="m8.8 3.3-1.6 9.4"/>
+            </svg>
+          </button>
+          <button type="button" data-et-action="bullet-list" data-shortcut-id="editor.bullet-list" data-title-base="Bullet list" title="Bullet list" aria-label="Bullet list">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6.2 4h7"/>
+              <path d="M6.2 8h7"/>
+              <path d="M6.2 12h7"/>
+              <path d="M2.8 4h.1"/>
+              <path d="M2.8 8h.1"/>
+              <path d="M2.8 12h.1"/>
+            </svg>
+          </button>
+          <button type="button" data-et-action="numbered-list" data-shortcut-id="editor.numbered-list" data-title-base="Numbered list" title="Numbered list" aria-label="Numbered list">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6.2 4h7"/>
+              <path d="M6.2 8h7"/>
+              <path d="M6.2 12h7"/>
+              <path d="M2.5 3.2h.8v2.2"/>
+              <path d="M2.4 8.7c.9-.6 1.3-.9 1.3-1.3 0-.3-.3-.5-.6-.5-.3 0-.5.1-.7.3"/>
+              <path d="M2.4 11.1c.2-.2.4-.3.7-.3.4 0 .7.2.7.5 0 .4-.3.6-.8.6h-.2"/>
+            </svg>
+          </button>
+          <button type="button" data-et-action="image" data-shortcut-id="editor.image" data-title-base="Image markdown" title="Image markdown" aria-label="Image markdown">
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="3" width="11" height="10" rx="1.5"/>
+              <path d="m3.5 11 3-3 2 2 1.5-1.5 2.5 2.5"/>
+              <path d="M10.8 5.5h.1"/>
+            </svg>
           </button>
         </div>
         <div class="et-link" role="group" aria-label="Insert link">
@@ -19758,6 +19817,24 @@ Return JSON only.`;
           els.wordCount.hidden = false;
         }
 
+        function withShortcutLabel(label, shortcutId) {
+          const shortcuts = window.MarkVShortcuts;
+          const shortcut =
+            shortcuts && typeof shortcuts.describe === "function"
+              ? shortcuts.describe(shortcutId)
+              : "";
+          return shortcut ? label + " (" + shortcut + ")" : label;
+        }
+
+        function shortcutMatches(event, shortcutId) {
+          const shortcuts = window.MarkVShortcuts;
+          return Boolean(
+            shortcuts &&
+              typeof shortcuts.matches === "function" &&
+              shortcuts.matches(event, shortcutId),
+          );
+        }
+
         function updateBrandDisplay() {
           if (!els.brandName) return;
           const rawName = String(state.currentName || "").trim();
@@ -19822,7 +19899,7 @@ Return JSON only.`;
           els.saveBtn.style.display = authoringState.showSaveButton ? "" : "none";
           els.saveBtn.disabled = !saveState.canSave;
           els.saveBtn.textContent = saveState.saveLabel;
-          const saveLabel = "Save current document (Ctrl/Cmd+S)";
+          const saveLabel = withShortcutLabel("Save current document", "global.save");
           els.saveBtn.title = saveLabel;
           els.saveBtn.setAttribute("aria-label", saveLabel);
 
@@ -19872,11 +19949,12 @@ Return JSON only.`;
               "has-unsaved",
               authoringState.showDirtyCue,
             );
-            const modeActionLabel = editModeActive
-              ? "Show preview (Ctrl/Cmd+E)"
+            const modeActionBase = editModeActive
+              ? "Show preview"
               : authoringState.showDirtyCue
-                ? "Edit markdown • unsaved changes (Ctrl/Cmd+E)"
-                : "Edit markdown (Ctrl/Cmd+E)";
+                ? "Edit markdown • unsaved changes"
+                : "Edit markdown";
+            const modeActionLabel = withShortcutLabel(modeActionBase, "global.mode");
             els.modeToggleBtn.title = modeActionLabel;
             els.modeToggleBtn.setAttribute("aria-label", modeActionLabel);
           }
@@ -21405,20 +21483,62 @@ Return JSON only.`;
           scheduleRender();
         });
 
+        function applyEditorMarkdownEdit(edit) {
+          if (!edit) return false;
+          els.editor.focus();
+          els.editor.setSelectionRange(edit.start, edit.end);
+          let ok = false;
+          try {
+            ok = document.execCommand("insertText", false, edit.text);
+          } catch (_error) {
+            ok = false;
+          }
+          if (!ok) {
+            els.editor.setRangeText(edit.text, edit.start, edit.end, "end");
+            els.editor.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          if (typeof edit.selectionStart === "number") {
+            els.editor.setSelectionRange(
+              edit.selectionStart,
+              typeof edit.selectionEnd === "number"
+                ? edit.selectionEnd
+                : edit.selectionStart,
+            );
+          }
+          markEditorContentChanged();
+          syncEditorSelectionState();
+          updateUiState();
+          scheduleRender();
+          return true;
+        }
+
         els.editor.addEventListener("keydown", function (event) {
+          const markdownActions = window.MarkVEditorMarkdownActions;
+          if (!markdownActions) return;
+
+          if (event.key === "Enter" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+            const edit = markdownActions.handleEnter(
+              els.editor.value,
+              els.editor.selectionStart,
+              els.editor.selectionEnd,
+            );
+            if (edit && applyEditorMarkdownEdit(edit)) {
+              event.preventDefault();
+            }
+            return;
+          }
+
           if (event.key === "Tab") {
-            event.preventDefault();
-            const start = els.editor.selectionStart;
-            const end = els.editor.selectionEnd;
-            const value = els.editor.value;
-            const indent = "  ";
-            els.editor.value =
-              value.slice(0, start) + indent + value.slice(end);
-            markEditorContentChanged();
-            els.editor.selectionStart = els.editor.selectionEnd =
-              start + indent.length;
-            syncEditorSelectionState();
-            scheduleRender();
+            const edit = markdownActions.handleTab(
+              els.editor.value,
+              els.editor.selectionStart,
+              els.editor.selectionEnd,
+              event.shiftKey,
+            );
+            if (edit && applyEditorMarkdownEdit(edit)) {
+              event.preventDefault();
+            }
+            if (!edit) event.preventDefault();
           }
         });
 
@@ -22710,7 +22830,7 @@ Return JSON only.`;
             document.body.classList.remove("preview-mode");
             modeLabel.textContent = "Preview";
             modeBtn.setAttribute("aria-pressed", "true");
-            modeBtn.title = "Show preview (Ctrl/Cmd+E)";
+            modeBtn.title = withShortcutLabel("Show preview", "global.mode");
             if (modeIconEdit) modeIconEdit.style.display = "none";
             if (modeIconPreview) modeIconPreview.style.display = "";
             requestAnimationFrame(function () {
@@ -22731,7 +22851,7 @@ Return JSON only.`;
             document.body.classList.remove("edit-mode-active");
             modeLabel.textContent = "Edit";
             modeBtn.setAttribute("aria-pressed", "false");
-            modeBtn.title = "Edit markdown (Ctrl/Cmd+E)";
+            modeBtn.title = withShortcutLabel("Edit markdown", "global.mode");
             if (modeIconEdit) modeIconEdit.style.display = "";
             if (modeIconPreview) modeIconPreview.style.display = "none";
             requestAnimationFrame(function () {
@@ -22818,13 +22938,13 @@ Return JSON only.`;
             return;
           }
 
-          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+          if (shortcutMatches(e, "global.mode")) {
             e.preventDefault();
             modeBtn.click();
             return;
           }
 
-          if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "s") {
+          if (shortcutMatches(e, "global.save")) {
             e.preventDefault();
             saveCurrentDocument();
           }
@@ -27080,11 +27200,25 @@ Return JSON only.`;
         const mainEl = document.getElementById("main");
         if (!editor || !toolbar || !mainEl) return;
 
+        const markdownActions = window.MarkVEditorMarkdownActions;
+        const shortcuts = window.MarkVShortcuts;
         const linkInput = toolbar.querySelector(".et-link-input");
         const arrow = toolbar.querySelector(".et-arrow");
         let pendingLinkRange = null;
         let repositionRaf = null;
         let suppressNextBlurHide = false;
+
+        if (shortcuts && typeof shortcuts.applyTitles === "function") {
+          shortcuts.applyTitles(toolbar);
+        }
+
+        function shortcutMatches(event, shortcutId) {
+          return Boolean(
+            shortcuts &&
+              typeof shortcuts.matches === "function" &&
+              shortcuts.matches(event, shortcutId),
+          );
+        }
 
         // ---------- Mirror div for textarea caret coordinates ----------
         const mirror = document.createElement("div");
@@ -27303,6 +27437,25 @@ Return JSON only.`;
           }
         }
 
+        function applyMarkdownEdit(edit) {
+          if (!edit) return false;
+          replaceRange(
+            edit.start,
+            edit.end,
+            edit.text,
+            edit.selectionStart,
+            edit.selectionEnd,
+          );
+          return true;
+        }
+
+        function runMarkdownEdit(factory) {
+          if (!markdownActions || typeof factory !== "function") return false;
+          return applyMarkdownEdit(
+            factory(editor.value, editor.selectionStart, editor.selectionEnd),
+          );
+        }
+
         // ---------- Inline wrap toggle (bold, italic) ----------
         function wrapInline(prefix, suffix) {
           const start = editor.selectionStart;
@@ -27392,40 +27545,13 @@ Return JSON only.`;
         }
 
         function toggleQuote() {
-          const { lineStart, lineEnd } = expandToLineBounds(
-            editor.selectionStart,
-            editor.selectionEnd
-          );
-          const block = editor.value.slice(lineStart, lineEnd);
-          const lines = block.split("\n");
-          const nonEmpty = lines.filter(function (l) {
-            return l.length > 0;
-          });
-          const allQuoted =
-            nonEmpty.length > 0 &&
-            nonEmpty.every(function (l) {
-              return l.startsWith("> ") || l === ">";
-            });
-          let newLines;
-          if (allQuoted) {
-            newLines = lines.map(function (l) {
-              if (l.startsWith("> ")) return l.slice(2);
-              if (l === ">") return "";
-              return l;
-            });
-          } else {
-            newLines = lines.map(function (l) {
-              return l.length === 0 ? l : "> " + l;
-            });
+          if (
+            runMarkdownEdit(function (value, start, end) {
+              return markdownActions.toggleLinePrefix(value, start, end, "quote");
+            })
+          ) {
+            return;
           }
-          const newBlock = newLines.join("\n");
-          replaceRange(
-            lineStart,
-            lineEnd,
-            newBlock,
-            lineStart,
-            lineStart + newBlock.length
-          );
         }
 
         // ---------- Link flow ----------
@@ -27489,6 +27615,11 @@ Return JSON only.`;
           italic: function () {
             wrapInline("*", "*");
           },
+          "inline-code": function () {
+            runMarkdownEdit(function (value, start, end) {
+              return markdownActions.toggleInline(value, start, end, "`", "`", "code");
+            });
+          },
           link: startLinkFlow,
           h1: function () {
             toggleHeading(1);
@@ -27497,6 +27628,47 @@ Return JSON only.`;
             toggleHeading(2);
           },
           quote: toggleQuote,
+          "code-block": function () {
+            runMarkdownEdit(markdownActions && markdownActions.toggleCodeBlock);
+          },
+          "bullet-list": function () {
+            runMarkdownEdit(function (value, start, end) {
+              return markdownActions.toggleLinePrefix(
+                value,
+                start,
+                end,
+                "unordered-list",
+              );
+            });
+          },
+          "numbered-list": function () {
+            runMarkdownEdit(function (value, start, end) {
+              return markdownActions.toggleLinePrefix(
+                value,
+                start,
+                end,
+                "ordered-list",
+              );
+            });
+          },
+          image: function () {
+            runMarkdownEdit(markdownActions && markdownActions.insertImage);
+          },
+        };
+
+        function runAction(action) {
+          if (!isEditMode()) return false;
+          if (!actions[action]) return false;
+          editor.focus();
+          actions[action]();
+          if (!toolbar.classList.contains("et-link-mode")) {
+            requestAnimationFrame(updateToolbar);
+          }
+          return true;
+        }
+
+        window.MarkVEditorCommands = {
+          run: runAction,
         };
 
         // ---------- Event wiring ----------
@@ -27509,12 +27681,7 @@ Return JSON only.`;
               cancelLink();
               return;
             }
-            if (actions[action]) {
-              actions[action]();
-              if (!toolbar.classList.contains("et-link-mode")) {
-                requestAnimationFrame(updateToolbar);
-              }
-            }
+            runAction(action);
             return;
           }
           // Clicks on the input or elsewhere in link mode should not steal focus
@@ -27586,19 +27753,27 @@ Return JSON only.`;
             }
             if (!isEditMode()) return;
             if (document.activeElement !== editor) return;
-            if (!(e.metaKey || e.ctrlKey)) return;
-            const key = e.key.toLowerCase();
-            if (key === "b") {
+            let action = "";
+            if (shortcutMatches(e, "editor.bold")) {
+              action = "bold";
+            } else if (shortcutMatches(e, "editor.italic")) {
+              action = "italic";
+            } else if (shortcutMatches(e, "editor.link")) {
+              action = "link";
+            } else if (shortcutMatches(e, "editor.inline-code")) {
+              action = "inline-code";
+            } else if (shortcutMatches(e, "editor.code-block")) {
+              action = "code-block";
+            } else if (shortcutMatches(e, "editor.bullet-list")) {
+              action = "bullet-list";
+            } else if (shortcutMatches(e, "editor.numbered-list")) {
+              action = "numbered-list";
+            } else if (shortcutMatches(e, "editor.image")) {
+              action = "image";
+            }
+            if (action) {
               e.preventDefault();
-              actions.bold();
-              requestAnimationFrame(updateToolbar);
-            } else if (key === "i") {
-              e.preventDefault();
-              actions.italic();
-              requestAnimationFrame(updateToolbar);
-            } else if (key === "k" && e.shiftKey) {
-              e.preventDefault();
-              actions.link();
+              runAction(action);
             }
           },
           true

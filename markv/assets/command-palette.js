@@ -3,6 +3,7 @@
 
   const core = window.MarkVCommandPaletteCore;
   if (!core) return;
+  const shortcuts = window.MarkVShortcuts || null;
 
   const DIALOG_ID = "commandPaletteDialog";
   const INPUT_ID = "commandPaletteInput";
@@ -66,24 +67,25 @@
     openButton.dataset.paletteReady = "true";
   }
 
-  // Platform detection for the Option C "purist" shortcut hint near the brand.
-  // Mac shows "⌘K"; everywhere else shows "Ctrl K". Falls back to ⌘K if neither
-  // navigator.platform nor navigator.userAgent is available.
-  const IS_MAC = /Mac|iPhone|iPod|iPad/i.test(
-    (typeof navigator !== "undefined" &&
-      (navigator.platform || navigator.userAgent)) ||
-      "",
-  );
-
   function ensureShortcutHintTrigger() {
     const hint = document.getElementById("paletteShortcutHint");
     if (!hint || hint.dataset.paletteReady === "true") return;
-    hint.textContent = IS_MAC ? "⌘K" : "Ctrl K";
+    const label =
+      shortcuts && typeof shortcuts.describe === "function"
+        ? shortcuts.describe("global.search", {
+            symbols: true,
+            separator:
+              shortcuts.isApplePlatform && shortcuts.isApplePlatform() ? "" : " ",
+          })
+        : "Ctrl K";
+    hint.textContent = label;
     hint.setAttribute(
       "aria-label",
-      IS_MAC
-        ? "Open command palette (Cmd K)"
-        : "Open command palette (Ctrl K)",
+      "Open command palette (" +
+        (shortcuts && typeof shortcuts.describe === "function"
+          ? shortcuts.describe("global.search")
+          : "Ctrl+K") +
+        ")",
     );
     hint.addEventListener("click", function () {
       openPalette("hint");
@@ -150,6 +152,9 @@
     buildDialog();
     ensureButtonIcon();
     ensureShortcutHintTrigger();
+    if (shortcuts && typeof shortcuts.applyTitles === "function") {
+      shortcuts.applyTitles(document);
+    }
 
     if (openButton) {
       openButton.addEventListener("click", function () {
@@ -253,6 +258,12 @@
     text.append(title, subtitle);
 
     row.append(badge, text);
+    if (item.shortcut) {
+      const shortcut = document.createElement("span");
+      shortcut.className = "command-palette__shortcut";
+      shortcut.textContent = item.shortcut;
+      row.appendChild(shortcut);
+    }
     if (item.disabled) {
       const reason = document.createElement("span");
       reason.className = "command-palette__disabled";
@@ -464,13 +475,14 @@
     "keydown",
     function (event) {
       if (isCompositionEvent(event)) return;
-      const key = String(event.key || "").toLowerCase();
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        !event.shiftKey &&
-        !event.altKey &&
-        key === "k"
-      ) {
+      const matchesSearch =
+        shortcuts && typeof shortcuts.matches === "function"
+          ? shortcuts.matches(event, "global.search")
+          : (event.metaKey || event.ctrlKey) &&
+            !event.shiftKey &&
+            !event.altKey &&
+            String(event.key || "").toLowerCase() === "k";
+      if (matchesSearch) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
