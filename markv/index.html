@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-uN0xZHLAIhwlFmMJY5cNfkkAFBC3LL0ZmBelyUUmFVY=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-qzZD7u4F9DJ26W4DG+apPBcZHv6etw3VfIdJUsLERic='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-9UAWKFHzxa9wmo+FoBAfJ1SnEwhW7ooW8JU0I6Q8lhQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-BHk+QxXLuEmXLQ0oH8faH6NYjBbHpu7bjuP0n5aHU6E='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -23,10 +23,14 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="./assets/icons/icon-512.png" />
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+    <link rel="stylesheet" href="assets/command-palette.css?v=1" />
 
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=15"></script>
     <script src="assets/visual-blocks.js?v=12"></script>
+    <script src="assets/command-palette-core.js?v=1"></script>
+    <script src="assets/command-palette-host.js?v=1"></script>
+    <script src="assets/command-palette.js?v=1"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -6584,6 +6588,20 @@
           </button>
 
           <button
+            id="commandPaletteBtn"
+            type="button"
+            class="btn"
+            title="Search files and commands (Ctrl/Cmd+K)"
+            aria-label="Search files and commands"
+            aria-haspopup="dialog"
+            aria-controls="commandPaletteDialog"
+            aria-expanded="false"
+            data-mv-overflow-section="File"
+          >
+            Search
+          </button>
+
+          <button
             id="saveBtn"
             type="button"
             class="btn"
@@ -7246,7 +7264,7 @@ Drop a .md file anywhere on the page, or open one from Files."
           <button type="button" data-et-action="italic" title="Italic (Cmd/Ctrl+I)" aria-label="Italic">
             <span class="et-glyph et-glyph-i">i</span>
           </button>
-          <button type="button" data-et-action="link" title="Link (Cmd/Ctrl+K)" aria-label="Link">
+          <button type="button" data-et-action="link" title="Link (Cmd/Ctrl+Shift+K)" aria-label="Link">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M6.5 9.5a2.8 2.8 0 0 0 4 0l2.4-2.4a2.8 2.8 0 0 0-4-4L7.7 4.3"/>
               <path d="M9.5 6.5a2.8 2.8 0 0 0-4 0L3.1 8.9a2.8 2.8 0 0 0 4 4l1.2-1.2"/>
@@ -16089,6 +16107,19 @@ Return JSON only.`;
           });
         }
 
+        function stripLibraryFileHandles(nodes) {
+          return (nodes || []).map(function (node) {
+            if (node.type === "file") {
+              return Object.assign({}, node, {
+                handle: null,
+              });
+            }
+            return Object.assign({}, node, {
+              children: stripLibraryFileHandles(node.children || []),
+            });
+          });
+        }
+
         function createSnapshotLibraryFileHandle(snapshotFile) {
           return {
             kind: "file",
@@ -16173,7 +16204,7 @@ Return JSON only.`;
           const permission = await queryLibraryPermission(folder.handle);
           if (permission !== "granted") {
             folder.status = "needs-permission";
-            folder.tree = [];
+            folder.tree = stripLibraryFileHandles(folder.tree);
             folder.fileHandlesByPath = new Map();
             folder.note = "Access needs to be granted again.";
             renderLibraryDrawer();
@@ -16233,7 +16264,7 @@ Return JSON only.`;
               return;
             }
             folder.status = "needs-permission";
-            folder.tree = [];
+            folder.tree = stripLibraryFileHandles(folder.tree);
             folder.fileHandlesByPath = new Map();
             folder.note = "This folder could not be read.";
             console.warn("[library] folder scan failed", {
@@ -22749,6 +22780,34 @@ Return JSON only.`;
           }
         });
 
+        if (window.MarkVCommandPaletteHostFactory) {
+          window.MarkVCommandPaletteHost = window.MarkVCommandPaletteHostFactory({
+            state,
+            els,
+            libraryCore,
+            sortUntitledDrafts,
+            getReaderSaveState,
+            getReaderRefreshState,
+            isEditModeActive,
+            setMode,
+            showLibraryDrawer,
+            openFile,
+            addLibraryFolder,
+            saveCurrentDocument,
+            reloadCurrent,
+            startAutoRefresh,
+            showReadingPanel,
+            createUntitledDocument,
+            loadFromLibrarySelection,
+            loadUntitledDraft,
+            shareCurrentSnapshot,
+            runMindmapPipeline,
+            clearAll,
+            setStatus,
+          });
+          document.dispatchEvent(new CustomEvent("markv:command-palette-host-ready"));
+        }
+
         document.addEventListener("markv:announce", function (e) {
           if (e.detail && e.detail.message) announce(e.detail.message);
         });
@@ -27487,7 +27546,7 @@ Return JSON only.`;
               e.preventDefault();
               actions.italic();
               requestAnimationFrame(updateToolbar);
-            } else if (key === "k") {
+            } else if (key === "k" && e.shiftKey) {
               e.preventDefault();
               actions.link();
             }

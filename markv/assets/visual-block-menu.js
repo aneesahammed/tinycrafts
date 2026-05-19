@@ -490,6 +490,9 @@
       if (event.target === editor || menu.contains(event.target)) return;
       hideMenu();
     });
+    document.addEventListener("markv:command-palette-open", function () {
+      hideMenu({ suppress: true });
+    });
 
     editor.addEventListener("blur", function () {
       window.setTimeout(function () {
