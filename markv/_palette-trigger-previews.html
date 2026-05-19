@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>markv · Cmd+K trigger options</title>
+    <style>
+      :root {
+        --bg-page: #f5f5f4;
+        --ink: #161616;
+        --muted: #6b7280;
+        --hint: #9ca3af;
+        --line: #e5e5e5;
+        --line-soft: #ececec;
+        --card-light: #ffffff;
+        --card-light-soft: #fafaf9;
+        --card-dark: #0f0f0f;
+        --card-dark-soft: #1a1a1a;
+        --line-dark: #2a2a2a;
+        --line-dark-soft: #1f1f1f;
+        --ink-dark: #f5f5f4;
+        --muted-dark: #a1a1aa;
+        --hint-dark: #6b7280;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
+          sans-serif;
+        background: var(--bg-page);
+        color: var(--ink);
+        padding: 48px 24px 96px;
+        line-height: 1.55;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 48px;
+      }
+      header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0 0 8px;
+        letter-spacing: -0.01em;
+      }
+      header p {
+        font-size: 15px;
+        color: var(--muted);
+        margin: 0;
+        max-width: 720px;
+      }
+      .option {
+        margin-bottom: 56px;
+      }
+      .option-header {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .option-tag {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 3px 8px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 4px;
+      }
+      .option-tag.recommended {
+        background: #0a7f3f;
+      }
+      .option h2 {
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .option-sub {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 4px 0 20px;
+      }
+      .theme-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      @media (min-width: 900px) {
+        .theme-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .theme-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--hint);
+        margin-bottom: 8px;
+      }
+
+      /* Toolbar mock - shared shape */
+      .tb {
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13.5px;
+        min-height: 56px;
+      }
+      .tb.light {
+        background: var(--card-light);
+        border: 1px solid var(--line-soft);
+        color: var(--ink);
+      }
+      .tb.dark {
+        background: var(--card-dark);
+        border: 1px solid var(--line-dark);
+        color: var(--ink-dark);
+      }
+      .tb-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tb-logo {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        flex-shrink: 0;
+      }
+      .tb.light .tb-logo {
+        background: var(--ink);
+      }
+      .tb.dark .tb-logo {
+        background: var(--ink-dark);
+      }
+      .tb-name {
+        font-weight: 600;
+      }
+      .tb-title {
+        font-size: 13px;
+        max-width: 130px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tb.light .tb-title {
+        color: var(--hint);
+      }
+      .tb.dark .tb-title {
+        color: var(--hint-dark);
+      }
+      .tb-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn {
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        line-height: 1.4;
+        cursor: pointer;
+        transition: background 120ms ease;
+      }
+      .tb.light .btn {
+        border: 1px solid var(--line);
+        background: var(--card-light);
+        color: #374151;
+      }
+      .tb.light .btn:hover {
+        background: var(--card-light-soft);
+      }
+      .tb.dark .btn {
+        border: 1px solid var(--line-dark);
+        background: var(--card-dark);
+        color: var(--ink-dark);
+      }
+      .tb.dark .btn:hover {
+        background: var(--card-dark-soft);
+      }
+      .btn.icon-only {
+        padding: 5px 8px;
+      }
+      .divider {
+        width: 1px;
+        height: 18px;
+        background: var(--line);
+        margin: 0 4px;
+      }
+      .tb.dark .divider {
+        background: var(--line-dark);
+      }
+      .muted-icon {
+        opacity: 0.55;
+      }
+
+      /* Inline search trigger */
+      .palette-input {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 6px 5px 10px;
+        border-radius: 6px;
+        width: 260px;
+        cursor: text;
+      }
+      .tb.light .palette-input {
+        background: var(--card-light-soft);
+        border: 1px solid var(--line);
+      }
+      .tb.dark .palette-input {
+        background: var(--card-dark-soft);
+        border: 1px solid var(--line-dark);
+      }
+      .palette-input .ph {
+        flex: 1;
+        font-size: 13px;
+      }
+      .tb.light .palette-input .ph {
+        color: var(--hint);
+      }
+      .tb.dark .palette-input .ph {
+        color: var(--hint-dark);
+      }
+      .palette-input .glyph {
+        font-size: 14px;
+      }
+      .tb.light .palette-input .glyph {
+        color: var(--muted);
+      }
+      .tb.dark .palette-input .glyph {
+        color: var(--muted-dark);
+      }
+      kbd {
+        display: inline-flex;
+        align-items: center;
+        font-family:
+          -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 1px 6px;
+        border-radius: 4px;
+        line-height: 1.4;
+      }
+      .tb.light kbd {
+        background: var(--card-light);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .tb.dark kbd {
+        background: var(--card-dark);
+        border: 1px solid var(--line-dark);
+        color: var(--muted-dark);
+      }
+
+      /* Tooltip mock for Option B */
+      .tooltip-mock {
+        margin: 8px 0 0 auto;
+        max-width: max-content;
+        padding: 6px 10px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 5px;
+        font-size: 11.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tooltip-mock .arrow {
+        color: var(--hint);
+        font-size: 11px;
+      }
+
+      /* Brand hint for Option C */
+      .brand-hint {
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 10.5px;
+        margin-left: 6px;
+      }
+      .tb.light .brand-hint {
+        background: var(--card-light);
+        border: 1px solid var(--line);
+        color: var(--hint);
+      }
+      .tb.dark .brand-hint {
+        background: var(--card-dark-soft);
+        border: 1px solid var(--line-dark);
+        color: var(--hint-dark);
+      }
+
+      .auto-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+      }
+      .tb.light .auto-chip {
+        color: var(--hint);
+      }
+      .tb.dark .auto-chip {
+        color: var(--hint-dark);
+      }
+      .auto-box {
+        width: 11px;
+        height: 11px;
+        border-radius: 2px;
+      }
+      .tb.light .auto-box {
+        border: 1px solid #d1d5db;
+      }
+      .tb.dark .auto-box {
+        border: 1px solid #404040;
+      }
+
+      .notes {
+        background: #fff;
+        border: 1px solid var(--line-soft);
+        border-radius: 8px;
+        padding: 16px 18px;
+        font-size: 13.5px;
+        color: #374151;
+      }
+      .notes strong {
+        color: var(--ink);
+      }
+      .notes ul {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .notes li {
+        margin: 2px 0;
+      }
+      .notes .row {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 12px;
+        padding: 6px 0;
+        border-top: 1px solid var(--line-soft);
+      }
+      .notes .row:first-of-type {
+        border-top: none;
+      }
+      .notes .row .k {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        padding-top: 1px;
+      }
+
+      footer {
+        margin-top: 64px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Cmd / Ctrl + K trigger — three options</h1>
+        <p>
+          Same toolbar, same surrounding actions. Only the palette trigger
+          changes. Light and dark themes shown side by side because both ship.
+        </p>
+      </header>
+
+      <!-- ========================================= -->
+      <!-- OPTION A — INLINE SEARCH BAR -->
+      <!-- ========================================= -->
+      <section class="option">
+        <div class="option-header">
+          <span class="option-tag recommended">Recommended</span>
+          <h2>Option A — Inline search bar</h2>
+        </div>
+        <p class="option-sub">
+          Input-shaped trigger with magnifier, placeholder, and visible ⌘K hint.
+          Linear / Vercel / Slack pattern.
+        </p>
+
+        <div class="theme-row">
+          <div>
+            <div class="theme-label">Light theme</div>
+            <div class="tb light">
+              <div class="tb-brand">
+                <div class="tb-logo"></div>
+                <span class="tb-name">markv</span>
+                <span class="tb-title">Untitled 1 · disca…</span>
+              </div>
+              <div class="tb-actions">
+                <button class="btn">+ New</button>
+                <button class="btn">▢ Files</button>
+                <div class="palette-input">
+                  <span class="glyph">⌕</span>
+                  <span class="ph">Search files &amp; commands…</span>
+                  <kbd>⌘K</kbd>
+                </div>
+                <span class="divider"></span>
+                <button class="btn">✎ Edit</button>
+                <button class="btn icon-only">⚇</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="theme-label">Dark theme</div>
+            <div class="tb dark">
+              <div class="tb-brand">
+                <div class="tb-logo"></div>
+                <span class="tb-name">markv</span>
+                <span class="tb-title">Untitled 1 · disca…</span>
+              </div>
+              <div class="tb-actions">
+                <button class="btn">+ New</button>
+                <button class="btn">▢ Files</button>
+                <div class="palette-input">
+                  <span class="glyph">⌕</span>
+                  <span class="ph">Search files &amp; commands…</span>
+                  <kbd>⌘K</kbd>
+                </div>
+                <span class="divider"></span>
+                <button class="btn">✎ Edit</button>
+                <button class="btn icon-only">⚇</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <div class="row">
+            <div class="k">Why it works</div>
+            <div>
+              Input-shaped element reads as a different visual category than
+              the surrounding buttons, so it adds less perceived clutter than
+              the current Search button — despite being wider. The visible ⌘K
+              kbd badge actively teaches the shortcut.
+            </div>
+          </div>
+          <div class="row">
+            <div class="k">Track record</div>
+            <div>
+              Linear, Vercel, Slack, Notion, GitHub. The dominant pattern for
+              command-palette triggers in 2024–2026.
+            </div>
+          </div>
+          <div class="row">
+            <div class="k">Trade-off</div>
+            <div>
+              Wider than a button. Within a week most users graduate to
+              keyboard-only and stop seeing it, so the cost is short-lived.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================= -->
+      <!-- OPTION B — ICON-ONLY -->
+      <!-- ========================================= -->
+      <section class="option">
+        <div class="option-header">
+          <span class="option-tag">Alternative</span>
+          <h2>Option B — Icon-only with kbd tooltip</h2>
+        </div>
+        <p class="option-sub">
+          Just the magnifier icon. Hover reveals "Search &amp; commands · ⌘K".
+        </p>
+
+        <div class="theme-row">
+          <div>
+            <div class="theme-label">Light theme</div>
+            <div class="tb light">
+              <div class="tb-brand">
+                <div class="tb-logo"></div>
+                <span class="tb-name">markv</span>
+                <span class="tb-title">Untitled 1 · disca…</span>
+              </div>
+              <div class="tb-actions">
+                <button class="btn">+ New</button>
+                <button class="btn">▢ Files</button>
+                <button class="btn icon-only" title="Search & commands · ⌘K">
+                  <span style="font-size: 14px">⌕</span>
+                </button>
+                <span class="divider"></span>
+                <button class="btn">✎ Edit</button>
+                <button class="btn icon-only">⚇</button>
+                <span class="divider"></span>
+                <button class="btn icon-only muted-icon">⟳</button>
+                <span class="auto-chip"
+                  ><span class="auto-box"></span>Auto</span
+                >
+              </div>
+            </div>
+            <div class="tooltip-mock">
+              Search &amp; commands · ⌘K
+              <span class="arrow">← tooltip on hover</span>
+            </div>
+          </div>
+          <div>
+            <div class="theme-label">Dark theme</div>
+            <div class="tb dark">
+              <div class="tb-brand">
+                <div class="tb-logo"></div>
+                <span class="tb-name">markv</span>
+                <span class="tb-title">Untitled 1 · disca…</span>
+              </div>
+              <div class="tb-actions">
+                <button class="btn">+ New</button>
+                <button class="btn">▢ Files</button>
+                <button class="btn icon-only" title="Search & commands · ⌘K">
+                  <span style="font-size: 14px">⌕</span>
+                </button>
+                <span class="divider"></span>
+                <button class="btn">✎ Edit</button>
+                <button class="btn icon-only">⚇</button>
+                <span class="divider"></span>
+                <button class="btn icon-only muted-icon">⟳</button>
+                <span class="auto-chip"
+                  ><span class="auto-box"></span>Auto</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <div class="row">
+            <div class="k">Why it works</div>
+            <div>
+              Smallest possible footprint. Visual quiet matches markv's
+              minimalist aesthetic. The icon is the affordance; the keyboard
+              hint lives in the tooltip on hover.
+            </div>
+          </div>
+          <div class="row">
+            <div class="k">Track record</div>
+            <div>
+              Many CMS apps, Obsidian, older Notion. Workable but discoverability
+              suffers.
+            </div>
+          </div>
+          <div class="row">
+            <div class="k">Trade-off</div>
+            <div>
+              Many users will read the magnifier as content-search inside the
+              current document and never discover the palette. Without the
+              visible kbd, the shortcut takes longer to teach.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================= -->
+      <!-- OPTION C — PURE SHORTCUT -->
+      <!-- ========================================= -->
+      <section class="option">
+        <div class="option-header">
+          <span class="option-tag">Purist</span>
+          <h2>Option C — Pure shortcut, no visible trigger</h2>
+        </div>
+        <p class="option-sub">
+          Remove the trigger. ⌘K lives only in a "?" help overlay and a faint
+          hint near the brand. Raycast / VS Code style.
+        </p>
+
+        <div class="theme-row">
+          <div>
+            <div class="theme-label">Light theme</div>
+            <div class="tb light">
+              <div class="tb-brand">
+                <div class="tb-logo"></div>
+                <span class="tb-name">markv</span>
+                <span class="tb-title">Untitled 1 · disca…</span>
+                <kbd class="brand-hint">⌘K to search</kbd>
+              </div>
+              <div class="tb-actions">
+                <button class="btn">+ New</button>
+                <button class="btn">▢ Files</button>
+                <span class="divider"></span>
+                <button class="btn">✎ Edit</button>
+                <button class="btn icon-only">⚇</button>
+                <span class="divider"></span>
+                <button class="btn icon-only muted-icon">⟳</button>
+                <span class="auto-chip"
+                  ><span class="auto-box"></span>Auto</span
+                >
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="theme-label">Dark theme</div>
+            <div class="tb dark">
+              <div class="tb-brand">
+                <div class="tb-logo"></div>
+                <span class="tb-name">markv</span>
+                <span class="tb-title">Untitled 1 · disca…</span>
+                <kbd class="brand-hint">⌘K to search</kbd>
+              </div>
+              <div class="tb-actions">
+                <button class="btn">+ New</button>
+                <button class="btn">▢ Files</button>
+                <span class="divider"></span>
+                <button class="btn">✎ Edit</button>
+                <button class="btn icon-only">⚇</button>
+                <span class="divider"></span>
+                <button class="btn icon-only muted-icon">⟳</button>
+                <span class="auto-chip"
+                  ><span class="auto-box"></span>Auto</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <div class="row">
+            <div class="k">Why it works</div>
+            <div>
+              Quietest toolbar of all three. The faint ⌘K-to-search badge
+              near the brand is the only hint, and it harmonizes with the
+              writing-tool aesthetic. Power-user purist.
+            </div>
+          </div>
+          <div class="row">
+            <div class="k">Track record</div>
+            <div>
+              Raycast, VS Code, Sublime Text, vim. Works when the audience
+              already expects keyboard-driven UI.
+            </div>
+          </div>
+          <div class="row">
+            <div class="k">Trade-off</div>
+            <div>
+              The palette is effectively invisible to casual users. The brand
+              hint is small enough to miss. A "?" overlay needs to be wired up
+              to compensate.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Open file: <code>_palette-trigger-previews.html</code> · A is
+        recommended. Position note: regardless of style, the trigger should
+        sit OUTSIDE the +New/Files action cluster so it reads as chrome, not
+        as a sibling action.
+      </footer>
+    </div>
+  </body>
+</html>

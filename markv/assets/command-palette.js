@@ -66,6 +66,31 @@
     openButton.dataset.paletteReady = "true";
   }
 
+  // Platform detection for the Option C "purist" shortcut hint near the brand.
+  // Mac shows "⌘K"; everywhere else shows "Ctrl K". Falls back to ⌘K if neither
+  // navigator.platform nor navigator.userAgent is available.
+  const IS_MAC = /Mac|iPhone|iPod|iPad/i.test(
+    (typeof navigator !== "undefined" &&
+      (navigator.platform || navigator.userAgent)) ||
+      "",
+  );
+
+  function ensureShortcutHintTrigger() {
+    const hint = document.getElementById("paletteShortcutHint");
+    if (!hint || hint.dataset.paletteReady === "true") return;
+    hint.textContent = IS_MAC ? "⌘K" : "Ctrl K";
+    hint.setAttribute(
+      "aria-label",
+      IS_MAC
+        ? "Open command palette (Cmd K)"
+        : "Open command palette (Ctrl K)",
+    );
+    hint.addEventListener("click", function () {
+      openPalette("hint");
+    });
+    hint.dataset.paletteReady = "true";
+  }
+
   function buildDialog() {
     const overlay = document.createElement("div");
     overlay.id = DIALOG_ID;
@@ -124,6 +149,7 @@
     initialized = true;
     buildDialog();
     ensureButtonIcon();
+    ensureShortcutHintTrigger();
 
     if (openButton) {
       openButton.addEventListener("click", function () {

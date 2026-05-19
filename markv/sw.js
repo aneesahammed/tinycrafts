@@ -12,7 +12,7 @@ const SHELL_ASSETS = [
   "./assets/visual-blocks.js?v=12",
   "./assets/command-palette-core.js?v=1",
   "./assets/command-palette-host.js?v=1",
-  "./assets/command-palette.js?v=1",
+  "./assets/command-palette.js?v=2",
   "./assets/command-palette.css?v=1",
   "./assets/visual-block-menu.js?v=12",
   "./assets/pwa.js",
