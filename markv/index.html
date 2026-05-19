@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-20/O9b4NU2xxGOx16oLVL8IE7CU0J0YUYEB3lFsuWFQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-gD7n6ras1dE9yw3/oDcEA+xXkmM67FqI/kgd9zWRxbA=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -33,6 +33,7 @@
     <script src="assets/command-palette-core.js?v=1"></script>
     <script src="assets/command-palette-host.js?v=3"></script>
     <script src="assets/command-palette.js?v=4"></script>
+    <script src="assets/reader-palettes.js?v=4"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -328,6 +329,7 @@
 
       .app {
         min-height: 100%;
+        min-height: 100dvh;
         display: flex;
         flex-direction: column;
       }
@@ -345,6 +347,33 @@
         -webkit-backdrop-filter: saturate(1.2) blur(16px);
         backdrop-filter: saturate(1.2) blur(16px);
         border-bottom: 1px solid var(--border-soft);
+      }
+      body.preview-mode:not(.mindmap-open) .toolbar {
+        --bg-canvas: var(--reader-bg-canvas, var(--bg-canvas));
+        --bg-subtle: var(--reader-bg-subtle, var(--bg-subtle));
+        --bg-muted: var(--reader-bg-subtle, var(--bg-muted));
+        --bg-raised: var(--reader-bg-raised, var(--bg-raised));
+        --fg-default: var(--reader-fg-default, var(--fg-default));
+        --fg-muted: var(--reader-fg-muted, var(--fg-muted));
+        --fg-subtle: var(--reader-fg-subtle, var(--fg-subtle));
+        --border-soft: var(--reader-border-soft, var(--border-soft));
+        --border-default: var(--reader-border-default, var(--border-default));
+        --border-strong: var(--reader-border-strong, var(--border-strong));
+        --accent-fg: var(--reader-accent, var(--accent-fg));
+        --accent-hover: var(--reader-accent-hover, var(--accent-hover));
+        --selection: var(--reader-selection, var(--selection));
+        background: color-mix(in srgb, var(--reader-bg-canvas) 90%, transparent);
+        border-bottom-color: var(--reader-border-soft);
+        color: var(--reader-fg-default);
+        transition:
+          background-color var(--motion-small) var(--ease-calm),
+          border-color var(--motion-small) var(--ease-calm),
+          color var(--motion-small) var(--ease-calm);
+      }
+      body.preview-mode:not(.mindmap-open),
+      body.preview-mode:not(.mindmap-open) .app,
+      body.preview-mode:not(.mindmap-open) .main {
+        background: var(--reader-bg-canvas, var(--bg-canvas));
       }
 
       body.preview-mode #saveBtn {
@@ -1226,15 +1255,22 @@
         top: calc(100% + 6px);
         right: 0;
         z-index: 50;
-        width: min(320px, calc(100vw - 32px));
-        max-height: min(70vh, 560px);
+        width: min(360px, calc(100vw - 32px));
+        max-height: none;
         padding: 18px;
-        overflow: auto;
+        overflow: visible;
         background: var(--bg-raised);
         border: 1px solid var(--border-soft);
         border-radius: 16px;
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
         animation: panel-enter 200ms ease-out;
+      }
+      @media (max-height: 760px) {
+        .reading-panel {
+          max-height: calc(100dvh - var(--toolbar-h, 72px) - 24px);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
       }
       :root[data-theme="dark"] .reading-panel {
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32);
@@ -1301,6 +1337,110 @@
         background: var(--fg-muted);
         color: var(--bg-canvas);
         border-color: transparent;
+      }
+      .reading-palette-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .reading-palette {
+        --swatch-paper: #fafaf9;
+        --swatch-ink: #222221;
+        --swatch-accent: #5f8f80;
+        display: grid;
+        align-content: space-between;
+        min-width: 0;
+        min-height: 62px;
+        padding: 8px;
+        color: var(--fg-default);
+        background: var(--bg-raised);
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          border-color var(--motion-micro) var(--ease-calm),
+          background-color var(--motion-micro) var(--ease-calm),
+          box-shadow var(--motion-micro) var(--ease-calm);
+      }
+      .reading-palette:hover {
+        border-color: var(--border-strong);
+        background: var(--bg-subtle);
+      }
+      .reading-palette:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 2px;
+      }
+      .reading-palette[aria-checked="true"] {
+        border-color: var(--fg-default);
+        box-shadow: 0 0 0 2px var(--selection);
+      }
+      .reading-palette__swatch {
+        position: relative;
+        display: block;
+        height: 22px;
+        margin-bottom: 7px;
+        overflow: hidden;
+        background: var(--swatch-paper);
+        border: 1px solid var(--border-soft);
+        border-radius: 6px;
+      }
+      .reading-palette__swatch::before,
+      .reading-palette__swatch::after {
+        content: "";
+        position: absolute;
+        inset-block: 0;
+      }
+      .reading-palette__swatch::before {
+        left: 0;
+        width: 38%;
+        background: var(--swatch-ink);
+      }
+      .reading-palette__swatch::after {
+        right: 0;
+        width: 22%;
+        background: var(--swatch-accent);
+      }
+      .reading-palette__label {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        font-family: var(--font-sans);
+        font-size: 11.5px;
+        font-weight: 650;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .reading-palette[data-reader-palette="ivory"] {
+        --swatch-paper: #f3ebdd;
+        --swatch-ink: #1f1a13;
+        --swatch-accent: #416f62;
+      }
+      .reading-palette[data-reader-palette="manilla"] {
+        --swatch-paper: #ebdbbc;
+        --swatch-ink: #221a14;
+        --swatch-accent: #7b3e2d;
+      }
+      .reading-palette[data-reader-palette="cloud"] {
+        --swatch-paper: #bfbfba;
+        --swatch-ink: #191919;
+        --swatch-accent: #666663;
+      }
+      .reading-palette[data-reader-palette="slate"] {
+        --swatch-paper: #191919;
+        --swatch-ink: #f2f0ea;
+        --swatch-accent: #61aaf2;
+      }
+      .reading-palette[data-reader-palette="garden"] {
+        --swatch-paper: #e8f3de;
+        --swatch-ink: #001002;
+        --swatch-accent: #9a344a;
+      }
+      @media (max-width: 380px) {
+        .reading-palette-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
       .reading-control {
         display: grid;
@@ -1525,7 +1665,52 @@
         display: none;
       }
       .preview-pane {
+        --bg-canvas: var(--reader-bg-canvas, #fafaf9);
+        --bg-subtle: var(--reader-bg-subtle, #f4f3f1);
+        --bg-muted: var(--reader-bg-subtle, #ecebe9);
+        --bg-raised: var(--reader-bg-raised, #ffffff);
+        --fg-default: var(--reader-fg-default, #222221);
+        --fg-heading: var(--reader-fg-heading, #222221);
+        --fg-muted: var(--reader-fg-muted, #71706e);
+        --fg-subtle: var(--reader-fg-subtle, #a3a09c);
+        --border-soft: var(--reader-border-soft, rgba(0, 0, 0, 0.04));
+        --border-default: var(--reader-border-default, rgba(0, 0, 0, 0.07));
+        --border-strong: var(--reader-border-strong, rgba(0, 0, 0, 0.11));
+        --accent-fg: var(--reader-accent, #5f8f80);
+        --accent-hover: var(--reader-accent-hover, #4d7d6e);
+        --code-block-bg: var(--reader-code-bg, #f5f4f2);
+        --code-inline-bg: var(--reader-code-inline-bg, rgba(0, 0, 0, 0.035));
+        --blockquote-bg: var(--reader-blockquote-bg, rgba(0, 0, 0, 0.018));
+        --blockquote-border: var(--reader-blockquote-border, #c7c4be);
+        --selection: var(--reader-selection, rgba(95, 143, 128, 0.14));
+        --shadow-sm: var(--reader-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.025));
+        --alert-note: var(--reader-alert-note, #4f7fa8);
+        --alert-tip: var(--reader-alert-tip, #4f8c74);
+        --alert-important: var(--reader-alert-important, #6f73c4);
+        --alert-warning: var(--reader-alert-warning, #b6801f);
+        --alert-caution: var(--reader-alert-caution, #b35d5d);
         display: block;
+        flex: 1 0 auto;
+        min-height: calc(100dvh - var(--toolbar-h, 0px));
+        background: var(--bg-canvas);
+        color: var(--fg-default);
+        transition:
+          background-color var(--motion-small) var(--ease-calm),
+          color var(--motion-small) var(--ease-calm);
+      }
+      .preview-pane ::selection {
+        background: var(--selection);
+      }
+      .preview-pane .markdown-body,
+      .preview-pane .reader-rail,
+      .preview-pane .markdown-body pre,
+      .preview-pane .markdown-body blockquote,
+      .preview-pane .reader-connections__panel,
+      .preview-pane .reader-connections__graph {
+        transition:
+          background-color var(--motion-small) var(--ease-calm),
+          border-color var(--motion-small) var(--ease-calm),
+          color var(--motion-small) var(--ease-calm);
       }
       .main.edit-mode .editor-pane {
         display: block;
@@ -2514,7 +2699,7 @@
         font-weight: 600;
         line-height: 1.2;
         letter-spacing: -0.018em;
-        color: var(--fg-default);
+        color: var(--fg-heading, var(--fg-default));
         margin: 1.5em 0 0.45em;
         font-variation-settings: "opsz" 36;
       }
@@ -2833,10 +3018,10 @@
 
       /* Links — subtle underline offset, ink color */
       .markdown-body a {
-        color: var(--accent-fg);
+        color: var(--reader-link, var(--accent-fg));
         text-decoration: underline;
         text-decoration-thickness: 1px;
-        text-decoration-color: color-mix(in srgb, var(--accent-fg) 30%, transparent);
+        text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
         text-underline-offset: 3px;
         transition: text-decoration-color 180ms ease, color 180ms ease;
       }
@@ -2976,7 +3161,7 @@
         background: var(--code-inline-bg);
         border-radius: 4px;
         white-space: break-spaces;
-        color: var(--fg-default);
+        color: var(--reader-code-fg, var(--fg-default));
       }
 
       /* Code blocks — standalone cards */
@@ -2987,7 +3172,7 @@
         font-family: var(--font-mono);
         font-size: 13.5px;
         line-height: 1.6;
-        color: var(--fg-default);
+        color: var(--reader-code-fg, var(--fg-default));
         background: var(--code-block-bg);
         border: 1px solid var(--border-soft);
         border-radius: 8px;
@@ -3008,6 +3193,7 @@
         margin: 1.5em 0;
         padding: 18px 22px;
         overflow: auto;
+        color: var(--reader-code-fg, var(--fg-default));
         background: var(--code-block-bg);
         border: 1px solid var(--border-soft);
         border-radius: 8px;
@@ -3151,8 +3337,50 @@
       }
       /* Override hljs background to match our code block style */
       .markdown-body pre code.hljs {
+        color: var(--reader-code-fg, var(--fg-default));
         background: transparent;
         padding: 0;
+      }
+      .preview-pane .markdown-body :is(.hljs-comment, .hljs-quote) {
+        color: var(--reader-syntax-comment, var(--fg-muted));
+        font-style: italic;
+      }
+      .preview-pane .markdown-body
+        :is(.hljs-keyword, .hljs-selector-tag, .hljs-subst, .hljs-doctag) {
+        color: var(--reader-syntax-keyword, var(--reader-code-fg, var(--fg-default)));
+      }
+      .preview-pane .markdown-body
+        :is(.hljs-string, .hljs-regexp, .hljs-symbol, .hljs-bullet, .hljs-addition) {
+        color: var(--reader-syntax-string, var(--reader-code-fg, var(--fg-default)));
+      }
+      .preview-pane .markdown-body
+        :is(.hljs-number, .hljs-literal, .hljs-selector-id, .hljs-selector-class) {
+        color: var(--reader-syntax-number, var(--reader-code-fg, var(--fg-default)));
+      }
+      .preview-pane .markdown-body
+        :is(.hljs-title, .hljs-title.class_, .hljs-title.function_, .hljs-section) {
+        color: var(--reader-syntax-title, var(--reader-code-fg, var(--fg-default)));
+      }
+      .preview-pane .markdown-body
+        :is(
+          .hljs-attr,
+          .hljs-attribute,
+          .hljs-variable,
+          .hljs-template-variable,
+          .hljs-property,
+          .hljs-type,
+          .hljs-built_in,
+          .hljs-name,
+          .hljs-tag,
+          .hljs-meta
+        ) {
+        color: var(--reader-syntax-meta, var(--reader-code-fg, var(--fg-default)));
+      }
+      .preview-pane .markdown-body :is(.hljs-emphasis) {
+        font-style: italic;
+      }
+      .preview-pane .markdown-body :is(.hljs-strong) {
+        font-weight: 700;
       }
       /* ── Mermaid Viewer: overlay & shell ────────────────────────── */
       .mermaid-viewer {
@@ -4394,6 +4622,19 @@
           animation: panel-center-pop 220ms cubic-bezier(0.22, 1, 0.36, 1);
           animation-fill-mode: both;
         }
+        .reading-settings .reading-panel {
+          overflow-y: visible;
+        }
+        .ont-settings .ont-panel {
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        @media (max-height: 640px) {
+          .reading-settings .reading-panel {
+            overflow-y: auto;
+            overscroll-behavior: contain;
+          }
+        }
         @keyframes panel-center-pop {
           from { opacity: 0; transform: translateY(-8px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -4681,6 +4922,32 @@
           display: none;
         }
         .preview-pane {
+          --bg-canvas: #ffffff;
+          --bg-subtle: #ffffff;
+          --bg-muted: #ffffff;
+          --bg-raised: #ffffff;
+          --fg-default: #000000;
+          --fg-heading: #000000;
+          --fg-muted: #333333;
+          --fg-subtle: #555555;
+          --border-soft: rgba(0, 0, 0, 0.16);
+          --border-default: rgba(0, 0, 0, 0.22);
+          --border-strong: rgba(0, 0, 0, 0.32);
+          --accent-fg: #000000;
+          --accent-hover: #000000;
+          --code-block-bg: #ffffff;
+          --code-inline-bg: rgba(0, 0, 0, 0.06);
+          --blockquote-bg: transparent;
+          --blockquote-border: #777777;
+          --selection: transparent;
+          --reader-link: #000000;
+          --reader-code-fg: #000000;
+          --reader-highlight-bg: transparent;
+          --reader-highlight-hover-bg: transparent;
+          --reader-highlight-shadow: inset 0 -1px 0 currentColor;
+          --reader-highlight-hover-shadow: inset 0 -1px 0 currentColor;
+          background: #ffffff !important;
+          color: #000000 !important;
           padding: 0;
         }
         .markdown-body {
@@ -6346,8 +6613,11 @@
       .doc-highlight {
         color: inherit;
         cursor: pointer;
-        background: rgba(180, 200, 140, 0.22);
-        box-shadow: inset 0 -1px 0 rgba(140, 170, 100, 0.22);
+        background: var(--reader-highlight-bg, rgba(180, 200, 140, 0.22));
+        box-shadow: var(
+          --reader-highlight-shadow,
+          inset 0 -1px 0 rgba(140, 170, 100, 0.22)
+        );
         border-radius: 0.22em;
         box-decoration-break: clone;
         -webkit-box-decoration-break: clone;
@@ -6355,17 +6625,20 @@
           background-color 180ms ease,
           box-shadow 180ms ease;
       }
-      :root[data-theme="dark"] .doc-highlight {
+      :root[data-theme="dark"][data-reader-palette="original"] .doc-highlight {
         background: rgba(180, 200, 140, 0.16);
         box-shadow: inset 0 -1px 0 rgba(180, 200, 140, 0.16);
       }
       .doc-highlight:hover,
       .doc-highlight.is-active {
-        background: rgba(180, 200, 140, 0.36);
-        box-shadow: inset 0 -1px 0 rgba(140, 170, 100, 0.32);
+        background: var(--reader-highlight-hover-bg, rgba(180, 200, 140, 0.36));
+        box-shadow: var(
+          --reader-highlight-hover-shadow,
+          inset 0 -1px 0 rgba(140, 170, 100, 0.32)
+        );
       }
-      :root[data-theme="dark"] .doc-highlight:hover,
-      :root[data-theme="dark"] .doc-highlight.is-active {
+      :root[data-theme="dark"][data-reader-palette="original"] .doc-highlight:hover,
+      :root[data-theme="dark"][data-reader-palette="original"] .doc-highlight.is-active {
         background: rgba(180, 200, 140, 0.28);
         box-shadow: inset 0 -1px 0 rgba(180, 200, 140, 0.24);
       }
@@ -6846,8 +7119,7 @@
                   Reading
                 </h2>
                 <p id="readingPanelHelp" class="reading-panel-help">
-                  Tune the document view for comfort. Changes apply
-                  immediately and stay local to this browser.
+                  Tune reading comfort.
                 </p>
               </div>
               <span id="readingPresetCustom" class="reading-preset-custom" hidden
@@ -6892,6 +7164,85 @@
                   tabindex="-1"
                 >
                   Spacious
+                </button>
+              </div>
+            </section>
+
+            <section class="reading-panel-section">
+              <span id="readingPaletteLabel" class="reading-section-label"
+                >Palette</span
+              >
+              <div
+                id="readingPaletteGroup"
+                class="reading-palette-grid"
+                role="radiogroup"
+                aria-labelledby="readingPaletteLabel"
+              >
+                <button
+                  type="button"
+                  class="reading-palette"
+                  data-reader-palette="original"
+                  role="radio"
+                  aria-checked="true"
+                  tabindex="0"
+                >
+                  <span class="reading-palette__swatch" aria-hidden="true"></span>
+                  <span class="reading-palette__label">Original</span>
+                </button>
+                <button
+                  type="button"
+                  class="reading-palette"
+                  data-reader-palette="ivory"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <span class="reading-palette__swatch" aria-hidden="true"></span>
+                  <span class="reading-palette__label">Ivory</span>
+                </button>
+                <button
+                  type="button"
+                  class="reading-palette"
+                  data-reader-palette="manilla"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <span class="reading-palette__swatch" aria-hidden="true"></span>
+                  <span class="reading-palette__label">Manilla</span>
+                </button>
+                <button
+                  type="button"
+                  class="reading-palette"
+                  data-reader-palette="cloud"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <span class="reading-palette__swatch" aria-hidden="true"></span>
+                  <span class="reading-palette__label">Cloud</span>
+                </button>
+                <button
+                  type="button"
+                  class="reading-palette"
+                  data-reader-palette="slate"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <span class="reading-palette__swatch" aria-hidden="true"></span>
+                  <span class="reading-palette__label">Slate</span>
+                </button>
+                <button
+                  type="button"
+                  class="reading-palette"
+                  data-reader-palette="garden"
+                  role="radio"
+                  aria-checked="false"
+                  tabindex="-1"
+                >
+                  <span class="reading-palette__swatch" aria-hidden="true"></span>
+                  <span class="reading-palette__label">Garden</span>
                 </button>
               </div>
             </section>
@@ -11418,6 +11769,11 @@ Drop a .md file anywhere on the page, or open one from Files."
         const SESSION_CONTENT_KEY = "fast-md-viewer-session-content";
         const SESSION_META_KEY = "fast-md-viewer-session-meta";
         const READING_SETTINGS_KEY = "md-viewer-reading";
+        const READER_PALETTE_STORAGE_KEY =
+          (window.MarkVReaderPalettes && window.MarkVReaderPalettes.STORAGE_KEY) ||
+          "md-viewer-reader-palette";
+        const READER_LIGHT_PALETTE_STORAGE_KEY =
+          "md-viewer-reader-light-palette";
         const THEME_KEY = "md-viewer-theme";
         const HIGHLIGHT_STORAGE_KEY = "md-viewer-highlights";
         const DRAFT_HIGHLIGHT_STORAGE_KEY = "md-viewer-draft-highlights";
@@ -11451,8 +11807,11 @@ Drop a .md file anywhere on the page, or open one from Files."
         const HIGHLIGHT_CONTEXT_WINDOW = 32;
         const MERMAID_SCRIPT_URL = "./vendor/mermaid.min.js";
         const HLJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1";
+        const HLJS_LIGHT_THEME_URL = HLJS_CDN + "/styles/github.min.css";
+        const HLJS_DARK_THEME_URL = HLJS_CDN + "/styles/github-dark.min.css";
         const KATEX_CDN = "https://cdn.jsdelivr.net/npm/katex@0.16.22/dist";
         const libraryCore = window.MarkVLibraryCore || {};
+        const readerPaletteApi = window.MarkVReaderPalettes || null;
         const REMOTE_ASSET_INTEGRITY = Object.freeze({
           [HLJS_CDN + "/highlight.min.js"]:
             "sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU",
@@ -14017,6 +14376,10 @@ Return JSON only.`;
           readingPresetButtons: Array.from(
             document.querySelectorAll(".reading-preset"),
           ),
+          readingPaletteGroup: document.getElementById("readingPaletteGroup"),
+          readingPaletteButtons: Array.from(
+            document.querySelectorAll(".reading-palette"),
+          ),
           readingPresetCustom: document.getElementById("readingPresetCustom"),
           readingFontSizeInput: document.getElementById("readingFontSize"),
           readingFontSizeValue: document.getElementById(
@@ -14139,6 +14502,9 @@ Return JSON only.`;
           dirty: false,
           dragDepth: 0,
           readingSettings: null,
+          readerPalette: "original",
+          readerPaletteInitialized: false,
+          readerPaletteScheme: "light",
           highlightDocKey: "",
           currentHighlights: [],
           resolvedHighlights: [],
@@ -16504,6 +16870,170 @@ Return JSON only.`;
               measure: settings.measure,
             }),
           );
+        }
+
+        function normalizeReaderPalette(value) {
+          return readerPaletteApi && typeof readerPaletteApi.normalizeKey === "function"
+            ? readerPaletteApi.normalizeKey(value)
+            : "original";
+        }
+
+        function readReaderPalette() {
+          if (
+            readerPaletteApi &&
+            typeof readerPaletteApi.readSavedPalette === "function"
+          ) {
+            return readerPaletteApi.readSavedPalette(window.localStorage);
+          }
+          return normalizeReaderPalette(
+            readStorage(window.localStorage, READER_PALETTE_STORAGE_KEY, "original"),
+          );
+        }
+
+        function writeReaderPalette(value) {
+          if (
+            readerPaletteApi &&
+            typeof readerPaletteApi.writeSavedPalette === "function"
+          ) {
+            return readerPaletteApi.writeSavedPalette(window.localStorage, value);
+          }
+          return writeStorage(
+            window.localStorage,
+            READER_PALETTE_STORAGE_KEY,
+            normalizeReaderPalette(value),
+          );
+        }
+
+        function readPreferredLightReaderPalette() {
+          return normalizeReaderPalette(
+            readStorage(
+              window.localStorage,
+              READER_LIGHT_PALETTE_STORAGE_KEY,
+              "original",
+            ),
+          );
+        }
+
+        function writePreferredLightReaderPalette(value) {
+          writeStorage(
+            window.localStorage,
+            READER_LIGHT_PALETTE_STORAGE_KEY,
+            normalizeReaderPalette(value),
+          );
+        }
+
+        function getGlobalTheme() {
+          return document.documentElement.getAttribute("data-theme") || "light";
+        }
+
+        function getEffectiveReaderScheme(palette) {
+          if (
+            readerPaletteApi &&
+            typeof readerPaletteApi.getEffectiveScheme === "function"
+          ) {
+            return readerPaletteApi.getEffectiveScheme(
+              palette || state.readerPalette,
+              getGlobalTheme(),
+            );
+          }
+          return getGlobalTheme() === "dark" ? "dark" : "light";
+        }
+
+        function coerceReaderPaletteForTheme(value, theme) {
+          const normalized = normalizeReaderPalette(value);
+          if (
+            readerPaletteApi &&
+            typeof readerPaletteApi.coercePaletteForTheme === "function"
+          ) {
+            return readerPaletteApi.coercePaletteForTheme(
+              normalized,
+              theme,
+              readPreferredLightReaderPalette(),
+            );
+          }
+          if (theme === "dark" && normalized !== "original") return "slate";
+          if (theme === "light" && normalized === "slate") {
+            return readPreferredLightReaderPalette();
+          }
+          return normalized;
+        }
+
+        function syncReaderPaletteControls() {
+          if (!els.readingPaletteButtons.length) return;
+          const selected = normalizeReaderPalette(state.readerPalette);
+          els.readingPaletteButtons.forEach(function (button) {
+            const key = normalizeReaderPalette(button.dataset.readerPalette);
+            const isSelected = key === selected;
+            button.setAttribute("aria-checked", String(isSelected));
+            button.tabIndex = isSelected ? 0 : -1;
+          });
+        }
+
+        function applyReaderPalette(value, options) {
+          options = options || {};
+          const previousPalette = state.readerPalette;
+          const previousScheme = state.readerPaletteScheme;
+          const nextPalette = normalizeReaderPalette(value);
+          state.readerPalette = nextPalette;
+          state.readerPaletteInitialized = true;
+
+          if (
+            readerPaletteApi &&
+            typeof readerPaletteApi.applyToRoot === "function"
+          ) {
+            state.readerPaletteScheme = readerPaletteApi.applyToRoot(
+              document.documentElement,
+              nextPalette,
+              { globalTheme: getGlobalTheme() },
+            );
+          } else {
+            state.readerPaletteScheme = getEffectiveReaderScheme(nextPalette);
+            document.documentElement.setAttribute(
+              "data-reader-palette",
+              nextPalette,
+            );
+            document.documentElement.setAttribute(
+              "data-reader-scheme",
+              state.readerPaletteScheme,
+            );
+          }
+
+          syncReaderPaletteControls();
+
+          if (options.persist) {
+            writeReaderPalette(nextPalette);
+            if (state.readerPaletteScheme === "light") {
+              writePreferredLightReaderPalette(nextPalette);
+            }
+          }
+          if (options.announce) {
+            const palette =
+              readerPaletteApi &&
+              typeof readerPaletteApi.getPalette === "function"
+                ? readerPaletteApi.getPalette(nextPalette)
+                : null;
+            announce(
+              "Reader palette set to " +
+                (palette && palette.label ? palette.label : nextPalette) +
+                ".",
+            );
+          }
+          if (options.refresh !== false && previousScheme) {
+            const schemeChanged = previousScheme !== state.readerPaletteScheme;
+            const paletteChanged = previousPalette !== nextPalette;
+            if (schemeChanged || paletteChanged) {
+              scheduleReaderAssetRefresh(schemeChanged ? previousScheme : null);
+            }
+          }
+          if (
+            options.syncTheme &&
+            state.readerPaletteScheme !== getGlobalTheme()
+          ) {
+            applyTheme(state.readerPaletteScheme, {
+              persist: true,
+              skipReaderPalette: true,
+            });
+          }
         }
 
         function updateRangeProgress(input) {
@@ -20029,10 +20559,90 @@ Return JSON only.`;
           });
         }
 
-        function getMermaidTheme() {
-          const currentTheme =
-            document.documentElement.getAttribute("data-theme") || "light";
-          return currentTheme === "dark" ? "dark" : "default";
+        function readReaderCssVar(name, fallback) {
+          const value = getComputedStyle(document.documentElement)
+            .getPropertyValue(name)
+            .trim();
+          return value || fallback;
+        }
+
+        function getMermaidThemeConfig() {
+          const darkMode = getEffectiveReaderScheme() === "dark";
+          const codeBg = readReaderCssVar(
+            "--reader-code-bg",
+            darkMode ? "#111111" : "#f5f4f2",
+          );
+          const raised = readReaderCssVar(
+            "--reader-bg-raised",
+            darkMode ? "#2f2f2d" : "#ffffff",
+          );
+          const subtle = readReaderCssVar(
+            "--reader-bg-subtle",
+            darkMode ? "#262625" : "#f4f3f1",
+          );
+          const ink = readReaderCssVar(
+            "--reader-code-fg",
+            darkMode ? "#f2f0ea" : "#222221",
+          );
+          const muted = readReaderCssVar(
+            "--reader-fg-muted",
+            darkMode ? "#bfbfba" : "#71706e",
+          );
+          const border = readReaderCssVar(
+            "--reader-border-strong",
+            darkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.11)",
+          );
+          const accent = readReaderCssVar(
+            "--reader-accent",
+            darkMode ? "#61aaf2" : "#5f8f80",
+          );
+          const fontFamily = readReaderCssVar(
+            "--font-sans",
+            'ui-sans-serif, system-ui, sans-serif',
+          );
+
+          return {
+            theme: "base",
+            themeVariables: {
+              darkMode: darkMode,
+              background: codeBg,
+              mainBkg: raised,
+              primaryColor: raised,
+              primaryTextColor: ink,
+              primaryBorderColor: border,
+              secondaryColor: subtle,
+              secondaryTextColor: ink,
+              secondaryBorderColor: border,
+              tertiaryColor: codeBg,
+              tertiaryTextColor: ink,
+              tertiaryBorderColor: border,
+              lineColor: muted,
+              textColor: ink,
+              nodeTextColor: ink,
+              edgeLabelBackground: codeBg,
+              clusterBkg: codeBg,
+              clusterBorder: border,
+              noteBkgColor: raised,
+              noteTextColor: ink,
+              noteBorderColor: border,
+              actorBkg: raised,
+              actorTextColor: ink,
+              actorBorder: border,
+              activationBkgColor: subtle,
+              activationBorderColor: border,
+              labelBoxBkgColor: raised,
+              labelBoxBorderColor: border,
+              labelTextColor: ink,
+              loopTextColor: ink,
+              signalColor: muted,
+              signalTextColor: ink,
+              sequenceNumberColor: darkMode ? "#111111" : "#ffffff",
+              cScale0: accent,
+              cScale1: subtle,
+              cScale2: raised,
+              fontFamily: fontFamily,
+            },
+          };
         }
 
         function hasMermaidBlocks(markdown) {
@@ -20384,7 +20994,7 @@ Return JSON only.`;
             mermaid.initialize({
               startOnLoad: false,
               securityLevel: "strict",
-              theme: getMermaidTheme(),
+              ...getMermaidThemeConfig(),
             });
 
             for (const block of blocks) {
@@ -20437,12 +21047,33 @@ Return JSON only.`;
           document.head.appendChild(link);
         }
 
-        function getHljsThemeUrl() {
-          var theme =
-            document.documentElement.getAttribute("data-theme") || "light";
-          return theme === "dark"
-            ? HLJS_CDN + "/styles/github-dark.min.css"
-            : HLJS_CDN + "/styles/github.min.css";
+        function ensureCssLink(href, attrs) {
+          var link =
+            (attrs &&
+              attrs.theme &&
+              document.querySelector(
+                'link[data-markv-hljs-theme="' + attrs.theme + '"]',
+              )) ||
+            document.querySelector('link[href="' + href + '"]');
+          if (!link) {
+            link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href;
+            decorateRemoteAsset(link, href);
+            document.head.appendChild(link);
+          }
+          if (attrs && attrs.theme) {
+            link.setAttribute("data-markv-hljs-theme", attrs.theme);
+          }
+          return link;
+        }
+
+        function ensureHljsThemeLinks() {
+          var darkActive = getEffectiveReaderScheme() === "dark";
+          var light = ensureCssLink(HLJS_LIGHT_THEME_URL, { theme: "light" });
+          var dark = ensureCssLink(HLJS_DARK_THEME_URL, { theme: "dark" });
+          light.disabled = darkActive;
+          dark.disabled = !darkActive;
         }
 
         function getHighlightApi() {
@@ -20456,7 +21087,7 @@ Return JSON only.`;
             decorateRemoteAsset(script, script.src);
             script.onload = function () {
               if (window.hljs) {
-                loadCss(getHljsThemeUrl());
+                ensureHljsThemeLinks();
                 resolve(window.hljs);
               } else {
                 state.hljsPromise = null;
@@ -20492,15 +21123,7 @@ Return JSON only.`;
         }
 
         function swapHljsTheme() {
-          var oldLight = document.querySelector(
-            'link[href*="styles/github.min.css"]',
-          );
-          var oldDark = document.querySelector(
-            'link[href*="styles/github-dark.min.css"]',
-          );
-          if (oldLight) oldLight.remove();
-          if (oldDark) oldDark.remove();
-          if (window.hljs) loadCss(getHljsThemeUrl());
+          if (window.hljs) ensureHljsThemeLinks();
         }
 
         // ── KaTeX lazy loader ─────────────────────────────────────
@@ -21841,6 +22464,44 @@ Return JSON only.`;
           nextButton.focus();
         });
 
+        els.readingPaletteButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            applyReaderPalette(button.dataset.readerPalette, {
+              persist: true,
+              announce: true,
+              syncTheme: true,
+            });
+            button.focus();
+          });
+        });
+
+        els.readingPaletteGroup.addEventListener("keydown", function (event) {
+          const buttons = els.readingPaletteButtons;
+          const currentIndex = buttons.indexOf(document.activeElement);
+          if (currentIndex === -1) return;
+
+          let nextIndex = currentIndex;
+          if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+            nextIndex = (currentIndex + 1) % buttons.length;
+          } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+            nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+          } else if (event.key === "Home") {
+            nextIndex = 0;
+          } else if (event.key === "End") {
+            nextIndex = buttons.length - 1;
+          } else {
+            return;
+          }
+
+          event.preventDefault();
+          const nextButton = buttons[nextIndex];
+          applyReaderPalette(nextButton.dataset.readerPalette, {
+            persist: true,
+            syncTheme: true,
+          });
+          nextButton.focus();
+        });
+
         [
           {
             input: els.readingFontSizeInput,
@@ -22257,6 +22918,10 @@ Return JSON only.`;
           const hasStoredUntitledDrafts =
             await restoreUntitledDraftsFromStorage(sessionMeta);
           applyReadingSettings(readReadingSettings());
+          applyReaderPalette(
+            coerceReaderPaletteForTheme(readReaderPalette(), getGlobalTheme()),
+            { refresh: false },
+          );
           renderLibraryDrawer();
           updateUiState();
 
@@ -22361,7 +23026,8 @@ Return JSON only.`;
         const sunIcon = document.getElementById("themeIconSun");
         const moonIcon = document.getElementById("themeIconMoon");
 
-        function applyTheme(theme) {
+        function applyTheme(theme, options) {
+          options = options || {};
           document.documentElement.setAttribute("data-theme", theme);
           if (theme === "dark") {
             sunIcon.style.display = "none";
@@ -22370,6 +23036,23 @@ Return JSON only.`;
             sunIcon.style.display = "";
             moonIcon.style.display = "none";
           }
+          if (options.persist) {
+            writeStorage(window.localStorage, THEME_KEY, theme);
+          }
+          if (options.skipReaderPalette) return;
+          applyReaderPalette(
+            coerceReaderPaletteForTheme(
+              options.readerPalette ||
+                (state.readerPaletteInitialized
+                  ? state.readerPalette
+                  : readReaderPalette()),
+              theme,
+            ),
+            {
+              refresh: false,
+              persist: options.persistReaderPalette,
+            },
+          );
         }
 
         const savedTheme = readStorage(window.localStorage, THEME_KEY, "");
@@ -22388,11 +23071,19 @@ Return JSON only.`;
           });
         }
 
-        function scheduleThemeDependentRefresh(token) {
+        function scheduleThemeDependentRefresh(token, previousScheme) {
           window.clearTimeout(state.themeMermaidRenderTimer);
           state.themeMermaidRenderTimer = window.setTimeout(function () {
             state.themeMermaidRenderTimer = null;
             if (token !== state.themeRefreshToken) return;
+
+            if (
+              previousScheme &&
+              previousScheme === getEffectiveReaderScheme()
+            ) {
+              swapHljsTheme();
+              return;
+            }
 
             swapHljsTheme();
 
@@ -22404,14 +23095,14 @@ Return JSON only.`;
             renderMermaidBlockCollection(blocks, generation, {
               keepExistingOnError: true,
             });
-          }, 0);
+          }, 180);
         }
 
-        function queueThemeDependentRefreshAfter(transition, token) {
+        function queueThemeDependentRefreshAfter(transition, token, previousScheme) {
           const schedule = function () {
             if (token !== state.themeRefreshToken) return;
             runAfterNextPaint(function () {
-              scheduleThemeDependentRefresh(token);
+              scheduleThemeDependentRefresh(token, previousScheme);
             });
           };
 
@@ -22425,6 +23116,12 @@ Return JSON only.`;
           }
 
           schedule();
+        }
+
+        function scheduleReaderAssetRefresh(previousScheme) {
+          const refreshToken = state.themeRefreshToken + 1;
+          state.themeRefreshToken = refreshToken;
+          scheduleThemeDependentRefresh(refreshToken, previousScheme);
         }
 
         function animateThemeReveal(transition, originX, originY, endRadius) {
@@ -22468,6 +23165,13 @@ Return JSON only.`;
           const current =
             document.documentElement.getAttribute("data-theme") || "light";
           const next = current === "dark" ? "light" : "dark";
+          const previousReaderScheme = getEffectiveReaderScheme();
+          const nextReaderPalette = coerceReaderPaletteForTheme(
+            state.readerPaletteInitialized
+              ? state.readerPalette
+              : readReaderPalette(),
+            next,
+          );
 
           // Capture the button origin so the radial reveal can
           // emanate from the icon itself rather than the screen
@@ -22494,8 +23198,11 @@ Return JSON only.`;
           state.themeRefreshToken = refreshToken;
 
           const commitTheme = function () {
-            applyTheme(next);
-            writeStorage(window.localStorage, THEME_KEY, next);
+            applyTheme(next, {
+              persist: true,
+              persistReaderPalette: true,
+              readerPalette: nextReaderPalette,
+            });
           };
 
           // Progressive enhancement: browsers that implement the
@@ -22512,10 +23219,18 @@ Return JSON only.`;
           ) {
             const transition = document.startViewTransition(commitTheme);
             animateThemeReveal(transition, originX, originY, endRadius);
-            queueThemeDependentRefreshAfter(transition, refreshToken);
+            queueThemeDependentRefreshAfter(
+              transition,
+              refreshToken,
+              previousReaderScheme,
+            );
           } else {
             commitTheme();
-            queueThemeDependentRefreshAfter(null, refreshToken);
+            queueThemeDependentRefreshAfter(
+              null,
+              refreshToken,
+              previousReaderScheme,
+            );
           }
         });
 
@@ -22986,6 +23701,14 @@ Return JSON only.`;
 
         document.addEventListener("markv:announce", function (e) {
           if (e.detail && e.detail.message) announce(e.detail.message);
+        });
+
+        window.addEventListener("storage", function (event) {
+          if (event.key !== READER_PALETTE_STORAGE_KEY) return;
+          applyReaderPalette(event.newValue, {
+            persist: false,
+            announce: false,
+          });
         });
 
         document.addEventListener(

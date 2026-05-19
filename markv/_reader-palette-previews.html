@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>markv · Reader Palette Preview</title>
+    <style>
+      :root {
+        --page-bg: #f5f5f4;
+        --ink: #161616;
+        --muted: #6b7280;
+        --hint: #9ca3af;
+        --line: #e5e5e5;
+        --line-soft: #ececec;
+        --accent: #0a7f3f;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+        background: var(--page-bg);
+        color: var(--ink);
+        padding: 48px 24px 96px;
+        line-height: 1.55;
+      }
+      .container { max-width: 1200px; margin: 0 auto; }
+      header.page { margin-bottom: 40px; }
+      header.page h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0 0 8px;
+        letter-spacing: -0.01em;
+      }
+      header.page p {
+        font-size: 15px;
+        color: var(--muted);
+        margin: 0;
+        max-width: 760px;
+      }
+      h2.section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+        margin: 48px 0 16px;
+      }
+
+      /* ─── Reading-panel mockup ─── */
+      .panel-mock {
+        max-width: 320px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.04),
+          0 8px 24px rgba(0, 0, 0, 0.06);
+      }
+      .panel-mock h3 {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .panel-mock .existing-controls {
+        font-size: 13px;
+        color: var(--ink);
+        padding: 8px 0;
+      }
+      .panel-mock .existing-controls .ctrl {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+      .panel-mock .divider {
+        height: 1px;
+        background: var(--line-soft);
+        margin: 12px 0;
+      }
+      .swatch-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .swatch {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 6px 6px;
+        cursor: pointer;
+        text-align: center;
+      }
+      .swatch.is-active {
+        border-color: var(--ink);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+      }
+      .swatch-chips {
+        display: flex;
+        gap: 2px;
+        justify-content: center;
+        margin-bottom: 6px;
+      }
+      .swatch-chips span {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .swatch-name {
+        font-size: 10.5px;
+        color: var(--ink);
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+
+      /* ─── Palette card grid ─── */
+      .palette-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      @media (min-width: 900px) {
+        .palette-grid { grid-template-columns: 1fr 1fr; }
+      }
+      @media (min-width: 1280px) {
+        .palette-grid { grid-template-columns: 1fr 1fr 1fr; }
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .card__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .card__head h3 {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: -0.005em;
+      }
+      .card__chips {
+        display: flex;
+        gap: 3px;
+      }
+      .card__chips span {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .card__note {
+        padding: 8px 16px;
+        font-size: 11px;
+        color: var(--muted);
+        border-top: 1px solid var(--line-soft);
+        line-height: 1.5;
+      }
+
+      /* ─── Sample reader rendering (per-card scoped via data-palette) ─── */
+      .sample {
+        background: var(--s-bg);
+        color: var(--s-fg);
+        padding: 22px 22px 24px;
+        font-family:
+          ui-serif, "Iowan Old Style", "Apple Garamond", Georgia,
+          "Times New Roman", serif;
+        font-size: 14px;
+        line-height: 1.6;
+        flex: 1;
+      }
+      .sample__h1 {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.012em;
+        margin: 0 0 10px;
+        color: var(--s-heading);
+        line-height: 1.2;
+      }
+      .sample__lede {
+        font-size: 14.5px;
+        margin: 0 0 18px;
+        color: var(--s-fg);
+      }
+      .sample__lede a {
+        color: var(--s-link);
+        text-decoration: underline;
+        text-decoration-color: var(--s-link-underline);
+        text-underline-offset: 2px;
+      }
+      .sample__h2 {
+        font-size: 14.5px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        margin: 22px 0 8px;
+        color: var(--s-heading);
+      }
+      .sample__ul {
+        margin: 8px 0 16px;
+        padding-left: 18px;
+      }
+      .sample__ul li {
+        margin: 2px 0;
+        color: var(--s-muted);
+      }
+      .sample__bq {
+        border-left: 3px solid var(--s-accent);
+        margin: 14px 0;
+        padding: 4px 14px;
+        background: var(--s-bq-bg);
+        color: var(--s-muted);
+        font-style: normal;
+        font-size: 13.5px;
+      }
+      .sample__pre {
+        margin: 14px 0 0;
+        padding: 12px 14px;
+        background: var(--s-code-bg);
+        border: 1px solid var(--s-border);
+        border-radius: 6px;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--s-code-fg);
+        overflow-x: auto;
+      }
+      .sample__pre .kw { color: var(--s-code-kw); }
+      .sample__pre .str { color: var(--s-code-str); }
+      .sample__pre .com { color: var(--s-code-com); }
+
+      /* ============================================================
+         PALETTE TOKEN MAPS
+         These are the FULL token sets each palette needs to ship.
+         The plan listed only 3 swatch hex codes per palette — I've
+         interpolated the remaining 7 tokens for fair side-by-side
+         comparison. Final implementation should pin these.
+         ============================================================ */
+
+      .card[data-palette="original"] .sample {
+        --s-bg: #fafaf9;
+        --s-fg: #1f1f1f;
+        --s-heading: #0a0a0a;
+        --s-muted: #5f5f5f;
+        --s-border: #e7e7e5;
+        --s-accent: #16a34a;
+        --s-link: #15803d;
+        --s-link-underline: rgba(21, 128, 61, 0.35);
+        --s-bq-bg: #f4f4f2;
+        --s-code-bg: #f4f4f2;
+        --s-code-fg: #1f1f1f;
+        --s-code-kw: #b91c1c;
+        --s-code-str: #15803d;
+        --s-code-com: #6b7280;
+      }
+
+      .card[data-palette="ivory"] .sample {
+        --s-bg: #fafaf7;
+        --s-fg: #1a1a1a;
+        --s-heading: #0d0d0d;
+        --s-muted: #5d5d5a;
+        --s-border: #e5e4df;
+        --s-accent: #b45309;
+        --s-link: #9a3412;
+        --s-link-underline: rgba(154, 52, 18, 0.35);
+        --s-bq-bg: #f0f0eb;
+        --s-code-bg: #f0f0eb;
+        --s-code-fg: #1a1a1a;
+        --s-code-kw: #9a3412;
+        --s-code-str: #4d7c0f;
+        --s-code-com: #78716c;
+      }
+
+      .card[data-palette="manilla"] .sample {
+        --s-bg: #ebdbbc;
+        --s-fg: #2d2517;
+        --s-heading: #1a1409;
+        --s-muted: #6b5837;
+        --s-border: #d4c19b;
+        --s-accent: #cc785c;
+        --s-link: #9a3412;
+        --s-link-underline: rgba(154, 52, 18, 0.4);
+        --s-bq-bg: #e3d1a8;
+        --s-code-bg: #e3d1a8;
+        --s-code-fg: #2d2517;
+        --s-code-kw: #7c2d12;
+        --s-code-str: #3f6212;
+        --s-code-com: #78603e;
+      }
+
+      .card[data-palette="cloud"] .sample {
+        /* Note: the plan's three swatches alone fail WCAG AA for body text.
+           I've added #1a1a1a body-fg to make this readable. */
+        --s-bg: #bfbfba;
+        --s-fg: #1a1a1a;
+        --s-heading: #0d0d0d;
+        --s-muted: #4a4a47;
+        --s-border: #91918d;
+        --s-accent: #4a4a47;
+        --s-link: #1f2937;
+        --s-link-underline: rgba(31, 41, 55, 0.45);
+        --s-bq-bg: #b0b0aa;
+        --s-code-bg: #b0b0aa;
+        --s-code-fg: #1a1a1a;
+        --s-code-kw: #7f1d1d;
+        --s-code-str: #14532d;
+        --s-code-com: #4a4a47;
+      }
+
+      .card[data-palette="slate"] .sample {
+        --s-bg: #191919;
+        --s-fg: #e8e8e5;
+        --s-heading: #f5f5f2;
+        --s-muted: #a1a19e;
+        --s-border: #40403e;
+        --s-accent: #d4a27f;
+        --s-link: #cc785c;
+        --s-link-underline: rgba(204, 120, 92, 0.45);
+        --s-bq-bg: #262625;
+        --s-code-bg: #262625;
+        --s-code-fg: #e8e8e5;
+        --s-code-kw: #f87171;
+        --s-code-str: #86efac;
+        --s-code-com: #71717a;
+      }
+
+      .card[data-palette="bookcloth"] .sample {
+        --s-bg: #f3e5c8;
+        --s-fg: #3a2a15;
+        --s-heading: #1f1408;
+        --s-muted: #7a5a30;
+        --s-border: #ddc9a1;
+        --s-accent: #cc785c;
+        --s-link: #cc785c;
+        --s-link-underline: rgba(204, 120, 92, 0.5);
+        --s-bq-bg: #ead7af;
+        --s-code-bg: #ead7af;
+        --s-code-fg: #3a2a15;
+        --s-code-kw: #cc785c;
+        --s-code-str: #3f6212;
+        --s-code-com: #886847;
+      }
+
+      /* ─── Audit findings panel ─── */
+      .audit {
+        margin-top: 56px;
+        padding: 20px 22px 22px;
+        background: #fff;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+      }
+      .audit h2 {
+        margin: 0 0 12px;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.005em;
+      }
+      .audit-row {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 14px;
+        padding: 8px 0;
+        border-top: 1px solid var(--line-soft);
+        font-size: 13px;
+        color: #374151;
+      }
+      .audit-row:first-of-type {
+        border-top: none;
+      }
+      .audit-row .k {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        padding-top: 2px;
+      }
+      .audit-row .v strong { color: var(--ink); }
+
+      .contrast-flag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        background: #fef3c7;
+        color: #92400e;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="page">
+        <h1>Reader Palette Picker — preview</h1>
+        <p>
+          Same sample document rendered in all 6 proposed palettes. The Reading
+          panel mockup at the top shows how the new Palette section fits next
+          to existing reading controls. Audit findings are documented at the
+          bottom.
+        </p>
+      </header>
+
+      <!-- ============================================================ -->
+      <!-- READING PANEL MOCKUP -->
+      <!-- ============================================================ -->
+      <h2 class="section-title">Reading panel · where the picker lives</h2>
+      <div class="panel-mock">
+        <h3>Reading</h3>
+        <div class="existing-controls">
+          <div class="ctrl"><span>Text size</span><span>16 px</span></div>
+          <div class="ctrl"><span>Line spacing</span><span>1.7</span></div>
+          <div class="ctrl"><span>Reading width</span><span>Medium</span></div>
+        </div>
+        <div class="divider"></div>
+        <h3>Palette</h3>
+        <div class="swatch-grid">
+          <div class="swatch is-active">
+            <div class="swatch-chips">
+              <span style="background: #fafaf9"></span>
+              <span style="background: #f4f4f2"></span>
+              <span style="background: #e7e7e5"></span>
+            </div>
+            <div class="swatch-name">Original</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chips">
+              <span style="background: #fafaf7"></span>
+              <span style="background: #f0f0eb"></span>
+              <span style="background: #e5e4df"></span>
+            </div>
+            <div class="swatch-name">Ivory</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chips">
+              <span style="background: #ebdbbc"></span>
+              <span style="background: #e3d1a8"></span>
+              <span style="background: #d4c19b"></span>
+            </div>
+            <div class="swatch-name">Manilla</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chips">
+              <span style="background: #bfbfba"></span>
+              <span style="background: #91918d"></span>
+              <span style="background: #666663"></span>
+            </div>
+            <div class="swatch-name">Cloud</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chips">
+              <span style="background: #191919"></span>
+              <span style="background: #262625"></span>
+              <span style="background: #40403e"></span>
+            </div>
+            <div class="swatch-name">Slate</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chips">
+              <span style="background: #f3e5c8"></span>
+              <span style="background: #cc785c"></span>
+              <span style="background: #d4a27f"></span>
+            </div>
+            <div class="swatch-name">Book Cloth</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- PALETTE CARDS -->
+      <!-- ============================================================ -->
+      <h2 class="section-title">Sample document · each palette applied</h2>
+      <div class="palette-grid">
+        <!-- ORIGINAL -->
+        <article class="card" data-palette="original">
+          <header class="card__head">
+            <h3>Original</h3>
+            <div class="card__chips">
+              <span style="background: #fafaf9"></span>
+              <span style="background: #f4f4f2"></span>
+              <span style="background: #e7e7e5"></span>
+            </div>
+          </header>
+          <div class="sample">
+            <h1 class="sample__h1">Cloudflare Pages Deployment</h1>
+            <p class="sample__lede">
+              Use these scripts for manual deploys. The
+              <a href="#">wrangler CLI</a> is required.
+            </p>
+            <h2 class="sample__h2">Prerequisites</h2>
+            <ul class="sample__ul">
+              <li>A Cloudflare account</li>
+              <li>Wrangler installed</li>
+            </ul>
+            <blockquote class="sample__bq">
+              Auto-deploys via GitHub are paused.
+            </blockquote>
+            <pre class="sample__pre"><span class="com"># deploy current build</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span></pre>
+          </div>
+          <div class="card__note">
+            Current markv reader tokens. Baseline for comparison.
+          </div>
+        </article>
+
+        <!-- IVORY -->
+        <article class="card" data-palette="ivory">
+          <header class="card__head">
+            <h3>Ivory</h3>
+            <div class="card__chips">
+              <span style="background: #fafaf7"></span>
+              <span style="background: #f0f0eb"></span>
+              <span style="background: #e5e4df"></span>
+            </div>
+          </header>
+          <div class="sample">
+            <h1 class="sample__h1">Cloudflare Pages Deployment</h1>
+            <p class="sample__lede">
+              Use these scripts for manual deploys. The
+              <a href="#">wrangler CLI</a> is required.
+            </p>
+            <h2 class="sample__h2">Prerequisites</h2>
+            <ul class="sample__ul">
+              <li>A Cloudflare account</li>
+              <li>Wrangler installed</li>
+            </ul>
+            <blockquote class="sample__bq">
+              Auto-deploys via GitHub are paused.
+            </blockquote>
+            <pre class="sample__pre"><span class="com"># deploy current build</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span></pre>
+          </div>
+          <div class="card__note">
+            Warm-white paper. Long-reading friendly. Closest to current
+            Original but with cleaner separation between surface layers.
+          </div>
+        </article>
+
+        <!-- MANILLA -->
+        <article class="card" data-palette="manilla">
+          <header class="card__head">
+            <h3>Manilla</h3>
+            <div class="card__chips">
+              <span style="background: #ebdbbc"></span>
+              <span style="background: #e3d1a8"></span>
+              <span style="background: #d4c19b"></span>
+            </div>
+          </header>
+          <div class="sample">
+            <h1 class="sample__h1">Cloudflare Pages Deployment</h1>
+            <p class="sample__lede">
+              Use these scripts for manual deploys. The
+              <a href="#">wrangler CLI</a> is required.
+            </p>
+            <h2 class="sample__h2">Prerequisites</h2>
+            <ul class="sample__ul">
+              <li>A Cloudflare account</li>
+              <li>Wrangler installed</li>
+            </ul>
+            <blockquote class="sample__bq">
+              Auto-deploys via GitHub are paused.
+            </blockquote>
+            <pre class="sample__pre"><span class="com"># deploy current build</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span></pre>
+          </div>
+          <div class="card__note">
+            Aged paper / sepia. Distinct character. May feel novel-y after
+            extended use; some users love it, some find it forced.
+          </div>
+        </article>
+
+        <!-- CLOUD -->
+        <article class="card" data-palette="cloud">
+          <header class="card__head">
+            <h3>
+              Cloud
+              <span class="contrast-flag">AA risk</span>
+            </h3>
+            <div class="card__chips">
+              <span style="background: #bfbfba"></span>
+              <span style="background: #91918d"></span>
+              <span style="background: #666663"></span>
+            </div>
+          </header>
+          <div class="sample">
+            <h1 class="sample__h1">Cloudflare Pages Deployment</h1>
+            <p class="sample__lede">
+              Use these scripts for manual deploys. The
+              <a href="#">wrangler CLI</a> is required.
+            </p>
+            <h2 class="sample__h2">Prerequisites</h2>
+            <ul class="sample__ul">
+              <li>A Cloudflare account</li>
+              <li>Wrangler installed</li>
+            </ul>
+            <blockquote class="sample__bq">
+              Auto-deploys via GitHub are paused.
+            </blockquote>
+            <pre class="sample__pre"><span class="com"># deploy current build</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span></pre>
+          </div>
+          <div class="card__note">
+            <strong>Body fg added (#1a1a1a)</strong> because the plan's 3
+            swatches alone fail WCAG AA (#666663 on #bfbfba ≈ 3.0:1). As-shown
+            here it's readable; as-specified it isn't.
+          </div>
+        </article>
+
+        <!-- SLATE -->
+        <article class="card" data-palette="slate">
+          <header class="card__head">
+            <h3>Slate</h3>
+            <div class="card__chips">
+              <span style="background: #191919"></span>
+              <span style="background: #262625"></span>
+              <span style="background: #40403e"></span>
+            </div>
+          </header>
+          <div class="sample">
+            <h1 class="sample__h1">Cloudflare Pages Deployment</h1>
+            <p class="sample__lede">
+              Use these scripts for manual deploys. The
+              <a href="#">wrangler CLI</a> is required.
+            </p>
+            <h2 class="sample__h2">Prerequisites</h2>
+            <ul class="sample__ul">
+              <li>A Cloudflare account</li>
+              <li>Wrangler installed</li>
+            </ul>
+            <blockquote class="sample__bq">
+              Auto-deploys via GitHub are paused.
+            </blockquote>
+            <pre class="sample__pre"><span class="com"># deploy current build</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span></pre>
+          </div>
+          <div class="card__note">
+            Reader-only dark. Important: if global app theme is light, the
+            toolbar/drawers stay light while reading is dark. Mode switching
+            (edit ↔ preview) will visually whiplash.
+          </div>
+        </article>
+
+        <!-- BOOK CLOTH -->
+        <article class="card" data-palette="bookcloth">
+          <header class="card__head">
+            <h3>Book Cloth</h3>
+            <div class="card__chips">
+              <span style="background: #f3e5c8"></span>
+              <span style="background: #cc785c"></span>
+              <span style="background: #d4a27f"></span>
+            </div>
+          </header>
+          <div class="sample">
+            <h1 class="sample__h1">Cloudflare Pages Deployment</h1>
+            <p class="sample__lede">
+              Use these scripts for manual deploys. The
+              <a href="#">wrangler CLI</a> is required.
+            </p>
+            <h2 class="sample__h2">Prerequisites</h2>
+            <ul class="sample__ul">
+              <li>A Cloudflare account</li>
+              <li>Wrangler installed</li>
+            </ul>
+            <blockquote class="sample__bq">
+              Auto-deploys via GitHub are paused.
+            </blockquote>
+            <pre class="sample__pre"><span class="com"># deploy current build</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span></pre>
+          </div>
+          <div class="card__note">
+            Warm cover-paper with terracotta accent. Strongest visual
+            character of the six. Most opinionated.
+          </div>
+        </article>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- AUDIT FINDINGS -->
+      <!-- ============================================================ -->
+      <div class="audit">
+        <h2>Audit findings (summary)</h2>
+
+        <div class="audit-row">
+          <div class="k">Critical 1</div>
+          <div class="v">
+            <strong>Incomplete token map.</strong> The plan lists 3 swatch
+            hex codes per palette; each palette ships 7–10 tokens
+            (background, body fg, muted fg, heading, border, accent,
+            link, blockquote bg, code bg, code fg). Define the full
+            tokens table before any CSS author starts work.
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="k">Critical 2</div>
+          <div class="v">
+            <strong>Cloud fails WCAG AA.</strong> #666663 on #bfbfba is
+            ~3.0:1 contrast — below the 4.5:1 minimum for body text. As
+            specified the palette is unreadable; needs an added body-fg
+            outside the 3 swatches OR repositioning as accent-only.
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="k">Critical 3</div>
+          <div class="v">
+            <strong>Surface scope undefined for mindmap / connection graph
+            / insights / chat.</strong> Plan only mentions .preview-pane.
+            These features use --fg-default etc. Decide: (a) palette
+            applies to all reader-like surfaces, (b) only .preview-pane,
+            or (c) preview + on-this-page only, with mindmap/graph staying
+            neutral. The user explicitly flagged these as features not to
+            jeopardize.
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="k">Critical 4</div>
+          <div class="v">
+            <strong>CSP hash regeneration on the pre-paint script.</strong>
+            Touching an existing inline script changes its sha256.
+            Externalize palette pre-paint into reader-palettes.js loaded
+            synchronously in &lt;head&gt; before the inline body script.
+            Keeps CSP untouched.
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="k">High</div>
+          <div class="v">
+            Mermaid re-render strategy unspecified (perf bottleneck on
+            doc with 20+ diagrams). highlight.js theme swap unspecified
+            (use disabled-link flip, both stylesheets already precached).
+            Cross-tab storage sync absent. Print stylesheet implementation
+            absent. No transition smoothing on palette switch (will flash).
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="k">Medium</div>
+          <div class="v">
+            Mobile swatch grid sizing (6 × 44px touch target = 264px row).
+            Edit-to-preview visual whiplash for dark palettes. Reading
+            panel growth on mobile. Tests don't cover mindmap/graph/
+            insights interaction, mermaid re-render perf, contrast
+            verification per palette, cross-tab sync.
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="k">Naming</div>
+          <div class="v">
+            "Book Cloth" is unusual outside of design audiences. Consider
+            tooltips on each swatch. "Manilla" (proper spelling: "Manila")
+            — minor.
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

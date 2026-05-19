@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v29";
+const CACHE_VERSION = "v33";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -16,6 +16,7 @@ const SHELL_ASSETS = [
   "./assets/command-palette-host.js?v=3",
   "./assets/command-palette.js?v=4",
   "./assets/command-palette.css?v=2",
+  "./assets/reader-palettes.js?v=4",
   "./assets/visual-block-menu.js?v=12",
   "./assets/pwa.js",
   "./assets/sample-developer.md",
