@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-6Bz5W1r79Baso2gpU652Ilm7cUDTExxRmWH8BW70JkY=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-oMjJ12IBg02OVXmcxqnXfMoqqgZWOOOHvOCYm2gZkZc='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-20/O9b4NU2xxGOx16oLVL8IE7CU0J0YUYEB3lFsuWFQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -28,11 +28,11 @@
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=15"></script>
     <script src="assets/visual-blocks.js?v=12"></script>
-    <script src="assets/shortcut-registry.js?v=1"></script>
-    <script src="assets/editor-markdown-actions.js?v=1"></script>
+    <script src="assets/shortcut-registry.js?v=2"></script>
+    <script src="assets/editor-markdown-actions.js?v=2"></script>
     <script src="assets/command-palette-core.js?v=1"></script>
-    <script src="assets/command-palette-host.js?v=2"></script>
-    <script src="assets/command-palette.js?v=3"></script>
+    <script src="assets/command-palette-host.js?v=3"></script>
+    <script src="assets/command-palette.js?v=4"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -7336,7 +7336,7 @@ Drop a .md file anywhere on the page, or open one from Files."
           <button type="button" data-et-action="italic" data-shortcut-id="editor.italic" data-title-base="Italic" title="Italic" aria-label="Italic">
             <span class="et-glyph et-glyph-i">i</span>
           </button>
-          <button type="button" data-et-action="inline-code" data-shortcut-id="editor.inline-code" data-title-base="Inline code" title="Inline code" aria-label="Inline code">
+          <button type="button" data-et-action="inline-code" title="Inline code" aria-label="Inline code">
             <span class="et-glyph et-glyph-code">`</span>
           </button>
           <button type="button" data-et-action="link" data-shortcut-id="editor.link" data-title-base="Link" title="Link" aria-label="Link">
@@ -7355,7 +7355,7 @@ Drop a .md file anywhere on the page, or open one from Files."
           <button type="button" data-et-action="quote" title="Quote" aria-label="Quote">
             <span class="et-glyph et-glyph-q">&ldquo;</span>
           </button>
-          <button type="button" data-et-action="code-block" data-shortcut-id="editor.code-block" data-title-base="Code block" title="Code block" aria-label="Code block">
+          <button type="button" data-et-action="code-block" title="Code block" aria-label="Code block">
             <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M5.8 4.2 2.2 8l3.6 3.8"/>
               <path d="m10.2 4.2 3.6 3.8-3.6 3.8"/>
@@ -7382,7 +7382,7 @@ Drop a .md file anywhere on the page, or open one from Files."
               <path d="M2.4 11.1c.2-.2.4-.3.7-.3.4 0 .7.2.7.5 0 .4-.3.6-.8.6h-.2"/>
             </svg>
           </button>
-          <button type="button" data-et-action="image" data-shortcut-id="editor.image" data-title-base="Image markdown" title="Image markdown" aria-label="Image markdown">
+          <button type="button" data-et-action="image" title="Image markdown" aria-label="Image markdown">
             <svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="2.5" y="3" width="11" height="10" rx="1.5"/>
               <path d="m3.5 11 3-3 2 2 1.5-1.5 2.5 2.5"/>
@@ -21512,7 +21512,12 @@ Return JSON only.`;
           return true;
         }
 
+        function isEditorCompositionEvent(event) {
+          return Boolean(event && (event.isComposing || event.keyCode === 229));
+        }
+
         els.editor.addEventListener("keydown", function (event) {
+          if (isEditorCompositionEvent(event)) return;
           const markdownActions = window.MarkVEditorMarkdownActions;
           if (!markdownActions) return;
 
@@ -21537,8 +21542,9 @@ Return JSON only.`;
             );
             if (edit && applyEditorMarkdownEdit(edit)) {
               event.preventDefault();
+              return;
             }
-            if (!edit) event.preventDefault();
+            if (!event.shiftKey) event.preventDefault();
           }
         });
 
@@ -27456,11 +27462,15 @@ Return JSON only.`;
           );
         }
 
+        function isCompositionKeyEvent(event) {
+          return Boolean(event && (event.isComposing || event.keyCode === 229));
+        }
+
         // ---------- Inline wrap toggle (bold, italic) ----------
         function wrapInline(prefix, suffix) {
           const start = editor.selectionStart;
           const end = editor.selectionEnd;
-          if (start === end) return;
+          if (start === end) return false;
           const v = editor.value;
           const sel = v.slice(start, end);
 
@@ -27472,7 +27482,7 @@ Return JSON only.`;
           ) {
             const inner = sel.slice(prefix.length, sel.length - suffix.length);
             replaceRange(start, end, inner, start, start + inner.length);
-            return;
+            return true;
           }
 
           // Case B: wrappers are IMMEDIATELY outside the selection -> unwrap.
@@ -27489,7 +27499,7 @@ Return JSON only.`;
               start - prefix.length,
               start - prefix.length + sel.length
             );
-            return;
+            return true;
           }
 
           // Case C: wrap it.
@@ -27501,6 +27511,7 @@ Return JSON only.`;
             start + prefix.length,
             start + prefix.length + sel.length
           );
+          return true;
         }
 
         // ---------- Line-level toggles (headings, quotes) ----------
@@ -27545,13 +27556,9 @@ Return JSON only.`;
         }
 
         function toggleQuote() {
-          if (
-            runMarkdownEdit(function (value, start, end) {
-              return markdownActions.toggleLinePrefix(value, start, end, "quote");
-            })
-          ) {
-            return;
-          }
+          return runMarkdownEdit(function (value, start, end) {
+            return markdownActions.toggleLinePrefix(value, start, end, "quote");
+          });
         }
 
         // ---------- Link flow ----------
@@ -27560,7 +27567,7 @@ Return JSON only.`;
             start: editor.selectionStart,
             end: editor.selectionEnd,
           };
-          if (pendingLinkRange.start === pendingLinkRange.end) return;
+          if (pendingLinkRange.start === pendingLinkRange.end) return false;
           toolbar.classList.add("et-link-mode");
           linkInput.value = "";
           suppressNextBlurHide = true;
@@ -27568,6 +27575,7 @@ Return JSON only.`;
             linkInput.focus();
             suppressNextBlurHide = false;
           }, 0);
+          return true;
         }
 
         function confirmLink() {
@@ -27610,13 +27618,13 @@ Return JSON only.`;
         // ---------- Action dispatch ----------
         const actions = {
           bold: function () {
-            wrapInline("**", "**");
+            return wrapInline("**", "**");
           },
           italic: function () {
-            wrapInline("*", "*");
+            return wrapInline("*", "*");
           },
           "inline-code": function () {
-            runMarkdownEdit(function (value, start, end) {
+            return runMarkdownEdit(function (value, start, end) {
               return markdownActions.toggleInline(value, start, end, "`", "`", "code");
             });
           },
@@ -27629,10 +27637,10 @@ Return JSON only.`;
           },
           quote: toggleQuote,
           "code-block": function () {
-            runMarkdownEdit(markdownActions && markdownActions.toggleCodeBlock);
+            return runMarkdownEdit(markdownActions && markdownActions.toggleCodeBlock);
           },
           "bullet-list": function () {
-            runMarkdownEdit(function (value, start, end) {
+            return runMarkdownEdit(function (value, start, end) {
               return markdownActions.toggleLinePrefix(
                 value,
                 start,
@@ -27642,7 +27650,7 @@ Return JSON only.`;
             });
           },
           "numbered-list": function () {
-            runMarkdownEdit(function (value, start, end) {
+            return runMarkdownEdit(function (value, start, end) {
               return markdownActions.toggleLinePrefix(
                 value,
                 start,
@@ -27652,7 +27660,7 @@ Return JSON only.`;
             });
           },
           image: function () {
-            runMarkdownEdit(markdownActions && markdownActions.insertImage);
+            return runMarkdownEdit(markdownActions && markdownActions.insertImage);
           },
         };
 
@@ -27660,7 +27668,8 @@ Return JSON only.`;
           if (!isEditMode()) return false;
           if (!actions[action]) return false;
           editor.focus();
-          actions[action]();
+          const result = actions[action]();
+          if (result === false) return false;
           if (!toolbar.classList.contains("et-link-mode")) {
             requestAnimationFrame(updateToolbar);
           }
@@ -27753,6 +27762,7 @@ Return JSON only.`;
             }
             if (!isEditMode()) return;
             if (document.activeElement !== editor) return;
+            if (isCompositionKeyEvent(e)) return;
             let action = "";
             if (shortcutMatches(e, "editor.bold")) {
               action = "bold";
@@ -27768,8 +27778,6 @@ Return JSON only.`;
               action = "bullet-list";
             } else if (shortcutMatches(e, "editor.numbered-list")) {
               action = "numbered-list";
-            } else if (shortcutMatches(e, "editor.image")) {
-              action = "image";
             }
             if (action) {
               e.preventDefault();

@@ -12,6 +12,7 @@ test("shortcut registry exposes stable command definitions", () => {
 test("shortcut labels are formatted consistently", () => {
   assert.match(shortcuts.describe("global.search"), /K$/);
   assert.match(shortcuts.describe("editor.link"), /Shift\+K$/);
+  assert.equal(shortcuts.describe("editor.image"), "");
 });
 
 test("matches command-or-control shortcuts", () => {
@@ -52,5 +53,22 @@ test("matches shifted digit shortcuts by code", () => {
       "editor.bullet-list",
     ),
     true,
+  );
+});
+
+test("image markdown is toolbar and palette only, with no browser-conflicting key binding", () => {
+  assert.equal(
+    shortcuts.matches(
+      { key: "i", code: "KeyI", ctrlKey: true, metaKey: false, shiftKey: false, altKey: true },
+      "editor.image",
+    ),
+    false,
+  );
+  assert.equal(
+    shortcuts.matches(
+      { key: "i", code: "KeyI", ctrlKey: false, metaKey: true, shiftKey: false, altKey: true },
+      "editor.image",
+    ),
+    false,
   );
 });

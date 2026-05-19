@@ -20,11 +20,33 @@ test("Enter continues unordered lists", () => {
   assert.equal(result.selectionStart, result.value.length);
 });
 
+test("Enter continues nested unordered lists with indentation", () => {
+  const value = "  - nested";
+  const result = apply(value, actions.handleEnter(value, value.length, value.length));
+  assert.equal(result.value, "  - nested\n  - ");
+  assert.equal(result.selectionStart, result.value.length);
+});
+
+test("Enter splits list items without dropping trailing text", () => {
+  const value = "- one two";
+  const cursor = "- one".length;
+  const result = apply(value, actions.handleEnter(value, cursor, cursor));
+  assert.equal(result.value, "- one\n- two");
+  assert.equal(result.selectionStart, "- one\n- ".length);
+});
+
 test("Enter exits empty unordered list item", () => {
   const value = "- ";
   const result = apply(value, actions.handleEnter(value, value.length, value.length));
   assert.equal(result.value, "");
   assert.equal(result.selectionStart, 0);
+});
+
+test("Enter exits empty nested list item but keeps indentation", () => {
+  const value = "  - ";
+  const result = apply(value, actions.handleEnter(value, value.length, value.length));
+  assert.equal(result.value, "  ");
+  assert.equal(result.selectionStart, 2);
 });
 
 test("Enter increments ordered list markers", () => {
@@ -49,6 +71,10 @@ test("Tab and Shift+Tab indent and outdent list lines", () => {
     actions.handleTab(indented.value, 0, indented.value.length, true),
   );
   assert.equal(outdented.value, value);
+});
+
+test("Shift+Tab on a plain single line leaves focus traversal to the browser", () => {
+  assert.equal(actions.handleTab("plain", 0, 0, true), null);
 });
 
 test("inline code toggles backtick wrapping", () => {

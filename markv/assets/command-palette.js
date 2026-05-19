@@ -416,6 +416,9 @@
     closePalette({ restoreFocus: false });
     try {
       await item.run();
+    } catch (error) {
+      console.warn("[command-palette] command failed", error);
+      announceDisabled("Command failed. Try again.");
     } finally {
       isExecuting = false;
     }

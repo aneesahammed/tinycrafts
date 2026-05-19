@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v27";
+const CACHE_VERSION = "v29";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -10,11 +10,11 @@ const SHELL_ASSETS = [
   "./assets/analytics.js",
   "./assets/library-core.js?v=15",
   "./assets/visual-blocks.js?v=12",
-  "./assets/shortcut-registry.js?v=1",
-  "./assets/editor-markdown-actions.js?v=1",
+  "./assets/shortcut-registry.js?v=2",
+  "./assets/editor-markdown-actions.js?v=2",
   "./assets/command-palette-core.js?v=1",
-  "./assets/command-palette-host.js?v=2",
-  "./assets/command-palette.js?v=3",
+  "./assets/command-palette-host.js?v=3",
+  "./assets/command-palette.js?v=4",
   "./assets/command-palette.css?v=2",
   "./assets/visual-block-menu.js?v=12",
   "./assets/pwa.js",

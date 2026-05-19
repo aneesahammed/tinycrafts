@@ -35,6 +35,18 @@
       : "";
   }
 
+  function announce(env, message) {
+    if (env && typeof env.setStatus === "function") {
+      env.setStatus(message, { announce: true });
+      return;
+    }
+    document.dispatchEvent(
+      new CustomEvent("markv:announce", {
+        detail: { message: String(message || "") },
+      }),
+    );
+  }
+
   function createCommand(env, input) {
     const command = Object.assign(
       {
@@ -74,10 +86,19 @@
 
       window.requestAnimationFrame(function () {
         const commands = window.MarkVEditorCommands;
+        let ok = false;
         if (commands && typeof commands.run === "function") {
-          commands.run(action);
+          ok = commands.run(action) !== false;
         }
-        resolve();
+        if (!ok) {
+          announce(
+            env,
+            action === "bold" || action === "italic" || action === "link"
+              ? "Select text in the editor first."
+              : "Editor formatting is unavailable right now.",
+          );
+        }
+        resolve(ok);
       });
     });
   }
@@ -321,7 +342,6 @@
         title: "Inline code",
         subtitle: "Wrap the selection in backticks",
         keywords: ["format", "markdown", "code", "backtick"],
-        shortcutId: "editor.inline-code",
         defaultVisible: false,
         defaultRank: 320,
         run: function () { return runEditorCommand(env, "inline-code"); },
@@ -341,7 +361,6 @@
         title: "Code block",
         subtitle: "Wrap lines in a fenced code block",
         keywords: ["format", "markdown", "fence", "code"],
-        shortcutId: "editor.code-block",
         defaultVisible: false,
         defaultRank: 330,
         run: function () { return runEditorCommand(env, "code-block"); },
@@ -371,7 +390,6 @@
         title: "Image markdown",
         subtitle: "Insert an image link",
         keywords: ["format", "markdown", "image", "photo"],
-        shortcutId: "editor.image",
         defaultVisible: false,
         defaultRank: 360,
         run: function () { return runEditorCommand(env, "image"); },
@@ -468,20 +486,11 @@
 
   window.MarkVCommandPaletteHostFactory = function createHost(env) {
     const source = env || {};
-    function announce(message) {
-      if (typeof source.setStatus === "function") {
-        source.setStatus(message, { announce: true });
-      } else {
-        document.dispatchEvent(
-          new CustomEvent("markv:announce", {
-            detail: { message: String(message || "") },
-          }),
-        );
-      }
-    }
 
     return {
-      announce: announce,
+      announce: function (message) {
+        announce(source, message);
+      },
       getItems: function () {
         return []
           .concat(createCommands(source))

@@ -24,6 +24,10 @@
     };
   }
 
+  function splitEnd(value, position) {
+    return String(value || "").charAt(position) === " " ? position + 1 : position;
+  }
+
   function lineBounds(value, start, end) {
     const text = String(value || "");
     const safeStart = Math.max(0, Math.min(start || 0, text.length));
@@ -220,7 +224,7 @@
 
     if (checkbox) {
       const marker = "\n" + checkbox[1] + checkbox[2] + " [ ] ";
-      return makeEdit(from, to, marker, from + marker.length);
+      return makeEdit(from, splitEnd(text, to), marker, from + marker.length);
     }
 
     if (!list) return null;
@@ -230,7 +234,7 @@
     const ordered = marker.match(/^(\d+)([.)])$/);
     if (ordered) nextMarker = String(Number(ordered[1]) + 1) + ordered[2];
     const insert = "\n" + list[1] + nextMarker + " ";
-    return makeEdit(from, to, insert, from + insert.length);
+    return makeEdit(from, splitEnd(text, to), insert, from + insert.length);
   }
 
   function selectedLinesForTab(value, start, end) {

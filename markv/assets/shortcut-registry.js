@@ -62,9 +62,6 @@
     },
     "editor.image": {
       label: "Image markdown",
-      key: "i",
-      mod: true,
-      alt: true,
     },
   };
 
