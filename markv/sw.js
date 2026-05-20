@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v39";
+const CACHE_VERSION = "v40";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -8,7 +8,7 @@ const SHELL_ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./assets/analytics.js",
-  "./assets/library-core.js?v=15",
+  "./assets/library-core.js?v=16",
   "./assets/visual-blocks.js?v=16",
   "./assets/shortcut-registry.js?v=2",
   "./assets/editor-markdown-actions.js?v=2",

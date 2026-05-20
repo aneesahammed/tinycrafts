@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-MM6puCTi55AYx/eV045BAchjofG38MPySsjno4+n0hQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Pi+CzZpmDUPoDqW7165ECajfXj4ED3Cy+aa3IyLiEF0=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="assets/command-palette.css?v=2" />
 
     <script src="assets/analytics.js"></script>
-    <script src="assets/library-core.js?v=15"></script>
+    <script src="assets/library-core.js?v=16"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=2"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
@@ -14811,15 +14811,35 @@ Return JSON only.`;
           const count = nodes.length;
           const centerX = 110;
           const centerY = 76;
-          const radius = count <= 4 ? 42 : 53;
+          const layoutNodes =
+            typeof libraryCore.layoutReaderConnectionGraph === "function"
+              ? libraryCore.layoutReaderConnectionGraph(nodes, {
+                  width: 220,
+                  height: 150,
+                  centerX: centerX,
+                  centerY: centerY,
+                })
+              : nodes.map(function (item, index) {
+                  const radius = count <= 4 ? 42 : 53;
+                  const angle =
+                    -Math.PI / 2 + (index / Math.max(1, count)) * Math.PI * 2;
+                  return {
+                    item: item,
+                    index: index,
+                    radius: item && item.related ? 5.5 : 4.4,
+                    x: centerX + Math.cos(angle) * radius,
+                    y: centerY + Math.sin(angle) * radius * 0.82,
+                  };
+                });
           const edgeParts = [];
           const nodeParts = [];
 
-          nodes.forEach(function (item, index) {
-            const angle = -Math.PI / 2 + (index / Math.max(1, count)) * Math.PI * 2;
-            const x = centerX + Math.cos(angle) * radius;
-            const y = centerY + Math.sin(angle) * radius * 0.82;
-            const nodeRadius = item.related ? 5.5 : 4.4;
+          layoutNodes.forEach(function (layoutNode) {
+            const item = layoutNode.item || nodes[layoutNode.index] || {};
+            const x = Number(layoutNode.x) || centerX;
+            const y = Number(layoutNode.y) || centerY;
+            const nodeRadius =
+              Number(layoutNode.radius) || (item.related ? 5.5 : 4.4);
             const openable = canOpenReaderConnection(item.path);
             const itemTitle = item.title || item.path || "Connection";
             const pointLabel = clipReaderConnectionLabel(itemTitle, 30);

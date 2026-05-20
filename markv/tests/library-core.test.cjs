@@ -950,6 +950,80 @@ test("omits reader connections model when a document has no neighbors", () => {
   assert.equal(core.createReaderConnectionsModel?.(context), null);
 });
 
+test("lays out reader connection graph deterministically inside the rail viewport", () => {
+  const neighbors = Array.from({ length: 10 }, (_, index) => ({
+    path: `docs/${index}.md`,
+    title: `Doc ${index}`,
+    direction: index % 3 === 0 ? "inbound" : "outbound",
+    related: index % 4 === 0,
+  }));
+
+  const first = core.layoutReaderConnectionGraph?.(neighbors, {
+    width: 220,
+    height: 150,
+    centerX: 110,
+    centerY: 76,
+  });
+  const second = core.layoutReaderConnectionGraph?.(neighbors, {
+    width: 220,
+    height: 150,
+    centerX: 110,
+    centerY: 76,
+  });
+
+  assert.deepEqual(first, second);
+  assert.equal(first.length, neighbors.length);
+  assert.deepEqual(
+    first.map((node) => node.item.path),
+    neighbors.map((node) => node.path),
+  );
+  first.forEach((node) => {
+    assert.ok(node.x >= 14 && node.x <= 206, `x out of bounds: ${node.x}`);
+    assert.ok(node.y >= 14 && node.y <= 136, `y out of bounds: ${node.y}`);
+    assert.equal(node.radius, node.item.related ? 5.5 : 4.4);
+  });
+});
+
+test("reader connection graph applies deterministic repulsion for cramped layouts", () => {
+  const neighbors = Array.from({ length: 8 }, (_, index) => ({
+    path: `docs/${index}.md`,
+    title: `Doc ${index}`,
+    related: index % 2 === 0,
+  }));
+
+  const layout = core.layoutReaderConnectionGraph?.(neighbors, {
+    width: 120,
+    height: 100,
+    centerX: 60,
+    centerY: 50,
+    radiusX: 10,
+    radiusY: 8,
+    minNodeGap: 14,
+    iterations: 24,
+    padding: 10,
+    anchorStrength: 0.05,
+  });
+
+  let minGap = Infinity;
+  for (let i = 0; i < layout.length; i += 1) {
+    for (let j = i + 1; j < layout.length; j += 1) {
+      const dx = layout[j].x - layout[i].x;
+      const dy = layout[j].y - layout[i].y;
+      const centerDistance = Math.sqrt(dx * dx + dy * dy);
+      minGap = Math.min(
+        minGap,
+        centerDistance - layout[i].radius - layout[j].radius,
+      );
+    }
+  }
+
+  assert.ok(minGap >= 12, `expected separated nodes, got ${minGap}`);
+  layout.forEach((node) => {
+    assert.ok(node.x >= 10 && node.x <= 110, `x out of bounds: ${node.x}`);
+    assert.ok(node.y >= 10 && node.y <= 90, `y out of bounds: ${node.y}`);
+  });
+});
+
 test("creates a deterministic concept graph from library context when no LLM is available", () => {
   const context = core.buildLibraryMindmapContext?.({
     currentPath: "concepts/algorithm.md",

@@ -1617,6 +1617,147 @@
     };
   }
 
+  function finiteLayoutNumber(value, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function clampLayoutNumber(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function getReaderConnectionNodeRadius(item) {
+    return item && item.related ? 5.5 : 4.4;
+  }
+
+  function layoutReaderConnectionGraph(neighbors, options) {
+    const source = Array.isArray(neighbors) ? neighbors : [];
+    const count = source.length;
+    if (!count) return [];
+
+    const config = options && typeof options === "object" ? options : {};
+    const width = Math.max(80, finiteLayoutNumber(config.width, 220));
+    const height = Math.max(80, finiteLayoutNumber(config.height, 150));
+    const centerX = finiteLayoutNumber(config.centerX, width / 2);
+    const centerY = finiteLayoutNumber(config.centerY, height * 0.5067);
+    const radiusX = finiteLayoutNumber(config.radiusX, count <= 4 ? 42 : 53);
+    const radiusY = finiteLayoutNumber(config.radiusY, radiusX * 0.82);
+    const padding = finiteLayoutNumber(config.padding, 14);
+    const minNodeGap = finiteLayoutNumber(config.minNodeGap, count <= 4 ? 16 : 11);
+    const iterations = Math.max(
+      0,
+      Math.min(24, Math.round(finiteLayoutNumber(config.iterations, 14))),
+    );
+    const anchorStrength = clampLayoutNumber(
+      finiteLayoutNumber(config.anchorStrength, 0.18),
+      0,
+      1,
+    );
+    const rootClearance = finiteLayoutNumber(config.rootClearance, 22);
+    const labelCenterY = finiteLayoutNumber(config.labelCenterY, centerY + 20);
+    const labelRadiusX = finiteLayoutNumber(config.labelRadiusX, 54);
+    const labelRadiusY = finiteLayoutNumber(config.labelRadiusY, 16);
+
+    const positioned = source.map(function (item, index) {
+      const angle = -Math.PI / 2 + (index / Math.max(1, count)) * Math.PI * 2;
+      const radius = getReaderConnectionNodeRadius(item);
+      const baseX = centerX + Math.cos(angle) * radiusX;
+      const baseY = centerY + Math.sin(angle) * radiusY;
+      return {
+        item: item,
+        index: index,
+        radius: radius,
+        baseX: baseX,
+        baseY: baseY,
+        x: baseX,
+        y: baseY,
+      };
+    });
+
+    for (let step = 0; step < iterations; step += 1) {
+      const deltas = positioned.map(function () {
+        return { x: 0, y: 0 };
+      });
+
+      for (let i = 0; i < positioned.length; i += 1) {
+        for (let j = i + 1; j < positioned.length; j += 1) {
+          const a = positioned[i];
+          const b = positioned[j];
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < 0.001) {
+            const angle = ((i + 1) * 1.618 + (j + 1) * 0.618) * Math.PI;
+            dx = Math.cos(angle);
+            dy = Math.sin(angle);
+            distance = 1;
+          }
+          const targetDistance = a.radius + b.radius + minNodeGap;
+          if (distance >= targetDistance) continue;
+          const push = ((targetDistance - distance) / distance) * 0.5;
+          const pushX = dx * push;
+          const pushY = dy * push;
+          deltas[i].x -= pushX;
+          deltas[i].y -= pushY;
+          deltas[j].x += pushX;
+          deltas[j].y += pushY;
+        }
+      }
+
+      positioned.forEach(function (node, index) {
+        let dx = node.x - centerX;
+        let dy = node.y - centerY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        const targetDistance = rootClearance + node.radius;
+        if (distance < targetDistance) {
+          if (distance < 0.001) {
+            dx = node.baseX - centerX || 1;
+            dy = node.baseY - centerY || 0;
+            distance = Math.sqrt(dx * dx + dy * dy) || 1;
+          }
+          const push = (targetDistance - distance) / distance;
+          deltas[index].x += dx * push;
+          deltas[index].y += dy * push;
+        }
+
+        const labelDx = node.x - centerX;
+        const labelDy = node.y - labelCenterY;
+        const labelMetric =
+          (labelDx * labelDx) / (labelRadiusX * labelRadiusX) +
+          (labelDy * labelDy) / (labelRadiusY * labelRadiusY);
+        if (labelMetric < 1) {
+          const away = Math.sqrt(labelDx * labelDx + labelDy * labelDy) || 1;
+          const push = (1 - labelMetric) * 4.5;
+          deltas[index].x += (labelDx / away) * push;
+          deltas[index].y += (labelDy / away) * push;
+        }
+      });
+
+      positioned.forEach(function (node, index) {
+        const nextX =
+          node.x +
+          deltas[index].x +
+          (node.baseX - node.x) * anchorStrength;
+        const nextY =
+          node.y +
+          deltas[index].y +
+          (node.baseY - node.y) * anchorStrength;
+        node.x = clampLayoutNumber(nextX, padding, width - padding);
+        node.y = clampLayoutNumber(nextY, padding, height - padding);
+      });
+    }
+
+    return positioned.map(function (node) {
+      return {
+        item: node.item,
+        index: node.index,
+        radius: node.radius,
+        x: Number(node.x.toFixed(3)),
+        y: Number(node.y.toFixed(3)),
+      };
+    });
+  }
+
   function getReaderRefreshState(input) {
     const source = input && typeof input === "object" ? input : {};
     const sourceMode = String(source.sourceMode || "editor");
@@ -1746,6 +1887,7 @@
     getReaderSaveState,
     groundMindmapGraphWithLibraryContext,
     isSupportedLibraryFile,
+    layoutReaderConnectionGraph,
     formatLibraryMindmapContextForPrompt,
     normalizeLibraryFolderIdSet,
     normalizeLibraryMeta,
