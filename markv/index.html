@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-gD7n6ras1dE9yw3/oDcEA+xXkmM67FqI/kgd9zWRxbA=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-MM6puCTi55AYx/eV045BAchjofG38MPySsjno4+n0hQ=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -2171,24 +2171,26 @@
         flex-direction: column;
         width: 100%;
         max-width: 248px;
-        max-height: none;
-        padding-bottom: 0;
+        max-height: calc(100dvh - var(--reader-rail-top) - 28px);
+        min-height: 0;
+        padding-bottom: 28px;
+        overflow: hidden;
         box-sizing: border-box;
         font-family: var(--font-sans);
         color: var(--fg-default);
       }
       .reader-rail.has-reader-connections {
         max-height: calc(100dvh - var(--reader-rail-top) - 28px);
-        min-height: 0;
-        padding-bottom: 28px;
-        overflow: hidden;
       }
       .reader-rail.has-reader-connections > .reader-rail__section {
         min-height: 0;
       }
+      .reader-outline-section,
       .reader-rail.has-reader-connections > .reader-outline-section {
         display: flex;
         flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       .reader-rail.has-reader-connections > .reader-connections {
         flex-shrink: 0;
@@ -2230,22 +2232,19 @@
         display: grid;
         gap: 0;
         margin: 0;
-        max-height: none;
-        padding: 0;
+        max-height: min(64dvh, calc(100dvh - var(--reader-rail-top) - 74px));
+        min-height: 0;
+        padding: 0 4px 0 0;
         list-style: none;
-        overflow: visible;
-        scrollbar-gutter: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
         scrollbar-width: thin;
         scrollbar-color: transparent transparent;
       }
       .reader-rail.has-reader-connections .reader-outline {
         max-height: min(42dvh, 360px);
-        min-height: 0;
-        padding-right: 4px;
-        overflow-x: hidden;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        scrollbar-gutter: stable;
       }
       .reader-outline__item {
         min-width: 0;
@@ -2529,11 +2528,13 @@
           max-height: none;
           margin: 48px auto 0;
           padding-bottom: 0;
+          overflow: visible;
         }
         .reader-rail.has-reader-connections {
           max-height: none;
           padding-bottom: 0;
         }
+        .reader-outline,
         .reader-rail.has-reader-connections .reader-outline {
           max-height: none;
           padding-right: 0;
@@ -14582,7 +14583,6 @@ Return JSON only.`;
           });
         }
 
-        const READER_OUTLINE_MAX_ITEMS = 14;
         const READER_CONNECTIONS_MAX_NEIGHBORS = 10;
         let readerConnectionsRequestToken = 0;
         let readerOutlineHeadings = [];
@@ -14682,6 +14682,29 @@ Return JSON only.`;
           }
         }
 
+        function getReaderActiveHeading(headings) {
+          const list = Array.from(headings || []).filter(function (heading) {
+            return heading && document.contains(heading);
+          });
+          if (!list.length) return null;
+          const toolbarHeight =
+            Number.parseFloat(
+              getComputedStyle(document.documentElement).getPropertyValue(
+                "--toolbar-h",
+              ),
+            ) || 52;
+          const threshold = Math.max(toolbarHeight + 48, window.innerHeight * 0.42);
+          let active = list[0];
+          for (const heading of list) {
+            if (heading.getBoundingClientRect().top <= threshold) {
+              active = heading;
+            } else {
+              break;
+            }
+          }
+          return active;
+        }
+
         function updateReaderOutlineActive() {
           readerOutlineRaf = 0;
           if (
@@ -14695,20 +14718,8 @@ Return JSON only.`;
             return heading && document.contains(heading);
           });
           if (!readerOutlineHeadings.length) return;
-          const threshold = Math.max(
-            96,
-            (Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--toolbar-h")) || 52) +
-              48,
-          );
-          let active = readerOutlineHeadings[0];
-          for (const heading of readerOutlineHeadings) {
-            if (heading.getBoundingClientRect().top <= threshold) {
-              active = heading;
-            } else {
-              break;
-            }
-          }
-          setReaderOutlineActive(active.id);
+          const active = getReaderActiveHeading(readerOutlineHeadings);
+          if (active) setReaderOutlineActive(active.id);
         }
 
         function scheduleReaderOutlineActiveUpdate() {
@@ -14973,17 +14984,14 @@ Return JSON only.`;
           const outline = Array.isArray(outlineItems) ? outlineItems : [];
           const connectionsHtml = renderReaderConnectionsSection(connectionsModel);
           const hasConnections = Boolean(connectionsHtml);
-          const visibleOutline = hasConnections
-            ? outline.slice(0, READER_OUTLINE_MAX_ITEMS)
-            : outline;
           const html =
-            renderReaderOutlineSection(visibleOutline) +
+            renderReaderOutlineSection(outline) +
             connectionsHtml;
           if (!html) {
             hideReaderRail();
             return;
           }
-          readerOutlineHeadings = visibleOutline
+          readerOutlineHeadings = outline
             .map(function (item) {
               return els.preview.querySelector("#" + CSS.escape(item.id));
             })
@@ -23988,8 +23996,8 @@ Return JSON only.`;
               );
               syncScrollTopButton(maxY);
 
-              // Breadcrumb — find the heading closest above the
-              // viewport top threshold.
+              // Breadcrumb — use the same reading anchor line as the
+              // right rail so both current-section cues stay in sync.
               const headings = Array.from(
                 previewRoot.querySelectorAll(
                   ".markdown-body :is(h1, h2, h3)",
@@ -23999,13 +24007,7 @@ Return JSON only.`;
                 breadcrumb.classList.remove("is-visible");
                 return;
               }
-              const threshold = 120;
-              let active = null;
-              for (const h of headings) {
-                const top = h.getBoundingClientRect().top;
-                if (top <= threshold) active = h;
-                else break;
-              }
+              const active = getReaderActiveHeading(headings);
               if (
                 active &&
                 (active !== headings[0] ||

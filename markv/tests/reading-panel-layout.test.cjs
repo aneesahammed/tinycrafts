@@ -73,3 +73,61 @@ test("narrow reading panel scrolls internally instead of clipping", () => {
     "Narrow reading panel must not visibly overflow outside the viewport",
   );
 });
+
+test("desktop reader outline scrolls without requiring connections widget", () => {
+  const css = extractStyleText(html);
+  const railRule = extractBlock(css, ".reader-rail {\n        --reader-rail-top");
+  const outlineRule = extractBlock(css, ".reader-outline {\n        display: grid");
+  const connectionsOutlineRule = extractBlock(
+    css,
+    ".reader-rail.has-reader-connections .reader-outline",
+  );
+
+  assert.match(
+    railRule,
+    /max-height:\s*calc\(100dvh - var\(--reader-rail-top\) - 28px\);/,
+  );
+  assert.match(railRule, /overflow:\s*hidden;/);
+  assert.match(outlineRule, /max-height:\s*min\(/);
+  assert.match(outlineRule, /overflow-y:\s*auto;/);
+  assert.match(outlineRule, /scrollbar-gutter:\s*stable;/);
+  assert.doesNotMatch(
+    connectionsOutlineRule,
+    /overflow-y:\s*auto;/,
+    "Connections state should not be the only path that makes the outline scrollable",
+  );
+});
+
+test("stacked reader rail resets outline scrolling below desktop breakpoint", () => {
+  const css = extractStyleText(html);
+  const stackedBlock = extractBlock(css, "@media (max-width: 900px)");
+  const stackedOutlineRule = extractBlock(stackedBlock, ".reader-outline");
+
+  assert.match(stackedOutlineRule, /max-height:\s*none;/);
+  assert.match(stackedOutlineRule, /overflow:\s*visible;/);
+  assert.match(stackedOutlineRule, /scrollbar-gutter:\s*auto;/);
+});
+
+test("reader outline renders all headings even when connections are present", () => {
+  assert.doesNotMatch(html, /READER_OUTLINE_MAX_ITEMS/);
+  assert.doesNotMatch(html, /outline\.slice\(/);
+  assert.match(
+    html,
+    /const html =\s*renderReaderOutlineSection\(outline\) \+\s*connectionsHtml;/,
+  );
+});
+
+test("breadcrumb and reader rail share active heading calculation", () => {
+  assert.match(html, /function getReaderActiveHeading\(headings\)/);
+  assert.match(html, /window\.innerHeight \* 0\.42/);
+  assert.match(
+    html,
+    /const active = getReaderActiveHeading\(readerOutlineHeadings\);/,
+  );
+  assert.match(html, /const active = getReaderActiveHeading\(headings\);/);
+  assert.doesNotMatch(
+    html,
+    /const threshold = 120;/,
+    "Breadcrumb must not keep a separate hard-coded threshold",
+  );
+});
