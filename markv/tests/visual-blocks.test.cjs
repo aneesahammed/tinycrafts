@@ -43,6 +43,57 @@ test("advanced diagrams are searchable without cluttering the default list", () 
   );
 });
 
+test("display order matches grouped slash menu rows for advanced diagram search", () => {
+  const commands = visualBlocks.filterVisualBlockCommands("x");
+  const sections = visualBlocks.getVisualBlockCommandSections(commands, "x");
+  const display = visualBlocks.getVisualBlockDisplayCommands(commands, "x");
+  const sectionOrder = sections.flatMap((section) => section.commands);
+
+  assert.deepEqual(
+    display.map((command) => command.id),
+    sectionOrder.map((command) => command.id),
+  );
+  assert.equal(display[0].id, "diagram.xy");
+  assert.equal(display[1].id, "diagram.quadrant");
+
+  const insertion = visualBlocks.createVisualBlockInsertion(
+    "/x",
+    0,
+    2,
+    display[0],
+  );
+  assert.match(insertion.replacement, /^```mermaid\nxychart-beta/);
+});
+
+test("expanded default sections keep advanced diagrams discoverable but separated", () => {
+  const commands = visualBlocks.filterVisualBlockCommands("", {
+    includeAdvanced: true,
+  });
+  const sections = visualBlocks.getVisualBlockCommandSections(commands, "", {
+    groupAdvancedDiagrams: true,
+  });
+  const diagram = sections.find((section) => section.title === "Diagram");
+  const moreDiagrams = sections.find(
+    (section) => section.title === "More diagrams",
+  );
+
+  assert.ok(diagram);
+  assert.ok(moreDiagrams);
+  assert.ok(
+    diagram.commands.every(
+      (command) => command.category !== "Diagram" || !command.advanced,
+    ),
+  );
+  assert.ok(
+    moreDiagrams.commands.some((command) => command.id === "diagram.xy"),
+  );
+  assert.ok(
+    moreDiagrams.commands.every(
+      (command) => command.category === "Diagram" && command.advanced,
+    ),
+  );
+});
+
 test("Enter inserts the selected template and places cursor at editable text", () => {
   const value = "/flow";
   const context = visualBlocks.getSlashQueryContext(value, value.length, value.length);

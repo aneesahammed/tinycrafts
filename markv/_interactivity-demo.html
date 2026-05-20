@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>markv · Interactivity demo</title>
+    <style>
+      :root {
+        --bg: #fafaf7;
+        --surface: #ffffff;
+        --surface-soft: #f0f0eb;
+        --ink: #1a1a1a;
+        --ink-heading: #0a0a0a;
+        --muted: #5d5d5a;
+        --hint: #9c9c98;
+        --line: #e5e4df;
+        --line-soft: #ececec;
+        --accent: #b45309;
+        --accent-soft: rgba(180, 83, 9, 0.1);
+        --note: #0f766e;
+        --note-soft: rgba(15, 118, 110, 0.08);
+        --warn: #b45309;
+        --warn-soft: rgba(180, 83, 9, 0.08);
+        --tip: #4338ca;
+        --tip-soft: rgba(67, 56, 202, 0.08);
+        --serif: ui-serif, "Iowan Old Style", Georgia, "Times New Roman",
+          serif;
+        --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui,
+          sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; scroll-behavior: smooth; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      /* ─── Reading progress bar ─── */
+      .progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 2px;
+        background: var(--accent);
+        width: 0%;
+        z-index: 100;
+        transition: width 80ms linear;
+      }
+
+      /* ─── Control bar ─── */
+      .controls {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(250, 250, 247, 0.85);
+        backdrop-filter: blur(12px) saturate(140%);
+        -webkit-backdrop-filter: blur(12px) saturate(140%);
+        border-bottom: 1px solid var(--line);
+        padding: 12px 24px;
+        font-family: var(--sans);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .controls__label {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 12.5px;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 120ms ease, border-color 120ms ease;
+      }
+      .toggle[aria-pressed="true"] {
+        background: var(--ink);
+        color: var(--bg);
+        border-color: var(--ink);
+      }
+      .toggle:hover { border-color: var(--ink); }
+
+      /* ─── Layout ─── */
+      .stage {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 36px 24px 120px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      @media (min-width: 1024px) {
+        .stage {
+          grid-template-columns: 180px minmax(0, 1fr) 220px;
+          gap: 40px;
+        }
+      }
+
+      /* ─── Outline (left) ─── */
+      .outline {
+        font-family: var(--sans);
+        font-size: 12.5px;
+        position: sticky;
+        top: 80px;
+        align-self: start;
+      }
+      .outline__title {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .outline a {
+        display: block;
+        padding: 4px 0 4px 10px;
+        border-left: 2px solid transparent;
+        color: var(--muted);
+        text-decoration: none;
+        transition: color 120ms ease, border-color 120ms ease;
+      }
+      .outline a:hover { color: var(--ink); }
+      .outline a.is-current {
+        color: var(--ink);
+        border-left-color: var(--accent);
+      }
+
+      /* ─── Article ─── */
+      article { min-width: 0; }
+      article h1 {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin: 0 0 12px;
+        color: var(--ink-heading);
+        line-height: 1.15;
+      }
+      article .lede {
+        font-size: 17px;
+        color: var(--muted);
+        margin: 0 0 32px;
+        line-height: 1.55;
+      }
+      article h2 {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 40px 0 12px;
+        color: var(--ink-heading);
+        font-family: var(--serif);
+      }
+      article p {
+        margin: 0 0 16px;
+      }
+      article a {
+        color: var(--accent);
+        text-decoration: underline;
+        text-decoration-color: rgba(180, 83, 9, 0.35);
+        text-underline-offset: 3px;
+      }
+      article a:hover { text-decoration-color: var(--accent); }
+      .sidenote-ref {
+        display: inline-block;
+        font-family: var(--sans);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 0 4px;
+        margin: 0 1px;
+        color: var(--accent);
+        background: var(--accent-soft);
+        border-radius: 3px;
+        cursor: pointer;
+        vertical-align: super;
+        line-height: 1;
+      }
+      .sidenote-ref:hover { background: var(--accent); color: white; }
+
+      /* ─── Stagger reveal ─── */
+      .stagger.is-active > * {
+        opacity: 0;
+        transform: translateY(6px);
+        animation: stagger-in 600ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      .stagger.is-active > *:nth-child(1) { animation-delay: 0ms; }
+      .stagger.is-active > *:nth-child(2) { animation-delay: 40ms; }
+      .stagger.is-active > *:nth-child(3) { animation-delay: 80ms; }
+      .stagger.is-active > *:nth-child(4) { animation-delay: 120ms; }
+      .stagger.is-active > *:nth-child(5) { animation-delay: 160ms; }
+      .stagger.is-active > *:nth-child(6) { animation-delay: 200ms; }
+      .stagger.is-active > *:nth-child(7) { animation-delay: 240ms; }
+      .stagger.is-active > *:nth-child(8) { animation-delay: 280ms; }
+      .stagger.is-active > *:nth-child(9) { animation-delay: 320ms; }
+      .stagger.is-active > *:nth-child(10) { animation-delay: 360ms; }
+      .stagger.is-active > *:nth-child(n + 11) { animation-delay: 400ms; }
+      @keyframes stagger-in {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ─── Focus mode ─── */
+      body.focus-mode article p,
+      body.focus-mode article h2,
+      body.focus-mode article ul,
+      body.focus-mode article blockquote,
+      body.focus-mode article pre,
+      body.focus-mode article .callout {
+        transition: opacity 220ms ease, filter 220ms ease;
+        opacity: 0.25;
+        filter: blur(0.3px);
+      }
+      body.focus-mode article .is-in-focus {
+        opacity: 1;
+        filter: none;
+      }
+
+      /* ─── Callouts ─── */
+      .callout {
+        position: relative;
+        margin: 22px 0;
+        padding: 14px 18px 14px 44px;
+        border-radius: 10px;
+        background: var(--note-soft);
+        border-left: 3px solid var(--note);
+        color: var(--ink);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .callout::before {
+        position: absolute;
+        left: 16px;
+        top: 13px;
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1;
+      }
+      .callout.note { background: var(--note-soft); border-left-color: var(--note); }
+      .callout.note::before { content: "ℹ"; color: var(--note); }
+      .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+      .callout.warn::before { content: "▲"; color: var(--warn); }
+      .callout.tip { background: var(--tip-soft); border-left-color: var(--tip); }
+      .callout.tip::before { content: "★"; color: var(--tip); }
+      .callout__head {
+        font-family: var(--sans);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      .callout p { margin: 0; }
+
+      /* ─── Details / toggleable ─── */
+      details {
+        margin: 18px 0;
+        padding: 12px 16px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        transition: background-color 180ms ease;
+      }
+      details[open] { background: var(--surface-soft); }
+      details summary {
+        cursor: pointer;
+        font-family: var(--sans);
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--ink);
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      details summary::-webkit-details-marker { display: none; }
+      details summary::before {
+        content: "▸";
+        color: var(--muted);
+        transition: transform 200ms ease;
+        display: inline-block;
+        width: 10px;
+      }
+      details[open] summary::before { transform: rotate(90deg); }
+      details > *:not(summary) { margin-top: 10px; }
+
+      /* ─── Code blocks ─── */
+      .code-block {
+        position: relative;
+        margin: 18px 0;
+        background: #1a1a1a;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .code-block__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #262625;
+        font-family: var(--sans);
+        font-size: 10.5px;
+        color: #a1a19e;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .code-block__copy {
+        font-family: var(--sans);
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 3px 8px;
+        border: 1px solid #40403e;
+        background: transparent;
+        color: #a1a19e;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 150ms ease;
+      }
+      .code-block__copy:hover {
+        background: #40403e;
+        color: #fafaf7;
+      }
+      .code-block__copy.is-copied {
+        background: #0f766e;
+        color: #fafaf7;
+        border-color: #0f766e;
+      }
+      .code-block pre {
+        margin: 0;
+        padding: 14px 16px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #e8e8e5;
+        overflow-x: auto;
+      }
+      .code-block .kw { color: #f9a8d4; }
+      .code-block .str { color: #86efac; }
+      .code-block .com { color: #71717a; }
+
+      blockquote {
+        margin: 18px 0;
+        padding: 6px 0 6px 18px;
+        border-left: 3px solid var(--line);
+        color: var(--muted);
+        font-family: var(--serif);
+      }
+
+      ul { padding-left: 22px; }
+      ul li { margin: 4px 0; }
+
+      /* ─── Sidenotes (right) ─── */
+      .sidenotes {
+        font-family: var(--sans);
+        font-size: 12px;
+        position: sticky;
+        top: 80px;
+        align-self: start;
+      }
+      .sidenote {
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        line-height: 1.55;
+        opacity: 0.6;
+        transition: opacity 220ms ease, transform 220ms ease;
+      }
+      .sidenote:first-child { border-top: none; }
+      .sidenote.is-active {
+        opacity: 1;
+        transform: translateX(-4px);
+      }
+      .sidenote__num {
+        display: inline-block;
+        font-weight: 700;
+        color: var(--accent);
+        margin-right: 4px;
+      }
+      .sidenotes__title {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      @media (max-width: 1023px) {
+        .sidenotes { display: none; }
+      }
+
+      footer.demo {
+        margin-top: 80px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        font-family: var(--sans);
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" id="progress"></div>
+
+    <div class="controls">
+      <span class="controls__label">Demo</span>
+      <button class="toggle" id="t-stagger" aria-pressed="true">
+        Stagger reveal
+      </button>
+      <button class="toggle" id="t-focus" aria-pressed="false">
+        Focus mode
+      </button>
+      <button class="toggle" id="t-replay">↻ Replay stagger</button>
+      <span class="controls__label" style="margin-left: auto">
+        Open in browser · scroll, hover the ¹ marks, click Copy
+      </span>
+    </div>
+
+    <div class="stage">
+      <!-- ─── OUTLINE ─── -->
+      <nav class="outline" aria-label="On this page">
+        <div class="outline__title">On this page</div>
+        <a href="#intro" class="is-current">Why interactivity</a>
+        <a href="#stagger">Stagger reveal</a>
+        <a href="#sidenotes">Sidenotes</a>
+        <a href="#callouts">Callouts</a>
+        <a href="#code">Code blocks</a>
+        <a href="#focus">Focus mode</a>
+      </nav>
+
+      <!-- ─── ARTICLE ─── -->
+      <article class="stagger is-active" id="article">
+        <h1 id="intro">The quiet power of interactive reading</h1>
+        <p class="lede">
+          Markdown renders as static HTML by default. With a few small
+          additions — stagger, focus, callouts, sidenotes, code affordances —
+          the same document starts to feel like a place rather than a page.
+        </p>
+
+        <p>
+          Most reading tools mistake interactivity for spectacle: parallax,
+          confetti, cursor trails. Those make documents feel like billboards.
+          The opposite move — quiet motion that disappears once you've noticed
+          it — is what good editors aim for<span class="sidenote-ref"
+            data-ref="1">¹</span>.
+        </p>
+
+        <p>
+          The features below are each small. Together they shift the
+          experience from "reading rendered text" to "being in a document."
+        </p>
+
+        <h2 id="stagger">Stagger reveal</h2>
+        <p>
+          Watch the page load. Paragraphs don't appear all at once; they
+          cascade in at 40-millisecond intervals. The effect is invisible
+          consciously and felt subconsciously — the document arrives instead
+          of slamming into place. Hit "Replay stagger" in the top bar to see
+          it again<span class="sidenote-ref" data-ref="2">²</span>.
+        </p>
+
+        <h2 id="sidenotes">Sidenotes in the margin</h2>
+        <p>
+          On wide screens, footnotes float into the right margin near their
+          reference. Hover the ¹ or ² marks above and watch the matching
+          sidenote highlight. This is the Tufte / Gwern pattern — distinctive
+          to writing tools and rare in markdown editors.
+        </p>
+        <p>
+          On narrow screens the sidenotes collapse to inline footnotes at the
+          bottom (resize this window to test).
+        </p>
+
+        <h2 id="callouts">Callouts as directives</h2>
+        <p>
+          Add a small DSL on top of CommonMark for typed callouts:
+          <code style="font-family: var(--mono); font-size: 13px; background: var(--surface-soft); padding: 1px 5px; border-radius: 3px">:::note</code>,
+          <code style="font-family: var(--mono); font-size: 13px; background: var(--surface-soft); padding: 1px 5px; border-radius: 3px">:::warn</code>,
+          <code style="font-family: var(--mono); font-size: 13px; background: var(--surface-soft); padding: 1px 5px; border-radius: 3px">:::tip</code>.
+          Authors get a vocabulary; readers get visual hierarchy.
+        </p>
+
+        <div class="callout note">
+          <div class="callout__head">Note</div>
+          <p>
+            This callout uses a teal accent and an ℹ glyph. Markdown source
+            would be three lines: <code style="font-family: var(--mono); font-size: 12.5px">:::note</code>, body, <code style="font-family: var(--mono); font-size: 12.5px">:::</code>.
+          </p>
+        </div>
+
+        <div class="callout warn">
+          <div class="callout__head">Warning</div>
+          <p>
+            Warmer accent. Use sparingly — the visual weight is high.
+          </p>
+        </div>
+
+        <div class="callout tip">
+          <div class="callout__head">Tip</div>
+          <p>
+            Indigo accent. Best for "here's the trick" inserts inside longer
+            explanations.
+          </p>
+        </div>
+
+        <p>
+          Toggleable details work too:
+        </p>
+
+        <details>
+          <summary>Why not just use blockquotes for callouts?</summary>
+          <p>
+            Blockquotes carry semantic weight ("this is a quote"). Callouts
+            carry intent ("read this carefully"). Conflating them costs you
+            both. The directive syntax is also greppable in source.
+          </p>
+        </details>
+
+        <h2 id="code">Code blocks with copy</h2>
+        <p>
+          Click the Copy button. It briefly turns green to confirm. Tiny
+          affordance, big quality-of-life gain over the default highlight-
+          and-select dance.
+        </p>
+
+        <div class="code-block">
+          <div class="code-block__head">
+            <span>bash</span>
+            <button class="code-block__copy" data-code="wrangler pages deploy ./dist --project=glimpses">
+              Copy
+            </button>
+          </div>
+          <pre><span class="com"># deploy to cloudflare pages</span>
+<span class="kw">$</span> wrangler pages deploy <span class="str">./dist</span> --project=glimpses</pre>
+        </div>
+
+        <h2 id="focus">Focus mode</h2>
+        <p>
+          Click "Focus mode" in the top bar, then scroll. Whichever paragraph
+          is centered in the viewport stays bright; the others dim and blur
+          ever so slightly. Single-paragraph attention for long documents.
+        </p>
+        <p>
+          The implementation uses IntersectionObserver to track which element
+          is closest to the viewport center, then toggles a class. No
+          continuous scroll handlers, no jank<span class="sidenote-ref"
+            data-ref="3">³</span>.
+        </p>
+
+        <blockquote>
+          The best interactive details are the ones you stop noticing within
+          three days of use.
+        </blockquote>
+
+        <p>
+          Each of these is fewer than fifty lines of code. The compounding
+          effect is the whole vibe of the app.
+        </p>
+
+        <footer class="demo">
+          Reload this file to replay all animations from scratch. This demo
+          is a single self-contained HTML file with zero dependencies — easy
+          to crib from when implementing in markv proper.
+        </footer>
+      </article>
+
+      <!-- ─── SIDENOTES ─── -->
+      <aside class="sidenotes">
+        <div class="sidenotes__title">Sidenotes</div>
+        <div class="sidenote" data-num="1">
+          <span class="sidenote__num">1</span>
+          Apple's design vocabulary calls this "deferred attention" —
+          motion that recedes once you've registered it.
+        </div>
+        <div class="sidenote" data-num="2">
+          <span class="sidenote__num">2</span>
+          Cubic-bezier(0.2, 0.7, 0.2, 1). The fast-out / slow-in curve.
+          Linear is the giveaway that nobody tuned it.
+        </div>
+        <div class="sidenote" data-num="3">
+          <span class="sidenote__num">3</span>
+          IntersectionObserver runs on the compositor, not the main
+          thread. Scrolling stays at 60 fps even with many observed
+          elements.
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        const article = document.getElementById("article");
+        const progress = document.getElementById("progress");
+        const tStagger = document.getElementById("t-stagger");
+        const tFocus = document.getElementById("t-focus");
+        const tReplay = document.getElementById("t-replay");
+        const outlineLinks = document.querySelectorAll(".outline a");
+        const sidenotes = document.querySelectorAll(".sidenote");
+        const refs = document.querySelectorAll(".sidenote-ref");
+
+        // ─── Reading progress ───
+        function updateProgress() {
+          const doc = document.documentElement;
+          const scrollTop = doc.scrollTop || document.body.scrollTop;
+          const max = doc.scrollHeight - doc.clientHeight;
+          const pct = max > 0 ? (scrollTop / max) * 100 : 0;
+          progress.style.width = pct + "%";
+        }
+        document.addEventListener("scroll", updateProgress, { passive: true });
+        updateProgress();
+
+        // ─── Stagger reveal toggle ───
+        tStagger.addEventListener("click", function () {
+          const on = tStagger.getAttribute("aria-pressed") === "true";
+          tStagger.setAttribute("aria-pressed", String(!on));
+          if (!on) {
+            article.classList.add("stagger", "is-active");
+          } else {
+            article.classList.remove("is-active");
+          }
+        });
+
+        tReplay.addEventListener("click", function () {
+          article.classList.remove("is-active");
+          // force reflow to restart animation
+          void article.offsetWidth;
+          article.classList.add("is-active");
+          tStagger.setAttribute("aria-pressed", "true");
+        });
+
+        // ─── Focus mode ───
+        tFocus.addEventListener("click", function () {
+          const on = tFocus.getAttribute("aria-pressed") === "true";
+          tFocus.setAttribute("aria-pressed", String(!on));
+          document.body.classList.toggle("focus-mode", !on);
+        });
+
+        // Watch which block is closest to viewport center
+        const focusables = article.querySelectorAll(
+          "p, h1, h2, .callout, .code-block, blockquote, details",
+        );
+        function updateFocusBlock() {
+          if (!document.body.classList.contains("focus-mode")) return;
+          const center = window.innerHeight / 2;
+          let nearest = null;
+          let nearestDist = Infinity;
+          focusables.forEach(function (el) {
+            const rect = el.getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            const dist = Math.abs(mid - center);
+            if (dist < nearestDist) {
+              nearestDist = dist;
+              nearest = el;
+            }
+          });
+          focusables.forEach(function (el) {
+            el.classList.toggle("is-in-focus", el === nearest);
+          });
+        }
+        document.addEventListener("scroll", updateFocusBlock, { passive: true });
+
+        // ─── Outline current-section highlight ───
+        const sections = ["intro", "stagger", "sidenotes", "callouts", "code", "focus"];
+        function updateOutline() {
+          let current = sections[0];
+          for (const id of sections) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            const top = el.getBoundingClientRect().top;
+            if (top - 100 < 0) current = id;
+          }
+          outlineLinks.forEach(function (a) {
+            const target = a.getAttribute("href").slice(1);
+            a.classList.toggle("is-current", target === current);
+          });
+        }
+        document.addEventListener("scroll", updateOutline, { passive: true });
+
+        // ─── Sidenote ref hover → highlight matching note ───
+        refs.forEach(function (ref) {
+          ref.addEventListener("mouseenter", function () {
+            const num = ref.dataset.ref;
+            sidenotes.forEach(function (note) {
+              note.classList.toggle(
+                "is-active",
+                note.dataset.num === num,
+              );
+            });
+          });
+          ref.addEventListener("mouseleave", function () {
+            sidenotes.forEach(function (note) {
+              note.classList.remove("is-active");
+            });
+          });
+        });
+
+        // ─── Code block copy ───
+        document
+          .querySelectorAll(".code-block__copy")
+          .forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+              const text = btn.dataset.code || "";
+              try {
+                await navigator.clipboard.writeText(text);
+                const original = btn.textContent;
+                btn.textContent = "Copied ✓";
+                btn.classList.add("is-copied");
+                setTimeout(function () {
+                  btn.textContent = original;
+                  btn.classList.remove("is-copied");
+                }, 1400);
+              } catch (e) {
+                btn.textContent = "Press ⌘C";
+              }
+            });
+          });
+      })();
+    </script>
+  </body>
+</html>

@@ -27,7 +27,7 @@
 
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=15"></script>
-    <script src="assets/visual-blocks.js?v=12"></script>
+    <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=2"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
     <script src="assets/command-palette-core.js?v=1"></script>
@@ -1994,6 +1994,15 @@
       .visual-block-menu__item[aria-selected="true"] {
         border-color: transparent;
         background: color-mix(in srgb, var(--fg-default) 7%, transparent);
+      }
+
+      .visual-block-menu__item--disclosure .visual-block-menu__title {
+        color: color-mix(in srgb, var(--fg-default) 88%, var(--fg-muted));
+        font-weight: 500;
+      }
+
+      .visual-block-menu__item--disclosure .visual-block-menu__icon {
+        color: color-mix(in srgb, var(--fg-default) 64%, var(--fg-muted));
       }
 
       .visual-block-menu__item:active {
@@ -4609,21 +4618,22 @@
         .reading-settings .reading-panel,
         .ont-settings .ont-panel {
           position: fixed;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          margin: auto;
+          top: 12px;
+          right: 12px;
+          bottom: auto;
+          left: 12px;
+          margin: 0 auto;
           width: min(420px, calc(100vw - 24px));
           max-width: calc(100vw - 24px);
           height: fit-content;
-          max-height: min(82vh, 600px);
+          max-height: min(720px, calc(100dvh - 24px));
           z-index: 9500;
           animation: panel-center-pop 220ms cubic-bezier(0.22, 1, 0.36, 1);
           animation-fill-mode: both;
         }
         .reading-settings .reading-panel {
-          overflow-y: visible;
+          overflow-y: auto;
+          overscroll-behavior: contain;
         }
         .ont-settings .ont-panel {
           overflow-y: auto;
@@ -28521,7 +28531,7 @@ Return JSON only.`;
       })();
     </script>
 
-    <script src="assets/visual-block-menu.js?v=12"></script>
+    <script src="assets/visual-block-menu.js?v=16"></script>
     <!-- Keeps the toolbar's segmented View-mode pill visually in
          sync with body.edit-mode-active / body.mindmap-open. -->
     <script src="assets/toolbar-sync.js"></script>

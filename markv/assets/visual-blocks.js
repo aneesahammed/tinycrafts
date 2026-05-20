@@ -880,10 +880,11 @@
       : visualBlockCommands;
     const tokens = tokenizeQuery(query);
     const hasQuery = tokens.length > 0;
+    const includeAdvanced = Boolean(opts.includeAdvanced);
 
     return commands
       .filter(function (command) {
-        if (!hasQuery && command.advanced) return false;
+        if (!hasQuery && command.advanced && !includeAdvanced) return false;
         if (!hasQuery) return true;
         return scoreVisualBlockCommand(command, query) > 0;
       })
@@ -892,14 +893,21 @@
       });
   }
 
-  function getVisualBlockCommandSections(commands, query) {
+  function getVisualBlockCommandSections(commands, query, options) {
     const list = Array.isArray(commands) ? commands : [];
+    const opts = options || {};
     const hasQuery = tokenizeQuery(query).length > 0;
+    const groupAdvancedDiagrams =
+      hasQuery || Boolean(opts.groupAdvancedDiagrams);
     const byTitle = new Map();
 
     list.forEach(function (command) {
       let title = command.category;
-      if (hasQuery && command.category === "Diagram" && command.advanced) {
+      if (
+        groupAdvancedDiagrams &&
+        command.category === "Diagram" &&
+        command.advanced
+      ) {
         title = "More diagrams";
       }
       if (!byTitle.has(title)) {
@@ -908,7 +916,9 @@
       byTitle.get(title).push(command);
     });
 
-    const sectionOrder = VISUAL_BLOCK_CATEGORY_ORDER.concat(["More diagrams"]);
+    const sectionOrder = VISUAL_BLOCK_CATEGORY_ORDER.flatMap(function (title) {
+      return title === "Diagram" ? [title, "More diagrams"] : [title];
+    });
     return sectionOrder
       .filter(function (title) {
         return byTitle.has(title);
@@ -919,6 +929,17 @@
           commands: byTitle.get(title),
         };
       });
+  }
+
+  function getVisualBlockDisplayCommands(commands, query, options) {
+    const sections = getVisualBlockCommandSections(commands, query, options);
+    const displayCommands = [];
+    sections.forEach(function (section) {
+      section.commands.forEach(function (command) {
+        displayCommands.push(command);
+      });
+    });
+    return displayCommands;
   }
 
   function getSlashQueryContext(value, selectionStart, selectionEnd) {
@@ -1094,6 +1115,7 @@
     getSlashQueryContext: getSlashQueryContext,
     getTemplateCursorRange: getTemplateCursorRange,
     getVisualBlockCommandById: getVisualBlockCommandById,
+    getVisualBlockDisplayCommands: getVisualBlockDisplayCommands,
     getVisualBlockCommandSections: getVisualBlockCommandSections,
     getVisualBlockCommands: getVisualBlockCommands,
     getVisualBlockMenuState: getVisualBlockMenuState,

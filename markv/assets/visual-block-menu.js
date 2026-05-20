@@ -6,6 +6,7 @@
 
   const MENU_ID = "visualBlockMenu";
   const ACTIVE_OPTION_ID = "visualBlockMenuActiveOption";
+  const MORE_DIAGRAMS_COMMAND_ID = "menu.more-diagrams";
   const MIRROR_PROPS = [
     "direction",
     "boxSizing",
@@ -53,7 +54,9 @@
     const mirror = document.createElement("div");
     let context = null;
     let commands = [];
+    let menuSections = [];
     let activeIndex = 0;
+    let advancedDiagramsExpanded = false;
     let suppressedSlashStart = null;
     let repositionRaf = 0;
 
@@ -128,7 +131,9 @@
       menu.hidden = true;
       context = null;
       commands = [];
+      menuSections = [];
       activeIndex = 0;
+      advancedDiagramsExpanded = false;
       clearEditorMenuAria();
     }
 
@@ -160,10 +165,104 @@
       return commands[activeIndex] ? commands[activeIndex].id : "";
     }
 
+    function queryHasText(query) {
+      if (typeof core.normalizeSearchValue === "function") {
+        return core.normalizeSearchValue(query).length > 0;
+      }
+      return String(query || "").trim().length > 0;
+    }
+
+    function isMoreDiagramsCommand(command) {
+      return Boolean(command && command.id === MORE_DIAGRAMS_COMMAND_ID);
+    }
+
+    function getAdvancedDiagramCommands() {
+      return core
+        .filterVisualBlockCommands("", { includeAdvanced: true })
+        .filter(function (command) {
+          return command.category === "Diagram" && command.advanced;
+        });
+    }
+
+    function createMoreDiagramsCommand() {
+      const count = getAdvancedDiagramCommands().length;
+      return {
+        id: MORE_DIAGRAMS_COMMAND_ID,
+        title: "More diagrams",
+        category: "Diagram",
+        description:
+          count > 0
+            ? "Show " + count + " additional diagram types."
+            : "Show additional diagram types.",
+      };
+    }
+
+    function flattenMenuSections(sections) {
+      const flat = [];
+      sections.forEach(function (section) {
+        section.commands.forEach(function (command) {
+          flat.push(command);
+        });
+      });
+      return flat;
+    }
+
+    function getMenuSections(rawCommands, query) {
+      const hasQuery = queryHasText(query);
+      let sourceCommands = rawCommands;
+      let sectionOptions = {};
+
+      if (!hasQuery && advancedDiagramsExpanded) {
+        sourceCommands = core.filterVisualBlockCommands("", {
+          includeAdvanced: true,
+        });
+        sectionOptions = { groupAdvancedDiagrams: true };
+      }
+
+      const sections = core.getVisualBlockCommandSections(
+        sourceCommands,
+        query,
+        sectionOptions,
+      );
+
+      if (!hasQuery && !advancedDiagramsExpanded) {
+        const advancedCount = getAdvancedDiagramCommands().length;
+        if (advancedCount > 0) {
+          const moreCommand = createMoreDiagramsCommand();
+          const diagramSection = sections.find(function (section) {
+            return section.title === "Diagram";
+          });
+          if (diagramSection) {
+            diagramSection.commands = diagramSection.commands.concat([
+              moreCommand,
+            ]);
+          } else {
+            sections.unshift({
+              title: "Diagram",
+              commands: [moreCommand],
+            });
+          }
+        }
+      }
+
+      return sections;
+    }
+
+    function setActiveCommandId(commandId) {
+      const nextIndex = commands.findIndex(function (command) {
+        return command.id === commandId;
+      });
+      if (nextIndex !== -1) {
+        setActiveIndex(nextIndex);
+      }
+    }
+
     function getCommandIconSvg(command) {
       const id = command && command.id ? command.id : "";
       const category = command && command.category ? command.category : "";
       const commandIcons = {
+        "menu.more-diagrams":
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"></path><path d="M5 12h10"></path><path d="M5 17h6"></path><path d="m16 15 2 2 2-2"></path></svg>',
         "diagram.flowchart":
           '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3.5h7v4.5h-7z"></path><path d="M12 8v2"></path><path d="m12 10 4 3.6-4 3.6-4-3.6z"></path><path d="M8 13.6H5.5v4.8h4.2"></path><path d="M16 13.6h2.5v4.8h-4.2"></path></svg>',
         "diagram.sequence":
@@ -243,12 +342,8 @@
         return;
       }
 
-      const sections = core.getVisualBlockCommandSections(
-        commands,
-        context ? context.query : "",
-      );
       let flatIndex = 0;
-      sections.forEach(function (section) {
+      menuSections.forEach(function (section) {
         const heading = document.createElement("div");
         heading.className = "visual-block-menu__section";
         heading.textContent = section.title;
@@ -260,6 +355,9 @@
           const title = document.createElement("div");
 
           row.className = "visual-block-menu__item";
+          if (isMoreDiagramsCommand(command)) {
+            row.classList.add("visual-block-menu__item--disclosure");
+          }
           row.setAttribute("role", "option");
           row.setAttribute(
             "aria-label",
@@ -333,6 +431,7 @@
 
     function showOrUpdateMenu() {
       const previousCommandId = getActiveCommandId();
+      const previousContext = context;
       const nextState = getCurrentMenuState();
       clearSuppressionIfContextChanged(nextState.context);
 
@@ -341,12 +440,30 @@
         return;
       }
 
+      if (!previousContext || previousContext.start !== nextState.context.start) {
+        advancedDiagramsExpanded = false;
+      }
+      if (queryHasText(nextState.context.query)) {
+        advancedDiagramsExpanded = false;
+      }
+
       context = nextState.context;
-      commands = nextState.commands;
+      menuSections = getMenuSections(nextState.commands, context.query);
+      commands = flattenMenuSections(menuSections);
+      let activeCommandId = previousCommandId;
+      if (
+        !activeCommandId ||
+        !commands.some(function (command) {
+          return command.id === activeCommandId;
+        })
+      ) {
+        activeCommandId =
+          nextState.commands[nextState.activeIndex || 0]?.id || "";
+      }
       activeIndex = Math.max(
         0,
         commands.findIndex(function (command) {
-          return command.id === previousCommandId;
+          return command.id === activeCommandId;
         }),
       );
       if (activeIndex >= commands.length) activeIndex = 0;
@@ -376,7 +493,15 @@
       }
     }
 
-    function replaceEditorRange(start, end, replacement, selectionStart, selectionEnd) {
+    function replaceEditorRange(
+      start,
+      end,
+      replacement,
+      selectionStart,
+      selectionEnd,
+      options,
+    ) {
+      const opts = options || {};
       const expected =
         editor.value.slice(0, start) + replacement + editor.value.slice(end);
       let ok = false;
@@ -393,9 +518,14 @@
         editor.setRangeText(replacement, start, end, "end");
       }
 
-      editor.setSelectionRange(selectionStart, selectionEnd);
+      editor.setSelectionRange(
+        opts.collapseSelection ? selectionEnd : selectionStart,
+        selectionEnd,
+      );
       editor.dispatchEvent(new Event("input", { bubbles: true }));
-      editor.dispatchEvent(new Event("select", { bubbles: true }));
+      if (!opts.suppressSelectEvent) {
+        editor.dispatchEvent(new Event("select", { bubbles: true }));
+      }
     }
 
     function insertCommand(command) {
@@ -416,7 +546,26 @@
         insertion.replacement,
         insertion.selectionStart,
         insertion.selectionEnd,
+        { collapseSelection: true, suppressSelectEvent: true },
       );
+    }
+
+    function expandAdvancedDiagrams() {
+      const firstAdvanced = getAdvancedDiagramCommands()[0];
+      advancedDiagramsExpanded = true;
+      showOrUpdateMenu();
+      if (firstAdvanced) {
+        setActiveCommandId(firstAdvanced.id);
+      }
+    }
+
+    function activateCommand(command) {
+      if (!command) return;
+      if (isMoreDiagramsCommand(command)) {
+        expandAdvancedDiagrams();
+        return;
+      }
+      insertCommand(command);
     }
 
     editor.addEventListener("input", showOrUpdateMenu);
@@ -458,7 +607,7 @@
       }
 
       if (next.action === "insert") {
-        insertCommand(commands[activeIndex]);
+        activateCommand(commands[activeIndex]);
       }
     });
 
@@ -466,10 +615,11 @@
       const item = event.target.closest(".visual-block-menu__item");
       if (!item) return;
       event.preventDefault();
+      event.stopPropagation();
       const index = Number(item.dataset.index);
       if (!Number.isFinite(index) || !commands[index]) return;
       activeIndex = index;
-      insertCommand(commands[index]);
+      activateCommand(commands[index]);
     });
 
     menu.addEventListener("mouseover", function (event) {

@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>markv · Markdown content, alive</title>
+    <style>
+      :root {
+        --bg: #fafaf7;
+        --ink: #1a1a1a;
+        --ink-light: #2a2a2a;
+        --muted: #6b6b6b;
+        --hint: #9c9c98;
+        --line: #e5e4df;
+        --line-soft: #ececec;
+        --accent: #b45309;
+        --accent-soft: rgba(180, 83, 9, 0.1);
+        --before: #f0f0eb;
+        --after: #fffbf5;
+        --node-bg: #ffffff;
+        --node-edge: #1f1f1f;
+        --edge-color: #1a1a1a;
+        --serif: ui-serif, "Iowan Old Style", Georgia, serif;
+        --sans: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 60px 24px 120px;
+      }
+
+      header { margin-bottom: 64px; text-align: center; }
+      header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin: 0 0 12px;
+        line-height: 1.2;
+      }
+      header p {
+        font-size: 16px;
+        color: var(--muted);
+        margin: 0 auto;
+        max-width: 620px;
+        line-height: 1.6;
+      }
+      header .pill {
+        display: inline-block;
+        margin-top: 16px;
+        padding: 4px 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        border-radius: 12px;
+      }
+
+      .feature { margin-bottom: 56px; }
+      .feature__num {
+        font-family: var(--sans);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .feature__title {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        margin: 0 0 8px;
+      }
+      .feature__sub {
+        font-size: 15px;
+        color: var(--muted);
+        margin: 0 0 12px;
+        line-height: 1.6;
+        max-width: 760px;
+      }
+
+      .source {
+        margin: 0 0 20px;
+        padding: 10px 14px;
+        background: #f4f4f2;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--ink-light);
+        line-height: 1.5;
+        overflow-x: auto;
+        max-width: 760px;
+      }
+      .source__label {
+        font-family: var(--sans);
+        font-size: 9.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+        margin-right: 6px;
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      @media (min-width: 800px) {
+        .compare { grid-template-columns: 1fr 1fr; }
+      }
+
+      .box {
+        border-radius: 10px;
+        padding: 16px 18px;
+        position: relative;
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+      }
+      .box.before { background: var(--before); border: 1px solid var(--line); }
+      .box.after { background: var(--after); border: 1px solid var(--accent-soft); }
+      .box__label {
+        font-family: var(--sans);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .box.after .box__label { color: var(--accent); }
+      .box__stage {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .play {
+        font-family: var(--sans);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .play:hover { background: #92400e; }
+
+      .why {
+        background: var(--bg);
+        border-left: 3px solid var(--accent);
+        padding: 8px 14px;
+        font-size: 14px;
+        color: var(--ink-light);
+        line-height: 1.55;
+        max-width: 760px;
+      }
+      .why strong {
+        color: var(--accent);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-right: 6px;
+      }
+
+      /* ============================================================
+         FEATURE 1 — Mermaid flowchart: nodes appear, edges draw
+         ============================================================ */
+      .mermaid-svg { width: 100%; max-width: 360px; height: 230px; }
+      .mermaid-svg .node-rect {
+        fill: var(--node-bg);
+        stroke: var(--node-edge);
+        stroke-width: 1.5;
+      }
+      .mermaid-svg .node-text {
+        font-family: var(--sans);
+        font-size: 12px;
+        fill: var(--ink);
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+      .mermaid-svg .edge {
+        fill: none;
+        stroke: var(--edge-color);
+        stroke-width: 1.5;
+      }
+      .mermaid-svg .arrow-head {
+        fill: var(--edge-color);
+      }
+
+      /* Animated version */
+      .mermaid-svg.animated .node {
+        opacity: 0;
+        transform-origin: center;
+        transform: scale(0.9);
+      }
+      .mermaid-svg.animated .edge {
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+      }
+      .mermaid-svg.animated .arrow-head { opacity: 0; }
+      .mermaid-svg.animated.is-playing .node {
+        animation: node-in 350ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      .mermaid-svg.animated.is-playing .edge {
+        animation: draw 600ms ease-out forwards;
+      }
+      .mermaid-svg.animated.is-playing .arrow-head {
+        animation: fade-in 200ms ease forwards;
+      }
+      .mermaid-svg.animated.is-playing .node:nth-of-type(1) { animation-delay: 0ms; }
+      .mermaid-svg.animated.is-playing .node:nth-of-type(2) { animation-delay: 200ms; }
+      .mermaid-svg.animated.is-playing .node:nth-of-type(3) { animation-delay: 400ms; }
+      .mermaid-svg.animated.is-playing .node:nth-of-type(4) { animation-delay: 600ms; }
+      .mermaid-svg.animated.is-playing .edge:nth-of-type(1) { animation-delay: 350ms; }
+      .mermaid-svg.animated.is-playing .edge:nth-of-type(2) { animation-delay: 550ms; }
+      .mermaid-svg.animated.is-playing .edge:nth-of-type(3) { animation-delay: 750ms; }
+      .mermaid-svg.animated.is-playing .arrow-head:nth-of-type(1) { animation-delay: 950ms; }
+      .mermaid-svg.animated.is-playing .arrow-head:nth-of-type(2) { animation-delay: 1150ms; }
+      .mermaid-svg.animated.is-playing .arrow-head:nth-of-type(3) { animation-delay: 1350ms; }
+      @keyframes node-in {
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes draw {
+        to { stroke-dashoffset: 0; }
+      }
+      @keyframes fade-in {
+        to { opacity: 1; }
+      }
+
+      /* ============================================================
+         FEATURE 2 — Sequence diagram: messages animate in order
+         ============================================================ */
+      .seq-svg { width: 100%; max-width: 400px; height: 240px; }
+      .seq-svg .actor-rect {
+        fill: var(--node-bg);
+        stroke: var(--node-edge);
+        stroke-width: 1.5;
+      }
+      .seq-svg .actor-text {
+        font-family: var(--sans);
+        font-size: 11px;
+        font-weight: 600;
+        fill: var(--ink);
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+      .seq-svg .lifeline {
+        stroke: var(--muted);
+        stroke-width: 1;
+        stroke-dasharray: 3 3;
+      }
+      .seq-svg .msg-line {
+        stroke: var(--edge-color);
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .seq-svg .msg-arrow { fill: var(--edge-color); }
+      .seq-svg .msg-label {
+        font-family: var(--sans);
+        font-size: 10px;
+        fill: var(--ink-light);
+        text-anchor: middle;
+      }
+
+      .seq-svg.animated .msg {
+        opacity: 0;
+      }
+      .seq-svg.animated .msg .msg-line {
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+      }
+      .seq-svg.animated.is-playing .msg {
+        animation: fade-in 200ms ease forwards;
+      }
+      .seq-svg.animated.is-playing .msg .msg-line {
+        animation: draw 400ms ease-out forwards;
+      }
+      .seq-svg.animated.is-playing .msg:nth-of-type(1),
+      .seq-svg.animated.is-playing .msg:nth-of-type(1) .msg-line { animation-delay: 0ms; }
+      .seq-svg.animated.is-playing .msg:nth-of-type(2),
+      .seq-svg.animated.is-playing .msg:nth-of-type(2) .msg-line { animation-delay: 600ms; }
+      .seq-svg.animated.is-playing .msg:nth-of-type(3),
+      .seq-svg.animated.is-playing .msg:nth-of-type(3) .msg-line { animation-delay: 1200ms; }
+
+      /* ============================================================
+         FEATURE 3 — Heading with accent line drawing under
+         ============================================================ */
+      .heading-demo {
+        font-family: var(--serif);
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0 0 12px;
+        color: var(--ink);
+        position: relative;
+        padding-bottom: 6px;
+        display: inline-block;
+      }
+      .heading-demo::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 2px;
+        background: var(--accent);
+      }
+      .heading-static::after { width: 100%; }
+      .heading-animated::after {
+        width: 0;
+        transition: width 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 200ms;
+      }
+      .heading-animated.is-playing::after { width: 100%; }
+      .heading-body {
+        font-family: var(--serif);
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--ink-light);
+        margin: 8px 0 0;
+        max-width: 320px;
+      }
+
+      /* ============================================================
+         FEATURE 4 — Bar chart from data block, bars grow on entry
+         ============================================================ */
+      .chart-row {
+        display: grid;
+        grid-template-columns: 80px 1fr 40px;
+        gap: 10px;
+        align-items: center;
+        margin: 8px 0;
+        font-family: var(--sans);
+        font-size: 12px;
+      }
+      .chart-label { color: var(--muted); }
+      .chart-bar-wrap {
+        height: 18px;
+        background: var(--line-soft);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .chart-bar {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 4px;
+      }
+      .chart-static .chart-bar[data-value="80"] { width: 80%; }
+      .chart-static .chart-bar[data-value="60"] { width: 60%; }
+      .chart-static .chart-bar[data-value="45"] { width: 45%; }
+      .chart-static .chart-bar[data-value="30"] { width: 30%; }
+
+      .chart-animated .chart-bar { width: 0%; transition: width 900ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+      .chart-animated.is-playing .chart-bar[data-value="80"] { width: 80%; }
+      .chart-animated.is-playing .chart-bar[data-value="60"] { width: 60%; transition-delay: 80ms; }
+      .chart-animated.is-playing .chart-bar[data-value="45"] { width: 45%; transition-delay: 160ms; }
+      .chart-animated.is-playing .chart-bar[data-value="30"] { width: 30%; transition-delay: 240ms; }
+
+      .chart-value {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .conclusion {
+        background: var(--ink);
+        color: var(--bg);
+        padding: 28px 32px;
+        border-radius: 14px;
+        margin-top: 40px;
+      }
+      .conclusion h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 10px;
+        letter-spacing: -0.005em;
+      }
+      .conclusion p {
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.78);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Markdown content, alive</h1>
+        <p>
+          The markdown source stays plain text. What changes is how it
+          renders. Diagrams draw themselves, charts grow into view,
+          headings stroke in their accent line. Every example below shows
+          the markdown source, then the static rendering, then the
+          rendering with motion.
+        </p>
+        <span class="pill">Content-level motion · not chrome</span>
+      </header>
+
+      <!-- ============================================================ -->
+      <!-- 1. MERMAID FLOWCHART -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">01</div>
+        <h2 class="feature__title">Mermaid flowcharts that draw themselves</h2>
+        <p class="feature__sub">
+          Your example. Nodes fade in first, then edges draw between
+          them in sequence — like watching someone explain the diagram
+          on a whiteboard. The flow becomes visible motion.
+        </p>
+
+        <div class="source">
+          <span class="source__label">Markdown</span>
+          <code>```mermaid<br>graph TD<br>&nbsp;&nbsp;A[Editor] --&gt; B[Parser]<br>&nbsp;&nbsp;B --&gt; C[Renderer]<br>&nbsp;&nbsp;C --&gt; D[Preview]<br>```</code>
+        </div>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Static</div>
+            <div class="box__stage">
+              <svg class="mermaid-svg" viewBox="0 0 360 230">
+                <g class="node"><rect class="node-rect" x="120" y="10" width="120" height="34" rx="4" /><text class="node-text" x="180" y="27">Editor</text></g>
+                <g class="node"><rect class="node-rect" x="120" y="74" width="120" height="34" rx="4" /><text class="node-text" x="180" y="91">Parser</text></g>
+                <g class="node"><rect class="node-rect" x="120" y="138" width="120" height="34" rx="4" /><text class="node-text" x="180" y="155">Renderer</text></g>
+                <g class="node"><rect class="node-rect" x="120" y="195" width="120" height="34" rx="4" /><text class="node-text" x="180" y="212">Preview</text></g>
+                <path class="edge" d="M 180 44 L 180 74" />
+                <path class="edge" d="M 180 108 L 180 138" />
+                <path class="edge" d="M 180 172 L 180 195" />
+                <path class="arrow-head" d="M 180 72 L 176 66 L 184 66 Z" />
+                <path class="arrow-head" d="M 180 136 L 176 130 L 184 130 Z" />
+                <path class="arrow-head" d="M 180 193 L 176 187 L 184 187 Z" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">
+              With motion
+              <button class="play" data-target="m1">▶ Replay</button>
+            </div>
+            <div class="box__stage">
+              <svg class="mermaid-svg animated" id="m1" viewBox="0 0 360 230">
+                <g class="node"><rect class="node-rect" x="120" y="10" width="120" height="34" rx="4" /><text class="node-text" x="180" y="27">Editor</text></g>
+                <g class="node"><rect class="node-rect" x="120" y="74" width="120" height="34" rx="4" /><text class="node-text" x="180" y="91">Parser</text></g>
+                <g class="node"><rect class="node-rect" x="120" y="138" width="120" height="34" rx="4" /><text class="node-text" x="180" y="155">Renderer</text></g>
+                <g class="node"><rect class="node-rect" x="120" y="195" width="120" height="34" rx="4" /><text class="node-text" x="180" y="212">Preview</text></g>
+                <path class="edge" d="M 180 44 L 180 74" />
+                <path class="edge" d="M 180 108 L 180 138" />
+                <path class="edge" d="M 180 172 L 180 195" />
+                <path class="arrow-head" d="M 180 72 L 176 66 L 184 66 Z" />
+                <path class="arrow-head" d="M 180 136 L 176 130 L 184 130 Z" />
+                <path class="arrow-head" d="M 180 193 L 176 187 L 184 187 Z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> A static flowchart is a snapshot — you
+          read labels to figure out the direction. An animated one tells
+          you the direction in two seconds, before you read a single
+          label. Same markdown source; vastly more communication.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 2. SEQUENCE DIAGRAM -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">02</div>
+        <h2 class="feature__title">Sequence diagrams that play their messages in order</h2>
+        <p class="feature__sub">
+          Lifelines appear first. Then each message flies between actors
+          in the order it happens. The temporal flow becomes literal.
+        </p>
+
+        <div class="source">
+          <span class="source__label">Markdown</span>
+          <code>```mermaid<br>sequenceDiagram<br>&nbsp;&nbsp;User-&gt;&gt;App: Open file<br>&nbsp;&nbsp;App-&gt;&gt;Parser: Parse<br>&nbsp;&nbsp;Parser--&gt;&gt;App: AST<br>```</code>
+        </div>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Static</div>
+            <div class="box__stage">
+              <svg class="seq-svg" viewBox="0 0 400 240">
+                <g><rect class="actor-rect" x="20" y="10" width="80" height="28" rx="4" /><text class="actor-text" x="60" y="24">User</text></g>
+                <g><rect class="actor-rect" x="160" y="10" width="80" height="28" rx="4" /><text class="actor-text" x="200" y="24">App</text></g>
+                <g><rect class="actor-rect" x="300" y="10" width="80" height="28" rx="4" /><text class="actor-text" x="340" y="24">Parser</text></g>
+                <line class="lifeline" x1="60" y1="44" x2="60" y2="230" />
+                <line class="lifeline" x1="200" y1="44" x2="200" y2="230" />
+                <line class="lifeline" x1="340" y1="44" x2="340" y2="230" />
+                <g class="msg">
+                  <line class="msg-line" x1="60" y1="80" x2="196" y2="80" />
+                  <path class="msg-arrow" d="M 200 80 L 192 76 L 192 84 Z" />
+                  <text class="msg-label" x="130" y="74">Open file</text>
+                </g>
+                <g class="msg">
+                  <line class="msg-line" x1="200" y1="130" x2="336" y2="130" />
+                  <path class="msg-arrow" d="M 340 130 L 332 126 L 332 134 Z" />
+                  <text class="msg-label" x="270" y="124">Parse</text>
+                </g>
+                <g class="msg">
+                  <line class="msg-line" x1="340" y1="180" x2="204" y2="180" stroke-dasharray="4 3" />
+                  <path class="msg-arrow" d="M 200 180 L 208 176 L 208 184 Z" />
+                  <text class="msg-label" x="270" y="174">AST</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">
+              With motion
+              <button class="play" data-target="s1">▶ Replay</button>
+            </div>
+            <div class="box__stage">
+              <svg class="seq-svg animated" id="s1" viewBox="0 0 400 240">
+                <g><rect class="actor-rect" x="20" y="10" width="80" height="28" rx="4" /><text class="actor-text" x="60" y="24">User</text></g>
+                <g><rect class="actor-rect" x="160" y="10" width="80" height="28" rx="4" /><text class="actor-text" x="200" y="24">App</text></g>
+                <g><rect class="actor-rect" x="300" y="10" width="80" height="28" rx="4" /><text class="actor-text" x="340" y="24">Parser</text></g>
+                <line class="lifeline" x1="60" y1="44" x2="60" y2="230" />
+                <line class="lifeline" x1="200" y1="44" x2="200" y2="230" />
+                <line class="lifeline" x1="340" y1="44" x2="340" y2="230" />
+                <g class="msg">
+                  <line class="msg-line" x1="60" y1="80" x2="196" y2="80" />
+                  <path class="msg-arrow" d="M 200 80 L 192 76 L 192 84 Z" />
+                  <text class="msg-label" x="130" y="74">Open file</text>
+                </g>
+                <g class="msg">
+                  <line class="msg-line" x1="200" y1="130" x2="336" y2="130" />
+                  <path class="msg-arrow" d="M 340 130 L 332 126 L 332 134 Z" />
+                  <text class="msg-label" x="270" y="124">Parse</text>
+                </g>
+                <g class="msg">
+                  <line class="msg-line" x1="340" y1="180" x2="204" y2="180" stroke-dasharray="4 3" />
+                  <path class="msg-arrow" d="M 200 180 L 208 176 L 208 184 Z" />
+                  <text class="msg-label" x="270" y="174">AST</text>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> Sequence diagrams are inherently about
+          time. Drawing them all at once hides their best feature.
+          Playing them in order is the diagram explaining itself.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 3. HEADING ACCENT -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">03</div>
+        <h2 class="feature__title">Headings whose accent line draws itself in</h2>
+        <p class="feature__sub">
+          When a heading scrolls into view, a thin accent under it
+          strokes from left to right. Quiet signal that says &ldquo;new
+          section.&rdquo;
+        </p>
+
+        <div class="source">
+          <span class="source__label">Markdown</span>
+          <code>## The compiler is not a magic box</code>
+        </div>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Static</div>
+            <div class="box__stage" style="align-items: flex-start; padding-top: 10px">
+              <div>
+                <div class="heading-demo heading-static">
+                  The compiler is not a magic box
+                </div>
+                <p class="heading-body">
+                  It reads your code, checks the rules, and produces a
+                  smaller version. Nothing more.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">
+              With motion
+              <button class="play" data-target="h1">▶ Replay</button>
+            </div>
+            <div class="box__stage" style="align-items: flex-start; padding-top: 10px">
+              <div>
+                <div class="heading-demo heading-animated" id="h1">
+                  The compiler is not a magic box
+                </div>
+                <p class="heading-body">
+                  It reads your code, checks the rules, and produces a
+                  smaller version. Nothing more.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> The eye registers the line being drawn
+          unconsciously. It signals &ldquo;something starts here&rdquo;
+          without shouting. Multiply by twenty headings in a long
+          document and reading feels less monotone.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 4. CHART FROM DATA BLOCK -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">04</div>
+        <h2 class="feature__title">Charts from data blocks, bars growing into view</h2>
+        <p class="feature__sub">
+          A code fence labeled <code style="font-family: var(--mono); font-size: 12.5px; background: var(--before); padding: 1px 4px; border-radius: 3px">```chart</code>
+          renders as a chart. Bars grow from zero to their final value
+          when scrolled into view — same as the animation web designers
+          use for "team values" sections, but in your markdown.
+        </p>
+
+        <div class="source">
+          <span class="source__label">Markdown</span>
+          <code>```chart bar<br>Markdown,80<br>HTML,60<br>PDF,45<br>Other,30<br>```</code>
+        </div>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Static</div>
+            <div class="box__stage" style="align-items: stretch; padding: 12px">
+              <div class="chart-static" style="width: 100%; align-self: center">
+                <div class="chart-row"><span class="chart-label">Markdown</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="80"></div></div><span class="chart-value">80</span></div>
+                <div class="chart-row"><span class="chart-label">HTML</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="60"></div></div><span class="chart-value">60</span></div>
+                <div class="chart-row"><span class="chart-label">PDF</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="45"></div></div><span class="chart-value">45</span></div>
+                <div class="chart-row"><span class="chart-label">Other</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="30"></div></div><span class="chart-value">30</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">
+              With motion
+              <button class="play" data-target="c1">▶ Replay</button>
+            </div>
+            <div class="box__stage" style="align-items: stretch; padding: 12px">
+              <div class="chart-animated" id="c1" style="width: 100%; align-self: center">
+                <div class="chart-row"><span class="chart-label">Markdown</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="80"></div></div><span class="chart-value">80</span></div>
+                <div class="chart-row"><span class="chart-label">HTML</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="60"></div></div><span class="chart-value">60</span></div>
+                <div class="chart-row"><span class="chart-label">PDF</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="45"></div></div><span class="chart-value">45</span></div>
+                <div class="chart-row"><span class="chart-label">Other</span><div class="chart-bar-wrap"><div class="chart-bar" data-value="30"></div></div><span class="chart-value">30</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> Bars growing communicates &ldquo;here is
+          some data&rdquo; more strongly than bars already at their
+          values. The eye watches the motion, then the numbers settle in
+          memory. Two seconds of animation; long-term retention boost.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- CONCLUSION -->
+      <!-- ============================================================ -->
+      <div class="conclusion">
+        <h2>The thesis</h2>
+        <p>
+          Your markdown source stays plain text — three backticks for
+          mermaid, three backticks for chart, two hashes for a heading.
+          What markv does on render is make those elements arrive with
+          motion instead of slamming into place. Same portable
+          markdown. A document that feels alive.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        function play(target) {
+          target.classList.remove("is-playing");
+          void target.offsetWidth;
+          target.classList.add("is-playing");
+        }
+
+        // Manual replay buttons
+        document.querySelectorAll(".play[data-target]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const t = document.getElementById(btn.dataset.target);
+            if (t) play(t);
+          });
+        });
+
+        // Auto-play on scroll into view
+        if ("IntersectionObserver" in window) {
+          const io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting && !e.target.dataset.played) {
+                e.target.dataset.played = "1";
+                play(e.target);
+              }
+            });
+          }, { threshold: 0.4 });
+          document.querySelectorAll("[id^='m'], [id^='s'], [id^='h'], [id^='c']").forEach(function (el) {
+            if (/^[mshc]\d+$/.test(el.id)) io.observe(el);
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

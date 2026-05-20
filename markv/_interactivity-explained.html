@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>markv · Interactivity, explained simply</title>
+    <style>
+      :root {
+        --bg: #fafaf7;
+        --ink: #1a1a1a;
+        --ink-light: #2a2a2a;
+        --muted: #6b6b6b;
+        --hint: #9c9c98;
+        --line: #e5e4df;
+        --line-soft: #ececec;
+        --accent: #b45309;
+        --accent-soft: rgba(180, 83, 9, 0.1);
+        --before: #f0f0eb;
+        --after: #fffbf5;
+        --success: #10b981;
+        --serif: ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif;
+        --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 60px 24px 120px;
+      }
+
+      header {
+        margin-bottom: 64px;
+        text-align: center;
+      }
+      header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin: 0 0 12px;
+        line-height: 1.2;
+      }
+      header p {
+        font-size: 16px;
+        color: var(--muted);
+        margin: 0 auto;
+        max-width: 580px;
+        line-height: 1.6;
+      }
+
+      .feature {
+        margin-bottom: 56px;
+      }
+      .feature__num {
+        font-family: var(--sans);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .feature__title {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        margin: 0 0 8px;
+      }
+      .feature__sub {
+        font-size: 15px;
+        color: var(--muted);
+        margin: 0 0 20px;
+        line-height: 1.6;
+        max-width: 720px;
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      @media (min-width: 720px) {
+        .compare { grid-template-columns: 1fr 1fr; }
+      }
+
+      .box {
+        border-radius: 10px;
+        padding: 16px 18px 18px;
+        position: relative;
+        min-height: 200px;
+      }
+      .box.before {
+        background: var(--before);
+        border: 1px solid var(--line);
+      }
+      .box.after {
+        background: var(--after);
+        border: 1px solid var(--accent-soft);
+      }
+      .box__label {
+        font-family: var(--sans);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .box.after .box__label { color: var(--accent); }
+
+      .play {
+        font-family: var(--sans);
+        font-size: 10.5px;
+        font-weight: 600;
+        padding: 3px 8px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .play:hover { background: #92400e; }
+
+      .why {
+        background: var(--bg);
+        border-left: 3px solid var(--accent);
+        padding: 8px 14px;
+        font-size: 14px;
+        color: var(--ink-light);
+        line-height: 1.55;
+        max-width: 720px;
+      }
+      .why strong {
+        color: var(--accent);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-right: 6px;
+      }
+
+      /* ============================================================
+         FEATURE 1 — Stagger reveal (paragraphs appearing one by one)
+         ============================================================ */
+      .demo-p {
+        font-family: var(--serif);
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0 0 10px;
+        color: var(--ink-light);
+      }
+      .demo-p:last-child { margin-bottom: 0; }
+
+      .stagger-target .demo-p {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      .stagger-target.is-playing .demo-p {
+        animation: stagger 600ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+      }
+      .stagger-target.is-playing .demo-p:nth-child(1) { animation-delay: 0ms; }
+      .stagger-target.is-playing .demo-p:nth-child(2) { animation-delay: 100ms; }
+      .stagger-target.is-playing .demo-p:nth-child(3) { animation-delay: 200ms; }
+      .stagger-target.is-playing .demo-p:nth-child(4) { animation-delay: 300ms; }
+      @keyframes stagger {
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .stagger-target.is-resting .demo-p { opacity: 1; transform: none; }
+
+      /* ============================================================
+         FEATURE 2 — Focus while reading
+         ============================================================ */
+      .focus-demo .demo-p {
+        transition: opacity 220ms ease, filter 220ms ease;
+        cursor: default;
+      }
+      .focus-demo:hover .demo-p {
+        opacity: 0.25;
+        filter: blur(0.4px);
+      }
+      .focus-demo .demo-p:hover {
+        opacity: 1;
+        filter: none;
+      }
+
+      /* ============================================================
+         FEATURE 3 — Sidenotes
+         ============================================================ */
+      .sidenote-demo {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .sidenote-demo .demo-p { margin: 0; }
+      .sidenote-ref {
+        display: inline-block;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-family: var(--sans);
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 0 4px;
+        border-radius: 3px;
+        cursor: help;
+        vertical-align: super;
+        line-height: 1;
+      }
+      .sidenote-ref:hover { background: var(--accent); color: white; }
+      .sidenote-margin {
+        font-family: var(--sans);
+        font-size: 11px;
+        line-height: 1.5;
+        color: var(--muted);
+        padding-left: 10px;
+        border-left: 2px solid var(--line);
+        opacity: 0.4;
+        transition: opacity 200ms ease;
+      }
+      .sidenote-demo:hover .sidenote-margin { opacity: 1; }
+
+      .footnote {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 16px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+        font-family: var(--serif);
+      }
+      .footnote-mark {
+        color: var(--accent);
+        font-weight: 700;
+        font-family: var(--sans);
+        font-size: 10px;
+        vertical-align: super;
+      }
+
+      /* ============================================================
+         FEATURE 4 — Callouts
+         ============================================================ */
+      .plain-note {
+        font-family: var(--serif);
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--ink-light);
+      }
+      .plain-note strong { font-weight: 600; }
+
+      .callout {
+        margin: 10px 0 0;
+        padding: 12px 14px 12px 42px;
+        border-radius: 8px;
+        position: relative;
+        font-family: var(--serif);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .callout:first-child { margin-top: 0; }
+      .callout::before {
+        position: absolute;
+        left: 14px;
+        top: 12px;
+        font-family: var(--sans);
+        font-size: 14px;
+      }
+      .callout.warn {
+        background: rgba(217, 119, 6, 0.08);
+        border-left: 3px solid #d97706;
+        color: var(--ink);
+      }
+      .callout.warn::before { content: "▲"; color: #d97706; }
+      .callout.tip {
+        background: rgba(15, 118, 110, 0.08);
+        border-left: 3px solid #0f766e;
+        color: var(--ink);
+      }
+      .callout.tip::before { content: "ℹ"; color: #0f766e; }
+
+      /* ============================================================
+         FEATURE 5 — Code with copy
+         ============================================================ */
+      .code-block {
+        background: #1a1a1a;
+        border-radius: 8px;
+        overflow: hidden;
+        font-family: var(--mono);
+      }
+      .code-block__bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 12px;
+        background: #262625;
+        font-family: var(--sans);
+        font-size: 10px;
+        color: #a1a19e;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+      }
+      .code-block__copy {
+        font-family: var(--sans);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        background: transparent;
+        color: #a1a19e;
+        border: 1px solid #40403e;
+        border-radius: 4px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        transition: all 150ms ease;
+      }
+      .code-block__copy:hover {
+        background: #40403e;
+        color: #fafaf7;
+      }
+      .code-block__copy.is-copied {
+        background: var(--success);
+        color: white;
+        border-color: var(--success);
+      }
+      .code-block pre {
+        margin: 0;
+        padding: 12px 14px;
+        font-size: 12.5px;
+        color: #e8e8e5;
+        line-height: 1.55;
+        overflow-x: auto;
+      }
+      .code-block .kw { color: #f9a8d4; }
+      .code-block .str { color: #86efac; }
+
+      /* ============================================================
+         FEATURE 6 — Reading progress
+         ============================================================ */
+      .scroll-demo {
+        height: 200px;
+        overflow-y: auto;
+        position: relative;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+      }
+      .scroll-demo__progress {
+        position: sticky;
+        top: 0;
+        height: 3px;
+        background: var(--line-soft);
+      }
+      .scroll-demo__progress::before {
+        content: "";
+        display: block;
+        height: 100%;
+        background: var(--accent);
+        width: var(--p, 0%);
+        transition: width 80ms linear;
+      }
+      .scroll-demo__content {
+        padding: 14px 16px;
+        font-family: var(--serif);
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--ink-light);
+      }
+      .scroll-demo__content p {
+        margin: 0 0 10px;
+      }
+
+      .conclusion {
+        background: var(--ink);
+        color: var(--bg);
+        padding: 28px 32px;
+        border-radius: 14px;
+        margin-top: 32px;
+      }
+      .conclusion h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 10px;
+        letter-spacing: -0.005em;
+      }
+      .conclusion p {
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.78);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>What we mean by &ldquo;interactivity&rdquo;</h1>
+        <p>
+          Six small things that change a markdown document from a static
+          page to a place to read. Each one shown side-by-side: how it
+          looks without the feature, and how it looks with it.
+        </p>
+      </header>
+
+      <!-- ============================================================ -->
+      <!-- 1. STAGGER REVEAL -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">01</div>
+        <h2 class="feature__title">Paragraphs appear one by one</h2>
+        <p class="feature__sub">
+          Instead of the whole document slamming into view at once, the
+          paragraphs cascade in &mdash; each one starts about 100ms after
+          the previous. Subtle, but it gives your eye a path to follow.
+        </p>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Without &mdash; everything at once</div>
+            <div class="stagger-static">
+              <p class="demo-p">
+                The compiler is not a magic box. It reads your code,
+                checks the rules, and produces a smaller version.
+              </p>
+              <p class="demo-p">
+                Most errors come from misunderstanding what the compiler
+                is allowed to assume.
+              </p>
+              <p class="demo-p">
+                When in doubt, read the error message twice.
+              </p>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">
+              With &mdash; paragraphs cascade in
+              <button class="play" data-target="stagger1">▶ Play</button>
+            </div>
+            <div class="stagger-target is-resting" id="stagger1">
+              <p class="demo-p">
+                The compiler is not a magic box. It reads your code,
+                checks the rules, and produces a smaller version.
+              </p>
+              <p class="demo-p">
+                Most errors come from misunderstanding what the compiler
+                is allowed to assume.
+              </p>
+              <p class="demo-p">
+                When in doubt, read the error message twice.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> When everything appears simultaneously, your
+          eye doesn&rsquo;t know where to start. When paragraphs arrive in
+          sequence, your eye follows naturally. You notice the effect on
+          day one, forget it by week two &mdash; but you&rsquo;d miss it
+          if it were gone.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 2. FOCUS WHILE READING -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">02</div>
+        <h2 class="feature__title">The paragraph you&rsquo;re reading stays bright</h2>
+        <p class="feature__sub">
+          The other paragraphs fade gently so they don&rsquo;t compete for
+          your attention. Hover over each paragraph in the right-hand box
+          to feel it.
+        </p>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Without &mdash; all equally lit</div>
+            <p class="demo-p">
+              Reading is not just decoding letters; it is also choosing
+              what to look at.
+            </p>
+            <p class="demo-p">
+              On a long page with many paragraphs, the eye tires from
+              constant choice.
+            </p>
+            <p class="demo-p">
+              Anything that reduces that choice without removing context
+              earns its place.
+            </p>
+          </div>
+
+          <div class="box after focus-demo">
+            <div class="box__label">With &mdash; hover any line</div>
+            <p class="demo-p">
+              Reading is not just decoding letters; it is also choosing
+              what to look at.
+            </p>
+            <p class="demo-p">
+              On a long page with many paragraphs, the eye tires from
+              constant choice.
+            </p>
+            <p class="demo-p">
+              Anything that reduces that choice without removing context
+              earns its place.
+            </p>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> On long documents you can lose your place.
+          Dimming the surroundings gives your eye a quiet zone &mdash;
+          like a spotlight, but for prose. In the real app this triggers
+          on scroll, not hover.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 3. SIDENOTES -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">03</div>
+        <h2 class="feature__title">Notes appear in the margin, not at the bottom</h2>
+        <p class="feature__sub">
+          A footnote-style reference (the small 1) is followed not by a
+          jump to the end of the page, but by a note in the right margin
+          right next to where you are.
+        </p>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Without &mdash; footnote at bottom</div>
+            <p class="demo-p">
+              Markdown was designed to be readable as plain text<span class="footnote-mark">1</span>.
+              It is the lowest-friction writing format that has ever
+              existed.
+            </p>
+            <p class="demo-p">
+              You have to scroll down to read the footnote &mdash; losing
+              your place each time.
+            </p>
+            <div class="footnote">
+              <span class="footnote-mark">1</span>
+              John Gruber, 2004. The original spec is still under 1,000 words.
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">With &mdash; note in the side margin</div>
+            <div class="sidenote-demo">
+              <div>
+                <p class="demo-p">
+                  Markdown was designed to be readable as plain text<span class="sidenote-ref">1</span>.
+                  It is the lowest-friction writing format that has ever
+                  existed.
+                </p>
+                <p class="demo-p" style="margin-top: 10px">
+                  The note is right there &mdash; you don&rsquo;t lose
+                  your place.
+                </p>
+              </div>
+              <div class="sidenote-margin">
+                <strong style="color: var(--accent)">1.</strong> John
+                Gruber, 2004. The original spec is still under 1,000
+                words.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> Footnotes are an old solution to a paper
+          problem (the page is bound; the note has to go somewhere
+          fixed). On screen, the margin is free real estate. The note
+          arrives without taking you away from the sentence.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 4. CALLOUTS -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">04</div>
+        <h2 class="feature__title">Tips, warnings, and notes look different from regular text</h2>
+        <p class="feature__sub">
+          Instead of being buried in prose with a bold &ldquo;Note:&rdquo;
+          prefix, they get a colored box and an icon so the reader spots
+          them at a glance.
+        </p>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Without &mdash; buried in text</div>
+            <p class="plain-note">
+              <strong>Warning:</strong> Make sure to back up your
+              database before running this migration. It cannot be
+              undone without a restore.
+            </p>
+            <p class="plain-note" style="margin-top: 10px">
+              <strong>Tip:</strong> You can preview the migration with
+              the <code style="font-family: var(--mono); font-size: 13px; background: var(--before)">--dry-run</code>
+              flag.
+            </p>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">With &mdash; colored boxes</div>
+            <div class="callout warn">
+              <strong>Warning</strong> &middot; Make sure to back up your
+              database before running this migration. It cannot be
+              undone without a restore.
+            </div>
+            <div class="callout tip">
+              <strong>Tip</strong> &middot; You can preview the
+              migration with the <code style="font-family: var(--mono); font-size: 13px">--dry-run</code>
+              flag.
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> Different kinds of information should look
+          different. A warning in plain prose disappears; a warning in a
+          colored box gets the right amount of attention &mdash; without
+          shouting.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 5. CODE COPY BUTTON -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">05</div>
+        <h2 class="feature__title">Code blocks have a copy button</h2>
+        <p class="feature__sub">
+          Click &ldquo;Copy&rdquo; on the right-hand block. It turns
+          green for a moment. One click instead of select-and-copy.
+        </p>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Without &mdash; highlight to copy</div>
+            <div class="code-block">
+              <div class="code-block__bar"><span>bash</span></div>
+              <pre><span class="kw">$</span> npm install &amp;&amp; npm run build</pre>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">With &mdash; one-click copy</div>
+            <div class="code-block">
+              <div class="code-block__bar">
+                <span>bash</span>
+                <button class="code-block__copy" data-code="npm install && npm run build">
+                  Copy
+                </button>
+              </div>
+              <pre><span class="kw">$</span> npm install &amp;&amp; npm run build</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> If your document has commands, examples,
+          or snippets, copying them is the main thing readers will do.
+          Saving three keystrokes per copy adds up across a long
+          document.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- 6. READING PROGRESS -->
+      <!-- ============================================================ -->
+      <section class="feature">
+        <div class="feature__num">06</div>
+        <h2 class="feature__title">A thin bar shows how far through you are</h2>
+        <p class="feature__sub">
+          As you scroll, a thin line at the top fills. Scroll inside the
+          right-hand box to see it move.
+        </p>
+
+        <div class="compare">
+          <div class="box before">
+            <div class="box__label">Without &mdash; no indicator</div>
+            <div class="scroll-demo">
+              <div class="scroll-demo__content">
+                <p>The pace of reading is not the pace of writing.</p>
+                <p>A page that takes ten minutes to write may take thirty seconds to read.</p>
+                <p>Without an indicator, the reader has no sense of pacing.</p>
+                <p>This makes long documents feel longer than they are.</p>
+                <p>Anxiety creeps in: am I almost done? How much more?</p>
+                <p>The mind starts skimming.</p>
+                <p>You arrive at the end and don&rsquo;t remember the middle.</p>
+                <p>A progress indicator solves all of this with three pixels of height.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="box after">
+            <div class="box__label">With &mdash; progress at the top</div>
+            <div class="scroll-demo" id="scrollDemo">
+              <div class="scroll-demo__progress"></div>
+              <div class="scroll-demo__content">
+                <p>The pace of reading is not the pace of writing.</p>
+                <p>A page that takes ten minutes to write may take thirty seconds to read.</p>
+                <p>With an indicator, the reader pacings themselves.</p>
+                <p>You always know what fraction is left.</p>
+                <p>Anxiety drops. The mind relaxes into the prose.</p>
+                <p>You arrive at the end having actually read the middle.</p>
+                <p>Three pixels of height. Huge perceived difference.</p>
+                <p>The same trick works for chapters, sections, or whole books.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="why">
+          <strong>Why</strong> Like a film&rsquo;s runtime indicator,
+          knowing &ldquo;I&rsquo;m a third through&rdquo; helps you pace
+          yourself. Without it, long documents feel infinite.
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- CONCLUSION -->
+      <!-- ============================================================ -->
+      <div class="conclusion">
+        <h2>That&rsquo;s the whole idea.</h2>
+        <p>
+          Six small things. Each one fewer than fifty lines of code. The
+          markdown source you write stays plain text &mdash; portable,
+          diffable, future-proof. What changes is how it&rsquo;s
+          rendered. The reader gets a document that feels like a place;
+          you still have plain text underneath. That&rsquo;s the
+          synthesis.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // Play stagger animation
+        document.querySelectorAll(".play[data-target]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const target = document.getElementById(btn.dataset.target);
+            if (!target) return;
+            target.classList.remove("is-resting");
+            target.classList.remove("is-playing");
+            void target.offsetWidth; // force reflow
+            target.classList.add("is-playing");
+            target.addEventListener("animationend", function once() {
+              target.removeEventListener("animationend", once);
+            });
+          });
+        });
+
+        // Auto-play stagger on first scroll into view
+        const playObservers = document.querySelectorAll(".stagger-target");
+        if ("IntersectionObserver" in window) {
+          const io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting && e.target.classList.contains("is-resting")) {
+                e.target.classList.remove("is-resting");
+                e.target.classList.add("is-playing");
+                io.unobserve(e.target);
+              }
+            });
+          }, { threshold: 0.3 });
+          playObservers.forEach(function (el) { io.observe(el); });
+        }
+
+        // Copy button
+        document.querySelectorAll(".code-block__copy").forEach(function (btn) {
+          btn.addEventListener("click", async function () {
+            const text = btn.dataset.code || "";
+            try {
+              await navigator.clipboard.writeText(text);
+              const original = btn.textContent;
+              btn.textContent = "Copied ✓";
+              btn.classList.add("is-copied");
+              setTimeout(function () {
+                btn.textContent = original;
+                btn.classList.remove("is-copied");
+              }, 1400);
+            } catch (e) {
+              btn.textContent = "Press ⌘C";
+            }
+          });
+        });
+
+        // Scroll-demo progress
+        const sd = document.getElementById("scrollDemo");
+        if (sd) {
+          const content = sd.querySelector(".scroll-demo__content");
+          sd.addEventListener("scroll", function () {
+            const max = content.scrollHeight - sd.clientHeight;
+            const pct = max > 0 ? (sd.scrollTop / max) * 100 : 0;
+            sd.style.setProperty("--p", pct + "%");
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
