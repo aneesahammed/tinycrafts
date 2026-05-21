@@ -131,3 +131,26 @@ test("breadcrumb and reader rail share active heading calculation", () => {
     "Breadcrumb must not keep a separate hard-coded threshold",
   );
 });
+
+test("reader palette themes all document workspace surfaces", () => {
+  const css = extractStyleText(html);
+  const bridgeRule = extractBlock(
+    css,
+    "body:is(.preview-mode, .edit-mode-active, .mindmap-open) .toolbar,\n      .preview-pane,\n      .editor-pane,\n      .mindmap-viewer,\n      .mermaid-viewer",
+  );
+  const bodyRule = extractBlock(
+    css,
+    "body:is(.preview-mode, .edit-mode-active, .mindmap-open),\n      body:is(.preview-mode, .edit-mode-active, .mindmap-open) .app,\n      body:is(.preview-mode, .edit-mode-active, .mindmap-open) .main",
+  );
+  const editorRule = extractBlock(css, ".editor-pane {\n        flex: 1");
+  const mermaidShellRule = extractBlock(css, ".mermaid-viewer-shell");
+  const mindmapRule = extractBlock(css, ".mindmap-viewer {\n        position: fixed");
+
+  assert.match(bridgeRule, /--bg-canvas:\s*var\(--reader-bg-canvas/);
+  assert.match(bridgeRule, /--fg-default:\s*var\(--reader-fg-default/);
+  assert.match(bridgeRule, /--mm-canvas-bg:\s*var\(--reader-bg-canvas/);
+  assert.match(bodyRule, /background:\s*var\(--reader-bg-canvas/);
+  assert.match(editorRule, /background:\s*var\(--bg-canvas\);/);
+  assert.match(mermaidShellRule, /background:\s*var\(--bg-canvas\);/);
+  assert.match(mindmapRule, /background:\s*color-mix\(in srgb, var\(--bg-canvas\)/);
+});

@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Pi+CzZpmDUPoDqW7165ECajfXj4ED3Cy+aa3IyLiEF0=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-2iT050zlCWAuCWrdw/Hvz2yWwcBTVLBuaHZ45KIVu0Q=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -31,9 +31,11 @@
     <script src="assets/shortcut-registry.js?v=2"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
     <script src="assets/command-palette-core.js?v=1"></script>
-    <script src="assets/command-palette-host.js?v=3"></script>
+    <script src="assets/command-palette-host.js?v=4"></script>
     <script src="assets/command-palette.js?v=4"></script>
     <script src="assets/reader-palettes.js?v=4"></script>
+    <script src="assets/export-core.js?v=2"></script>
+    <script src="assets/export-host.js?v=3"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -348,20 +350,44 @@
         backdrop-filter: saturate(1.2) blur(16px);
         border-bottom: 1px solid var(--border-soft);
       }
-      body.preview-mode:not(.mindmap-open) .toolbar {
-        --bg-canvas: var(--reader-bg-canvas, var(--bg-canvas));
-        --bg-subtle: var(--reader-bg-subtle, var(--bg-subtle));
-        --bg-muted: var(--reader-bg-subtle, var(--bg-muted));
-        --bg-raised: var(--reader-bg-raised, var(--bg-raised));
-        --fg-default: var(--reader-fg-default, var(--fg-default));
-        --fg-muted: var(--reader-fg-muted, var(--fg-muted));
-        --fg-subtle: var(--reader-fg-subtle, var(--fg-subtle));
-        --border-soft: var(--reader-border-soft, var(--border-soft));
-        --border-default: var(--reader-border-default, var(--border-default));
-        --border-strong: var(--reader-border-strong, var(--border-strong));
-        --accent-fg: var(--reader-accent, var(--accent-fg));
-        --accent-hover: var(--reader-accent-hover, var(--accent-hover));
-        --selection: var(--reader-selection, var(--selection));
+      body:is(.preview-mode, .edit-mode-active, .mindmap-open) .toolbar,
+      .preview-pane,
+      .editor-pane,
+      .mindmap-viewer,
+      .mermaid-viewer {
+        --bg-canvas: var(--reader-bg-canvas, #fafaf9);
+        --bg-subtle: var(--reader-bg-subtle, #f4f3f1);
+        --bg-muted: var(--reader-bg-subtle, #ecebe9);
+        --bg-raised: var(--reader-bg-raised, #ffffff);
+        --fg-default: var(--reader-fg-default, #222221);
+        --fg-heading: var(--reader-fg-heading, #222221);
+        --fg-muted: var(--reader-fg-muted, #71706e);
+        --fg-subtle: var(--reader-fg-subtle, #a3a09c);
+        --border-soft: var(--reader-border-soft, rgba(0, 0, 0, 0.04));
+        --border-default: var(--reader-border-default, rgba(0, 0, 0, 0.07));
+        --border-strong: var(--reader-border-strong, rgba(0, 0, 0, 0.11));
+        --accent-fg: var(--reader-accent, #5f8f80);
+        --accent-hover: var(--reader-accent-hover, #4d7d6e);
+        --selection: var(--reader-selection, rgba(95, 143, 128, 0.14));
+        --code-block-bg: var(--reader-code-bg, #f5f4f2);
+        --code-inline-bg: var(--reader-code-inline-bg, rgba(0, 0, 0, 0.035));
+        --blockquote-bg: var(--reader-blockquote-bg, rgba(0, 0, 0, 0.018));
+        --blockquote-border: var(--reader-blockquote-border, #c7c4be);
+        --shadow-sm: var(--reader-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.025));
+        --alert-note: var(--reader-alert-note, #4f7fa8);
+        --alert-tip: var(--reader-alert-tip, #4f8c74);
+        --alert-important: var(--reader-alert-important, #6f73c4);
+        --alert-warning: var(--reader-alert-warning, #b6801f);
+        --alert-caution: var(--reader-alert-caution, #b35d5d);
+        --mm-canvas-bg: var(--reader-bg-canvas, var(--bg-canvas));
+        --mm-node-bg: var(--reader-bg-raised, var(--bg-raised));
+        --mm-node-bg-selected: color-mix(in srgb, var(--reader-accent, var(--accent-fg)) 8%, transparent);
+        --mm-node-border: var(--reader-border-strong, var(--border-strong));
+        --mm-node-border-hover: var(--reader-accent, var(--accent-fg));
+        --mm-edge-stroke: var(--reader-fg-muted, var(--fg-muted));
+      }
+
+      body:is(.preview-mode, .edit-mode-active, .mindmap-open) .toolbar {
         background: color-mix(in srgb, var(--reader-bg-canvas) 90%, transparent);
         border-bottom-color: var(--reader-border-soft);
         color: var(--reader-fg-default);
@@ -370,10 +396,11 @@
           border-color var(--motion-small) var(--ease-calm),
           color var(--motion-small) var(--ease-calm);
       }
-      body.preview-mode:not(.mindmap-open),
-      body.preview-mode:not(.mindmap-open) .app,
-      body.preview-mode:not(.mindmap-open) .main {
+      body:is(.preview-mode, .edit-mode-active, .mindmap-open),
+      body:is(.preview-mode, .edit-mode-active, .mindmap-open) .app,
+      body:is(.preview-mode, .edit-mode-active, .mindmap-open) .main {
         background: var(--reader-bg-canvas, var(--bg-canvas));
+        color: var(--reader-fg-default, var(--fg-default));
       }
 
       body.preview-mode #saveBtn {
@@ -994,6 +1021,59 @@
       #shareBtn {
         min-width: 96px;
         justify-content: center;
+      }
+      .export-settings {
+        position: relative;
+        display: inline-flex;
+      }
+      .export-menu {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        z-index: 90;
+        width: min(320px, calc(100vw - 32px));
+        padding: 8px;
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        background: var(--bg-raised);
+        color: var(--fg-default);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+      }
+      .export-menu[hidden] {
+        display: none;
+      }
+      .export-option {
+        width: 100%;
+        min-height: 58px;
+        display: grid;
+        gap: 3px;
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--fg-default);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .export-option:hover:not(:disabled),
+      .export-option:focus-visible {
+        background: var(--bg-subtle);
+        border-color: var(--border-soft);
+        outline: none;
+      }
+      .export-option:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .export-option__title {
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+      .export-option__meta {
+        font-size: 12px;
+        color: var(--fg-muted);
+        line-height: 1.35;
       }
       .btn.is-busy {
         color: var(--fg-default);
@@ -1665,30 +1745,6 @@
         display: none;
       }
       .preview-pane {
-        --bg-canvas: var(--reader-bg-canvas, #fafaf9);
-        --bg-subtle: var(--reader-bg-subtle, #f4f3f1);
-        --bg-muted: var(--reader-bg-subtle, #ecebe9);
-        --bg-raised: var(--reader-bg-raised, #ffffff);
-        --fg-default: var(--reader-fg-default, #222221);
-        --fg-heading: var(--reader-fg-heading, #222221);
-        --fg-muted: var(--reader-fg-muted, #71706e);
-        --fg-subtle: var(--reader-fg-subtle, #a3a09c);
-        --border-soft: var(--reader-border-soft, rgba(0, 0, 0, 0.04));
-        --border-default: var(--reader-border-default, rgba(0, 0, 0, 0.07));
-        --border-strong: var(--reader-border-strong, rgba(0, 0, 0, 0.11));
-        --accent-fg: var(--reader-accent, #5f8f80);
-        --accent-hover: var(--reader-accent-hover, #4d7d6e);
-        --code-block-bg: var(--reader-code-bg, #f5f4f2);
-        --code-inline-bg: var(--reader-code-inline-bg, rgba(0, 0, 0, 0.035));
-        --blockquote-bg: var(--reader-blockquote-bg, rgba(0, 0, 0, 0.018));
-        --blockquote-border: var(--reader-blockquote-border, #c7c4be);
-        --selection: var(--reader-selection, rgba(95, 143, 128, 0.14));
-        --shadow-sm: var(--reader-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.025));
-        --alert-note: var(--reader-alert-note, #4f7fa8);
-        --alert-tip: var(--reader-alert-tip, #4f8c74);
-        --alert-important: var(--reader-alert-important, #6f73c4);
-        --alert-warning: var(--reader-alert-warning, #b6801f);
-        --alert-caution: var(--reader-alert-caution, #b35d5d);
         display: block;
         flex: 1 0 auto;
         min-height: calc(100dvh - var(--toolbar-h, 0px));
@@ -1722,6 +1778,11 @@
       .editor-pane {
         flex: 1;
         min-height: calc(100vh - 63px);
+        background: var(--bg-canvas);
+        color: var(--fg-default);
+        transition:
+          background-color var(--motion-small) var(--ease-calm),
+          color var(--motion-small) var(--ease-calm);
       }
 
       #editor {
@@ -4928,41 +4989,122 @@
         border-radius: 2px;
       }
 
+      .export-print-root {
+        display: none;
+      }
+
+      @page {
+        margin: 16mm 18mm;
+      }
+
       @media print {
-        .toolbar {
-          display: none;
+        body.export-pdf-active {
+          background: var(--reader-bg-canvas) !important;
         }
-        .preview-pane {
-          --bg-canvas: #ffffff;
-          --bg-subtle: #ffffff;
-          --bg-muted: #ffffff;
-          --bg-raised: #ffffff;
-          --fg-default: #000000;
-          --fg-heading: #000000;
-          --fg-muted: #333333;
-          --fg-subtle: #555555;
-          --border-soft: rgba(0, 0, 0, 0.16);
-          --border-default: rgba(0, 0, 0, 0.22);
-          --border-strong: rgba(0, 0, 0, 0.32);
-          --accent-fg: #000000;
-          --accent-hover: #000000;
-          --code-block-bg: #ffffff;
-          --code-inline-bg: rgba(0, 0, 0, 0.06);
-          --blockquote-bg: transparent;
-          --blockquote-border: #777777;
-          --selection: transparent;
-          --reader-link: #000000;
-          --reader-code-fg: #000000;
-          --reader-highlight-bg: transparent;
-          --reader-highlight-hover-bg: transparent;
-          --reader-highlight-shadow: inset 0 -1px 0 currentColor;
-          --reader-highlight-hover-shadow: inset 0 -1px 0 currentColor;
-          background: #ffffff !important;
-          color: #000000 !important;
-          padding: 0;
+        body.export-pdf-active > *:not(#markvExportPrintRoot) {
+          display: none !important;
         }
-        .markdown-body {
+        body.export-pdf-active #markvExportPrintRoot {
+          display: block !important;
+        }
+        .export-print-root {
+          min-height: 100vh;
+          background: var(--reader-bg-canvas);
+          color: var(--reader-fg-default);
+        }
+        .export-print-document.markdown-body {
           max-width: none;
+          margin: 0;
+          padding: 0;
+          color: var(--reader-fg-default);
+          background: transparent;
+          orphans: 3;
+          widows: 3;
+        }
+        .export-print-document.markdown-body h1,
+        .export-print-document.markdown-body h2,
+        .export-print-document.markdown-body h3,
+        .export-print-document.markdown-body h4,
+        .export-print-document.markdown-body h5,
+        .export-print-document.markdown-body h6 {
+          break-after: avoid;
+          page-break-after: avoid;
+          color: var(--reader-fg-heading);
+        }
+        .export-print-document.markdown-body pre,
+        .export-print-document.markdown-body table,
+        .export-print-document.markdown-body blockquote,
+        .export-print-document.markdown-body img,
+        .export-print-document.markdown-body figure,
+        .export-print-document.markdown-body .mermaid-block,
+        .export-print-document.markdown-body .markdown-alert,
+        .export-print-document.markdown-body .katex-display {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+        .export-print-document.markdown-body img,
+        .export-print-document.markdown-body svg {
+          max-width: 100%;
+          height: auto;
+        }
+        .export-print-document.markdown-body pre,
+        .export-print-document.markdown-body .mermaid-block {
+          background: var(--reader-code-bg) !important;
+          border-color: var(--reader-border-default) !important;
+        }
+        .export-print-document.markdown-body code {
+          color: var(--reader-code-fg);
+        }
+        .export-print-document.markdown-body pre code.hljs {
+          color: var(--reader-code-fg) !important;
+          background: transparent !important;
+        }
+        .export-print-document.markdown-body :is(.hljs-comment, .hljs-quote) {
+          color: var(--reader-syntax-comment) !important;
+          font-style: italic;
+        }
+        .export-print-document.markdown-body
+          :is(.hljs-keyword, .hljs-selector-tag, .hljs-subst, .hljs-doctag) {
+          color: var(--reader-syntax-keyword) !important;
+        }
+        .export-print-document.markdown-body
+          :is(.hljs-string, .hljs-regexp, .hljs-symbol, .hljs-bullet, .hljs-addition) {
+          color: var(--reader-syntax-string) !important;
+        }
+        .export-print-document.markdown-body
+          :is(.hljs-number, .hljs-literal, .hljs-selector-id, .hljs-selector-class) {
+          color: var(--reader-syntax-number) !important;
+        }
+        .export-print-document.markdown-body
+          :is(.hljs-title, .hljs-title.class_, .hljs-title.function_, .hljs-section) {
+          color: var(--reader-syntax-title) !important;
+        }
+        .export-print-document.markdown-body
+          :is(
+            .hljs-attr,
+            .hljs-attribute,
+            .hljs-variable,
+            .hljs-template-variable,
+            .hljs-property,
+            .hljs-type,
+            .hljs-built_in,
+            .hljs-name,
+            .hljs-tag,
+            .hljs-meta
+          ) {
+          color: var(--reader-syntax-meta) !important;
+        }
+        .export-print-document.markdown-body .doc-highlight {
+          background: transparent !important;
+          box-shadow: inset 0 -1px 0 currentColor !important;
+        }
+        .export-timeout-fallback,
+        .export-image-fallback {
+          padding: 12px;
+          border: 1px solid var(--reader-border-default);
+          border-radius: 8px;
+          background: var(--reader-bg-subtle);
+          color: var(--reader-fg-default);
         }
       }
 
@@ -6958,6 +7100,38 @@
           >
             Save
           </button>
+
+          <div class="export-settings" data-mv-overflow-section="File">
+            <button
+              id="exportBtn"
+              type="button"
+              class="btn"
+              title="Export current document"
+              aria-label="Export current document"
+              aria-haspopup="dialog"
+              aria-controls="exportMenu"
+              aria-expanded="false"
+              disabled
+            >
+              Export
+            </button>
+            <div
+              id="exportMenu"
+              class="export-menu"
+              role="dialog"
+              aria-label="Export document"
+              hidden
+            >
+              <button id="exportPdfBtn" type="button" class="export-option">
+                <span class="export-option__title">PDF</span>
+                <span class="export-option__meta">Save a themed PDF with the browser print dialog</span>
+              </button>
+              <button id="exportMarkdownBtn" type="button" class="export-option">
+                <span class="export-option__title">Markdown</span>
+                <span class="export-option__meta">Download the current source as a .md file</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <span class="tb-divider" aria-hidden="true"></span>
@@ -14374,6 +14548,10 @@ Return JSON only.`;
           newDocumentBtn: document.getElementById("newDocumentBtn"),
           openFileBtn: document.getElementById("openFileBtn"),
           saveBtn: document.getElementById("saveBtn"),
+          exportBtn: document.getElementById("exportBtn"),
+          exportMenu: document.getElementById("exportMenu"),
+          exportPdfBtn: document.getElementById("exportPdfBtn"),
+          exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
           shareBtn: document.getElementById("shareBtn"),
           shareBtnLabel: document.getElementById("shareBtnLabel"),
           modeToggleBtn: document.getElementById("modeToggleBtn"),
@@ -14547,6 +14725,7 @@ Return JSON only.`;
           sharedSnapshotMeta: null,
           shareInFlight: false,
           sharePendingMayTakeTime: false,
+          exportInFlight: false,
           libraryRestorePending: false,
           libraryDbPromise: null,
           libraryDrawerLastFocused: null,
@@ -20499,6 +20678,13 @@ Return JSON only.`;
             );
           }
 
+          if (
+            window.MarkVExportHost &&
+            typeof window.MarkVExportHost.syncUi === "function"
+          ) {
+            window.MarkVExportHost.syncUi();
+          }
+
           if (els.modeToggleBtn) {
             // Detect the unsaved→saved transition so the breathing
             // dot morphs into a calm checkmark confirmation for ~1.4s.
@@ -20604,36 +20790,43 @@ Return JSON only.`;
           return value || fallback;
         }
 
+        function getMermaidPaletteColors() {
+          const darkMode = getEffectiveReaderScheme() === "dark";
+          return {
+            canvas: readReaderCssVar(
+              "--reader-code-bg",
+              darkMode ? "#111111" : "#f5f4f2",
+            ),
+            node: readReaderCssVar(
+              "--reader-bg-raised",
+              darkMode ? "#2f2f2d" : "#ffffff",
+            ),
+            nodeAlt: readReaderCssVar(
+              "--reader-bg-subtle",
+              darkMode ? "#262625" : "#f4f3f1",
+            ),
+            ink: readReaderCssVar(
+              "--reader-code-fg",
+              darkMode ? "#f2f0ea" : "#222221",
+            ),
+            muted: readReaderCssVar(
+              "--reader-fg-muted",
+              darkMode ? "#bfbfba" : "#71706e",
+            ),
+            border: readReaderCssVar(
+              "--reader-border-strong",
+              darkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.11)",
+            ),
+            accent: readReaderCssVar(
+              "--reader-accent",
+              darkMode ? "#61aaf2" : "#5f8f80",
+            ),
+          };
+        }
+
         function getMermaidThemeConfig() {
           const darkMode = getEffectiveReaderScheme() === "dark";
-          const codeBg = readReaderCssVar(
-            "--reader-code-bg",
-            darkMode ? "#111111" : "#f5f4f2",
-          );
-          const raised = readReaderCssVar(
-            "--reader-bg-raised",
-            darkMode ? "#2f2f2d" : "#ffffff",
-          );
-          const subtle = readReaderCssVar(
-            "--reader-bg-subtle",
-            darkMode ? "#262625" : "#f4f3f1",
-          );
-          const ink = readReaderCssVar(
-            "--reader-code-fg",
-            darkMode ? "#f2f0ea" : "#222221",
-          );
-          const muted = readReaderCssVar(
-            "--reader-fg-muted",
-            darkMode ? "#bfbfba" : "#71706e",
-          );
-          const border = readReaderCssVar(
-            "--reader-border-strong",
-            darkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.11)",
-          );
-          const accent = readReaderCssVar(
-            "--reader-accent",
-            darkMode ? "#61aaf2" : "#5f8f80",
-          );
+          const colors = getMermaidPaletteColors();
           const fontFamily = readReaderCssVar(
             "--font-sans",
             'ui-sans-serif, system-ui, sans-serif',
@@ -20643,44 +20836,102 @@ Return JSON only.`;
             theme: "base",
             themeVariables: {
               darkMode: darkMode,
-              background: codeBg,
-              mainBkg: raised,
-              primaryColor: raised,
-              primaryTextColor: ink,
-              primaryBorderColor: border,
-              secondaryColor: subtle,
-              secondaryTextColor: ink,
-              secondaryBorderColor: border,
-              tertiaryColor: codeBg,
-              tertiaryTextColor: ink,
-              tertiaryBorderColor: border,
-              lineColor: muted,
-              textColor: ink,
-              nodeTextColor: ink,
-              edgeLabelBackground: codeBg,
-              clusterBkg: codeBg,
-              clusterBorder: border,
-              noteBkgColor: raised,
-              noteTextColor: ink,
-              noteBorderColor: border,
-              actorBkg: raised,
-              actorTextColor: ink,
-              actorBorder: border,
-              activationBkgColor: subtle,
-              activationBorderColor: border,
-              labelBoxBkgColor: raised,
-              labelBoxBorderColor: border,
-              labelTextColor: ink,
-              loopTextColor: ink,
-              signalColor: muted,
-              signalTextColor: ink,
+              background: colors.canvas,
+              mainBkg: colors.node,
+              nodeBkg: colors.node,
+              nodeTextColor: colors.ink,
+              nodeBorder: colors.border,
+              primaryColor: colors.node,
+              primaryTextColor: colors.ink,
+              primaryBorderColor: colors.border,
+              secondaryColor: colors.nodeAlt,
+              secondaryTextColor: colors.ink,
+              secondaryBorderColor: colors.border,
+              tertiaryColor: colors.canvas,
+              tertiaryTextColor: colors.ink,
+              tertiaryBorderColor: colors.border,
+              lineColor: colors.muted,
+              defaultLinkColor: colors.muted,
+              arrowheadColor: colors.muted,
+              textColor: colors.ink,
+              titleColor: colors.ink,
+              edgeLabelBackground: colors.canvas,
+              labelBackground: colors.canvas,
+              clusterBkg: colors.canvas,
+              clusterBorder: colors.border,
+              noteBkgColor: colors.node,
+              noteTextColor: colors.ink,
+              noteBorderColor: colors.border,
+              actorBkg: colors.node,
+              actorTextColor: colors.ink,
+              actorBorder: colors.border,
+              activationBkgColor: colors.nodeAlt,
+              activationBorderColor: colors.border,
+              labelBoxBkgColor: colors.node,
+              labelBoxBorderColor: colors.border,
+              labelTextColor: colors.ink,
+              loopTextColor: colors.ink,
+              signalColor: colors.muted,
+              signalTextColor: colors.ink,
               sequenceNumberColor: darkMode ? "#111111" : "#ffffff",
-              cScale0: accent,
-              cScale1: subtle,
-              cScale2: raised,
+              cScale0: colors.accent,
+              cScale1: colors.nodeAlt,
+              cScale2: colors.node,
               fontFamily: fontFamily,
             },
           };
+        }
+
+        function applyReadableMermaidPalette(svg) {
+          if (!svg) return;
+          const colors = getMermaidPaletteColors();
+          svg.dataset.markvMermaidPalette = "true";
+          svg
+            .querySelectorAll("style[data-markv-mermaid-palette]")
+            .forEach(function (style) {
+              style.remove();
+            });
+
+          const style = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "style",
+          );
+          style.setAttribute("data-markv-mermaid-palette", "true");
+          style.textContent = [
+            ".node rect, .node circle, .node ellipse, .node polygon, .node path,",
+            ".flowchart-label rect, .er.entityBox, .actor, .note, .labelBox,",
+            ".state-start, .state-end {",
+            "  fill: " + colors.node + " !important;",
+            "  stroke: " + colors.border + " !important;",
+            "}",
+            ".cluster rect, .cluster polygon {",
+            "  fill: " + colors.canvas + " !important;",
+            "  stroke: " + colors.border + " !important;",
+            "}",
+            ".edgeLabel, .edgeLabel p, .edgeLabel span {",
+            "  background-color: " + colors.canvas + " !important;",
+            "  color: " + colors.ink + " !important;",
+            "}",
+            ".edgeLabel rect, .labelBkg {",
+            "  fill: " + colors.canvas + " !important;",
+            "}",
+            ".label, .nodeLabel, .nodeLabel p, .nodeLabel span,",
+            ".edgeLabel, .edgeLabel p, .edgeLabel span {",
+            "  color: " + colors.ink + " !important;",
+            "}",
+            ".label text, text, tspan {",
+            "  fill: " + colors.ink + " !important;",
+            "}",
+            ".edgePath .path, .flowchart-link, .messageLine0, .messageLine1,",
+            ".relation, .transition, line {",
+            "  stroke: " + colors.muted + " !important;",
+            "}",
+            ".arrowheadPath, marker path {",
+            "  fill: " + colors.muted + " !important;",
+            "  stroke: " + colors.muted + " !important;",
+            "}",
+          ].join("\n");
+          svg.appendChild(style);
         }
 
         function hasMermaidBlocks(markdown) {
@@ -21003,6 +21254,7 @@ Return JSON only.`;
           if (svg) {
             svg.setAttribute("role", "img");
             svg.setAttribute("aria-label", "Mermaid diagram");
+            applyReadableMermaidPalette(svg);
           }
           ensureMermaidBlockActions(block.host);
 
@@ -21065,6 +21317,16 @@ Return JSON only.`;
           const blocks = collectMermaidBlocks();
           if (!blocks.length) return;
           await renderMermaidBlockCollection(blocks, generation);
+        }
+
+        async function renderMermaidForExport() {
+          const blocks = collectRenderedMermaidBlocks();
+          if (!blocks.length) return;
+          const generation = state.previewRenderGeneration + 1;
+          state.previewRenderGeneration = generation;
+          await renderMermaidBlockCollection(blocks, generation, {
+            keepExistingOnError: false,
+          });
         }
 
         // ── highlight.js lazy loader ──────────────────────────────
@@ -23709,10 +23971,26 @@ Return JSON only.`;
           }
         });
 
+        if (window.MarkVExportHostFactory) {
+          window.MarkVExportHost = window.MarkVExportHostFactory({
+            state,
+            els,
+            isEditModeActive,
+            setMode,
+            renderCurrentPreview: function () {
+              render("force");
+            },
+            renderMermaidForExport,
+            setStatus,
+          });
+          document.dispatchEvent(new CustomEvent("markv:export-host-ready"));
+        }
+
         if (window.MarkVCommandPaletteHostFactory) {
           window.MarkVCommandPaletteHost = window.MarkVCommandPaletteHostFactory({
             state,
             els,
+            exportHost: window.MarkVExportHost,
             libraryCore,
             sortUntitledDrafts,
             getReaderSaveState,

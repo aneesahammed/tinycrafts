@@ -225,6 +225,15 @@
     const editMode =
       typeof env.isEditModeActive === "function" && env.isEditModeActive();
     const shareBusy = Boolean(env.state && env.state.shareInFlight);
+    const exportHost = env.exportHost || window.MarkVExportHost || null;
+    const canExportPdf =
+      exportHost && typeof exportHost.exportPdf === "function";
+    const canExportMarkdown =
+      exportHost && typeof exportHost.exportMarkdown === "function";
+    const exportBusy = Boolean(
+      exportHost && typeof exportHost.isBusy === "function" && exportHost.isBusy(),
+    );
+    const exportDisabled = exportBusy || !hasContent(env);
 
     return [
       createCommand(env, {
@@ -431,6 +440,38 @@
           ? "A snapshot link is already being prepared."
           : "There is no markdown to share yet.",
         run: env.shareCurrentSnapshot,
+      }),
+      createCommand(env, {
+        id: "command:export-pdf",
+        title: "Export PDF",
+        subtitle: "Save a themed PDF with the browser print dialog",
+        keywords: ["export", "pdf", "print", "download"],
+        defaultRank: 132,
+        disabled: exportDisabled || !canExportPdf,
+        disabledReason: exportBusy
+          ? "An export is already being prepared."
+          : !hasContent(env)
+            ? "There is no markdown to export yet."
+            : "Export is unavailable in this build.",
+        run: function () {
+          return exportHost.exportPdf();
+        },
+      }),
+      createCommand(env, {
+        id: "command:export-markdown",
+        title: "Export Markdown",
+        subtitle: "Download the current source as a .md file",
+        keywords: ["export", "markdown", "md", "download"],
+        defaultRank: 134,
+        disabled: exportDisabled || !canExportMarkdown,
+        disabledReason: exportBusy
+          ? "An export is already being prepared."
+          : !hasContent(env)
+            ? "There is no markdown to export yet."
+            : "Export is unavailable in this build.",
+        run: function () {
+          return exportHost.exportMarkdown();
+        },
       }),
       createCommand(env, {
         id: "command:ai-settings",
