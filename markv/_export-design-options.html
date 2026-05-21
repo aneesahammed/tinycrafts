@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>markv · Export design — re-imagined</title>
+    <style>
+      :root {
+        --page: #f5f5f4;
+        --surface: #ffffff;
+        --surface-soft: #fafaf7;
+        --ink: #1a1a1a;
+        --ink-soft: #2a2a2a;
+        --muted: #6b6b6b;
+        --hint: #9c9c98;
+        --line: #e5e4df;
+        --line-soft: #ececec;
+        --accent: #b45309;
+        --accent-soft: rgba(180, 83, 9, 0.1);
+        --serif: ui-serif, "Iowan Old Style", Georgia, serif;
+        --sans: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--page);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      .container {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 56px 24px 120px;
+      }
+      header.page { margin-bottom: 48px; }
+      header.page h1 {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.012em;
+        margin: 0 0 10px;
+        line-height: 1.2;
+      }
+      header.page p {
+        font-size: 16px;
+        color: var(--muted);
+        margin: 0;
+        max-width: 720px;
+        line-height: 1.6;
+      }
+
+      /* ─── Toolbar canvas: a faithful mockup of markv's chrome ─── */
+      .toolbar-canvas {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: visible;
+      }
+      .toolbar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: 16px;
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        background: var(--ink);
+        border-radius: 5px;
+        flex-shrink: 0;
+      }
+      .brand-name {
+        font-family: var(--serif);
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: -0.02em;
+      }
+      .brand-meta {
+        color: var(--muted);
+        font-size: 12px;
+        margin-left: 8px;
+      }
+      .tb-spacer { flex: 1; }
+      .tb-divider {
+        width: 1px;
+        height: 18px;
+        background: var(--line);
+        margin: 0 4px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 11px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 13px;
+        font-family: var(--sans);
+        cursor: pointer;
+        transition: background-color 120ms ease, border-color 120ms ease;
+        white-space: nowrap;
+      }
+      .btn:hover { background: var(--surface-soft); border-color: var(--muted); }
+      .btn.is-active { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+      .btn--icon { padding: 6px 8px; }
+
+      .icon {
+        width: 14px;
+        height: 14px;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+
+      /* ─── Section ─── */
+      .opt {
+        margin-bottom: 48px;
+      }
+      .opt-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .opt-tag {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        padding: 3px 8px;
+        border-radius: 4px;
+        color: var(--surface);
+        background: var(--ink);
+      }
+      .opt-tag.baseline { background: var(--muted); }
+      .opt-tag.recommended { background: #0a7f3f; }
+      .opt-head h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+        letter-spacing: -0.005em;
+      }
+      .opt-sub {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 16px;
+        line-height: 1.55;
+        max-width: 760px;
+      }
+
+      .opt-notes {
+        background: var(--surface);
+        border: 1px solid var(--line-soft);
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      .opt-notes p { margin: 0; }
+      .opt-notes p + p { margin-top: 8px; }
+      .opt-notes strong {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--accent);
+        font-weight: 700;
+        margin-right: 6px;
+      }
+
+      .try-hint {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--hint);
+      }
+
+      /* ============================================================
+         OPTION 1: CURRENT (BASELINE)
+         ============================================================ */
+      .current-menu {
+        position: absolute;
+        top: 56px;
+        right: 16px;
+        width: 260px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.04),
+          0 16px 40px rgba(0, 0, 0, 0.12);
+        padding: 6px;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+        z-index: 20;
+      }
+      .current-menu.is-open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+      .current-item {
+        padding: 12px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .current-item:hover { background: var(--surface-soft); }
+      .current-item__title {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .current-item__sub {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+
+      /* ============================================================
+         OPTION 2: REFINED MENU (Emil style)
+         ============================================================ */
+      .refined-menu {
+        position: absolute;
+        top: 56px;
+        right: 16px;
+        width: 180px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.04),
+          0 6px 18px rgba(0, 0, 0, 0.08),
+          0 24px 64px rgba(0, 0, 0, 0.10);
+        padding: 4px;
+        opacity: 0;
+        transform: translateY(-4px) scale(0.98);
+        transform-origin: top right;
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+        z-index: 20;
+      }
+      .refined-menu.is-open {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+      .refined-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13.5px;
+      }
+      .refined-item:hover { background: var(--surface-soft); }
+      .refined-item .ico {
+        width: 18px;
+        height: 18px;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+      .refined-item .label {
+        font-weight: 500;
+        flex: 1;
+      }
+      .refined-item .ext {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--hint);
+        font-weight: 500;
+      }
+
+      /* ============================================================
+         OPTION 3: SPLIT BUTTON
+         ============================================================ */
+      .split-btn {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--surface);
+        transition: border-color 120ms ease;
+      }
+      .split-btn:hover { border-color: var(--muted); }
+      .split-btn__main {
+        padding: 6px 11px;
+        background: transparent;
+        border: 0;
+        font-size: 13px;
+        font-family: var(--sans);
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .split-btn__main:hover { background: var(--surface-soft); }
+      .split-btn__sep {
+        width: 1px;
+        background: var(--line);
+      }
+      .split-btn__caret {
+        padding: 6px 8px;
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+      }
+      .split-btn__caret:hover { background: var(--surface-soft); }
+      .split-menu {
+        position: absolute;
+        top: 56px;
+        right: 16px;
+        width: 200px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.04),
+          0 8px 24px rgba(0, 0, 0, 0.10);
+        padding: 4px;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+        z-index: 20;
+      }
+      .split-menu.is-open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+      .split-menu__head {
+        padding: 6px 10px 4px;
+        font-size: 9.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--hint);
+      }
+
+      /* ============================================================
+         OPTION 4: ICON-ONLY DOWNLOAD
+         ============================================================ */
+      .icon-menu {
+        position: absolute;
+        top: 56px;
+        right: 16px;
+        width: 140px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.04),
+          0 6px 18px rgba(0, 0, 0, 0.10);
+        padding: 4px;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+        z-index: 20;
+      }
+      .icon-menu.is-open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+      .icon-menu .refined-item .ext { font-size: 10px; }
+
+      /* ============================================================
+         OPTION 5: INLINE PILLS (segmented)
+         ============================================================ */
+      .pills-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pills-row {
+        display: inline-flex;
+        gap: 4px;
+        opacity: 0;
+        transform: translateX(-4px);
+        pointer-events: none;
+        transition: opacity 160ms ease, transform 160ms ease;
+        max-width: 0;
+        overflow: hidden;
+      }
+      .pills-row.is-open {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+        max-width: 200px;
+      }
+      .pill {
+        padding: 6px 11px;
+        background: var(--ink);
+        color: var(--surface);
+        border: 1px solid var(--ink);
+        border-radius: 6px;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+        font-family: var(--sans);
+        transition: background-color 120ms ease;
+      }
+      .pill:hover { background: #000; }
+      .pill.subtle {
+        background: var(--surface);
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      .pill.subtle:hover { background: var(--surface-soft); border-color: var(--muted); }
+
+      /* ─── Recommendation block ─── */
+      .recommendation {
+        margin-top: 48px;
+        background: var(--ink);
+        color: var(--page);
+        padding: 24px 28px;
+        border-radius: 14px;
+      }
+      .recommendation h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 12px;
+      }
+      .recommendation p {
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin: 0 0 10px;
+        color: rgba(255, 255, 255, 0.78);
+      }
+      .recommendation strong { color: white; }
+      .rec-list {
+        font-size: 13.5px;
+        line-height: 1.7;
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .rec-list li { color: rgba(255, 255, 255, 0.85); margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="page">
+        <h1>Export design — five takes</h1>
+        <p>
+          The current Export menu, plus four re-imagined alternatives.
+          Each is interactive — click the button to see how it opens.
+          Recommendation at the bottom.
+        </p>
+      </header>
+
+      <!-- ============================================================ -->
+      <!-- OPTION 1: CURRENT (BASELINE) -->
+      <!-- ============================================================ -->
+      <section class="opt">
+        <div class="opt-head">
+          <span class="opt-tag baseline">Current</span>
+          <h2>The shipping design</h2>
+        </div>
+        <p class="opt-sub">
+          Card menu with two items, each with a title and descriptive
+          subtitle. Big visual footprint for two choices.
+        </p>
+
+        <div class="toolbar-canvas">
+          <span class="try-hint">↘ click Export</span>
+          <div class="toolbar-row">
+            <div class="brand">
+              <div class="brand-mark"></div>
+              <span class="brand-name">markv</span>
+              <span class="brand-meta">Untitled · 4,512 words</span>
+            </div>
+            <div class="tb-spacer"></div>
+            <button class="btn">+ New</button>
+            <button class="btn">▢ Files</button>
+            <button class="btn" id="trigger1">Export</button>
+            <span class="tb-divider"></span>
+            <button class="btn">✎ Edit</button>
+          </div>
+
+          <div class="current-menu" id="menu1">
+            <div class="current-item">
+              <div class="current-item__title">PDF</div>
+              <div class="current-item__sub">Save a themed PDF with the browser print dialog</div>
+            </div>
+            <div class="current-item">
+              <div class="current-item__title">Markdown</div>
+              <div class="current-item__sub">Download the current source as a .md file</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="opt-notes">
+          <p><strong>Working</strong> Clear, accessible, gets the job done.</p>
+          <p><strong>Off</strong> Card too large for two items. Subtitles are documentation, not menu vocabulary. No icons, no shortcut hints — nothing for the eye to learn.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- OPTION 2: REFINED MENU -->
+      <!-- ============================================================ -->
+      <section class="opt">
+        <div class="opt-head">
+          <span class="opt-tag">A</span>
+          <h2>Refined menu — Emil style</h2>
+        </div>
+        <p class="opt-sub">
+          Same trigger, half the menu size. Drop the subtitles. Add a
+          small format icon and the file extension as a kbd-style hint.
+          Width matches the trigger, not the descriptions.
+        </p>
+
+        <div class="toolbar-canvas">
+          <span class="try-hint">↘ click Export</span>
+          <div class="toolbar-row">
+            <div class="brand">
+              <div class="brand-mark"></div>
+              <span class="brand-name">markv</span>
+              <span class="brand-meta">Untitled · 4,512 words</span>
+            </div>
+            <div class="tb-spacer"></div>
+            <button class="btn">+ New</button>
+            <button class="btn">▢ Files</button>
+            <button class="btn" id="trigger2">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+              Export
+            </button>
+            <span class="tb-divider"></span>
+            <button class="btn">✎ Edit</button>
+          </div>
+
+          <div class="refined-menu" id="menu2">
+            <div class="refined-item">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="label">PDF</span>
+              <span class="ext">.pdf</span>
+            </div>
+            <div class="refined-item">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13l2 2 2-2"/><path d="M14 13l2 2 2-2"/></svg>
+              <span class="label">Markdown</span>
+              <span class="ext">.md</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="opt-notes">
+          <p><strong>Wins</strong> Compact. Icons let the eye scan instantly. The .pdf/.md extension chip teaches the format without prose.</p>
+          <p><strong>Cost</strong> Same number of clicks as current. The polish is in the proportions and typography, not the interaction model.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- OPTION 3: SPLIT BUTTON -->
+      <!-- ============================================================ -->
+      <section class="opt">
+        <div class="opt-head">
+          <span class="opt-tag recommended">B · Recommended</span>
+          <h2>Split button — default action plus caret</h2>
+        </div>
+        <p class="opt-sub">
+          Click "Export PDF" — it exports PDF directly, zero clicks
+          extra. Click the caret to switch format. The default remembers
+          your last choice. One click for muscle memory; two for
+          flexibility.
+        </p>
+
+        <div class="toolbar-canvas">
+          <span class="try-hint">↘ click main label or caret</span>
+          <div class="toolbar-row">
+            <div class="brand">
+              <div class="brand-mark"></div>
+              <span class="brand-name">markv</span>
+              <span class="brand-meta">Untitled · 4,512 words</span>
+            </div>
+            <div class="tb-spacer"></div>
+            <button class="btn">+ New</button>
+            <button class="btn">▢ Files</button>
+            <div class="split-btn">
+              <button class="split-btn__main" id="trigger3-main">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+                Export PDF
+              </button>
+              <span class="split-btn__sep"></span>
+              <button class="split-btn__caret" id="trigger3-caret" aria-label="Change format">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <span class="tb-divider"></span>
+            <button class="btn">✎ Edit</button>
+          </div>
+
+          <div class="split-menu" id="menu3">
+            <div class="split-menu__head">Format</div>
+            <div class="refined-item">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="label">PDF</span>
+              <span class="ext">.pdf · ✓</span>
+            </div>
+            <div class="refined-item">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span class="label">Markdown</span>
+              <span class="ext">.md</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="opt-notes">
+          <p><strong>Wins</strong> Power users get one-click export. The label tells them which format. The caret offers the switch without forcing a menu interaction every time.</p>
+          <p><strong>Cost</strong> Two interactive zones on one control — visually heavier. The active-format memory needs a tiny bit of state.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- OPTION 4: ICON-ONLY -->
+      <!-- ============================================================ -->
+      <section class="opt">
+        <div class="opt-head">
+          <span class="opt-tag">C</span>
+          <h2>Icon-only download</h2>
+        </div>
+        <p class="opt-sub">
+          The Export verb becomes a download icon. Smallest toolbar
+          footprint. Discoverability suffers — new users may not connect
+          "↓" with "export."
+        </p>
+
+        <div class="toolbar-canvas">
+          <span class="try-hint">↘ click the arrow</span>
+          <div class="toolbar-row">
+            <div class="brand">
+              <div class="brand-mark"></div>
+              <span class="brand-name">markv</span>
+              <span class="brand-meta">Untitled · 4,512 words</span>
+            </div>
+            <div class="tb-spacer"></div>
+            <button class="btn">+ New</button>
+            <button class="btn">▢ Files</button>
+            <button class="btn btn--icon" id="trigger4" aria-label="Export" title="Export · Save the document">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+            </button>
+            <span class="tb-divider"></span>
+            <button class="btn">✎ Edit</button>
+          </div>
+
+          <div class="icon-menu" id="menu4">
+            <div class="refined-item">
+              <span class="label">PDF</span>
+              <span class="ext">.pdf</span>
+            </div>
+            <div class="refined-item">
+              <span class="label">Markdown</span>
+              <span class="ext">.md</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="opt-notes">
+          <p><strong>Wins</strong> Cleanest possible toolbar. Pairs well with other icon-only buttons.</p>
+          <p><strong>Cost</strong> "Download arrow" is the icon convention but means nothing to a fresh user. The label "Export" was doing real work.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- OPTION 5: INLINE PILLS -->
+      <!-- ============================================================ -->
+      <section class="opt">
+        <div class="opt-head">
+          <span class="opt-tag">D</span>
+          <h2>Inline pills — segmented expansion</h2>
+        </div>
+        <p class="opt-sub">
+          Click Export. Two pill buttons slide in beside it: PDF and MD.
+          Click a pill — export starts immediately. Pills retract after.
+          No floating menu at all.
+        </p>
+
+        <div class="toolbar-canvas">
+          <span class="try-hint">↘ click Export</span>
+          <div class="toolbar-row">
+            <div class="brand">
+              <div class="brand-mark"></div>
+              <span class="brand-name">markv</span>
+              <span class="brand-meta">Untitled · 4,512 words</span>
+            </div>
+            <div class="tb-spacer"></div>
+            <button class="btn">+ New</button>
+            <button class="btn">▢ Files</button>
+            <div class="pills-wrap">
+              <button class="btn" id="trigger5">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+                Export
+              </button>
+              <div class="pills-row" id="pills5">
+                <button class="pill">PDF</button>
+                <button class="pill subtle">MD</button>
+              </div>
+            </div>
+            <span class="tb-divider"></span>
+            <button class="btn">✎ Edit</button>
+          </div>
+        </div>
+
+        <div class="opt-notes">
+          <p><strong>Wins</strong> No menu floating over content. The choices ARE the toolbar — you see and act at the same level. Animation feels alive.</p>
+          <p><strong>Cost</strong> Toolbar width fluctuates on expand. On crowded toolbars this can push items into the overflow sheet. Best when toolbar already has slack.</p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <!-- RECOMMENDATION -->
+      <!-- ============================================================ -->
+      <div class="recommendation">
+        <h2>My pick: <strong>B · Split button</strong></h2>
+        <p>
+          Of the four alternatives, the split button does the most
+          design work for the least visual cost. The label itself
+          carries the format ("Export PDF") so users know what's about
+          to happen — no opening required. The caret is the explicit
+          switch. Default-remembers-last-choice means most exports are
+          one click for repeat users.
+        </p>
+        <p>
+          If you want the safest move with the least state to manage,
+          <strong>A (refined menu)</strong> is the next-best choice —
+          same interaction shape as current, just better proportions and
+          typography.
+        </p>
+        <ul class="rec-list">
+          <li><strong>B</strong> · Split button. Most refined. Two-click flexibility, one-click muscle memory.</li>
+          <li><strong>A</strong> · Refined menu. Lowest risk. Cleans up current without changing how it works.</li>
+          <li><strong>D</strong> · Inline pills. Most distinctive. Best if toolbar has room.</li>
+          <li><strong>C</strong> · Icon-only. Cleanest, but loses discoverability for new users.</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        function bindMenu(triggerId, menuId) {
+          const trigger = document.getElementById(triggerId);
+          const menu = document.getElementById(menuId);
+          if (!trigger || !menu) return;
+          trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const open = menu.classList.contains("is-open");
+            closeAll();
+            if (!open) menu.classList.add("is-open");
+          });
+        }
+
+        function closeAll() {
+          document.querySelectorAll(".current-menu, .refined-menu, .split-menu, .icon-menu, .pills-row").forEach(function (el) {
+            el.classList.remove("is-open");
+          });
+        }
+
+        bindMenu("trigger1", "menu1");
+        bindMenu("trigger2", "menu2");
+        bindMenu("trigger3-main", null); // main just acts (no menu)
+        bindMenu("trigger3-caret", "menu3");
+        bindMenu("trigger4", "menu4");
+
+        // Pills toggle
+        const pillTrigger = document.getElementById("trigger5");
+        const pillsRow = document.getElementById("pills5");
+        if (pillTrigger && pillsRow) {
+          pillTrigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const open = pillsRow.classList.contains("is-open");
+            closeAll();
+            if (!open) pillsRow.classList.add("is-open");
+          });
+        }
+
+        // Click outside closes
+        document.addEventListener("click", function () {
+          closeAll();
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -5,6 +5,29 @@
     return window.MarkVExportCore || null;
   }
 
+  // Split-button last-used-format memory. Persisted across sessions so
+  // the main button's default action matches the user's habit.
+  const FORMAT_STORAGE_KEY = "markv-export-last-format";
+  function getLastFormat() {
+    try {
+      const v =
+        window.localStorage &&
+        window.localStorage.getItem(FORMAT_STORAGE_KEY);
+      return v === "md" ? "md" : "pdf";
+    } catch (_error) {
+      return "pdf";
+    }
+  }
+  function setLastFormat(format) {
+    try {
+      if (window.localStorage) {
+        window.localStorage.setItem(FORMAT_STORAGE_KEY, format);
+      }
+    } catch (_error) {
+      /* storage unavailable — non-fatal */
+    }
+  }
+
   function focusSafely(element, options) {
     if (!element || typeof element.focus !== "function") return;
     try {
@@ -67,16 +90,20 @@
   }
 
   function setPanelHidden(host, hidden) {
+    // aria-expanded lives on the caret now (it's the menu trigger),
+    // not the main button (which directly executes the last format).
     const panel = host.elements.panel;
-    const button = host.elements.button;
-    if (!panel || !button) return;
+    const caret = host.elements.caret;
+    if (!panel) return;
     panel.hidden = hidden;
-    button.setAttribute("aria-expanded", hidden ? "false" : "true");
+    if (caret) caret.setAttribute("aria-expanded", hidden ? "false" : "true");
   }
 
   function queryElements() {
     return {
       button: document.getElementById("exportBtn"),
+      label: document.getElementById("exportLabel"),
+      caret: document.getElementById("exportCaretBtn"),
       panel: document.getElementById("exportMenu"),
       pdfButton: document.getElementById("exportPdfBtn"),
       markdownButton: document.getElementById("exportMarkdownBtn"),
@@ -283,26 +310,49 @@
       host.elements = queryElements();
       const disabled = host.busy || !hasMarkdown(source);
       setElementDisabled(host.elements.button, disabled);
+      setElementDisabled(host.elements.caret, disabled);
       setElementDisabled(host.elements.pdfButton, disabled);
       setElementDisabled(host.elements.markdownButton, disabled);
-      [host.elements.button, host.elements.pdfButton, host.elements.markdownButton]
+      [
+        host.elements.button,
+        host.elements.caret,
+        host.elements.pdfButton,
+        host.elements.markdownButton,
+      ]
         .filter(Boolean)
         .forEach(function (element) {
           element.classList.toggle("is-busy", host.busy);
           element.setAttribute("aria-busy", host.busy ? "true" : "false");
         });
+
+      // Reflect the last-used format in the main label, mark the active
+      // row inside the menu, and update the tooltip accordingly.
+      const fmt = getLastFormat();
+      const isMd = fmt === "md";
+      if (host.elements.label) {
+        host.elements.label.textContent = isMd ? "Export MD" : "Export PDF";
+      }
+      if (host.elements.pdfButton) {
+        host.elements.pdfButton.classList.toggle("is-active", !isMd);
+      }
+      if (host.elements.markdownButton) {
+        host.elements.markdownButton.classList.toggle("is-active", isMd);
+      }
       if (host.elements.button) {
         host.elements.button.title = host.busy
           ? "An export is already being prepared"
           : hasMarkdown(source)
-            ? "Export current document"
+            ? isMd
+              ? "Export as Markdown"
+              : "Export as PDF"
             : "Add markdown content before exporting";
       }
     }
 
     function showPanel() {
       syncUi();
-      if (!host.elements.panel || host.elements.button.disabled) return;
+      const trigger = host.elements.caret || host.elements.button;
+      if (!host.elements.panel || !trigger || trigger.disabled) return;
       setPanelHidden(host, false);
       window.requestAnimationFrame(function () {
         focusSafely(host.elements.pdfButton);
@@ -322,12 +372,14 @@
       }
       setPanelHidden(host, true);
       if (options.restoreFocus !== false) {
-        focusSafely(host.elements.button);
+        // Caret is the menu trigger — focus returns there.
+        focusSafely(host.elements.caret || host.elements.button);
       }
     }
 
     function togglePanel() {
-      if (!host.elements.panel || host.elements.button.disabled) return;
+      const trigger = host.elements.caret || host.elements.button;
+      if (!host.elements.panel || !trigger || trigger.disabled) return;
       if (host.elements.panel.hidden) showPanel();
       else hidePanel({ restoreFocus: true });
     }
@@ -446,22 +498,48 @@
 
     function wireEvents() {
       syncUi();
+
+      // Main button → directly run the last-used format (no menu).
       if (host.elements.button) {
-        host.elements.button.addEventListener("click", togglePanel);
+        host.elements.button.addEventListener("click", function () {
+          if (getLastFormat() === "md") exportMarkdown();
+          else exportPdf();
+        });
       }
+
+      // Caret → toggles the format picker menu.
+      if (host.elements.caret) {
+        host.elements.caret.addEventListener("click", togglePanel);
+      }
+
+      // Menu items → run AND remember as the new default for next time.
       if (host.elements.pdfButton) {
-        host.elements.pdfButton.addEventListener("click", exportPdf);
+        host.elements.pdfButton.addEventListener("click", function () {
+          setLastFormat("pdf");
+          syncUi();
+          exportPdf();
+        });
       }
       if (host.elements.markdownButton) {
-        host.elements.markdownButton.addEventListener("click", exportMarkdown);
+        host.elements.markdownButton.addEventListener("click", function () {
+          setLastFormat("md");
+          syncUi();
+          exportMarkdown();
+        });
       }
+
+      // Click outside (not on main, not on caret, not in panel) → close.
       document.addEventListener("click", function (event) {
         const panel = host.elements.panel;
         const button = host.elements.button;
+        const caret = host.elements.caret;
         if (!panel || panel.hidden) return;
-        if (panel.contains(event.target) || button.contains(event.target)) return;
+        if (panel.contains(event.target)) return;
+        if (button && button.contains(event.target)) return;
+        if (caret && caret.contains(event.target)) return;
         hidePanel({ restoreFocus: false });
       });
+
       document.addEventListener("keydown", function (event) {
         const panel = host.elements.panel;
         if (!panel || panel.hidden || event.key !== "Escape") return;
