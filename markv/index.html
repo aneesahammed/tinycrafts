@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-2iT050zlCWAuCWrdw/Hvz2yWwcBTVLBuaHZ45KIVu0Q=' 'sha256-gYJ3rvsIkm25VPab0rqBSucCD4NMRCVQQ7kCixm3JwY=' 'sha256-pKH0X0/JCoYTJLnP8z/RMGFgxfoaE2N4JMgpLCSWFs4=' 'sha256-JhMVOqBNFujprLaFHTHJwqJmG3PWcZ8WUO+WsFn1yEs=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-GhCMNnvxvEB8jipgN3/pb9wJ78Plm4uS4v8ZLrRt/UY=' 'sha256-utaSemSIwEenIJJPHJVl6Zdpr7htvGLeir+jK01yh54=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-nKgUmg4JbsuTFiJbL9tpoX/c3vFevSt2fYmeGfxXcCo=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -46,6 +46,7 @@
     <script src="assets/reader-palettes.js?v=4"></script>
     <script src="assets/export-core.js?v=2"></script>
     <script src="assets/export-host.js?v=4"></script>
+    <script src="assets/csv-sheet.js?v=1"></script>
     <script src="assets/pwa.js"></script>
     <script>
       (function () {
@@ -4850,6 +4851,92 @@
         border-bottom: 0;
       }
 
+      .markdown-body .csv-sheet-wrap {
+        margin: 1.5em 0;
+        max-width: 100%;
+        overflow: auto;
+        border: 1px solid
+          var(--reader-border-default, var(--border-default));
+        border-radius: 8px;
+        background: var(--reader-bg-surface, var(--bg-raised));
+      }
+
+      .markdown-body .csv-sheet {
+        display: table;
+        width: max-content;
+        min-width: 100%;
+        max-width: none;
+        margin: 0;
+        overflow: visible;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-family: var(--font-sans);
+        font-size: 0.88em;
+      }
+
+      .markdown-body .csv-sheet th,
+      .markdown-body .csv-sheet td {
+        min-width: 9ch;
+        max-width: 28ch;
+        padding: 8px 12px;
+        border-right: 1px solid
+          var(--reader-border-soft, var(--border-soft));
+        border-bottom: 1px solid
+          var(--reader-border-soft, var(--border-soft));
+        color: var(--reader-fg-default, var(--fg-default));
+        text-align: left;
+        text-transform: none;
+        letter-spacing: 0;
+        vertical-align: top;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .markdown-body .csv-sheet thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        border-bottom-color: var(
+          --reader-border-default,
+          var(--border-default)
+        );
+        background: var(--reader-bg-subtle, var(--bg-subtle));
+        color: var(--reader-fg-default, var(--fg-default));
+        font-size: 0.82em;
+        font-weight: 600;
+      }
+
+      .markdown-body .csv-sheet tbody th {
+        width: 1%;
+        min-width: 4ch;
+        max-width: 6ch;
+        background: var(--reader-bg-subtle, var(--bg-subtle));
+        color: var(--reader-fg-muted, var(--fg-muted));
+        font-size: 0.82em;
+        font-weight: 500;
+      }
+
+      .markdown-body .csv-sheet tr:last-child th,
+      .markdown-body .csv-sheet tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .markdown-body .csv-sheet th:last-child,
+      .markdown-body .csv-sheet td:last-child {
+        border-right: 0;
+      }
+
+      .markdown-body .csv-sheet td:empty::after {
+        content: "\00a0";
+      }
+
+      .markdown-body .csv-sheet-note {
+        margin: -0.9em 0 1.5em;
+        color: var(--reader-fg-muted, var(--fg-muted));
+        font-family: var(--font-sans);
+        font-size: 0.86em;
+      }
+
       /* Media */
       .markdown-body img,
       .markdown-body video {
@@ -5393,6 +5480,38 @@
         .export-print-document.markdown-body pre code.hljs {
           color: var(--reader-code-fg) !important;
           background: transparent !important;
+        }
+        .export-print-document.markdown-body .csv-sheet-wrap {
+          max-width: 100%;
+          overflow: visible;
+          border-color: var(--reader-border-default) !important;
+          box-shadow: none;
+          break-inside: auto;
+          page-break-inside: auto;
+        }
+        .export-print-document.markdown-body .csv-sheet {
+          width: 100%;
+          min-width: 0;
+          table-layout: fixed;
+          font-size: 0.72em;
+          break-inside: auto;
+          page-break-inside: auto;
+        }
+        .export-print-document.markdown-body .csv-sheet thead th {
+          position: static;
+          background: var(--reader-bg-subtle) !important;
+        }
+        .export-print-document.markdown-body .csv-sheet th,
+        .export-print-document.markdown-body .csv-sheet td {
+          max-width: none;
+          padding: 6px 8px;
+          border-color: var(--reader-border-soft) !important;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .export-print-document.markdown-body .csv-sheet tr {
+          break-inside: avoid;
+          page-break-inside: avoid;
         }
         .export-print-document.markdown-body :is(.hljs-comment, .hljs-quote) {
           color: var(--reader-syntax-comment) !important;
@@ -19673,6 +19792,29 @@ Return JSON only.`;
         }
 
         const renderer = new marked.Renderer();
+        const defaultCodeRenderer = renderer.code.bind(renderer);
+        renderer.code = function (code, infostring, escaped) {
+          var csvSheet = window.MarkVCsvSheet;
+
+          if (
+            csvSheet &&
+            typeof csvSheet.isCsvInfoString === "function" &&
+            csvSheet.isCsvInfoString(infostring)
+          ) {
+            try {
+              var rendered = csvSheet.renderCsvSheet(
+                code,
+                infostring,
+                escapeHtml,
+              );
+              if (rendered) return rendered;
+            } catch (_error) {
+              // Fall through to the normal code block renderer.
+            }
+          }
+
+          return defaultCodeRenderer(code, infostring, escaped);
+        };
         const MARKDOWN_ALERTS = {
           note: {
             label: "Note",
@@ -22011,6 +22153,8 @@ Return JSON only.`;
           els.preview.querySelectorAll("table").forEach(function (table) {
             const parent = table.parentElement;
             if (parent && parent.classList.contains("table-wrap")) return;
+            if (table.classList.contains("csv-sheet")) return;
+            if (table.closest(".csv-sheet-wrap")) return;
             const wrapper = document.createElement("div");
             wrapper.className = "table-wrap";
             table.parentNode.insertBefore(wrapper, table);

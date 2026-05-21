@@ -36,10 +36,10 @@ function extractBlock(source, needle) {
 
 test("export assets are loaded and precached", () => {
   assert.match(html, /assets\/export-core\.js\?v=2/);
-  assert.match(html, /assets\/export-host\.js\?v=3/);
-  assert.match(sw, /CACHE_VERSION = "v44"/);
+  assert.match(html, /assets\/export-host\.js\?v=4/);
+  assert.match(sw, /CACHE_VERSION = "v46"/);
   assert.match(sw, /\.\/assets\/export-core\.js\?v=2/);
-  assert.match(sw, /\.\/assets\/export-host\.js\?v=3/);
+  assert.match(sw, /\.\/assets\/export-host\.js\?v=4/);
 });
 
 test("toolbar exposes one export popover with direct pdf and markdown actions", () => {
