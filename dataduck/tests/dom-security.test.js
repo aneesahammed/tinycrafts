@@ -18,6 +18,7 @@ describe('DOM security helpers', () => {
 
     expect(trustedScriptUrl('/assets/worker.js')).toBe('/assets/worker.js');
     expect(trustedScriptUrl(sameOriginBlob)).toBe(sameOriginBlob);
+    expect(trustedScriptUrl('https://gc.zgo.at/count.js')).toBe('https://gc.zgo.at/count.js');
     expect(() => trustedScriptUrl('data:text/javascript,postMessage(1)')).toThrow(/Untrusted script URL/);
     expect(() => trustedScriptUrl('blob:https://evil.example/worker')).toThrow(/Untrusted script URL/);
     expect(() => trustedScriptUrl('https://evil.example/worker.js')).toThrow(/Untrusted script URL/);

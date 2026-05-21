@@ -21,14 +21,15 @@ const trustedHtmlPolicy = (() => {
     const policy = tt.createPolicy(TRUSTED_TYPES_POLICY_NAME, {
       createHTML: (input) => String(input),
       // Worker / script URL sinks. Validate the URL is same-origin (or
-      // blob: from same origin) before producing a TrustedScriptURL —
-      // refuses to ever hand out a URL that points at a third party.
+      // blob: from same origin) before producing a TrustedScriptURL.
+      // The only third-party script exception is GoatCounter's collector.
       createScriptURL: (input) => {
         const raw = String(input);
         const url = new URL(raw, globalThis.location?.href ?? 'http://localhost');
         const sameOrigin = url.origin === globalThis.location?.origin;
+        const goatCounterScript = url.href === 'https://gc.zgo.at/count.js';
         const allowedScheme = ['http:', 'https:', 'file:', 'blob:'].includes(url.protocol);
-        if (!sameOrigin || !allowedScheme) {
+        if ((!sameOrigin && !goatCounterScript) || !allowedScheme) {
           throw new Error(`Untrusted script URL refused by dataduck-html policy: ${raw}`);
         }
         return raw;

@@ -48,6 +48,7 @@ import { mountChartPanel } from './ui/chart-panel.js';
 import { mountQuerySnapshots } from './ui/query-snapshots.js';
 import { setupRailResize, setupRightResize } from './ui/rail-resizer.js';
 import { setupServiceWorker } from './service-worker.js';
+import { setupAnalytics } from './analytics.js';
 import { createLazyAiAssistant } from './assistant/lazy.js';
 import sampleDatasetUrl from '../samples/penguins.csv?url';
 import {
@@ -66,6 +67,7 @@ import {
 const RAIL_COLLAPSED_STORAGE_KEY = 'dataduck:rail-collapsed';
 
 restoreTheme();
+setupAnalytics();
 
 const store = createStore();
 const head = document.querySelector('#head');
