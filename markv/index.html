@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-nKgUmg4JbsuTFiJbL9tpoX/c3vFevSt2fYmeGfxXcCo=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-VLmksA0nG0ed5W4ynPsLyRgkOT93+VedAyidEknv5xs=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -7358,7 +7358,7 @@
         gap: 6px;
         min-height: 32px;
         padding: 0 10px;
-        border: 0;
+        border: 1px solid transparent;
         border-radius: 8px;
         background: transparent;
         color: var(--fg-default);
@@ -7367,21 +7367,31 @@
         font-weight: 600;
         cursor: pointer;
         white-space: nowrap;
+        transition:
+          background-color 140ms ease,
+          border-color 140ms ease,
+          color 140ms ease,
+          transform 120ms ease;
       }
       .selection-action:hover {
         background: var(--bg-subtle);
+      }
+      .selection-action:active {
+        transform: scale(0.98);
       }
       .selection-action svg {
         flex-shrink: 0;
         color: var(--fg-muted);
       }
       .selection-action-primary {
-        background: var(--fg-default);
-        color: var(--bg-canvas);
+        background: color-mix(in srgb, var(--accent-fg) 9%, transparent);
+        border-color: color-mix(in srgb, var(--accent-fg) 24%, transparent);
+        color: var(--accent-hover);
       }
       .selection-action-primary:hover {
-        background: var(--fg-default);
-        color: var(--bg-canvas);
+        background: color-mix(in srgb, var(--accent-fg) 14%, transparent);
+        border-color: color-mix(in srgb, var(--accent-fg) 34%, transparent);
+        color: var(--accent-hover);
       }
       .selection-action-primary svg {
         color: currentColor;
@@ -9090,6 +9100,30 @@ Drop a .md file anywhere on the page, or open one from Files."
         aria-hidden="true"
         hidden
       >
+        <button
+          id="selectionCopyBtn"
+          type="button"
+          class="selection-action"
+          title="Copy selection"
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path
+              d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+            />
+          </svg>
+          Copy
+        </button>
         <button
           id="selectionHighlightBtn"
           type="button"
@@ -15749,6 +15783,7 @@ Return JSON only.`;
           libraryFolderInput: document.getElementById("libraryFolderInput"),
           previewPane: document.querySelector(".preview-pane"),
           selectionBubble: document.getElementById("selectionBubble"),
+          selectionCopyBtn: document.getElementById("selectionCopyBtn"),
           selectionHighlightBtn: document.getElementById(
             "selectionHighlightBtn",
           ),
@@ -19074,6 +19109,27 @@ Return JSON only.`;
           });
         }
 
+        async function copySelectedTextToClipboard() {
+          const controller =
+            state.selectionController || captureSelectionController();
+          if (!controller) {
+            setStatus("Select text to copy.", { announce: true });
+            return;
+          }
+
+          const text = String(controller.text || controller.trimmedText || "");
+          const copied = await copyTextToClipboard(text);
+          if (copied) {
+            dismissSelectionUi({ clearSelection: false });
+            setStatus("Copied selection.", { announce: true });
+            return;
+          }
+
+          setStatus("Copy failed. Use Cmd+C or the browser menu.", {
+            announce: true,
+          });
+        }
+
         function getPreviewTextModel() {
           const walker = document.createTreeWalker(
             els.preview,
@@ -22000,22 +22056,22 @@ Return JSON only.`;
             els.brandName.textContent = rawName || "Untitled";
             els.brandName.className = "brand-name is-untitled";
             els.brandName.title = rawName || "Untitled";
-            document.title = (rawName || "Untitled") + " · MarkV";
+            document.title = rawName || "Untitled";
           } else if (hasFile) {
             els.brandName.textContent = stripped;
             els.brandName.className = "brand-name is-file";
             els.brandName.title = rawName;
-            document.title = stripped + " · MarkV";
+            document.title = stripped;
           } else if (hasContent) {
             els.brandName.textContent = "Untitled";
             els.brandName.className = "brand-name is-untitled";
             els.brandName.removeAttribute("title");
-            document.title = "Untitled · MarkV";
+            document.title = "Untitled";
           } else {
             els.brandName.textContent = "MarkV";
             els.brandName.className = "brand-name";
             els.brandName.removeAttribute("title");
-            document.title = "MarkV — Markdown Viewer";
+            document.title = "Markdown Viewer";
           }
 
           if (els.brandDirty) {
@@ -23931,15 +23987,9 @@ Return JSON only.`;
         });
 
         document.addEventListener("contextmenu", function (event) {
-          if (isCoarsePointer()) return;
           if (!event.target.closest(".preview-pane, .markdown-body")) return;
-          if (!captureSelectionController()) {
-            hideContextMenu();
-            return;
-          }
-
-          event.preventDefault();
-          showContextMenu(event.clientX, event.clientY);
+          hideSelectionBubble();
+          hideContextMenu();
         });
 
         document.addEventListener("pointerdown", function (event) {
@@ -24022,6 +24072,7 @@ Return JSON only.`;
         });
 
         [
+          els.selectionCopyBtn,
           els.selectionHighlightBtn,
           els.selectionAskBtn,
           els.selectionSummarizeBtn,
@@ -24036,6 +24087,9 @@ Return JSON only.`;
           });
         });
 
+        els.selectionCopyBtn.addEventListener("click", function () {
+          copySelectedTextToClipboard();
+        });
         els.selectionHighlightBtn.addEventListener("click", function () {
           addHighlightFromSelection();
         });
