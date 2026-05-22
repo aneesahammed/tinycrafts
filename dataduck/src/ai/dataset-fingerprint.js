@@ -1,3 +1,5 @@
+import { rowCountFromProfile } from '../duckdb/profile-row-count.js';
+
 export function datasetFingerprint(record, activeTable) {
   const schema = record?.profile?.schema || [];
   return JSON.stringify({
@@ -5,7 +7,7 @@ export function datasetFingerprint(record, activeTable) {
     virtualName: record?.virtualName || null,
     size: record?.size || 0,
     format: record?.format || null,
-    rowCount: record?.profile?.fileMeta?.num_rows ?? null,
+    rowCount: rowCountFromProfile(record?.profile),
     schema: schema.map((column) => [column.column_name, column.column_type]),
   });
 }
