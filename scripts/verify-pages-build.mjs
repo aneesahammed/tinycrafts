@@ -10,7 +10,6 @@ const requiredFiles = [
   '.nojekyll',
   'google63c1ffe1585127de.html',
   'index.htm',
-  'assets/analytics.js',
   'assets/icons/apple-touch-icon.png',
   'assets/icons/favicon-32.png',
   'assets/icons/favicon.ico',
