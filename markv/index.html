@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-JhRJPmgwVGbFm9GBrcpoGhSgRs8AdTuyEabOxw1kDhY=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-d81NKySzQnC0SAfvAo9AXite5ITs3kx97phR5av5Bx4=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -12946,6 +12946,10 @@ Drop a .md file anywhere on the page, or open one from Files."
         const MIN_HIGHLIGHT_SELECTION_LENGTH = 3;
         const HIGHLIGHT_CONTEXT_WINDOW = 32;
         const MERMAID_SCRIPT_URL = "./vendor/mermaid.min.js";
+        const BEAUTIFUL_MERMAID_SCRIPT_URL =
+          "./vendor/beautiful-mermaid.min.js";
+        const MERMAID_RENDERER_NAME = "mermaid";
+        const BEAUTIFUL_MERMAID_RENDERER_NAME = "beautiful-mermaid";
         const HLJS_CDN =
           "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1";
         const HLJS_LIGHT_THEME_URL = HLJS_CDN + "/styles/github.min.css";
@@ -15953,6 +15957,7 @@ Return JSON only.`;
           highlightUndoTimer: null,
           appToastTimer: null,
           mermaidApiPromise: null,
+          beautifulMermaidApiPromise: null,
           hljsPromise: null,
           katexPromise: null,
           previewRenderGeneration: 0,
@@ -22481,6 +22486,21 @@ Return JSON only.`;
           };
         }
 
+        function getBeautifulMermaidRenderOptions() {
+          const colors = getMermaidPaletteColors();
+
+          return {
+            bg: colors.canvas,
+            fg: colors.ink,
+            line: colors.muted,
+            accent: colors.accent,
+            muted: colors.muted,
+            surface: colors.node,
+            border: colors.border,
+            transparent: true,
+          };
+        }
+
         function applyReadableMermaidPalette(svg) {
           if (!svg) return;
           const colors = getMermaidPaletteColors();
@@ -22537,6 +22557,31 @@ Return JSON only.`;
           return /(^|\n)```mermaid(?:\s|$)/i.test(String(markdown || ""));
         }
 
+        function getMermaidFirstMeaningfulLine(source) {
+          const lines = String(source || "").trim().split(/\r?\n/);
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith("%%")) continue;
+            return trimmed;
+          }
+          return "";
+        }
+
+        function getMermaidRendererType(source) {
+          const firstLine = getMermaidFirstMeaningfulLine(source);
+          if (
+            /^(?:flowchart|graph)\s+(?:TD|TB|LR|BT|RL)$/i.test(firstLine) ||
+            /^stateDiagram(?:-v2)?$/i.test(firstLine) ||
+            /^sequenceDiagram$/i.test(firstLine) ||
+            /^classDiagram$/i.test(firstLine) ||
+            /^erDiagram$/i.test(firstLine) ||
+            /^xychart-beta$/i.test(firstLine)
+          ) {
+            return BEAUTIFUL_MERMAID_RENDERER_NAME;
+          }
+          return MERMAID_RENDERER_NAME;
+        }
+
         function getMermaidApi() {
           if (window.mermaid) {
             return Promise.resolve(window.mermaid);
@@ -22565,6 +22610,47 @@ Return JSON only.`;
           });
 
           return state.mermaidApiPromise;
+        }
+
+        function getBeautifulMermaidApi() {
+          if (
+            window.BeautifulMermaid &&
+            typeof window.BeautifulMermaid.renderMermaidSVG === "function"
+          ) {
+            return Promise.resolve(window.BeautifulMermaid);
+          }
+          if (state.beautifulMermaidApiPromise) {
+            return state.beautifulMermaidApiPromise;
+          }
+
+          state.beautifulMermaidApiPromise = new Promise(function (
+            resolve,
+            reject,
+          ) {
+            const script = document.createElement("script");
+            script.src = BEAUTIFUL_MERMAID_SCRIPT_URL;
+            script.async = true;
+            script.onload = function () {
+              if (
+                window.BeautifulMermaid &&
+                typeof window.BeautifulMermaid.renderMermaidSVG === "function"
+              ) {
+                resolve(window.BeautifulMermaid);
+                return;
+              }
+              state.beautifulMermaidApiPromise = null;
+              reject(
+                new Error("Beautiful Mermaid loaded but did not initialize."),
+              );
+            };
+            script.onerror = function () {
+              state.beautifulMermaidApiPromise = null;
+              reject(new Error("Failed to load Beautiful Mermaid."));
+            };
+            document.head.appendChild(script);
+          });
+
+          return state.beautifulMermaidApiPromise;
         }
 
         function buildMermaidFallback(source, message, detail) {
@@ -22800,6 +22886,76 @@ Return JSON only.`;
           });
         }
 
+        function validateBeautifulMermaidSvg(svgText) {
+          const template = document.createElement("template");
+          template.innerHTML = String(svgText || "").trim();
+
+          if (template.content.children.length !== 1) {
+            throw new Error("Beautiful Mermaid returned unexpected markup.");
+          }
+
+          const svg = template.content.firstElementChild;
+          if (!svg || svg.tagName.toLowerCase() !== "svg") {
+            throw new Error("Beautiful Mermaid did not return an SVG.");
+          }
+
+          if (
+            svg.querySelector(
+              "script, foreignObject, iframe, object, embed, image",
+            )
+          ) {
+            throw new Error("Beautiful Mermaid returned unsafe SVG markup.");
+          }
+
+          const elements = [svg].concat(Array.from(svg.querySelectorAll("*")));
+          for (const element of elements) {
+            for (const attr of Array.from(element.attributes)) {
+              const name = attr.name.toLowerCase();
+              const value = String(attr.value || "").trim().toLowerCase();
+              if (name.startsWith("on")) {
+                throw new Error(
+                  "Beautiful Mermaid returned event handler attributes.",
+                );
+              }
+              if (
+                (name === "href" || name === "xlink:href") &&
+                !value.startsWith("#")
+              ) {
+                throw new Error("Beautiful Mermaid returned unsafe links.");
+              }
+              if (name === "style" && /(?:javascript:|@import)/i.test(value)) {
+                throw new Error("Beautiful Mermaid returned unsafe styles.");
+              }
+            }
+          }
+
+          svg.querySelectorAll("style").forEach(function (style) {
+            style.textContent = String(style.textContent || "")
+              .split(/\r?\n/)
+              .filter(function (line) {
+                return !/^\s*@import\b/i.test(line);
+              })
+              .join("\n");
+            if (/(?:javascript:|@import)/i.test(style.textContent || "")) {
+              throw new Error("Beautiful Mermaid returned unsafe styles.");
+            }
+          });
+
+          return svg.outerHTML;
+        }
+
+        async function renderBeautifulMermaidSource(source) {
+          const api = await getBeautifulMermaidApi();
+          const svg = api.renderMermaidSVG(
+            source,
+            getBeautifulMermaidRenderOptions(),
+          );
+          return {
+            renderer: BEAUTIFUL_MERMAID_RENDERER_NAME,
+            svg: validateBeautifulMermaidSvg(svg),
+          };
+        }
+
         function collectMermaidBlocks() {
           return Array.from(
             els.preview.querySelectorAll("pre > code.language-mermaid"),
@@ -22848,14 +23004,19 @@ Return JSON only.`;
         }
 
         function applyRenderedMermaidSvg(block, rendered) {
+          const rendererName = rendered.renderer || MERMAID_RENDERER_NAME;
           block.host.classList.remove("is-loading", "is-error");
+          block.host.dataset.mermaidRenderer = rendererName;
           block.host.innerHTML = rendered.svg;
 
           const svg = block.host.querySelector("svg");
           if (svg) {
+            svg.dataset.markvMermaidRenderer = rendererName;
             svg.setAttribute("role", "img");
             svg.setAttribute("aria-label", "Mermaid diagram");
-            applyReadableMermaidPalette(svg);
+            if (rendererName === MERMAID_RENDERER_NAME) {
+              applyReadableMermaidPalette(svg);
+            }
           }
           ensureMermaidBlockActions(block.host);
 
@@ -22882,24 +23043,46 @@ Return JSON only.`;
           const keepExistingOnError = Boolean(options.keepExistingOnError);
           if (!blocks.length) return;
 
+          let originalMermaid = null;
+          const renderWithOriginalMermaid = async function (id, source) {
+            if (!originalMermaid) {
+              originalMermaid = await getMermaidApi();
+              originalMermaid.initialize({
+                startOnLoad: false,
+                securityLevel: "strict",
+                ...getMermaidThemeConfig(),
+              });
+            }
+            const rendered = await originalMermaid.render(id, source);
+            rendered.renderer = MERMAID_RENDERER_NAME;
+            return rendered;
+          };
+
           try {
-            const mermaid = await getMermaidApi();
-            if (generation !== state.previewRenderGeneration) return;
-
-            mermaid.initialize({
-              startOnLoad: false,
-              securityLevel: "strict",
-              ...getMermaidThemeConfig(),
-            });
-
             for (const block of blocks) {
               const normalizedSource = normalizeMermaidSource(block.source);
+              const rendererName = getMermaidRendererType(normalizedSource);
+              const renderId =
+                "markv-mermaid-" + generation + "-" + block.index;
               const hadExistingContent = Boolean(block.host.innerHTML.trim());
               try {
-                const rendered = await mermaid.render(
-                  "markv-mermaid-" + generation + "-" + block.index,
-                  normalizedSource,
-                );
+                let rendered;
+                if (rendererName === BEAUTIFUL_MERMAID_RENDERER_NAME) {
+                  try {
+                    rendered =
+                      await renderBeautifulMermaidSource(normalizedSource);
+                  } catch (_beautifulError) {
+                    rendered = await renderWithOriginalMermaid(
+                      renderId,
+                      normalizedSource,
+                    );
+                  }
+                } else {
+                  rendered = await renderWithOriginalMermaid(
+                    renderId,
+                    normalizedSource,
+                  );
+                }
                 if (generation !== state.previewRenderGeneration) return;
                 applyRenderedMermaidSvg(block, rendered);
               } catch (_error) {

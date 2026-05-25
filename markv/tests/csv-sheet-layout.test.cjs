@@ -26,7 +26,7 @@ function cspContent() {
 
 test("csv sheet asset is loaded and precached", () => {
   assert.match(html, /assets\/csv-sheet\.js\?v=1/);
-  assert.match(sw, /CACHE_VERSION = "v48"/);
+  assert.match(sw, /CACHE_VERSION = "v49"/);
   assert.match(sw, /\.\/assets\/csv-sheet\.js\?v=1/);
 });
 

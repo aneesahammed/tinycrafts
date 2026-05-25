@@ -37,7 +37,7 @@ function extractBlock(source, needle) {
 test("export assets are loaded and precached", () => {
   assert.match(html, /assets\/export-core\.js\?v=2/);
   assert.match(html, /assets\/export-host\.js\?v=4/);
-  assert.match(sw, /CACHE_VERSION = "v48"/);
+  assert.match(sw, /CACHE_VERSION = "v49"/);
   assert.match(sw, /\.\/assets\/export-core\.js\?v=2/);
   assert.match(sw, /\.\/assets\/export-host\.js\?v=4/);
 });
