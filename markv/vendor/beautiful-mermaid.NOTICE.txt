@@ -1,0 +1,19 @@
+Vendored asset: beautiful-mermaid.min.js
+
+This bundle was generated from beautiful-mermaid 1.1.3 for MarkV's static
+Mermaid renderer path. It includes the following third-party packages:
+
+- beautiful-mermaid 1.1.3
+  License: MIT
+  Source: https://github.com/lukilabs/beautiful-mermaid
+  License text: vendor/beautiful-mermaid.LICENSE.txt
+
+- elkjs 0.11.1
+  License: EPL-2.0
+  Source: https://github.com/kieler/elkjs.git
+  License text: vendor/beautiful-mermaid.elkjs.EPL-2.0.txt
+
+- entities 7.0.1
+  License: BSD-2-Clause
+  Source: https://github.com/fb55/entities.git
+  License text: vendor/beautiful-mermaid.entities.BSD-2-Clause.txt

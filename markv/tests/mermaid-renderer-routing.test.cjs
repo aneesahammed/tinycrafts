@@ -48,6 +48,7 @@ test("beautiful mermaid is loaded locally and precached", () => {
   );
   assert.match(sw, /\.\/vendor\/beautiful-mermaid\.min\.js/);
   assert.ok(fs.existsSync("vendor/beautiful-mermaid.min.js"));
+  assert.ok(fs.existsSync("vendor/beautiful-mermaid.NOTICE.txt"));
   assert.ok(fs.existsSync("vendor/beautiful-mermaid.LICENSE.txt"));
   assert.ok(fs.existsSync("vendor/beautiful-mermaid.elkjs.EPL-2.0.txt"));
   assert.ok(
