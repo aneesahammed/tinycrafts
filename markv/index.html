@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-VLmksA0nG0ed5W4ynPsLyRgkOT93+VedAyidEknv5xs=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-JhRJPmgwVGbFm9GBrcpoGhSgRs8AdTuyEabOxw1kDhY=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -1459,6 +1459,19 @@
       .pwa-update-toast__dismiss svg {
         width: 12px;
         height: 12px;
+      }
+      .app-toast {
+        z-index: 35;
+      }
+      .app-toast[data-kind="error"]::before {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--alert-caution) 86%, white 14%),
+          color-mix(in srgb, var(--alert-caution) 22%, transparent)
+        );
+      }
+      .app-toast[data-kind="error"] .pwa-update-toast__eyebrow {
+        color: var(--alert-caution);
       }
       @media (max-width: 768px) {
         .pwa-update-toast {
@@ -8433,6 +8446,43 @@
             class="btn pwa-update-toast__dismiss"
             title="Dismiss update notice"
             aria-label="Dismiss update notice"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M3.5 3.5 12.5 12.5"></path>
+              <path d="M12.5 3.5 3.5 12.5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="appToast"
+        class="pwa-update-toast app-toast"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-hidden="true"
+        hidden
+      >
+        <div class="pwa-update-toast__body">
+          <p id="appToastEyebrow" class="pwa-update-toast__eyebrow">MarkV</p>
+          <p id="appToastTitle" class="pwa-update-toast__title"></p>
+          <p id="appToastMessage" class="pwa-update-toast__copy"></p>
+        </div>
+        <div class="pwa-update-toast__actions">
+          <button
+            id="appToastDismiss"
+            type="button"
+            class="btn pwa-update-toast__dismiss"
+            title="Dismiss message"
+            aria-label="Dismiss message"
           >
             <svg
               viewBox="0 0 16 16"
@@ -15779,6 +15829,11 @@ Return JSON only.`;
           status: document.getElementById("status"),
           wordCount: document.getElementById("wordCount"),
           liveRegion: document.getElementById("liveRegion"),
+          appToast: document.getElementById("appToast"),
+          appToastEyebrow: document.getElementById("appToastEyebrow"),
+          appToastTitle: document.getElementById("appToastTitle"),
+          appToastMessage: document.getElementById("appToastMessage"),
+          appToastDismiss: document.getElementById("appToastDismiss"),
           fileInput: document.getElementById("fileInput"),
           libraryFolderInput: document.getElementById("libraryFolderInput"),
           previewPane: document.querySelector(".preview-pane"),
@@ -15896,6 +15951,7 @@ Return JSON only.`;
           selectionBubbleTimer: null,
           highlightUndo: null,
           highlightUndoTimer: null,
+          appToastTimer: null,
           mermaidApiPromise: null,
           hljsPromise: null,
           katexPromise: null,
@@ -20334,6 +20390,80 @@ Return JSON only.`;
           if (options.announce) announce(message);
         }
 
+        function hideAppToast(immediate) {
+          if (!els.appToast) return;
+          window.clearTimeout(state.appToastTimer);
+          state.appToastTimer = null;
+          els.appToast.classList.remove("is-visible");
+          els.appToast.setAttribute("aria-hidden", "true");
+
+          if (immediate) {
+            els.appToast.hidden = true;
+            return;
+          }
+
+          state.appToastTimer = window.setTimeout(function () {
+            els.appToast.hidden = true;
+          }, 240);
+        }
+
+        function showAppToast(options) {
+          options = options || {};
+          if (!els.appToast || !els.appToastTitle || !els.appToastMessage) {
+            if (options.message) announce(options.message);
+            return;
+          }
+
+          const kind = options.kind || "default";
+          const eyebrow = options.eyebrow || "MarkV";
+          const title = options.title || "";
+          const message = options.message || "";
+          window.clearTimeout(state.appToastTimer);
+          state.appToastTimer = null;
+
+          if (els.appToastEyebrow) {
+            els.appToastEyebrow.textContent = eyebrow;
+          }
+          els.appToastTitle.textContent = title;
+          els.appToastMessage.textContent = message;
+          els.appToast.dataset.kind = kind;
+          els.appToast.setAttribute(
+            "role",
+            kind === "error" ? "alert" : "status",
+          );
+          els.appToast.setAttribute(
+            "aria-live",
+            kind === "error" ? "assertive" : "polite",
+          );
+          els.appToast.setAttribute("aria-hidden", "false");
+          els.appToast.hidden = false;
+
+          window.requestAnimationFrame(function () {
+            els.appToast.classList.add("is-visible");
+          });
+
+          if (options.announce) {
+            announce([title, message].filter(Boolean).join(". "));
+          }
+
+          state.appToastTimer = window.setTimeout(function () {
+            hideAppToast(false);
+          }, options.duration || 5200);
+        }
+
+        function showShareFailureToast(message) {
+          const detail = String(message || "Snapshot sharing failed.").trim();
+          setStatus("Share failed", { kind: "error" });
+          showAppToast({
+            eyebrow: "Share",
+            title: "Share failed",
+            message: detail,
+            kind: "error",
+            duration: 6500,
+            announce: true,
+          });
+        }
+
         function waitForNextPaint() {
           return new Promise(function (resolve) {
             if (typeof requestAnimationFrame !== "function") {
@@ -20567,11 +20697,10 @@ Return JSON only.`;
                 };
 
           if (!shareState.canShare) {
-            setStatus(
+            showShareFailureToast(
               shareState.reason === "unsupported"
-                ? "Share failed • snapshot sharing is unavailable in this browser."
-                : "Share failed • There is no markdown to share yet.",
-              { announce: true, kind: "error" },
+                ? "Snapshot sharing is unavailable in this browser."
+                : "There is no markdown to share yet.",
             );
             return;
           }
@@ -20663,10 +20792,8 @@ Return JSON only.`;
               });
               return;
             }
-            setStatus(
-              "Share failed • " +
-                (error && error.message ? error.message : String(error)),
-              { announce: true, kind: "error" },
+            showShareFailureToast(
+              error && error.message ? error.message : String(error),
             );
           } finally {
             state.shareInFlight = false;
@@ -24355,6 +24482,11 @@ Return JSON only.`;
         els.newDocumentBtn.addEventListener("click", createUntitledDocument);
         els.saveBtn.addEventListener("click", saveCurrentDocument);
         els.shareBtn.addEventListener("click", shareCurrentSnapshot);
+        if (els.appToastDismiss) {
+          els.appToastDismiss.addEventListener("click", function () {
+            hideAppToast(false);
+          });
+        }
         els.reloadBtn.addEventListener("click", reloadCurrent);
         els.clearBtn.addEventListener("click", clearAll);
         els.autoRefreshToggle.addEventListener("change", startAutoRefresh);
