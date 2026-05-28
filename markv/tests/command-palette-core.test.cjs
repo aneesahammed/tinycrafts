@@ -162,3 +162,27 @@ test("result limiting and grouping are deterministic", () => {
     ["command", "file"],
   );
 });
+
+test("search display grouping preserves scored selection order", () => {
+  const results = [
+    { item: item({ id: "file", type: "file", title: "evidence_studio.md" }) },
+    { item: item({ id: "edit", type: "command", title: "Edit markdown" }) },
+    { item: item({ id: "ai", type: "command", title: "AI settings" }) },
+  ];
+
+  const searchGroups = palette.groupPaletteResultsForDisplay(
+    results,
+    "evidence",
+  );
+  assert.deepEqual(
+    searchGroups.map((group) => group.type),
+    ["file", "command"],
+  );
+  assert.equal(searchGroups[0].results[0].item.id, "file");
+
+  const defaultGroups = palette.groupPaletteResultsForDisplay(results, "");
+  assert.deepEqual(
+    defaultGroups.map((group) => group.type),
+    ["command", "file"],
+  );
+});

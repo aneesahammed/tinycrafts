@@ -294,11 +294,19 @@
 
   function renderResults() {
     const query = input ? input.value : "";
-    results = core.filterPaletteItems(allItems, query, { limit: RESULT_LIMIT });
-    activeIndex = core.clampActiveIndex(activeIndex, results.length);
+    const filteredResults = core.filterPaletteItems(allItems, query, {
+      limit: RESULT_LIMIT,
+    });
+    const groups =
+      typeof core.groupPaletteResultsForDisplay === "function"
+        ? core.groupPaletteResultsForDisplay(filteredResults, query)
+        : core.groupPaletteResults(filteredResults);
+
+    results = [];
+    activeIndex = core.clampActiveIndex(activeIndex, filteredResults.length);
     clearChildren(list);
 
-    if (!results.length) {
+    if (!filteredResults.length) {
       list.hidden = true;
       empty.hidden = false;
       empty.textContent = query.trim()
@@ -314,18 +322,20 @@
     list.hidden = false;
     empty.hidden = true;
     meta.textContent = query.trim()
-      ? results.length + " result" + (results.length === 1 ? "" : "s")
+      ? filteredResults.length +
+        " result" +
+        (filteredResults.length === 1 ? "" : "s")
       : "Top commands";
 
-    let flatIndex = 0;
-    core.groupPaletteResults(results).forEach(function (group) {
+    groups.forEach(function (group) {
       const heading = document.createElement("div");
       heading.className = "command-palette__group";
       heading.textContent = group.title;
       list.appendChild(heading);
       group.results.forEach(function (result) {
-        list.appendChild(renderResultRow(result, flatIndex));
-        flatIndex += 1;
+        const displayIndex = results.length;
+        results.push(result);
+        list.appendChild(renderResultRow(result, displayIndex));
       });
     });
     renderActiveState();

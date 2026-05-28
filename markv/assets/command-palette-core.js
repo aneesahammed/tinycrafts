@@ -206,6 +206,31 @@
     });
   }
 
+  function groupPaletteResultsInScoredOrder(results) {
+    const groups = [];
+    let activeGroup = null;
+    (Array.isArray(results) ? results : []).forEach(function (result) {
+      const item = result && result.item ? result.item : {};
+      const key = item.type || "command";
+      if (!activeGroup || activeGroup.type !== key) {
+        activeGroup = {
+          type: key,
+          title: item.groupLabel || key,
+          results: [],
+        };
+        groups.push(activeGroup);
+      }
+      activeGroup.results.push(result);
+    });
+    return groups;
+  }
+
+  function groupPaletteResultsForDisplay(results, query) {
+    return String(query || "").trim()
+      ? groupPaletteResultsInScoredOrder(results)
+      : groupPaletteResults(results);
+  }
+
   function clampActiveIndex(index, count) {
     const length = Math.max(0, Number(count) || 0);
     if (!length) return -1;
@@ -275,6 +300,7 @@
     fuzzyContains: fuzzyContains,
     getLiteralMatchRanges: getLiteralMatchRanges,
     getPaletteActionState: getPaletteActionState,
+    groupPaletteResultsForDisplay: groupPaletteResultsForDisplay,
     groupPaletteResults: groupPaletteResults,
     normalizeSearchValue: normalizeSearchValue,
     reducePaletteKeyboard: reducePaletteKeyboard,
