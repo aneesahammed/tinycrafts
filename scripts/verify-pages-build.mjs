@@ -20,6 +20,7 @@ const requiredFiles = [
   'pichub/index.html',
   'pichub/manifest.webmanifest',
   'pichub/sw.js',
+  'pagecrumb/privacy/index.html',
   'dataduck/index.html',
   'dataduck/manifest.json',
   'dataduck/sw.js',
@@ -63,6 +64,7 @@ assertHasAsset('dataduck/assets', /\.wasm$/);
 assertHasAsset('dataduck/assets', /worker.*\.js$/);
 
 assertDataDuckHtml();
+assertPagecrumbPrivacyHtml();
 assertDataDuckManifest();
 assertDataDuckServiceWorkerRegistration();
 assertNoMacMetadata(pagesDir);
@@ -127,6 +129,41 @@ function assertDataDuckHtml() {
 
   if (html.includes('src="./app.js"') || html.includes('href="./styles.css"')) {
     failures.push('DataDuck HTML should not reference unbuilt source assets');
+  }
+}
+
+function assertPagecrumbPrivacyHtml() {
+  const htmlPath = join(pagesDir, 'pagecrumb/privacy/index.html');
+  if (!existsSync(htmlPath)) return;
+
+  const html = readFileSync(htmlPath, 'utf8');
+  const expectations = [
+    [
+      '<title>Pagecrumb Privacy Policy - TinyCrafts</title>',
+      'Pagecrumb privacy page should set the expected title',
+    ],
+    [
+      'Pagecrumb has no account, no server, no database, and no',
+      'Pagecrumb privacy page should include the core no-server privacy claim',
+    ],
+    [
+      ':root[data-theme="dark"]',
+      'Pagecrumb privacy page should include dark-theme styles',
+    ],
+    [
+      'id="themeToggleBtn"',
+      'Pagecrumb privacy page should include the TinyCrafts theme toggle',
+    ],
+  ];
+
+  for (const [needle, message] of expectations) {
+    if (!html.includes(needle)) {
+      failures.push(message);
+    }
+  }
+
+  if (html.includes('goatcounter') || html.includes('gc.zgo.at')) {
+    failures.push('Pagecrumb privacy page should not include analytics scripts');
   }
 }
 

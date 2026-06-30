@@ -19,6 +19,7 @@ const staticToolItems = [
   'pichub/manifest.webmanifest',
   'pichub/sw.js',
   'pichub/assets',
+  'pagecrumb/privacy/index.html',
 ];
 
 rmSync(pagesDir, { recursive: true, force: true });
