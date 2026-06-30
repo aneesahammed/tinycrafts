@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-d81NKySzQnC0SAfvAo9AXite5ITs3kx97phR5av5Bx4=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-DNx9rrL+BfMish9h8ETnC3xGfwx5iYIvQaL/HhqNpcQ=' 'sha256-1wO3OWK0/Ob77IkLXZkvXhxesyzKilfI/c3j/Ru/tCY=' 'sha256-2NI1bfKYlapXvdvjl9Y+SCpn8kLnFRDCBmBjS5ZhbMk=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -25032,6 +25032,76 @@ Return JSON only.`;
           return parsed && parsed.payload ? parsed.payload : null;
         }
 
+        let pendingOpenerSnapshotPayload = null;
+        let acceptsOpenerSnapshotPayloads = false;
+
+        function normalizeOpenerSnapshotPayload(data) {
+          const message = data && typeof data === "object" ? data : null;
+          if (
+            !message ||
+            message.type !== "markv:open-snapshot" ||
+            message.source !== "pagecrumb"
+          ) {
+            return null;
+          }
+
+          const payload =
+            message.payload && typeof message.payload === "object"
+              ? message.payload
+              : {};
+          const text = typeof payload.text === "string" ? payload.text : "";
+          if (!text.trim()) return null;
+
+          return {
+            text: text,
+            name:
+              typeof payload.name === "string"
+                ? payload.name.slice(0, 240)
+                : "",
+            view: payload.view === "edit" ? "edit" : "preview",
+          };
+        }
+
+        async function applyOpenerSnapshotPayload(payload) {
+          const applied = await applySharedSnapshotPayload(payload);
+          if (applied) {
+            setStatus(
+              (state.currentName || "Pagecrumb snapshot") +
+                " • loaded from Pagecrumb • use Share to create a link",
+              { announce: true },
+            );
+          }
+          return applied;
+        }
+
+        function flushPendingOpenerSnapshotPayload() {
+          if (!pendingOpenerSnapshotPayload) return Promise.resolve(false);
+          const payload = pendingOpenerSnapshotPayload;
+          pendingOpenerSnapshotPayload = null;
+          return applyOpenerSnapshotPayload(payload);
+        }
+
+        window.addEventListener("message", function (event) {
+          if (!window.opener || event.source !== window.opener) return;
+
+          const payload = normalizeOpenerSnapshotPayload(event.data);
+          if (!payload) return;
+
+          if (!acceptsOpenerSnapshotPayloads) {
+            pendingOpenerSnapshotPayload = payload;
+            return;
+          }
+
+          applyOpenerSnapshotPayload(payload).catch(function (error) {
+            console.warn("[share] opener snapshot failed", error);
+            setStatus(
+              "Pagecrumb import failed • " +
+                (error && error.message ? error.message : String(error)),
+              { announce: true },
+            );
+          });
+        });
+
         async function init() {
           const sessionMeta = readSessionMeta();
           const savedContent = readStorage(
@@ -25155,6 +25225,18 @@ Return JSON only.`;
             );
           })
           .finally(function () {
+            acceptsOpenerSnapshotPayloads = true;
+            flushPendingOpenerSnapshotPayload().catch(function (error) {
+              console.warn("[share] pending opener snapshot failed", error);
+            });
+            if (window.opener && typeof window.opener.postMessage === "function") {
+              try {
+                window.opener.postMessage(
+                  { type: "markv:ready", source: "markv" },
+                  "*",
+                );
+              } catch (_error) {}
+            }
             document.dispatchEvent(new CustomEvent("markv:ready"));
           });
 
