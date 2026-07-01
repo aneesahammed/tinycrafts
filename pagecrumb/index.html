@@ -1,0 +1,1477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta id="themeColor" name="theme-color" content="#f7f3ec" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" />
+    <link rel="shortcut icon" href="/assets/icons/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      href="/assets/icons/apple-touch-icon.png"
+      sizes="180x180"
+    />
+    <title>Pagecrumb - Copy pages and YouTube transcripts as Markdown</title>
+    <meta
+      name="description"
+      content="Pagecrumb is a tiny Chrome extension that copies YouTube transcripts and readable web pages as clean Markdown. No account, no server, no analytics."
+    />
+    <script>
+      (function () {
+        var root = document.documentElement;
+        try {
+          root.setAttribute(
+            "data-theme",
+            localStorage.getItem("tinycrafts-theme") ||
+              (matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"),
+          );
+        } catch (_) {
+          root.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      * {
+        margin: 0;
+      }
+
+      :root {
+        color-scheme: light;
+        --paper: #f7f3ec;
+        --paper-2: #eee8dd;
+        --paper-3: #fffdfa;
+        --ink: #191612;
+        --ink-2: #5d564c;
+        --ink-3: #918779;
+        --rule: #d8cfc1;
+        --rule-strong: #1f1b16;
+        --accent: #3867e8;
+        --accent-deep: #244cc6;
+        --accent-soft: #edf2ff;
+        --accent-border: #8ca8ff;
+        --blueprint: rgba(56, 103, 232, 0.12);
+        --shadow: rgba(31, 27, 22, 0.14);
+        --mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+          monospace;
+        --sans:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --paper: #171816;
+        --paper-2: #20211f;
+        --paper-3: #242522;
+        --ink: #f3eee5;
+        --ink-2: #c9c0b3;
+        --ink-3: #8d8579;
+        --rule: #343733;
+        --rule-strong: #ece5da;
+        --accent: #86a2ff;
+        --accent-deep: #b5c4ff;
+        --accent-soft: #222b46;
+        --accent-border: #4b609b;
+        --blueprint: rgba(134, 162, 255, 0.1);
+        --shadow: rgba(0, 0, 0, 0.28);
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(25, 22, 18, 0.026) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(25, 22, 18, 0.018) 1px, transparent 1px),
+          radial-gradient(circle at 82% 8%, var(--blueprint), transparent 30%),
+          var(--paper);
+        background-size:
+          36px 36px,
+          36px 36px,
+          auto,
+          auto;
+        color: var(--ink);
+        font-family: var(--mono);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 20;
+        transform: translateY(-160%);
+        background: var(--ink);
+        color: var(--paper);
+        padding: 10px 14px;
+        font: 12px/1 var(--mono);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .page {
+        width: min(100%, 1180px);
+        margin: 0 auto;
+        padding: 34px 72px 68px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        align-items: center;
+        gap: 24px;
+        padding-bottom: 46px;
+        color: var(--ink-3);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        line-height: 1.4;
+        text-transform: uppercase;
+      }
+
+      .topbar a {
+        border-bottom: 1px solid transparent;
+        transition:
+          color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          border-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      .topbar a:hover {
+        border-color: var(--accent);
+        color: var(--ink);
+      }
+
+      .theme-toggle {
+        appearance: none;
+        min-height: 40px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--paper) 82%, var(--paper-3));
+        color: var(--ink-3);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        font: 11px/1 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: lowercase;
+        transition:
+          background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      .theme-toggle:hover,
+      .theme-toggle[aria-pressed="true"] {
+        border-color: var(--accent-border);
+        color: var(--accent-deep);
+        background: var(--accent-soft);
+      }
+
+      .theme-toggle:active,
+      .button:active,
+      .mock-action:active {
+        transform: translateY(1px);
+      }
+
+      .theme-toggle svg {
+        width: 13px;
+        height: 13px;
+        color: var(--accent);
+        flex: 0 0 auto;
+      }
+
+      .theme-toggle .icon-sun {
+        display: none;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-sun {
+        display: block;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-moon {
+        display: none;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand-mark,
+      .logo-square {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        font-family: var(--sans);
+        font-weight: 780;
+      }
+
+      .brand-mark {
+        width: 40px;
+        height: 40px;
+        background: var(--ink);
+        color: var(--paper);
+        box-shadow: 0 10px 28px -18px var(--shadow);
+        font-size: 22px;
+      }
+
+      .brand-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      .brand-name {
+        color: var(--ink);
+        font: 700 17px/1.1 var(--sans);
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .brand-maker {
+        color: var(--ink-2);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: none;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(390px, 1.05fr);
+        gap: 58px;
+        align-items: center;
+        padding: 12px 0 86px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      h1 {
+        max-width: 620px;
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: clamp(48px, 7vw, 88px);
+        font-weight: 760;
+        letter-spacing: -0.055em;
+        line-height: 0.96;
+        text-wrap: balance;
+      }
+
+      .hero-copy {
+        max-width: 500px;
+        margin-top: 28px;
+        color: var(--ink-2);
+        font-size: 15px;
+        line-height: 1.78;
+        text-wrap: pretty;
+      }
+
+      .proof-box {
+        display: grid;
+        gap: 10px;
+        width: min(100%, 430px);
+        margin-top: 32px;
+        border: 1px solid var(--rule);
+        background: color-mix(in srgb, var(--paper) 70%, var(--paper-3));
+        padding: 18px 20px;
+      }
+
+      .proof-row {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        color: var(--ink-2);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .proof-row span:first-child {
+        color: var(--accent-deep);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 38px;
+      }
+
+      .button {
+        min-height: 52px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 0 20px;
+        font: 700 14px/1 var(--sans);
+        transition:
+          background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      .button-primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fbfdff;
+        box-shadow: 0 18px 34px -24px color-mix(in srgb, var(--accent), #000);
+      }
+
+      .button-primary:hover {
+        border-color: var(--accent-deep);
+        background: var(--accent-deep);
+      }
+
+      .button-secondary {
+        background: color-mix(in srgb, var(--paper) 70%, var(--paper-3));
+        color: var(--ink);
+      }
+
+      .button-secondary:hover {
+        border-color: var(--accent-border);
+        color: var(--accent-deep);
+        background: var(--accent-soft);
+      }
+
+      .fine-print {
+        margin-top: 18px;
+        color: var(--ink-3);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .fine-print a {
+        border-bottom: 1px solid var(--accent);
+        color: var(--accent-deep);
+      }
+
+      .hero-visual {
+        position: relative;
+        min-height: 550px;
+      }
+
+      .browser-shell {
+        position: absolute;
+        inset: 0 0 auto auto;
+        width: min(100%, 560px);
+        height: 420px;
+        border: 1px solid var(--rule);
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--paper-3) 74%, var(--paper));
+        box-shadow: 0 28px 70px -48px var(--shadow);
+        overflow: hidden;
+      }
+
+      .browser-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+        align-items: center;
+        gap: 18px;
+        height: 62px;
+        border-bottom: 1px solid var(--rule);
+        padding: 0 18px;
+        color: var(--ink-3);
+      }
+
+      .address-line {
+        height: 8px;
+        border-radius: 999px;
+        background: var(--rule);
+      }
+
+      .browser-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--ink-3);
+      }
+
+      .popup-card {
+        position: absolute;
+        top: 84px;
+        right: 56px;
+        width: min(360px, calc(100% - 48px));
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--paper-3) 94%, var(--paper));
+        box-shadow: 0 28px 62px -36px var(--shadow);
+        padding: 20px;
+      }
+
+      .popup-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .popup-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ink);
+        font: 700 18px/1.1 var(--sans);
+      }
+
+      .logo-square {
+        width: 28px;
+        height: 28px;
+        background: var(--ink);
+        color: var(--paper);
+        font-size: 15px;
+      }
+
+      .popup-text {
+        color: var(--ink-2);
+        font-size: 13px;
+        line-height: 1.55;
+        margin-bottom: 18px;
+      }
+
+      .mock-actions {
+        display: grid;
+        gap: 8px;
+      }
+
+      .mock-action {
+        min-height: 74px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--paper-3);
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) 18px;
+        gap: 14px;
+        align-items: center;
+        padding: 0 15px;
+        color: var(--ink);
+        transition:
+          background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      .mock-action:hover {
+        background: color-mix(in srgb, var(--paper-3) 82%, var(--accent-soft));
+      }
+
+      .mock-icon {
+        color: var(--ink);
+        width: 28px;
+        height: 28px;
+      }
+
+      .mock-action strong {
+        display: block;
+        color: var(--ink);
+        font: 700 14px/1.2 var(--sans);
+      }
+
+      .mock-action span {
+        display: block;
+        color: var(--ink-2);
+        font-size: 12px;
+        line-height: 1.45;
+        margin-top: 5px;
+      }
+
+      .popup-foot {
+        margin-top: 18px;
+        border-top: 1px solid var(--rule);
+        padding-top: 14px;
+        color: var(--ink-2);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .youtube-chip {
+        position: absolute;
+        right: 28px;
+        bottom: 42px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 48px;
+        border: 1px solid color-mix(in srgb, var(--rule) 76%, var(--ink));
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--ink) 92%, var(--paper));
+        color: var(--paper);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          0 18px 50px -30px var(--shadow);
+        padding: 0 20px 0 16px;
+        font: 700 15px/1 var(--sans);
+      }
+
+      .youtube-chip .yt {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 22px;
+        border-radius: 6px;
+        background: #d92424;
+        color: #fff;
+      }
+
+      .youtube-chip .chip-divider {
+        width: 1px;
+        height: 22px;
+        background: color-mix(in srgb, var(--paper) 34%, transparent);
+      }
+
+      .youtube-chip .chip-logo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .hand-note {
+        position: absolute;
+        right: 52px;
+        bottom: 0;
+        color: var(--accent-deep);
+        font-size: 13px;
+        line-height: 1.5;
+        transform: rotate(-3deg);
+      }
+
+      .section {
+        padding: 54px 0 58px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+        gap: 48px;
+        align-items: start;
+        margin-bottom: 34px;
+      }
+
+      h2 {
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: clamp(28px, 4vw, 42px);
+        font-weight: 720;
+        letter-spacing: -0.035em;
+        line-height: 1.04;
+      }
+
+      .section-head p {
+        max-width: 620px;
+        color: var(--ink-2);
+        font-size: 14px;
+        line-height: 1.75;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .step {
+        min-height: 220px;
+        border-right: 1px solid var(--rule);
+        padding: 24px 30px 20px 0;
+      }
+
+      .step:last-child {
+        border-right: 0;
+        padding-right: 0;
+      }
+
+      .step + .step {
+        padding-left: 30px;
+      }
+
+      .step-num {
+        display: block;
+        color: var(--accent-deep);
+        font-size: 20px;
+        line-height: 1;
+        margin-bottom: 38px;
+      }
+
+      .step h3,
+      .use-case h3 {
+        color: var(--ink);
+        font: 700 18px/1.2 var(--sans);
+        letter-spacing: -0.01em;
+        margin-bottom: 12px;
+      }
+
+      .step p,
+      .use-case p {
+        color: var(--ink-2);
+        font-size: 13px;
+        line-height: 1.72;
+      }
+
+      .privacy-ledger {
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .ledger-row {
+        display: grid;
+        grid-template-columns: 62px minmax(160px, 0.38fr) minmax(0, 1fr);
+        gap: 28px;
+        align-items: center;
+        border-bottom: 1px solid var(--rule);
+        padding: 24px 0;
+      }
+
+      .ledger-icon {
+        color: var(--accent);
+        width: 32px;
+        height: 32px;
+      }
+
+      .ledger-row strong {
+        color: var(--ink);
+        font: 700 15px/1.25 var(--sans);
+      }
+
+      .ledger-row span {
+        color: var(--ink-2);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .use-cases {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .use-case {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        min-height: 210px;
+        border-right: 1px solid var(--rule);
+        padding: 24px 34px 20px 0;
+      }
+
+      .use-case:last-child {
+        border-right: 0;
+        padding-right: 0;
+      }
+
+      .use-case + .use-case {
+        padding-left: 34px;
+      }
+
+      .use-icon {
+        color: var(--accent);
+        width: 34px;
+        height: 34px;
+        margin-bottom: 26px;
+      }
+
+      .support {
+        display: grid;
+        grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+        gap: 48px;
+        align-items: start;
+        padding-top: 54px;
+      }
+
+      .support-list {
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .support-row {
+        display: grid;
+        grid-template-columns: minmax(170px, 0.38fr) minmax(0, 1fr) 24px;
+        gap: 24px;
+        align-items: center;
+        border-bottom: 1px solid var(--rule);
+        padding: 22px 0;
+        color: var(--ink);
+        transition:
+          color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+          transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      .support-row:hover {
+        color: var(--accent-deep);
+        transform: translateX(2px);
+      }
+
+      .support-row strong {
+        font: 700 15px/1.25 var(--sans);
+      }
+
+      .support-row span {
+        color: var(--ink-2);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 58px;
+        padding-top: 13px;
+        border-top: 1px solid var(--rule);
+        color: var(--ink-3);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        line-height: 1.4;
+        text-transform: uppercase;
+      }
+
+      svg {
+        display: block;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .page {
+          padding-inline: 44px;
+        }
+
+        .topbar {
+          grid-template-columns: minmax(0, 1fr) auto auto;
+        }
+
+        .topbar a[href="#privacy"] {
+          display: none;
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 42px;
+          padding-bottom: 64px;
+        }
+
+        .hero-visual {
+          min-height: 520px;
+        }
+
+        .browser-shell {
+          left: 0;
+          right: auto;
+        }
+
+        .section-head,
+        .support {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .page {
+          padding: 26px 28px 46px;
+        }
+
+        .topbar {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 16px;
+          padding-bottom: 38px;
+        }
+
+        .topbar a:not(.brand) {
+          display: none;
+        }
+
+        .brand-mark {
+          width: 36px;
+          height: 36px;
+          font-size: 20px;
+        }
+
+        .hero {
+          padding-top: 0;
+        }
+
+        h1 {
+          font-size: clamp(42px, 14vw, 58px);
+        }
+
+        .proof-box {
+          width: 100%;
+        }
+
+        .hero-visual {
+          min-height: 480px;
+        }
+
+        .browser-shell {
+          height: 384px;
+        }
+
+        .popup-card {
+          top: 72px;
+          right: 22px;
+        }
+
+        .youtube-chip {
+          right: 0;
+          bottom: 42px;
+          font-size: 13px;
+          padding-right: 16px;
+        }
+
+        .hand-note {
+          right: 12px;
+        }
+
+        .steps,
+        .use-cases {
+          grid-template-columns: 1fr;
+        }
+
+        .step,
+        .use-case {
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+          min-height: auto;
+          padding: 26px 0;
+        }
+
+        .step:last-child,
+        .use-case:last-child {
+          border-bottom: 0;
+          padding-right: 0;
+        }
+
+        .step + .step,
+        .use-case + .use-case {
+          padding-left: 0;
+        }
+
+        .step-num {
+          margin-bottom: 18px;
+        }
+
+        .ledger-row {
+          grid-template-columns: 42px minmax(0, 1fr);
+          gap: 16px;
+        }
+
+        .ledger-row span {
+          grid-column: 2;
+        }
+
+        .support-row {
+          grid-template-columns: minmax(0, 1fr) 24px;
+          gap: 12px;
+        }
+
+        .support-row span {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+      }
+
+      @media (max-width: 460px) {
+        .page {
+          padding-inline: 22px;
+        }
+
+        .brand-copy {
+          gap: 1px;
+        }
+
+        .brand-maker {
+          font-size: 10px;
+        }
+
+        .hero-copy {
+          font-size: 14px;
+        }
+
+        .hero-actions {
+          display: grid;
+        }
+
+        .button {
+          width: 100%;
+        }
+
+        .hero-visual {
+          min-height: 440px;
+        }
+
+        .popup-card {
+          width: calc(100% - 24px);
+          right: 12px;
+          padding: 16px;
+        }
+
+        .mock-action {
+          grid-template-columns: 28px minmax(0, 1fr);
+          min-height: 78px;
+        }
+
+        .mock-action svg:last-child {
+          display: none;
+        }
+
+        .youtube-chip {
+          left: 0;
+          right: auto;
+          max-width: 100%;
+        }
+
+        .youtube-chip span:last-child {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .hand-note {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="TinyCrafts home">
+          <span class="brand-mark" aria-hidden="true">P</span>
+          <span class="brand-copy">
+            <span class="brand-name">Pagecrumb</span>
+            <span class="brand-maker">by TinyCrafts</span>
+          </span>
+        </a>
+        <a href="#how-it-works">How it works</a>
+        <a id="privacy" href="/pagecrumb/privacy/">Privacy</a>
+        <button
+          id="themeToggleBtn"
+          class="theme-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="Switch to dark theme"
+          title="Switch to dark theme"
+        >
+          <svg
+            class="icon-sun"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 0 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.465a.75.75 0 0 1-1.06 0L2.343 3.404a.75.75 0 0 1 1.06-1.06l1.061 1.06a.75.75 0 0 1 0 1.06Z"
+            />
+          </svg>
+          <svg
+            class="icon-moon"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"
+            />
+          </svg>
+          <span id="themeToggleLabel">dark</span>
+        </button>
+      </header>
+
+      <main id="main">
+        <section class="hero" aria-labelledby="hero-title">
+          <div>
+            <h1 id="hero-title">Copy the page. Keep the Markdown.</h1>
+            <p class="hero-copy">
+              Pagecrumb is a tiny Chrome extension for copying YouTube
+              transcripts and readable web pages as clean Markdown, ready for
+              notes, docs, prompts, and research.
+            </p>
+
+            <div class="proof-box" aria-label="Privacy facts">
+              <div class="proof-row">
+                <span>01</span>
+                <span>No account.</span>
+              </div>
+              <div class="proof-row">
+                <span>02</span>
+                <span>No Pagecrumb server.</span>
+              </div>
+              <div class="proof-row">
+                <span>03</span>
+                <span>No analytics or tracking.</span>
+              </div>
+              <div class="proof-row">
+                <span>04</span>
+                <span>Just your browser and your clipboard.</span>
+              </div>
+            </div>
+
+            <div class="hero-actions">
+              <a class="button button-primary" href="#install">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                  />
+                  <path
+                    d="M3.5 6.2h13M10 10l-4.3 7.2M10 10h8"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                Chrome Web Store
+              </a>
+              <a class="button button-secondary" href="/pagecrumb/privacy/">
+                Privacy policy
+              </a>
+            </div>
+            <p class="fine-print">
+              Public listing page for the Pagecrumb Chrome extension. The store
+              link can be swapped in after review.
+            </p>
+          </div>
+
+          <div class="hero-visual" aria-label="Pagecrumb extension preview">
+            <div class="browser-shell" aria-hidden="true">
+              <div class="browser-top">
+                <div class="address-line"></div>
+                <div class="browser-dot"></div>
+                <div class="logo-square">P</div>
+                <div class="browser-dot"></div>
+              </div>
+            </div>
+
+            <div class="popup-card" aria-hidden="true">
+              <div class="popup-head">
+                <div class="popup-title">
+                  <span class="logo-square">P</span>
+                  <span>Pagecrumb</span>
+                </div>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                >
+                  <path
+                    d="M10 13.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1 4.7 4.7"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <p class="popup-text">Copy content as clean Markdown.</p>
+
+              <div class="mock-actions">
+                <div class="mock-action">
+                  <svg
+                    class="mock-icon"
+                    viewBox="0 0 28 28"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="6"
+                      y="5"
+                      width="16"
+                      height="18"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                    />
+                    <path
+                      d="M10 10h8M10 14h8M10 18h5"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  <div>
+                    <strong>Copy transcript</strong>
+                    <span>YouTube transcript as Markdown</span>
+                  </div>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="m6.5 3.5 5 5-5 5"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
+
+                <div class="mock-action">
+                  <svg
+                    class="mock-icon"
+                    viewBox="0 0 28 28"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8 4.5h8.5L22 10v13.5H8v-19Z"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M16.5 4.5V10H22M11 15h8M11 19h6"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <div>
+                    <strong>Copy page as Markdown</strong>
+                    <span>Readable page content, cleaned up</span>
+                  </div>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="m6.5 3.5 5 5-5 5"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <p class="popup-foot">
+                No account. No server. No analytics. Just you and your content.
+              </p>
+            </div>
+
+            <div class="youtube-chip" aria-hidden="true">
+              <span class="yt">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M5 3.8 10 7l-5 3.2V3.8Z" fill="currentColor" />
+                </svg>
+              </span>
+              <span>Share</span>
+              <span class="chip-divider"></span>
+              <span class="chip-logo">P</span>
+              <span>Pagecrumb</span>
+            </div>
+            <p class="hand-note">One click from YouTube. Markdown, ready to paste.</p>
+          </div>
+        </section>
+
+        <section id="how-it-works" class="section" aria-labelledby="how-title">
+          <div class="section-head">
+            <h2 id="how-title">How it works</h2>
+            <p>
+              Pagecrumb stays small on purpose. It reads only the tab you ask
+              for, turns useful content into Markdown, and writes the result to
+              your clipboard.
+            </p>
+          </div>
+
+          <div class="steps">
+            <article class="step">
+              <span class="step-num">01</span>
+              <h3>Install Pagecrumb</h3>
+              <p>Add the Chrome extension. No signup, workspace, provider key, or setup flow.</p>
+            </article>
+            <article class="step">
+              <span class="step-num">02</span>
+              <h3>Open any source</h3>
+              <p>Use it on YouTube videos, docs, articles, READMEs, and readable web pages.</p>
+            </article>
+            <article class="step">
+              <span class="step-num">03</span>
+              <h3>Copy as Markdown</h3>
+              <p>Paste clean, structured Markdown into notes, documents, chats, or research tools.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="privacy-title">
+          <div class="section-head">
+            <h2 id="privacy-title">Privacy by design</h2>
+            <p>
+              The Lite version removes the library, account, sync, summary, and
+              server path. That makes the data story easy to understand.
+            </p>
+          </div>
+
+          <div class="privacy-ledger">
+            <div class="ledger-row">
+              <svg class="ledger-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="M16 4 25 8v7c0 5.4-3.5 10.3-9 12-5.5-1.7-9-6.6-9-12V8l9-4Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <strong>Everything stays local</strong>
+              <span>Markdown generation runs in your browser after a direct user action.</span>
+            </div>
+            <div class="ledger-row">
+              <svg class="ledger-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="M8 10c0-3 16-3 16 0v12c0 3-16 3-16 0V10Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+                <path
+                  d="M8 10c0 3 16 3 16 0M8 16c0 3 16 3 16 0"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+              </svg>
+              <strong>No server, ever</strong>
+              <span>Pagecrumb does not collect, store, transmit, sell, or share your content.</span>
+            </div>
+            <div class="ledger-row">
+              <svg class="ledger-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="M7 24V12M13 24V8M19 24V15M25 24V5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M5 24h22"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <strong>No analytics</strong>
+              <span>No tracking scripts, telemetry, cookies, or background data collection.</span>
+            </div>
+            <div class="ledger-row">
+              <svg class="ledger-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="m12 9-6 7 6 7M20 9l6 7-6 7M18 6l-4 20"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <strong>Open and inspectable</strong>
+              <span>Small extension surface, bundled code, no remote-code dependency.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="built-for-title">
+          <div class="section-head">
+            <h2 id="built-for-title">Built for pasting into your real work</h2>
+            <p>
+              Pagecrumb does not try to become another reading app. It gives you
+              the clean source text so your existing tools can do the rest.
+            </p>
+          </div>
+
+          <div class="use-cases">
+            <article class="use-case">
+              <svg class="use-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="M5 8.5c4.5-2.5 8-1.2 11 1.2v16c-3-2.4-6.5-3.7-11-1.2v-16ZM27 8.5c-4.5-2.5-8-1.2-11 1.2v16c3-2.4 6.5-3.7 11-1.2v-16Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <h3>Researchers</h3>
+              <p>Save transcripts and articles as Markdown for notes, literature reviews, and knowledge bases.</p>
+            </article>
+            <article class="use-case">
+              <svg class="use-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="m22 5 5 5L11 26l-6 1 1-6L22 5Z"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="m19 8 5 5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                />
+              </svg>
+              <h3>Writers</h3>
+              <p>Collect references and source material in plain text that fits your writing workflow.</p>
+            </article>
+            <article class="use-case">
+              <svg class="use-icon" viewBox="0 0 32 32" fill="none">
+                <path
+                  d="m12 9-6 7 6 7M20 9l6 7-6 7"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <h3>Developers</h3>
+              <p>Copy docs, specs, READMEs, and tutorials into tools that understand Markdown.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="install" class="support" aria-labelledby="install-title">
+          <h2 id="install-title">Install and support</h2>
+          <div class="support-list">
+            <a class="support-row" href="/pagecrumb/privacy/">
+              <strong>Read the privacy policy</strong>
+              <span>The extension processes content locally and has no account system.</span>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path
+                  d="M5 11h11M12 7l4 4-4 4"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </a>
+            <a class="support-row" href="mailto:support@tinycrafts.ai">
+              <strong>Email support</strong>
+              <span>Questions, bugs, or Chrome Web Store review issues.</span>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path
+                  d="M5 11h11M12 7l4 4-4 4"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>tinycrafts.ai</span>
+        <span>pagecrumb</span>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        const KEY = "tinycrafts-theme";
+        const root = document.documentElement;
+        const btn = document.getElementById("themeToggleBtn");
+        const label = document.getElementById("themeToggleLabel");
+        const themeColor = document.getElementById("themeColor");
+        const mq = window.matchMedia
+          ? window.matchMedia("(prefers-color-scheme: dark)")
+          : null;
+
+        function sync() {
+          const dark = root.getAttribute("data-theme") === "dark";
+          const target = dark ? "light" : "dark";
+          label.textContent = dark ? "light" : "dark";
+          btn.setAttribute("aria-pressed", String(dark));
+          btn.setAttribute("aria-label", "Switch to " + target + " theme");
+          btn.setAttribute("title", "Switch to " + target + " theme");
+          if (themeColor)
+            themeColor.setAttribute("content", dark ? "#171816" : "#f7f3ec");
+        }
+
+        btn.addEventListener("click", function () {
+          const next =
+            root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem(KEY, next);
+          } catch (_) {}
+          sync();
+        });
+
+        if (mq) {
+          const onChange = function (event) {
+            try {
+              if (localStorage.getItem(KEY)) return;
+            } catch (_) {}
+            root.setAttribute("data-theme", event.matches ? "dark" : "light");
+            sync();
+          };
+          if (mq.addEventListener) mq.addEventListener("change", onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        sync();
+      })();
+    </script>
+  </body>
+</html>
