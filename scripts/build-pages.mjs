@@ -19,6 +19,7 @@ const staticToolItems = [
   'pichub/manifest.webmanifest',
   'pichub/sw.js',
   'pichub/assets',
+  'pagecrumb/index.html',
   'pagecrumb/privacy/index.html',
 ];
 

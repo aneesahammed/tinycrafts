@@ -20,6 +20,7 @@ const requiredFiles = [
   'pichub/index.html',
   'pichub/manifest.webmanifest',
   'pichub/sw.js',
+  'pagecrumb/index.html',
   'pagecrumb/privacy/index.html',
   'dataduck/index.html',
   'dataduck/manifest.json',
@@ -64,6 +65,7 @@ assertHasAsset('dataduck/assets', /\.wasm$/);
 assertHasAsset('dataduck/assets', /worker.*\.js$/);
 
 assertDataDuckHtml();
+assertPagecrumbLandingHtml();
 assertPagecrumbPrivacyHtml();
 assertDataDuckManifest();
 assertDataDuckServiceWorkerRegistration();
@@ -129,6 +131,33 @@ function assertDataDuckHtml() {
 
   if (html.includes('src="./app.js"') || html.includes('href="./styles.css"')) {
     failures.push('DataDuck HTML should not reference unbuilt source assets');
+  }
+}
+
+function assertPagecrumbLandingHtml() {
+  const htmlPath = join(pagesDir, 'pagecrumb/index.html');
+  if (!existsSync(htmlPath)) return;
+
+  const html = readFileSync(htmlPath, 'utf8');
+  const expectations = [
+    [
+      '<title>Pagecrumb - Copy pages and YouTube transcripts as Markdown</title>',
+      'Pagecrumb landing page should set the expected title',
+    ],
+    [
+      'copies YouTube transcripts and readable web pages as clean Markdown',
+      'Pagecrumb landing page should describe the copy-only workflow',
+    ],
+    [
+      'id="themeToggleBtn"',
+      'Pagecrumb landing page should include the TinyCrafts theme toggle',
+    ],
+  ];
+
+  for (const [needle, message] of expectations) {
+    if (!html.includes(needle)) {
+      failures.push(message);
+    }
   }
 }
 
