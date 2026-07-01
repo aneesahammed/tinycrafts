@@ -152,6 +152,18 @@ function assertPagecrumbLandingHtml() {
       'id="themeToggleBtn"',
       'Pagecrumb landing page should include the TinyCrafts theme toggle',
     ],
+    [
+      'https://chromewebstore.google.com/detail/pagecrumb/ejianncpkokaeocioncfjkppdgkhllod',
+      'Pagecrumb landing page should link to the Chrome Web Store listing',
+    ],
+    [
+      'target="_blank"',
+      'Pagecrumb landing page should open the external store link in a new tab',
+    ],
+    [
+      'rel="noopener"',
+      'Pagecrumb landing page should protect external store links',
+    ],
   ];
 
   for (const [needle, message] of expectations) {
