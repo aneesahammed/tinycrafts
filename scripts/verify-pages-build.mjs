@@ -30,6 +30,7 @@ const requiredFiles = [
   'dataduck/icon-512.png',
   'seeqlite/index.html',
   'seeqlite/manifest.webmanifest',
+  'seeqlite/sample.sqlite',
 ];
 
 const forbiddenFiles = [
@@ -73,6 +74,7 @@ assertDataDuckManifest();
 assertDataDuckServiceWorkerRegistration();
 assertSeeQLiteAssets();
 assertSeeQLiteHtml();
+assertSeeQLiteSample();
 assertNoMacMetadata(pagesDir);
 
 if (failures.length > 0) {
@@ -268,6 +270,13 @@ function assertSeeQLiteHtml() {
   ]) {
     if (!html.includes(needle)) failures.push(message);
   }
+}
+
+function assertSeeQLiteSample() {
+  const samplePath = join(pagesDir, 'seeqlite/sample.sqlite');
+  if (!existsSync(samplePath)) return;
+  const header = readFileSync(samplePath).subarray(0, 16).toString('utf8');
+  if (header !== 'SQLite format 3\u0000') failures.push('SeeQLite sample must be a SQLite 3 database');
 }
 
 function assertNoMacMetadata(dir) {
