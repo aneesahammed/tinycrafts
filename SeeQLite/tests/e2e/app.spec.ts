@@ -101,6 +101,32 @@ test('shows the catalog as a relationship diagram and can target a table', async
   await expect(page.locator('.copy-status')).toContainText('Copied a safe SELECT statement');
 });
 
+test('generates a quoted join only after confirming draft replacement', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByRole('tab', { name: /Diagram/ }).click();
+  const dialog = page.waitForEvent('dialog').then(async (event) => {
+    expect(event.message()).toContain('Replace the current SQL draft');
+    await event.accept();
+  });
+  await page.getByRole('button', { name: 'Generate join from notes to users' }).click();
+  await dialog;
+  await expect(page.getByRole('tab', { name: 'Query' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByLabel('SQL query')).toHaveText(/SELECT \*\s*FROM "notes" AS child\s*JOIN "users" AS parent ON child\."user_id" = parent\."id";/);
+});
+
+test('keeps the current SQL draft when generated-join replacement is cancelled', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByRole('tab', { name: /Diagram/ }).click();
+  const dialog = page.waitForEvent('dialog').then((event) => event.dismiss());
+  await page.getByRole('button', { name: 'Generate join from notes to users' }).click();
+  await dialog;
+  await expect(page.getByRole('region', { name: 'Declared relationships' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Query' }).click();
+  await expect(page.getByLabel('SQL query')).toHaveText(/SELECT 1 AS ready/);
+});
+
 test('resets the worker-backed workspace without retaining the database view', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();

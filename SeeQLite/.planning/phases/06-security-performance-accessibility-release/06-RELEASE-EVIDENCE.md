@@ -10,10 +10,11 @@ This checkpoint covers the incremental ER discoverability and safe-copy work com
 |---|---|---|---|
 | CAT-05 | A selected table exposes a quoted identifier and a bounded `SELECT * ... LIMIT 100` action; clipboard denial leaves a visible recovery message. | `src/App.tsx` (`TableDetails`, `copyWithSelection`); `tests/e2e/app.spec.ts` relationship test | PASS |
 | FILE-04 | Obvious SQLite `-wal`, `-shm`, and `-journal` sidecars are rejected before bytes reach the worker. | `src/App.tsx` (`isSQLiteSidecarName`); `tests/e2e/app.spec.ts` sidecar test | PASS |
-| ER-04 | Declared foreign keys are available in a keyboard-readable list independent of the SVG canvas, with direction, many-to-one semantics, source/target columns, and table navigation. | `src/App.tsx` (`RelationshipList`); `src/styles/app.css`; `tests/e2e/app.spec.ts` relationship test | PARTIAL — full ER-04 still requires ordered rules/resolution status and a join action |
+| ER-04 | Declared foreign keys are available in a keyboard-readable list independent of the SVG canvas, with direction, many-to-one semantics, source/target columns, and table navigation. | `src/App.tsx` (`RelationshipList`); `src/styles/app.css`; `tests/e2e/app.spec.ts` relationship test | PARTIAL — full ER-04 still requires ordered rules, resolution status, and complete table-grouping semantics |
 | SAFE-02 | SQLite-level query-length/column/compound/expression/function/attach/trigger/worker limits are applied, with catalog-specific bounds retained in the worker. | `src/engine/sqlite.worker.ts` (`configureReadOnly` limits) | PARTIAL — catalog metadata limits still need the full 50,000-column contract |
 | SQL-02 | SQLite’s prepare/tail API rejects trailing statements and bound parameters before execution; no custom JavaScript statement scanner remains. | `src/engine/sqlite.worker.ts` (`assertSingleStatement`); `tests/e2e/app.spec.ts` trailing/native-policy tests | PASS for the implemented single-statement/parameter boundary |
-| A11Y-01 | New relationship and copy controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `npm run test:e2e` (51/51; axe test in Chromium/Firefox/WebKit) | PASS |
+| ER-05 | A resolved relationship generates centrally quoted read-only join SQL, supports composite/implicit parent keys, and asks before replacing a non-empty draft; cancel leaves the draft intact. | `src/App.tsx` (`buildJoinSql`, `generateJoin`); `tests/e2e/app.spec.ts` generated-join tests | PARTIAL — broader unresolved/self/parallel fixture and join-model coverage remains |
+| A11Y-01 | New relationship and copy controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `npm run test:e2e` (57/57; axe test in Chromium/Firefox/WebKit) | PASS |
 | REL-01 | The new surface does not regress type safety, production bundle budgets, worker behavior, exports, history, cancellation, or hostile-query paths. | Commands below | PASS |
 | REL-02 | Pages artifact and sibling DataDuck build/test/bundle contracts remain green. | Commands below | PASS |
 
@@ -24,7 +25,7 @@ SeeQLite: npm test                         PASS (1 test)
 SeeQLite: npm run typecheck                 PASS
 SeeQLite: npm run build                     PASS
 SeeQLite: npm run check:bundle              PASS (24 emitted assets)
-SeeQLite: npm run test:e2e                  PASS (51 tests; Chromium, Firefox, WebKit)
+SeeQLite: npm run test:e2e                  PASS (57 tests; Chromium, Firefox, WebKit)
 SeeQLite: focused negative E2E                 PASS (9 tests; trailing SQL, native policy, sidecars)
 Pages:    node scripts/build-pages.mjs      PASS
 Pages:    node scripts/verify-pages-build.mjs PASS

@@ -114,6 +114,9 @@ td { color: var(--ink-2); }
 .relationship-table { border: 0; background: transparent; color: var(--accent-deep); padding: 0; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .relationship-table:hover { color: var(--ink); }
 .relationship-list small { color: var(--ink-2); font: 10px var(--font-mono); overflow-wrap: anywhere; }
+.relationship-join { justify-self: start; min-height: 30px; border: 1px solid var(--boundary); border-radius: 4px; background: var(--paper-2); color: var(--accent-deep); padding: 5px 9px; font: 10px var(--font-mono); }
+.relationship-join:hover { border-color: var(--accent); color: var(--ink); }
+.relationship-join:disabled { cursor: not-allowed; opacity: .55; }
 .relationship-empty { color: var(--ink-2); margin: 0; padding: 14px; font-size: 12px; }
 .plan-panel { margin-top: 16px; }
 .export-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; }
