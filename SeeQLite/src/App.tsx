@@ -51,6 +51,7 @@ export function App() {
   const [query, setQuery] = useState(SAMPLE_QUERY);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState('');
   const [selectedTable, setSelectedTable] = useState<CatalogTable | null>(null);
   const [view, setView] = useState<'query' | 'diagram'>('query');
   const [status, setStatus] = useState('Choose a SQLite file. It stays in this browser tab.');
@@ -71,6 +72,7 @@ export function App() {
     setResult(null);
     setPlanResult(null);
     setCatalog(null);
+    setCatalogSearch('');
     setSelectedTable(null);
     setStatus(`${notice ? `${notice} ` : ''}Opening a private, read-only database worker…`);
     try {
@@ -122,6 +124,7 @@ export function App() {
     setResult(null);
     setPlanResult(null);
     setCatalog(null);
+    setCatalogSearch('');
     setSelectedTable(null);
     setStatus('Opening the bundled sample database…');
     try {
@@ -152,6 +155,7 @@ export function App() {
     sourceRef.current = null;
     setFileName('No database open');
     setCatalog(null);
+    setCatalogSearch('');
     setSelectedTable(null);
     setResult(null);
     setPlanResult(null);
@@ -264,6 +268,12 @@ export function App() {
     setStatus('Generated a quoted read-only join. Review it, then run the query.');
   }
 
+  const filteredTables = useMemo(() => {
+    const needle = catalogSearch.trim().toLowerCase();
+    if (!catalog || !needle) return catalog?.tables ?? [];
+    return catalog.tables.filter((table) => table.name.toLowerCase().includes(needle) || table.kind.toLowerCase().includes(needle) || table.columns.some((column) => column.name.toLowerCase().includes(needle)));
+  }, [catalog, catalogSearch]);
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#workspace">Skip to workspace</a>
@@ -300,7 +310,7 @@ export function App() {
             <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={!catalog} onClick={() => setView('diagram')}>Diagram {catalog ? `· ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}` : ''}</button>
           </div>
           {view === 'query' ? <>
-            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalog.tables.length} objects` : 'Open a database'}</span></div><div className="table-list">{catalog?.tables.map((table) => <button key={table.name} className="table-list-item" onClick={() => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); }} disabled={busy}><span>{table.name}</span><small>{table.kind} · {table.columns.length} columns</small></button>)}</div></div>
+            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalogSearch.trim() ? `${filteredTables.length} of ` : ''}${catalog.tables.length} objects` : 'Open a database'}</span></div>{catalog ? <label className="catalog-search"><span>FIND</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label> : null}<div className="table-list">{filteredTables.map((table) => <button key={table.name} className="table-list-item" onClick={() => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); }} disabled={busy}><span>{table.name}</span><small>{table.kind} · {table.columns.length} columns</small></button>)}</div>{catalog && filteredTables.length === 0 ? <p className="catalog-empty">{catalog.tables.length === 0 ? 'No tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}</div>
             {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} /> : null}
             <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
             <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy || fileName === 'No database open'}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness} disabled={fileName === 'No database open'}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy || fileName === 'No database open'}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>

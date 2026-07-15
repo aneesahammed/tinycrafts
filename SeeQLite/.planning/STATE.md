@@ -22,8 +22,8 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
-Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added a safe quoted join handoff with composite/implicit-key support and dirty-draft confirmation, plus focused regression coverage; full browser, Pages, and DataDuck gates remain green.
+Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, searchable catalog, relationship list/copy/join actions, and cross-engine browser evidence verified
+Last activity: 2026-07-16 — Added bounded catalog search across object and column names with explicit filtered/empty states; the full 60-test browser, Pages, and DataDuck gates remain green.
 
 Progress: [█████████░] 88%
 
@@ -79,4 +79,4 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 Last session: 2026-07-15
 Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, relationship join handoff, sibling regression, and 57-test verification.
 Resume file: `.planning/ROADMAP.md`
-Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current 57-test automated checkpoint.
+Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current 60-test automated checkpoint.

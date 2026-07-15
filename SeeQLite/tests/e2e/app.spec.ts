@@ -75,6 +75,21 @@ test('opens the bundled sample and runs the fixed readiness check', async ({ pag
   await expect(page.locator('.file-status')).toContainText('SQLite is ready');
 });
 
+test('searches tables and columns with explicit filtered and empty states', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  const search = page.getByLabel('Search tables and columns');
+  await search.fill('notes');
+  await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await expect(page.locator('.table-explorer')).toContainText('1 of 2 objects');
+  await search.fill('user_id');
+  await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await expect(page.locator('.table-list-item')).toContainText('notes');
+  await search.fill('does-not-exist');
+  await expect(page.locator('.table-list-item')).toHaveCount(0);
+  await expect(page.locator('.catalog-empty')).toContainText('No objects match');
+});
+
 test('provides a SQLite-aware editor with keyboard execution', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
