@@ -23,7 +23,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
 Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, relationship list/copy actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added a keyboard-readable declared-relationship list, quoted identifier/SELECT copy actions with clipboard fallback, focused regression coverage, full 48-test Chromium/Firefox/WebKit matrix, Pages verification, and the 195-test DataDuck suite.
+Last activity: 2026-07-16 — Added a keyboard-readable declared-relationship list, quoted identifier/SELECT copy actions with clipboard fallback, SQLite prepare/tail and parameter rejection, sidecar intake rejection, focused regression coverage, full 51-test Chromium/Firefox/WebKit matrix, Pages verification, and the 195-test DataDuck suite.
 
 Progress: [█████████░] 88%
 
@@ -66,7 +66,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 
 - The installed GSD helper cannot load its package manifest. User approved manual GSD-compatible artifacts; do not install or repair tooling as part of SeeQLite scope.
 - Production-shaped worker/WASM behavior at `/seeqlite/` is verified without COOP/COEP; the app has no main-thread SQLite fallback.
-- Official package bindings, WAL-mode advisory detection, result/file/query budgets, and bundle budgets are implemented; remaining release evidence is manual/host-specific.
+- Official package bindings, SQLite prepare/tail validation, sidecar rejection, WAL-mode advisory detection, result/file/query budgets, and bundle budgets are implemented; remaining release evidence is manual/host-specific.
 
 ## Deferred Items
 

@@ -8,6 +8,7 @@ const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => (
 const SAMPLE_QUERY = 'SELECT 1 AS ready, sqlite_version() AS sqlite_version;';
 const SOFT_FILE_LIMIT = 256 * 1024 * 1024;
 const HARD_FILE_LIMIT = 512 * 1024 * 1024;
+const SQLITE_SIDECAR_SUFFIXES = ['.sqlite-wal', '.sqlite-shm', '.sqlite-journal', '-wal', '-shm', '-journal'];
 type AppSource = { kind: 'file'; file: File } | { kind: 'sample' };
 type HistoryItem = { version: 1; sql: string; status: 'success' | 'error' | 'cancelled'; at: number; durationMs: number };
 const HISTORY_KEY = 'seeqlite.query-history.v1';
@@ -92,6 +93,10 @@ export function App() {
   }
 
   async function openFile(file: File) {
+    if (isSQLiteSidecarName(file.name)) {
+      setStatus('SQLite WAL, SHM, and journal sidecar files are not standalone databases. Choose the main database file.');
+      return;
+    }
     if (file.size > HARD_FILE_LIMIT) {
       setStatus('That file is over the 512 MB browser-safe limit and was not opened.');
       return;
@@ -303,6 +308,11 @@ export function App() {
 
 function quoteIdentifier(identifier: string) {
   return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+function isSQLiteSidecarName(name: string) {
+  const lowerName = name.toLowerCase();
+  return SQLITE_SIDECAR_SUFFIXES.some((suffix) => lowerName.endsWith(suffix));
 }
 
 function ErDiagram({ catalog, onSelectTable }: { catalog: Catalog | null; onSelectTable: (table: CatalogTable) => void }) {

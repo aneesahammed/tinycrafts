@@ -58,12 +58,15 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     if (new TextEncoder().encode(trimmed).byteLength > MAX_QUERY_BYTES) {
       throw new Error('That query is larger than the 1 MB limit.');
     }
-    if (hasMultipleStatements(trimmed)) throw new Error('Run one read-only statement at a time.');
     if (!/^select\b/i.test(trimmed) && !/^with\b/i.test(trimmed) && !/^explain\s+query\s+plan\s+(?:select|with)\b/i.test(trimmed)) {
       throw new Error('SeeQLite is read-only. Start with SELECT or WITH.');
     }
+    assertSingleStatement(sqlite3Runtime, trimmed);
     const stmt = db.prepare(trimmed);
     try {
+      if (sqlite3Runtime.capi.sqlite3_bind_parameter_count(stmt.pointer) > 0) {
+        throw new Error('Bind parameters are not supported; use literal values in this local editor.');
+      }
       if (!sqlite3Runtime.capi.sqlite3_stmt_readonly(stmt.pointer)) {
         throw new Error('SeeQLite is read-only. That statement would change the database.');
       }
@@ -111,6 +114,17 @@ function configureReadOnly(sqlite3: any) {
   const capi = sqlite3.capi;
   const resultCode = capi.sqlite3_set_authorizer(db.pointer, readOnlyAuthorizer, 0);
   if (resultCode !== capi.SQLITE_OK) throw new Error('SQLite could not apply its read-only policy.');
+  const limits: Array<[number, number]> = [
+    [capi.SQLITE_LIMIT_SQL_LENGTH, MAX_QUERY_BYTES],
+    [capi.SQLITE_LIMIT_COLUMN, MAX_RESULT_COLUMNS],
+    [capi.SQLITE_LIMIT_COMPOUND_SELECT, 64],
+    [capi.SQLITE_LIMIT_EXPR_DEPTH, 1000],
+    [capi.SQLITE_LIMIT_FUNCTION_ARG, 100],
+    [capi.SQLITE_LIMIT_ATTACHED, 0],
+    [capi.SQLITE_LIMIT_TRIGGER_DEPTH, 0],
+    [capi.SQLITE_LIMIT_WORKER_THREADS, 0],
+  ];
+  for (const [category, value] of limits) capi.sqlite3_limit(db.pointer, category, value);
 }
 
 function configureProgressHandler(sqlite3: any) {
@@ -151,6 +165,7 @@ function toUserError(error: unknown, requestType: WorkerRequest['type']) {
     return 'That file could not be opened as a SQLite database.';
   }
   if (message.includes('one read-only statement')) return 'Run one read-only statement at a time.';
+  if (message.includes('bind parameters are not supported')) return 'Bind parameters are not supported; use literal values in this local editor.';
   if (resultCode === sqlite3Runtime?.capi.SQLITE_AUTH) return 'That statement was rejected by SeeQLite’s read-only policy.';
   if (resultCode === sqlite3Runtime?.capi.SQLITE_INTERRUPT) return 'That query exceeded SeeQLite’s 30-second safety deadline.';
   if (message.includes('one read-only statement') || message.includes('start with select') || message.includes('read-only') || message.includes('not authorized') || message.includes('readonly')) {
@@ -257,34 +272,30 @@ function disposeDatabase(sqlite3: any) {
   dbBufferPointer = undefined;
 }
 
-function hasMultipleStatements(sql: string) {
-  let quote: string | null = null;
-  let lineComment = false;
-  let blockComment = false;
-  for (let index = 0; index < sql.length; index += 1) {
-    const character = sql[index];
-    const next = sql[index + 1];
-    if (lineComment) {
-      if (character === '\n') lineComment = false;
-      continue;
-    }
-    if (blockComment) {
-      if (character === '*' && next === '/') { blockComment = false; index += 1; }
-      continue;
-    }
-    if (!quote && character === '-' && next === '-') { lineComment = true; index += 1; continue; }
-    if (!quote && character === '/' && next === '*') { blockComment = true; index += 1; continue; }
-    if (quote) {
-      if (character === quote && sql[index + 1] === quote) { index += 1; continue; }
-      if (character === quote) quote = null;
-      continue;
-    }
-    if (character === "'" || character === '"' || character === '`') { quote = character; continue; }
-    if (character !== ';') continue;
-    const rest = sql.slice(index + 1).replace(/(?:--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/|\s)/g, '');
-    if (rest.length > 0) return true;
+function assertSingleStatement(sqlite3: any, sql: string) {
+  if (!db) throw new Error('SQLite database is not open.');
+  const wasm = sqlite3.wasm;
+  const capi = sqlite3.capi;
+  const stack = wasm.scopedAllocPush();
+  let statementPointer: number | bigint | undefined;
+  try {
+    const sqlByteLength = wasm.jstrlen(sql);
+    const output = wasm.scopedAlloc(2 * wasm.ptr.size + sqlByteLength + 1);
+    const statementOutput = output;
+    const tailOutput = wasm.ptr.add(output, wasm.ptr.size);
+    const sqlPointer = wasm.ptr.add(tailOutput, wasm.ptr.size);
+    wasm.jstrcpy(sql, wasm.heap8(), sqlPointer, sqlByteLength, false);
+    wasm.poke8(wasm.ptr.add(sqlPointer, sqlByteLength), 0);
+    const resultCode = capi.sqlite3_prepare_v3(db.pointer, sqlPointer, sqlByteLength, 0, statementOutput, tailOutput);
+    sqlite3.oo1.DB.checkRc(db, resultCode);
+    statementPointer = wasm.peekPtr(statementOutput);
+    const tailPointer = wasm.peekPtr(tailOutput);
+    const tail = tailPointer ? wasm.cstrToJs(tailPointer) ?? '' : '';
+    if (tail.trim()) throw new Error('Run one read-only statement at a time.');
+  } finally {
+    if (statementPointer) capi.sqlite3_finalize(statementPointer);
+    wasm.scopedAllocPop(stack);
   }
-  return false;
 }
 
 function post(response: WorkerResponse) {

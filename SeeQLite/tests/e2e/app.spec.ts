@@ -56,6 +56,10 @@ test('enforces the read-only policy for SQLite-native mutation paths', async ({ 
     await expect(page.locator('.file-status')).not.toContainText('users');
   }
 
+  await query.fill('SELECT ? AS parameter;');
+  await run.click();
+  await expect(page.locator('.file-status')).toContainText('Bind parameters are not supported');
+
   await query.fill('SELECT 1;');
   await run.click();
   await expect(page.locator('.result-panel')).toContainText('1');
@@ -212,6 +216,13 @@ test('keeps drag-and-drop intake single-file and non-destructive', async ({ page
     zone.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: transfer }));
   });
   await expect(page.locator('.file-status')).toContainText('Drop one SQLite file at a time');
+  await expect(page.locator('.file-status')).toContainText('No database open');
+});
+
+test('rejects SQLite sidecar files before opening them', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles({ name: 'sample.sqlite-wal', mimeType: 'application/octet-stream', buffer: Buffer.from('not a database') });
+  await expect(page.locator('.file-status')).toContainText('sidecar files are not standalone databases');
   await expect(page.locator('.file-status')).toContainText('No database open');
 });
 
