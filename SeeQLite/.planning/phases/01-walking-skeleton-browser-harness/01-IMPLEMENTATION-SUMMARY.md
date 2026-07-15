@@ -13,6 +13,7 @@ Status: foundation slice shipped; remaining release-matrix evidence is still pen
 - Query workspace, table picker, fixed readiness check, result table, and dependency-free SVG ER diagram.
 - Query plan inspection, bounded UI-only query history, CSV/JSON export, stop/reset/reopen handling, table details, and self-hosted Inter/JetBrains Mono fonts.
 - Pages assembler and verifier now emit `/seeqlite/` and retain DataDuck checks.
+- Same-origin installable shell with an asset-only service worker, plus a TinyCrafts landing specimen entry for SeeQLite.
 
 ## Verification evidence
 
@@ -24,6 +25,7 @@ npm run check:bundle    PASS
 npm run test:e2e -- --project=chromium PASS (7 production-preview tests)
 npm run test:e2e -- --project=firefox  PASS (7 production-preview tests)
 npm run test:e2e -- --project=webkit   PASS (7 production-preview tests)
+Full matrix                         PASS (24 production-preview tests across Chromium, Firefox, WebKit)
 node scripts/build-pages.mjs       PASS
 node scripts/verify-pages-build.mjs PASS
 ```
