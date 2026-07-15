@@ -1,5 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import type { Catalog, CatalogColumn, CatalogForeignKey, CatalogIndex, CatalogTable, QueryValue, WorkerRequest, WorkerResponse } from './protocol';
+import type { Catalog, CatalogColumn, CatalogDetails, CatalogForeignKey, CatalogIndex, CatalogTable, QueryValue, WorkerRequest, WorkerResponse } from './protocol';
 
 let db: any = null;
 let sqlite3Runtime: any = null;
@@ -20,6 +20,8 @@ const MAX_TABLES = 1000;
 const MAX_COLUMNS = 20_000;
 const MAX_INDEXES = 5_000;
 const MAX_FOREIGN_KEYS = 2_000;
+const MAX_CATALOG_TEXT_BYTES = 16 * 1024;
+const MAX_CATALOG_IDENTIFIER_BYTES = 64 * 1024;
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const request = event.data;
@@ -32,13 +34,14 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       disposeDatabase(sqlite3);
       currentEpoch = request.epoch;
       db = new sqlite3.oo1.DB(':memory:');
-      dbBufferPointer = sqlite3.wasm.allocFromTypedArray(request.bytes);
+      const bytes = new Uint8Array(request.bytes);
+      dbBufferPointer = sqlite3.wasm.allocFromTypedArray(bytes);
       const resultCode = sqlite3.capi.sqlite3_deserialize(
         db.pointer,
         'main',
         dbBufferPointer,
-        request.bytes.byteLength,
-        request.bytes.byteLength,
+        bytes.byteLength,
+        bytes.byteLength,
         sqlite3.capi.SQLITE_DESERIALIZE_READONLY,
       );
       if (resultCode !== sqlite3.capi.SQLITE_OK) {
@@ -53,6 +56,11 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 
     if (request.epoch !== currentEpoch) throw new Error('That database session is no longer active.');
     if (!db) throw new Error('Open a SQLite database before running a query.');
+    if (request.type === 'details') {
+      const details = readCatalogDetails(request.tableName);
+      post({ type: 'details', requestId: request.requestId, epoch: request.epoch, details });
+      return;
+    }
     const trimmed = request.sql.trim();
     if (!trimmed) throw new Error('Enter a SQL query first.');
     if (new TextEncoder().encode(trimmed).byteLength > MAX_QUERY_BYTES) {
@@ -146,7 +154,7 @@ function readOnlyAuthorizer(_cbArg: number, actionCode: number, arg1: string | 0
   }
   if (actionCode === capi.SQLITE_PRAGMA) {
     const pragmaName = String(arg1 || '').toLowerCase();
-    return ['table_list', 'table_xinfo', 'index_list', 'index_info', 'foreign_key_list'].includes(pragmaName)
+    return ['table_list', 'table_xinfo', 'index_list', 'index_info', 'index_xinfo', 'foreign_key_list'].includes(pragmaName)
       ? capi.SQLITE_OK
       : capi.SQLITE_DENY;
   }
@@ -163,6 +171,11 @@ function toUserError(error: unknown, requestType: WorkerRequest['type']) {
       return error instanceof Error ? error.message : 'That database exceeds the browser catalog limit.';
     }
     return 'That file could not be opened as a SQLite database.';
+  }
+  if (requestType === 'details') {
+    if (message.includes('no longer available')) return 'That object is no longer available in the current database.';
+    if (message.includes('limit') || message.includes('too many')) return 'That object has too much metadata for the browser detail limit.';
+    return 'This object’s index details could not be loaded.';
   }
   if (message.includes('one read-only statement')) return 'Run one read-only statement at a time.';
   if (message.includes('bind parameters are not supported')) return 'Bind parameters are not supported; use literal values in this local editor.';
@@ -202,14 +215,13 @@ function estimateValueBytes(value: QueryValue) {
 function readCatalog(): Catalog {
   const tables: CatalogTable[] = [];
   const foreignKeys: CatalogForeignKey[] = [];
-  const schemaSqlByName = new Map(selectRows("SELECT name, sql FROM sqlite_schema WHERE type IN ('table', 'view')").map((row) => [String(row[0]), row[1] == null ? null : String(row[1])]));
+  const schemaSqlByName = new Map(selectRows("SELECT name, sql FROM sqlite_schema WHERE type IN ('table', 'view')").map((row) => [String(row[0]), row[1] == null ? null : boundCatalogText(String(row[1]))]));
   const objects = selectRows('PRAGMA table_list')
     .filter((row) => String(row[0] ?? '') === 'main')
     .filter((row) => ['table', 'view', 'shadow'].includes(String(row[2] ?? '')))
     .sort((left, right) => String(left[1] ?? '').localeCompare(String(right[1] ?? ''), undefined, { sensitivity: 'base' }));
   if (objects.length > MAX_TABLES) throw new Error('This database has too many tables for the browser catalog limit.');
   let columnCount = 0;
-  let indexCount = 0;
 
   for (const row of objects) {
     const rawName = row[1];
@@ -217,28 +229,17 @@ function readCatalog(): Catalog {
     const name = String(rawName);
     const kind = rawKind === 'view' ? 'view' : rawKind === 'shadow' ? 'shadow' : 'table';
     const internal = name.startsWith('sqlite_') || kind === 'shadow';
-    const columns: CatalogColumn[] = selectRows(`PRAGMA table_xinfo(${quoteIdentifier(name)})`)
-      .filter((row) => Number(row[6] ?? 0) === 0)
-      .map((row) => ({
+    const columns: CatalogColumn[] = selectRows(`PRAGMA table_xinfo(${quoteIdentifier(name)})`).map((row) => ({
         name: String(row[1] ?? ''),
         type: String(row[2] ?? ''),
-        notNull: Boolean(row[3]),
+        notNull: Number(row[3] ?? 0) === 1,
         primaryKey: Number(row[5] ?? 0),
-        defaultValue: row[4] == null ? null : String(row[4]),
+        defaultValue: row[4] == null ? null : boundCatalogText(String(row[4])),
+        hidden: Number(row[6] ?? 0),
       }));
     columnCount += columns.length;
     if (columnCount > MAX_COLUMNS) throw new Error('This database has too many columns for the browser catalog limit.');
-    const indexes: CatalogIndex[] = selectRows(`PRAGMA index_list(${quoteIdentifier(name)})`).map((row) => ({
-      name: String(row[1] ?? ''),
-      unique: Boolean(row[2]),
-      columns: selectRows(`PRAGMA index_info(${quoteIdentifier(String(row[1] ?? ''))})`)
-        .sort((left, right) => Number(left[0]) - Number(right[0]))
-        .map((indexRow) => String(indexRow[2] ?? ''))
-        .filter(Boolean),
-    }));
-    indexCount += indexes.length;
-    if (indexCount > MAX_INDEXES) throw new Error('This database has too many indexes for the browser catalog limit.');
-    tables.push({ name, kind, internal, schemaSql: schemaSqlByName.get(name) ?? null, withoutRowid: Number(row[4] ?? 0) === 1, strict: Number(row[5] ?? 0) === 1, columns, indexes });
+    tables.push({ name, kind, internal, schemaSql: schemaSqlByName.get(name) ?? null, withoutRowid: Number(row[4] ?? 0) === 1, strict: Number(row[5] ?? 0) === 1, columns, indexes: [] });
 
     if (kind === 'table' && !internal) {
       const grouped = new Map<number, CatalogForeignKey>();
@@ -256,6 +257,51 @@ function readCatalog(): Catalog {
   return { tables, foreignKeys };
 }
 
+function readCatalogDetails(tableName: string): CatalogDetails {
+  const name = String(tableName);
+  if (new TextEncoder().encode(name).byteLength > MAX_CATALOG_IDENTIFIER_BYTES) throw new Error('That object name exceeds the browser detail limit.');
+  const exists = selectRows('PRAGMA table_list').some((row) => String(row[0] ?? '') === 'main' && String(row[1] ?? '') === name);
+  if (!exists) throw new Error('That object is no longer available in the current database.');
+  const indexes = readTableIndexes(name);
+  return { tableName: name, indexes };
+}
+
+function readTableIndexes(name: string): CatalogIndex[] {
+  const indexesByName = new Map<string, CatalogIndex>();
+  for (const row of selectRows(`PRAGMA index_list(${quoteIdentifier(name)})`)) {
+    const indexName = String(row[1] ?? '');
+    indexesByName.set(indexName, {
+      name: indexName,
+      unique: Number(row[2] ?? 0) === 1,
+      origin: row[3] === 'u' ? 'unique' : row[3] === 'pk' ? 'primary-key' : row[3] === 'c' ? 'created' : 'unknown',
+      partial: Number(row[4] ?? 0) === 1,
+      columns: readIndexColumns(indexName),
+    });
+  }
+  for (const row of selectRows(`SELECT name, sql FROM sqlite_schema WHERE type = 'index' AND tbl_name = ${quoteString(name)} ORDER BY name COLLATE NOCASE`)) {
+    const indexName = String(row[0] ?? '');
+    if (indexesByName.has(indexName)) continue;
+    const sql = row[1] == null ? '' : String(row[1]);
+    indexesByName.set(indexName, {
+      name: indexName,
+      unique: /^\s*CREATE\s+UNIQUE\s+INDEX\b/i.test(sql),
+      origin: 'created',
+      partial: /\bWHERE\b/i.test(sql),
+      columns: readIndexColumns(indexName),
+    });
+  }
+  const indexes = [...indexesByName.values()];
+  if (indexes.length > MAX_INDEXES) throw new Error('That object has too many indexes for the browser detail limit.');
+  return indexes;
+}
+
+function readIndexColumns(indexName: string) {
+  return selectRows(`PRAGMA index_xinfo(${quoteIdentifier(indexName)})`)
+    .filter((indexRow) => Number(indexRow[5] ?? 1) === 1)
+    .sort((left, right) => Number(left[0]) - Number(right[0]))
+    .map((indexRow) => ({ name: indexRow[2] == null ? null : String(indexRow[2]), expression: Number(indexRow[1] ?? 0) === -2 || indexRow[2] == null, descending: Number(indexRow[3] ?? 0) === 1 }));
+}
+
 function selectRows(sql: string): unknown[][] {
   if (!db) throw new Error('SQLite database is not open.');
   const statement = db.prepare(sql);
@@ -270,6 +316,15 @@ function selectRows(sql: string): unknown[][] {
 
 function quoteIdentifier(identifier: string) {
   return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+function quoteString(value: string) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function boundCatalogText(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  return bytes.byteLength <= MAX_CATALOG_TEXT_BYTES ? value : `${new TextDecoder().decode(bytes.slice(0, MAX_CATALOG_TEXT_BYTES))} …`;
 }
 
 function disposeDatabase(sqlite3: any) {

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { DatabaseClient } from './engine/database-client';
-import type { Catalog, CatalogTable, QueryResult } from './engine/protocol';
+import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
 const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
@@ -11,6 +11,7 @@ const HARD_FILE_LIMIT = 512 * 1024 * 1024;
 const SQLITE_SIDECAR_SUFFIXES = ['.sqlite-wal', '.sqlite-shm', '.sqlite-journal', '-wal', '-shm', '-journal'];
 type AppSource = { kind: 'file'; file: File } | { kind: 'sample' };
 type HistoryItem = { version: 1; sql: string; status: 'success' | 'error' | 'cancelled'; at: number; durationMs: number };
+type TableDetailState = { status: 'loading' | 'ready' | 'error'; details?: CatalogDetails; message?: string };
 const HISTORY_KEY = 'seeqlite.query-history.v1';
 const HISTORY_MAX_ITEMS = 100;
 const HISTORY_MAX_SQL_BYTES = 8 * 1024;
@@ -54,6 +55,7 @@ export function App() {
   const [catalogSearch, setCatalogSearch] = useState('');
   const [showInternalObjects, setShowInternalObjects] = useState(false);
   const [selectedTable, setSelectedTable] = useState<CatalogTable | null>(null);
+  const [tableDetails, setTableDetails] = useState<Record<string, TableDetailState>>({});
   const [view, setView] = useState<'query' | 'diagram'>('query');
   const [status, setStatus] = useState('Choose a SQLite file. It stays in this browser tab.');
   const [busy, setBusy] = useState(false);
@@ -62,9 +64,17 @@ export function App() {
   const [planResult, setPlanResult] = useState<QueryResult | null>(null);
   const operationRef = useRef(0);
   const activeQueryRef = useRef<{ sql: string; started: number } | null>(null);
+  const detailGenerationRef = useRef(0);
+  const detailRequestsRef = useRef(new Set<string>());
 
   useEffect(() => () => client.terminate('SeeQLite was closed.'), [client]);
   useEffect(() => { document.documentElement.toggleAttribute('data-dark', darkTheme); }, [darkTheme]);
+
+  function invalidateDetails() {
+    detailGenerationRef.current += 1;
+    detailRequestsRef.current.clear();
+    setTableDetails({});
+  }
 
   async function openBytes(bytes: ArrayBuffer, name: string, source: AppSource, notice = '') {
     sourceRef.current = source;
@@ -75,6 +85,7 @@ export function App() {
     setCatalog(null);
     setCatalogSearch('');
     setShowInternalObjects(false);
+    invalidateDetails();
     setSelectedTable(null);
     setStatus(`${notice ? `${notice} ` : ''}Opening a private, read-only database worker…`);
     try {
@@ -128,6 +139,7 @@ export function App() {
     setCatalog(null);
     setCatalogSearch('');
     setShowInternalObjects(false);
+    invalidateDetails();
     setSelectedTable(null);
     setStatus('Opening the bundled sample database…');
     try {
@@ -160,6 +172,7 @@ export function App() {
     setCatalog(null);
     setCatalogSearch('');
     setShowInternalObjects(false);
+    invalidateDetails();
     setSelectedTable(null);
     setResult(null);
     setPlanResult(null);
@@ -257,7 +270,28 @@ export function App() {
     setResult(null);
     setPlanResult(null);
     setShowInternalObjects(false);
+    invalidateDetails();
     setStatus('Query stopped. Reopen the database to continue.');
+  }
+
+  async function selectTable(table: CatalogTable, returnToQuery = false) {
+    setSelectedTable(table);
+    setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`);
+    if (returnToQuery) setView('query');
+    const existing = tableDetails[table.name];
+    if (existing?.status === 'ready' || detailRequestsRef.current.has(table.name)) return;
+    const generation = detailGenerationRef.current;
+    detailRequestsRef.current.add(table.name);
+    setTableDetails((current) => ({ ...current, [table.name]: { status: 'loading' } }));
+    try {
+      const details = await client.details(table.name);
+      if (generation !== detailGenerationRef.current) return;
+      setTableDetails((current) => ({ ...current, [table.name]: { status: 'ready', details } }));
+    } catch (error) {
+      if (generation !== detailGenerationRef.current) return;
+      detailRequestsRef.current.delete(table.name);
+      setTableDetails((current) => ({ ...current, [table.name]: { status: 'error', message: error instanceof Error ? error.message : 'This object’s index details could not be loaded.' } }));
+    }
   }
 
   function generateJoin(relation: Catalog['foreignKeys'][number]) {
@@ -326,8 +360,8 @@ export function App() {
             <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={!catalog} onClick={() => setView('diagram')}>Diagram {catalog ? `· ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}` : ''}</button>
           </div>
           {view === 'query' ? <>
-            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalogSearch.trim() ? `${filteredTables.length} of ` : ''}${visibleCatalog?.tables.length ?? 0} objects${!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} internal hidden` : ''}` : 'Open a database'}</span></div>{catalog ? <><label className="catalog-search"><span>FIND</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label><div className="catalog-controls"><button className="secondary-button compact" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button><span>System and virtual tables stay hidden until requested.</span></div></> : null}<div className="table-list">{filteredTables.map((table) => <button key={table.name} className="table-list-item" onClick={() => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); }} disabled={busy}><span>{table.name}</span><small>{table.internal ? 'internal · ' : ''}{table.kind} · {table.columns.length} columns</small></button>)}</div>{catalog && filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}</div>
-            {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} /> : null}
+            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalogSearch.trim() ? `${filteredTables.length} of ` : ''}${visibleCatalog?.tables.length ?? 0} objects${!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} internal hidden` : ''}` : 'Open a database'}</span></div>{catalog ? <><label className="catalog-search"><span>FIND</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label><div className="catalog-controls"><button className="secondary-button compact" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button><span>System and virtual tables stay hidden until requested.</span></div></> : null}<div className="table-list">{filteredTables.map((table) => <button key={table.name} className="table-list-item" onClick={() => void selectTable(table)} disabled={busy}><span>{table.name}</span><small>{table.internal ? 'internal · ' : ''}{table.kind} · {table.columns.length} columns</small></button>)}</div>{catalog && filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}</div>
+            {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : null}
             <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
             <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy || fileName === 'No database open'}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness} disabled={fileName === 'No database open'}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy || fileName === 'No database open'}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
             <div className="result-panel">
@@ -337,7 +371,7 @@ export function App() {
             {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><PlanTree result={planResult} /></div> : null}
             {result ? <div className="export-actions"><span className="label">EXPORT RESULT</span><button className="quiet-button" onClick={() => downloadResult(result, 'csv')}>Download CSV</button><button className="quiet-button" onClick={() => downloadResult(result, 'json')}>Download JSON</button></div> : null}
             <QueryHistory items={history} onChoose={setQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
-          </> : <ErDiagram catalog={visibleCatalog} onSelectTable={(table) => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); setView('query'); }} onGenerateJoin={generateJoin} />}
+          </> : <ErDiagram catalog={visibleCatalog} onSelectTable={(table) => void selectTable(table, true)} onGenerateJoin={generateJoin} />}
         </section>
       </main>
       <footer className="footer"><span>SeeQLite v0.1</span><span>Built for curious local data</span></footer>
@@ -387,7 +421,7 @@ function RelationshipList({ catalog, onSelectTable, onGenerateJoin }: { catalog:
   return <section className="relationship-panel" aria-label="Declared relationships"><div className="result-heading"><span className="label">RELATIONSHIPS</span><span>{catalog.foreignKeys.length} declared</span></div>{catalog.foreignKeys.length ? <ul className="relationship-list">{catalog.foreignKeys.map((relation) => { const resolved = Boolean(tableByName.get(relation.fromTable) && tableByName.get(relation.toTable) && buildJoinSql(relation, catalog)); return <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><span className="relationship-kind">FOREIGN KEY · MANY → ONE</span><div className="relationship-tables"><button className="relationship-table" onClick={() => tableByName.get(relation.fromTable) && onSelectTable(tableByName.get(relation.fromTable)!)} aria-label={`Open ${relation.fromTable} table`}>{relation.fromTable}</button><span aria-hidden="true">→</span><button className="relationship-table" onClick={() => tableByName.get(relation.toTable) && onSelectTable(tableByName.get(relation.toTable)!)} aria-label={`Open ${relation.toTable} table`}>{relation.toTable}</button></div><small><code>{relation.fromColumns.join(', ')}</code> references <code>{relation.toColumns.filter(Boolean).join(', ') || 'the parent primary key'}</code></small><button className="relationship-join" onClick={() => onGenerateJoin(relation)} disabled={!resolved} aria-label={`Generate join from ${relation.fromTable} to ${relation.toTable}`} title={resolved ? 'Generate a quoted read-only join' : 'The referenced table or columns could not be resolved'}>Generate join</button></li>; })}</ul> : <p className="relationship-empty">No declared foreign keys. The diagram still shows every table and view.</p>}</section>;
 }
 
-function TableDetails({ table, catalog }: { table: CatalogTable; catalog: Catalog | null }) {
+function TableDetails({ table, catalog, detail }: { table: CatalogTable; catalog: Catalog | null; detail?: TableDetailState }) {
   const relationships = catalog?.foreignKeys.filter((relation) => relation.fromTable === table.name || relation.toTable === table.name) ?? [];
   const [copyState, setCopyState] = useState<'idle' | 'identifier' | 'select' | 'error'>('idle');
   async function copy(value: string, kind: 'identifier' | 'select') {
@@ -399,7 +433,29 @@ function TableDetails({ table, catalog }: { table: CatalogTable; catalog: Catalo
       setCopyState(copyWithSelection(value) ? kind : 'error');
     }
   }
-  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3>Columns</h3><ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}</span></li>)}</ul></div><div><h3>Indexes</h3><ul>{table.indexes.length ? table.indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{index.unique ? 'UNIQUE · ' : ''}{index.columns.join(', ') || 'expression'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul><h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
+  const indexes = detail?.status === 'ready' ? detail.details?.indexes ?? [] : [];
+  const uniqueColumns = new Set(indexes.filter((index) => index.unique).flatMap((index) => index.columns.flatMap((column) => column.name ? [column.name] : [])));
+  const foreignKeyColumns = new Set(relationships.filter((relation) => relation.fromTable === table.name).flatMap((relation) => relation.fromColumns));
+  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3>Columns</h3><ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul></div><div><h3>Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul>}<h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
+}
+
+function columnVisibility(column: CatalogTable['columns'][number]) {
+  if (column.hidden === 1) return ' · HIDDEN';
+  if (column.hidden === 2) return ' · GENERATED VIRTUAL';
+  if (column.hidden === 3) return ' · GENERATED STORED';
+  return '';
+}
+
+function indexOrigin(origin: CatalogTable['indexes'][number]['origin']) {
+  if (origin === 'primary-key') return 'PRIMARY KEY';
+  if (origin === 'unique') return 'UNIQUE';
+  if (origin === 'created') return 'INDEX';
+  return 'INDEX';
+}
+
+function formatIndexColumn(column: CatalogTable['indexes'][number]['columns'][number]) {
+  if (column.expression) return `expression${column.descending ? ' DESC' : ''}`;
+  return `${column.name ?? 'rowid'}${column.descending ? ' DESC' : ''}`;
 }
 
 function copyWithSelection(value: string) {

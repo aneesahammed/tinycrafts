@@ -77,6 +77,9 @@ h2 { font-size: 22px; letter-spacing: -.04em; margin-top: 5px; }
 .detail-grid li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 11px; }
 .detail-grid code { color: var(--accent-deep); font: 11px var(--font-mono); overflow-wrap: anywhere; }
 .detail-grid li span { color: var(--ink-2); text-align: right; }
+.detail-loading, .detail-error { color: var(--ink-2); margin: 0 0 18px; padding: 6px 0; font: 10px var(--font-mono); }
+.detail-loading { color: var(--accent-deep); }
+.detail-error { color: var(--danger); }
 .schema-details { border-top: 1px solid var(--rule); padding: 10px 14px 14px; }
 .schema-details summary { cursor: pointer; color: var(--accent-deep); font: 10px var(--font-mono); }
 .schema-details pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 10px 0 0; color: var(--ink-2); font: 11px/1.5 var(--font-mono); }

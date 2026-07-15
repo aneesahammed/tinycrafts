@@ -23,9 +23,9 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
 Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, searchable catalog, internal-object metadata/toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added bounded PRAGMA-backed internal-object discovery, opt-in visibility, object metadata, and a real AUTOINCREMENT regression fixture; 66/66 cross-engine browser tests are green.
+Last activity: 2026-07-16 — Added bounded, lazy PRAGMA-backed object details with generated/hidden-column and index metadata, stale-response guards, and expanded regression fixtures; 66/66 cross-engine browser tests are green.
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -61,7 +61,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 - Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark and reduced-motion gate now passes in all three engines; the new relationship list is keyboard-readable).
 - Add production HTTP-header/CSP evidence where the Pages host permits it; retain the documented meta-CSP fallback limitation.
 - Keep the DataDuck dependency advisory inventory visible; its existing npm audit still reports upstream moderate/high/critical advisories despite the full test/build suite passing.
-- CAT-02 remains partial for index origin/partial-expression metadata, generated-column flags, and lazy/failure-isolated detail loading; keep the follow-up bounded and separate from the shipped toggle.
+- CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags and stale-response guards; remaining work is malformed-object isolation and measured large-catalog detail budgets.
 
 ### Blockers/Concerns
 

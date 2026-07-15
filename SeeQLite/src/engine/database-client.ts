@@ -1,4 +1,4 @@
-import type { Catalog, QueryResult, WorkerRequest, WorkerResponse } from './protocol';
+import type { Catalog, CatalogDetails, QueryResult, WorkerRequest, WorkerResponse } from './protocol';
 
 type Pending = { epoch: number; resolve: (value: unknown) => void; reject: (error: Error) => void };
 
@@ -19,6 +19,8 @@ export class DatabaseClient {
         pending.reject(new Error(response.message));
       } else if (response.type === 'ready') {
         pending.resolve(response);
+      } else if (response.type === 'details') {
+        pending.resolve(response.details);
       } else {
         pending.resolve(response.result);
       }
@@ -61,6 +63,12 @@ export class DatabaseClient {
     if (!this.worker) return Promise.reject(new Error('Open a SQLite database before running a query.'));
     const requestId = `query-${++this.sequence}`;
     return this.send<QueryResult>({ type: 'query', requestId, epoch: this.epoch, sql });
+  }
+
+  details(tableName: string) {
+    if (!this.worker) return Promise.reject(new Error('Open a SQLite database before loading object details.'));
+    const requestId = `details-${++this.sequence}`;
+    return this.send<CatalogDetails>({ type: 'details', requestId, epoch: this.epoch, tableName });
   }
 
   terminate(message = 'SQLite worker was reset.') {
