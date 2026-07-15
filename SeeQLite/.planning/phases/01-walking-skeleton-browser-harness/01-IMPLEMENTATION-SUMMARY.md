@@ -11,6 +11,7 @@ Status: foundation slice shipped; remaining release-matrix evidence is still pen
 - Synthetic fixture and same-origin sample database.
 - Catalog extraction for tables/views, columns, indexes, and declared foreign keys.
 - Query workspace, table picker, fixed readiness check, result table, and dependency-free SVG ER diagram.
+- Query plan inspection, bounded UI-only query history, CSV/JSON export, stop/reset/reopen handling, table details, and self-hosted Inter/JetBrains Mono fonts.
 - Pages assembler and verifier now emit `/seeqlite/` and retain DataDuck checks.
 
 ## Verification evidence
@@ -20,7 +21,7 @@ npm run typecheck       PASS
 npm test                PASS
 npm run build           PASS
 npm run check:bundle    PASS
-npm run test:e2e        PASS (4 Chromium tests)
+npm run test:e2e        PASS (7 Chromium tests)
 node scripts/build-pages.mjs       PASS
 node scripts/verify-pages-build.mjs PASS
 ```
