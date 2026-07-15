@@ -16,14 +16,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-07-15)
 
 **Core value:** A user can open an unfamiliar SQLite file and safely understand its structure, relationships, and data in seconds without the file leaving the browser.
-**Current focus:** Phase 2 — Safe Database Lifecycle and Catalog
+**Current focus:** Phase 6 — Security, Performance, Accessibility, and Release
 
 ## Current Position
 
-Phase: 2 of 6 (Safe Database Lifecycle and Catalog)
-Plan: implementation checkpoint after the Phase 1 foundation slice
-Status: Foundation slice shipped; continue with lifecycle/catalog hardening
-Last activity: 2026-07-15 — Worker-backed open/query, catalog, ER preview, browser tests, and Pages assembly verified.
+Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
+Plan: implementation checkpoint after the core product slices
+Status: Core product shipped; complete release evidence and sibling regression cleanup
+Last activity: 2026-07-15 — Worker-backed open/query, catalog, ER diagram, plan/history/export, offline shell, landing integration, and 24-browser-test matrix verified.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -57,8 +57,8 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 
 ### Pending Todos
 
-- Complete Phase 1's three-engine/privacy/accessibility release matrix before public release.
-- Harden Phase 2 lifecycle policy, schema limits, and table explorer around the shipped catalog.
+- Complete privacy/CSP/keyboard/contrast/performance evidence for the release artifact.
+- Resolve the existing DataDuck responsive-css regression before declaring the Pages release green.
 
 ### Blockers/Concerns
 
