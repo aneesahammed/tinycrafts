@@ -12,6 +12,7 @@ for (const suffix of ['.js', '.css']) {
 const html = readFileSync(join(dist, 'index.html'), 'utf8');
 if (html.includes('src="/') || html.includes('href="/')) throw new Error('SeeQLite artifact contains a root-relative asset path.');
 if (!existsSync(join(dist, 'sample.sqlite'))) throw new Error('SeeQLite artifact is missing the bundled sample database.');
+if (!existsSync(join(dist, 'sw.js'))) throw new Error('SeeQLite artifact is missing the service worker.');
 for (const name of names.filter((entry) => entry.endsWith('.js'))) {
   const source = readFileSync(join(assets, name), 'utf8');
   if (source.includes('new Worker(`data:') || source.includes('new Worker("data:')) throw new Error('SeeQLite must not construct data URL workers.');

@@ -5,5 +5,5 @@
   "display": "standalone",
   "background_color": "#f7f3ec",
   "theme_color": "#3867e8",
-  "icons": []
+  "icons": [{ "src": "./seeqlite-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

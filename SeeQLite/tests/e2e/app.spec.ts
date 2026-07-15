@@ -84,3 +84,18 @@ test('shows a read-only query plan, exports the result, and keeps bounded histor
   await page.getByText(/Query history/).click();
   await expect(page.locator('.history-list')).toContainText('SELECT email FROM users;');
 });
+
+test('registers the app shell without caching database files', async ({ page }) => {
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return false;
+    await navigator.serviceWorker.ready;
+    return true;
+  })).toBe(true);
+  const cachedUrls = await page.evaluate(async () => {
+    const keys = await caches.keys();
+    const cache = await caches.open(keys[0]);
+    return (await cache.keys()).map((request) => request.url);
+  });
+  expect(cachedUrls.some((url) => url.endsWith('.sqlite') || url.endsWith('.db'))).toBe(false);
+});

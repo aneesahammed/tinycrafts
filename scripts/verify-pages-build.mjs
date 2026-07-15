@@ -30,6 +30,8 @@ const requiredFiles = [
   'dataduck/icon-512.png',
   'seeqlite/index.html',
   'seeqlite/manifest.webmanifest',
+  'seeqlite/sw.js',
+  'seeqlite/seeqlite-icon.svg',
   'seeqlite/sample.sqlite',
 ];
 
