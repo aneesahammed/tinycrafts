@@ -28,6 +28,9 @@ npm run test:e2e -- --project=webkit   PASS (7 production-preview tests)
 Full matrix                         PASS (33 production-preview tests across Chromium, Firefox, WebKit)
 node scripts/build-pages.mjs       PASS
 node scripts/verify-pages-build.mjs PASS
+npm audit                    PASS (0 known vulnerabilities)
 ```
 
-The browser tests cover local file open, sample open, BLOB rendering, mutation rejection, readiness, catalog table targeting, and ER diagram rendering. The full three-engine production/privacy/accessibility matrix described by `01-06-PLAN.md` remains a later release gate.
+The browser tests cover local file open, sample open, BLOB rendering, mutation rejection, readiness, catalog table targeting, ER diagram rendering, same-origin privacy, capability gating, responsive focus, and shell-cache boundaries. The three-engine production matrix described by `01-06-PLAN.md` is green for the implemented surface.
+
+DataDuck build and bundle verification remain green. Its unit suite currently reports one pre-existing `responsive-css.test.js` failure (53 passed, 1 failed) for an assistant-panel selector expectation; no DataDuck source was changed by SeeQLite.
