@@ -15,7 +15,8 @@ This checkpoint covers the incremental ER discoverability and safe-copy work com
 | SAFE-02 | SQLite-level query-length/column/compound/expression/function/attach/trigger/worker limits are applied, with catalog-specific bounds retained in the worker. | `src/engine/sqlite.worker.ts` (`configureReadOnly` limits) | PARTIAL — catalog metadata limits still need the full 50,000-column contract |
 | SQL-02 | SQLite’s prepare/tail API rejects trailing statements and bound parameters before execution; no custom JavaScript statement scanner remains. | `src/engine/sqlite.worker.ts` (`assertSingleStatement`); `tests/e2e/app.spec.ts` trailing/native-policy tests | PASS for the implemented single-statement/parameter boundary |
 | ER-05 | A resolved relationship generates centrally quoted read-only join SQL, supports composite/implicit parent keys, and asks before replacing a non-empty draft; cancel leaves the draft intact. | `src/App.tsx` (`buildJoinSql`, `generateJoin`); `tests/e2e/app.spec.ts` generated-join tests | PARTIAL — broader unresolved/self/parallel fixture and join-model coverage remains |
-| A11Y-01 | New relationship and copy controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `npm run test:e2e` (60/60; axe test in Chromium/Firefox/WebKit) | PASS |
+| PLAN-01 | Query plans are presented as an accessible bounded list with parent indentation, and already-explained SQL is not nested. | `src/App.tsx` (`PlanTree`, `runPlan`); `tests/e2e/app.spec.ts` plan tests | PARTIAL — stale-plan, empty-plan, and hostile-detail fixture coverage remains |
+| A11Y-01 | New relationship and copy controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `npm run test:e2e` (63/63; axe test in Chromium/Firefox/WebKit) | PASS |
 | REL-01 | The new surface does not regress type safety, production bundle budgets, worker behavior, exports, history, cancellation, or hostile-query paths. | Commands below | PASS |
 | REL-02 | Pages artifact and sibling DataDuck build/test/bundle contracts remain green. | Commands below | PASS |
 
@@ -26,7 +27,7 @@ SeeQLite: npm test                         PASS (1 test)
 SeeQLite: npm run typecheck                 PASS
 SeeQLite: npm run build                     PASS
 SeeQLite: npm run check:bundle              PASS (24 emitted assets)
-SeeQLite: npm run test:e2e                  PASS (60 tests; Chromium, Firefox, WebKit)
+SeeQLite: npm run test:e2e                  PASS (63 tests; Chromium, Firefox, WebKit)
 SeeQLite: focused negative E2E                 PASS (9 tests; trailing SQL, native policy, sidecars)
 Pages:    node scripts/build-pages.mjs      PASS
 Pages:    node scripts/verify-pages-build.mjs PASS

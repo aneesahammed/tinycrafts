@@ -160,6 +160,8 @@ test('shows a read-only query plan, exports the result, and keeps bounded histor
 
   await page.getByRole('button', { name: 'Show query plan' }).click();
   await expect(page.locator('.plan-panel')).toContainText('SCAN');
+  await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
+  await expect(page.getByRole('list', { name: 'SQLite query plan' }).getByRole('listitem')).toHaveCount(1);
 
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download CSV' }).click();
@@ -176,6 +178,14 @@ test('shows a read-only query plan, exports the result, and keeps bounded histor
 
   await page.getByText(/Query history/).click();
   await expect(page.locator('.history-list')).toContainText('SELECT email FROM users;');
+});
+
+test('plans an already-explained statement without nesting EXPLAIN', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByLabel('SQL query').fill('EXPLAIN QUERY PLAN SELECT email FROM users;');
+  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
 });
 
 test('keeps duplicate labels positional and neutralizes CSV formulas', async ({ page }) => {

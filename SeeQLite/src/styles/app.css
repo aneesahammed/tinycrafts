@@ -124,6 +124,12 @@ td { color: var(--ink-2); }
 .relationship-join:disabled { cursor: not-allowed; opacity: .55; }
 .relationship-empty { color: var(--ink-2); margin: 0; padding: 14px; font-size: 12px; }
 .plan-panel { margin-top: 16px; }
+.plan-tree { display: grid; gap: 0; max-height: 330px; overflow: auto; padding: 4px 14px 10px; }
+.plan-item { display: flex; align-items: baseline; gap: 8px; min-width: max-content; padding: 8px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); font: 11px/1.45 var(--font-mono); }
+.plan-item:last-child { border-bottom: 0; }
+.plan-marker { color: var(--accent); }
+.plan-detail { white-space: pre-wrap; overflow-wrap: anywhere; }
+.plan-empty { color: var(--ink-2); margin: 0; padding: 14px 0; font-size: 12px; }
 .export-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; }
 .history-panel { border-top: 1px solid var(--boundary); margin-top: 16px; padding-top: 12px; }
 .history-panel summary { cursor: pointer; color: var(--ink-2); font: 12px var(--font-mono); }

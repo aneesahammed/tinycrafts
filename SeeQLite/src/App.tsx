@@ -216,7 +216,7 @@ export function App() {
     setBusy(true);
     setStatus('Explaining the query in the SQLite worker…');
     try {
-      const nextPlan = await client.query(`EXPLAIN QUERY PLAN ${sql}`);
+      const nextPlan = await client.query(/^explain\s+query\s+plan\b/i.test(sql) ? sql : `EXPLAIN QUERY PLAN ${sql}`);
       if (operation !== operationRef.current) return;
       setPlanResult(nextPlan);
       setStatus(`Query plan ready in ${Math.round(performance.now() - started)} ms.`);
@@ -318,7 +318,7 @@ export function App() {
               <div className="result-heading"><span className="label">RESULT</span><span>{result ? `${result.columns.length} columns` : 'Waiting for a query'}</span></div>
               {result ? <ResultTable result={result} /> : <div className="empty-result"><span className="empty-glyph" aria-hidden="true">⌁</span><p>Open a file, then run a SELECT.</p></div>}
             </div>
-            {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><ResultTable result={planResult} /></div> : null}
+            {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><PlanTree result={planResult} /></div> : null}
             {result ? <div className="export-actions"><span className="label">EXPORT RESULT</span><button className="quiet-button" onClick={() => downloadResult(result, 'csv')}>Download CSV</button><button className="quiet-button" onClick={() => downloadResult(result, 'json')}>Download JSON</button></div> : null}
             <QueryHistory items={history} onChoose={setQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
           </> : <ErDiagram catalog={catalog} onSelectTable={(table) => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); setView('query'); }} onGenerateJoin={generateJoin} />}
@@ -417,6 +417,38 @@ function ResultTable({ result }: { result: QueryResult }) {
     <div className="table-wrap"><table><caption className="sr-only">Query result</caption><thead><tr>{result.columns.map((column, index) => { const label = column.name || `column_${index + 1}`; const active = sort?.index === index; return <th scope="col" key={`${column.name}-${index}`}><button className="column-sort" onClick={() => { const direction = active && sort.direction === 'asc' ? 'desc' : 'asc'; setSort({ index, direction }); setPage(0); }} aria-label={`Sort by ${label}`} aria-pressed={active}>{label}{active ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ''}</button></th>; })}</tr></thead><tbody>{visibleRows.map((row, rowIndex) => <tr key={`${currentPage}-${rowIndex}`}>{row.map((value, index) => <td key={index}>{formatValue(value)}</td>)}</tr>)}</tbody></table></div>
     <div className="result-pagination" aria-label="Result page controls"><span>Showing {start}–{end} of {sortedRows.length} returned rows{sort ? ' · sorted in browser' : ''}{result.truncated ? ` · ${truncationLabel(result.truncationReason)}` : ''}</span><div><button className="quiet-button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={currentPage === 0}>Previous</button><span aria-live="polite">Page {currentPage + 1} of {pageCount}</span><button className="quiet-button" onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))} disabled={currentPage >= pageCount - 1}>Next</button></div></div>
   </>;
+}
+
+function PlanTree({ result }: { result: QueryResult }) {
+  const idIndex = result.columns.findIndex((column) => column.name.toLowerCase() === 'id');
+  const parentIndex = result.columns.findIndex((column) => column.name.toLowerCase() === 'parent');
+  const detailIndex = result.columns.findIndex((column) => column.name.toLowerCase() === 'detail');
+  const nodes = result.rows.map((row, index) => ({
+    id: planText(row[idIndex] ?? index),
+    parent: planText(row[parentIndex] ?? ''),
+    detail: planText(row[detailIndex] ?? row[row.length - 1] ?? 'Plan step'),
+  }));
+  const positions = new Map(nodes.map((node, index) => [node.id, index]));
+  return <div className="plan-tree" role="list" aria-label="SQLite query plan">{nodes.length ? nodes.map((node, index) => <div className="plan-item" role="listitem" key={`${node.id}-${index}`} style={{ marginLeft: `${planDepth(node, positions, nodes)}rem` }}><span className="plan-marker" aria-hidden="true">↳</span><span className="plan-detail">{node.detail}</span></div>) : <p className="plan-empty">SQLite returned no plan steps.</p>}</div>;
+}
+
+function planDepth(node: { id: string; parent: string }, positions: Map<string, number>, nodes: Array<{ id: string; parent: string }>) {
+  let depth = 0;
+  let parent = node.parent;
+  const seen = new Set<string>();
+  while (parent && parent !== '-1' && positions.has(parent) && !seen.has(parent) && depth < 8) {
+    seen.add(parent);
+    depth += 1;
+    parent = nodes[positions.get(parent)!].parent;
+  }
+  return Math.min(depth, 6);
+}
+
+function planText(value: QueryResult['rows'][number][number]) {
+  if (value === null) return '';
+  if (typeof value === 'object' && value.kind === 'text') return value.value;
+  if (typeof value === 'object') return value.preview;
+  return String(value);
 }
 
 function QueryHistory({ items, onChoose, onDelete, onClear }: { items: HistoryItem[]; onChoose: (sql: string) => void; onDelete: (at: number) => void; onClear: () => void }) {
