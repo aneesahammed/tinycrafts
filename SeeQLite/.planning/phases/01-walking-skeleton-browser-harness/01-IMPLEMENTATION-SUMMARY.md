@@ -21,7 +21,9 @@ npm run typecheck       PASS
 npm test                PASS
 npm run build           PASS
 npm run check:bundle    PASS
-npm run test:e2e        PASS (7 Chromium tests)
+npm run test:e2e -- --project=chromium PASS (7 production-preview tests)
+npm run test:e2e -- --project=firefox  PASS (7 production-preview tests)
+npm run test:e2e -- --project=webkit   PASS (7 production-preview tests)
 node scripts/build-pages.mjs       PASS
 node scripts/verify-pages-build.mjs PASS
 ```
