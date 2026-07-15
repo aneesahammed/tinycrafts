@@ -316,12 +316,44 @@ function ErDiagram({ catalog, onSelectTable }: { catalog: Catalog | null; onSele
   const rows = Math.max(1, Math.ceil(catalog.tables.length / columns));
   const height = rows * (cardHeight + gapY) + gapY;
   const positions = new Map(catalog.tables.map((table, index) => [table.name, { x: gapX + (index % columns) * (cardWidth + gapX), y: gapY + Math.floor(index / columns) * (cardHeight + gapY) }]));
-  return <div className="diagram-scroll" role="region" aria-label="Entity relationship diagram" tabIndex={0}><div className="diagram-canvas" style={{ width, height }}><svg className="diagram-lines" width={width} height={height} aria-hidden="true">{catalog.foreignKeys.map((relation) => { const from = positions.get(relation.fromTable); const to = positions.get(relation.toTable); if (!from || !to) return null; return <line key={`${relation.fromTable}-${relation.id}-${relation.toTable}`} x1={from.x + cardWidth / 2} y1={from.y + cardHeight / 2} x2={to.x + cardWidth / 2} y2={to.y + cardHeight / 2} />; })}</svg>{catalog.tables.map((table) => { const position = positions.get(table.name); if (!position) return null; return <button key={table.name} className="diagram-card" style={{ left: position.x, top: position.y }} onClick={() => onSelectTable(table)}><span className="diagram-card-title">{table.name}</span><span className="diagram-card-kind">{table.kind}</span>{table.columns.slice(0, 7).map((column) => <span className="diagram-column" key={column.name}><b>{column.primaryKey ? 'PK' : column.notNull ? '·' : ''}</b><span>{column.name}</span><small>{column.type || 'ANY'}</small></span>)}{table.columns.length > 7 && <span className="diagram-more">+ {table.columns.length - 7} more columns</span>}</button>; })}</div></div>;
+  return <>
+    <RelationshipList catalog={catalog} onSelectTable={onSelectTable} />
+    <div className="diagram-scroll" role="region" aria-label="Entity relationship diagram" tabIndex={0}><div className="diagram-canvas" style={{ width, height }}><svg className="diagram-lines" width={width} height={height} aria-hidden="true">{catalog.foreignKeys.map((relation) => { const from = positions.get(relation.fromTable); const to = positions.get(relation.toTable); if (!from || !to) return null; return <line key={`${relation.fromTable}-${relation.id}-${relation.toTable}`} x1={from.x + cardWidth / 2} y1={from.y + cardHeight / 2} x2={to.x + cardWidth / 2} y2={to.y + cardHeight / 2} />; })}</svg>{catalog.tables.map((table) => { const position = positions.get(table.name); if (!position) return null; return <button key={table.name} className="diagram-card" style={{ left: position.x, top: position.y }} onClick={() => onSelectTable(table)}><span className="diagram-card-title">{table.name}</span><span className="diagram-card-kind">{table.kind}</span>{table.columns.slice(0, 7).map((column) => <span className="diagram-column" key={column.name}><b>{column.primaryKey ? 'PK' : column.notNull ? '·' : ''}</b><span>{column.name}</span><small>{column.type || 'ANY'}</small></span>)}{table.columns.length > 7 && <span className="diagram-more">+ {table.columns.length - 7} more columns</span>}</button>; })}</div></div>
+  </>;
+}
+
+function RelationshipList({ catalog, onSelectTable }: { catalog: Catalog; onSelectTable: (table: CatalogTable) => void }) {
+  const tableByName = new Map(catalog.tables.map((table) => [table.name, table]));
+  return <section className="relationship-panel" aria-label="Declared relationships"><div className="result-heading"><span className="label">RELATIONSHIPS</span><span>{catalog.foreignKeys.length} declared</span></div>{catalog.foreignKeys.length ? <ul className="relationship-list">{catalog.foreignKeys.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><span className="relationship-kind">FOREIGN KEY · MANY → ONE</span><div className="relationship-tables"><button className="relationship-table" onClick={() => tableByName.get(relation.fromTable) && onSelectTable(tableByName.get(relation.fromTable)!)} aria-label={`Open ${relation.fromTable} table`}>{relation.fromTable}</button><span aria-hidden="true">→</span><button className="relationship-table" onClick={() => tableByName.get(relation.toTable) && onSelectTable(tableByName.get(relation.toTable)!)} aria-label={`Open ${relation.toTable} table`}>{relation.toTable}</button></div><small><code>{relation.fromColumns.join(', ')}</code> references <code>{relation.toColumns.join(', ')}</code></small></li>)}</ul> : <p className="relationship-empty">No declared foreign keys. The diagram still shows every table and view.</p>}</section>;
 }
 
 function TableDetails({ table, catalog }: { table: CatalogTable; catalog: Catalog | null }) {
   const relationships = catalog?.foreignKeys.filter((relation) => relation.fromTable === table.name || relation.toTable === table.name) ?? [];
-  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong></div><div className="detail-grid"><div><h3>Columns</h3><ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}</span></li>)}</ul></div><div><h3>Indexes</h3><ul>{table.indexes.length ? table.indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{index.unique ? 'UNIQUE · ' : ''}{index.columns.join(', ') || 'expression'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul><h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div></section>;
+  const [copyState, setCopyState] = useState<'idle' | 'identifier' | 'select' | 'error'>('idle');
+  async function copy(value: string, kind: 'identifier' | 'select') {
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(value);
+      else if (!copyWithSelection(value)) throw new Error('Clipboard unavailable');
+      setCopyState(kind);
+    } catch {
+      setCopyState(copyWithSelection(value) ? kind : 'error');
+    }
+  }
+  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}<div className="detail-grid"><div><h3>Columns</h3><ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}</span></li>)}</ul></div><div><h3>Indexes</h3><ul>{table.indexes.length ? table.indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{index.unique ? 'UNIQUE · ' : ''}{index.columns.join(', ') || 'expression'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul><h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div></section>;
+}
+
+function copyWithSelection(value: string) {
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch { copied = false; }
+  textarea.remove();
+  return copied;
 }
 
 function ResultTable({ result }: { result: QueryResult }) {

@@ -60,12 +60,17 @@ h2 { font-size: 22px; letter-spacing: -.04em; margin-top: 5px; }
 .table-list-item small { color: var(--ink-2); font: 10px var(--font-mono); }
 .table-details { border: 1px solid var(--boundary); border-radius: 6px; background: var(--paper-3); margin-bottom: 16px; }
 .table-details .result-heading strong { color: var(--ink); font: 600 12px var(--font-mono); }
+.table-details .result-heading { flex-wrap: wrap; row-gap: 4px; }
+.table-details .detail-actions { flex-basis: 100%; justify-content: flex-start; margin-left: 0; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 14px; }
 .detail-grid h3 { margin: 0 0 8px; font-size: 13px; }
 .detail-grid ul { list-style: none; margin: 0 0 18px; padding: 0; }
 .detail-grid li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 11px; }
 .detail-grid code { color: var(--accent-deep); font: 11px var(--font-mono); overflow-wrap: anywhere; }
 .detail-grid li span { color: var(--ink-2); text-align: right; }
+.detail-actions { display: flex; gap: 12px; margin-left: auto; }
+.copy-status { margin: 0; padding: 8px 14px; color: var(--success); border-bottom: 1px solid var(--rule); font: 10px var(--font-mono); }
+.copy-status.error { color: var(--danger); }
 textarea { display: block; width: 100%; min-height: 180px; resize: vertical; border: 1px solid var(--boundary); background: var(--paper-3); color: var(--ink); padding: 20px; font: 14px/1.65 var(--font-mono); tab-size: 2; border-radius: 6px; }
 .query-actions { display: flex; align-items: center; gap: 12px; padding: 12px 0 28px; flex-wrap: wrap; }
 .shortcut { color: var(--ink-3); font: 10px var(--font-mono); }
@@ -100,6 +105,16 @@ td { color: var(--ink-2); }
 .diagram-column small { color: var(--ink-2); font: inherit; }
 .diagram-more { display: block; padding: 6px 12px; color: var(--ink-2); font: 10px var(--font-mono); }
 .diagram-empty { min-height: 240px; display: grid; place-items: center; color: var(--ink-2); border: 1px dashed var(--boundary); border-radius: 6px; margin-top: 16px; padding: 24px; text-align: center; }
+.relationship-panel { border: 1px solid var(--boundary); border-radius: 6px; background: var(--paper-3); margin-top: 16px; }
+.relationship-list { display: grid; gap: 0; list-style: none; max-height: 240px; overflow: auto; margin: 0; padding: 0; }
+.relationship-list li { display: grid; gap: 6px; padding: 11px 14px; border-bottom: 1px solid var(--rule); }
+.relationship-list li:last-child { border-bottom: 0; }
+.relationship-kind { color: var(--ink-2); font: 9px var(--font-mono); letter-spacing: .08em; }
+.relationship-tables { display: flex; align-items: center; gap: 8px; font: 12px var(--font-mono); }
+.relationship-table { border: 0; background: transparent; color: var(--accent-deep); padding: 0; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.relationship-table:hover { color: var(--ink); }
+.relationship-list small { color: var(--ink-2); font: 10px var(--font-mono); overflow-wrap: anywhere; }
+.relationship-empty { color: var(--ink-2); margin: 0; padding: 14px; font-size: 12px; }
 .plan-panel { margin-top: 16px; }
 .export-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 0; }
 .history-panel { border-top: 1px solid var(--boundary); margin-top: 16px; padding-top: 12px; }

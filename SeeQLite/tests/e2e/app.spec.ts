@@ -88,9 +88,13 @@ test('shows the catalog as a relationship diagram and can target a table', async
   await expect(page.locator('.table-list-item')).toHaveCount(2);
   await page.getByRole('tab', { name: /Diagram/ }).click();
   await expect(page.getByRole('region', { name: 'Entity relationship diagram' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Declared relationships' })).toContainText('FOREIGN KEY · MANY → ONE');
+  await expect(page.getByRole('region', { name: 'Declared relationships' })).toContainText('user_id references id');
   await expect(page.locator('.diagram-card')).toHaveCount(2);
-  await page.getByRole('button', { name: /users table/ }).click();
+  await page.locator('.diagram-card').filter({ hasText: 'users' }).click();
   await expect(page.getByLabel('SQL query')).toHaveText('SELECT * FROM "users" LIMIT 100;');
+  await page.getByRole('button', { name: 'Copy SELECT' }).click();
+  await expect(page.locator('.copy-status')).toContainText('Copied a safe SELECT statement');
 });
 
 test('resets the worker-backed workspace without retaining the database view', async ({ page }) => {
@@ -220,4 +224,21 @@ test('has no serious or critical accessibility violations in both themes', async
   await page.waitForTimeout(250);
   const darkViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
   expect(darkViolations).toEqual([]);
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByRole('tab', { name: /Diagram/ }).click();
+  const darkDiagramViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(darkDiagramViolations).toEqual([]);
+  await page.getByRole('button', { name: 'Switch to light theme' }).click();
+  await page.waitForTimeout(250);
+  const lightDiagramViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(lightDiagramViolations).toEqual([]);
+  await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+  await page.waitForTimeout(250);
+  await page.locator('.diagram-card').filter({ hasText: 'users' }).click();
+  const darkDetailsViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(darkDetailsViolations).toEqual([]);
+  await page.getByRole('button', { name: 'Switch to light theme' }).click();
+  await page.waitForTimeout(250);
+  const lightDetailsViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(lightDetailsViolations).toEqual([]);
 });

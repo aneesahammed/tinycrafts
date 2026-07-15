@@ -22,8 +22,8 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
-Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, and cross-engine browser evidence verified
-Last activity: 2026-07-15 — SQLite authorizer/progress handler, bounded result DTOs, 50-row paging/sort, bounded history, drag/drop/WAL/file limits, lazy CodeMirror editor, formula-safe positional exports, axe light/dark checks, landing order, 48-browser-test matrix, 195-test DataDuck suite, and Pages verification passed.
+Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, relationship list/copy actions, and cross-engine browser evidence verified
+Last activity: 2026-07-16 — Added a keyboard-readable declared-relationship list, quoted identifier/SELECT copy actions with clipboard fallback, focused regression coverage, full 48-test Chromium/Firefox/WebKit matrix, Pages verification, and the 195-test DataDuck suite.
 
 Progress: [█████████░] 88%
 
@@ -58,7 +58,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 
 ### Pending Todos
 
-- Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark and reduced-motion gate now passes in all three engines).
+- Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark and reduced-motion gate now passes in all three engines; the new relationship list is keyboard-readable).
 - Add production HTTP-header/CSP evidence where the Pages host permits it; retain the documented meta-CSP fallback limitation.
 - Keep the DataDuck dependency advisory inventory visible; its existing npm audit still reports upstream moderate/high/critical advisories despite the full test/build suite passing.
 
@@ -79,4 +79,4 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 Last session: 2026-07-15
 Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, sibling regression, and 48-test verification.
 Resume file: `.planning/ROADMAP.md`
-Next command: `$gsd-validate-phase 6` after manual Safari/a11y and DataDuck regression evidence.
+Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current automated checkpoint.
