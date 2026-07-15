@@ -20,7 +20,11 @@ export type CatalogIndex = {
 
 export type CatalogTable = {
   name: string;
-  kind: 'table' | 'view';
+  kind: 'table' | 'view' | 'shadow';
+  internal: boolean;
+  schemaSql: string | null;
+  withoutRowid: boolean;
+  strict: boolean;
   columns: CatalogColumn[];
   indexes: CatalogIndex[];
 };

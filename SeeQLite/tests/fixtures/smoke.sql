@@ -1,6 +1,6 @@
 PRAGMA foreign_keys = ON;
 CREATE TABLE users (
-  id INTEGER PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL UNIQUE,
   created_at TEXT NOT NULL
 );

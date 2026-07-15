@@ -90,6 +90,26 @@ test('searches tables and columns with explicit filtered and empty states', asyn
   await expect(page.locator('.catalog-empty')).toContainText('No objects match');
 });
 
+test('keeps SQLite internal objects hidden until explicitly requested', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await expect(page.locator('.table-list-item')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Show internal objects' })).toHaveAttribute('aria-pressed', 'false');
+
+  await page.getByRole('button', { name: 'Show internal objects' }).click();
+  await expect(page.getByRole('button', { name: 'Hide internal objects' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.table-list-item')).toHaveCount(3);
+  await page.getByRole('button', { name: /sqlite_schema/ }).click();
+  await expect(page.getByRole('region', { name: 'sqlite_schema details' })).toContainText('INTERNAL');
+
+  await page.getByRole('button', { name: /users table/ }).click();
+  await expect(page.getByRole('region', { name: 'users details' })).toContainText('CREATE TABLE users');
+
+  await page.getByRole('button', { name: 'Hide internal objects' }).click();
+  await expect(page.locator('.table-list-item')).toHaveCount(2);
+  await expect(page.getByRole('region', { name: 'users details' })).toBeVisible();
+});
+
 test('provides a SQLite-aware editor with keyboard execution', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();

@@ -4,9 +4,9 @@ status: executing
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 34
-  completed_plans: 30
-  percent: 88
+  total_plans: 35
+  completed_plans: 31
+  percent: 89
 ---
 
 # Project State
@@ -22,8 +22,8 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
-Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, searchable catalog, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added an accessible SQLite query-plan list with bounded parent indentation and already-explained SQL handling; full browser, Pages, and DataDuck gates remain green.
+Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, searchable catalog, internal-object metadata/toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
+Last activity: 2026-07-16 — Added bounded PRAGMA-backed internal-object discovery, opt-in visibility, object metadata, and a real AUTOINCREMENT regression fixture; 66/66 cross-engine browser tests are green.
 
 Progress: [█████████░] 88%
 
@@ -40,7 +40,7 @@ Progress: [█████████░] 88%
 | Phase | Plans | Total | Avg/Plan |
 |---|---:|---:|---:|
 | Phases 1–5 | 30 | verified manually with production-shaped build and browser evidence |
-| Phase 6 | 5 | in progress; manual Safari/VoiceOver and host-level CSP/header evidence pending |
+| Phase 6 | 6 | in progress; manual Safari/VoiceOver and host-level CSP/header evidence pending |
 
 **Recent trend:** No execution data yet.
 
@@ -61,6 +61,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 - Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark and reduced-motion gate now passes in all three engines; the new relationship list is keyboard-readable).
 - Add production HTTP-header/CSP evidence where the Pages host permits it; retain the documented meta-CSP fallback limitation.
 - Keep the DataDuck dependency advisory inventory visible; its existing npm audit still reports upstream moderate/high/critical advisories despite the full test/build suite passing.
+- CAT-02 remains partial for index origin/partial-expression metadata, generated-column flags, and lazy/failure-isolated detail loading; keep the follow-up bounded and separate from the shipped toggle.
 
 ### Blockers/Concerns
 
@@ -76,7 +77,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 
 ## Session Continuity
 
-Last session: 2026-07-15
-Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, relationship join handoff, sibling regression, and 57-test verification.
+Last session: 2026-07-16
+Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, relationship join handoff, internal-object catalog metadata/toggle, sibling regression, and 66-test verification.
 Resume file: `.planning/ROADMAP.md`
-Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current 63-test automated checkpoint.
+Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current 66-test automated checkpoint.

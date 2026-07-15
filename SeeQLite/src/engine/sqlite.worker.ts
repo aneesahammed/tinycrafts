@@ -47,7 +47,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       configureReadOnly(sqlite3);
       configureProgressHandler(sqlite3);
       const catalog = readCatalog();
-      post({ type: 'ready', requestId: request.requestId, epoch: request.epoch, fileName: request.fileName, tableCount: catalog.tables.filter((table) => table.kind === 'table').length, catalog });
+      post({ type: 'ready', requestId: request.requestId, epoch: request.epoch, fileName: request.fileName, tableCount: catalog.tables.filter((table) => table.kind === 'table' && !table.internal).length, catalog });
       return;
     }
 
@@ -202,14 +202,21 @@ function estimateValueBytes(value: QueryValue) {
 function readCatalog(): Catalog {
   const tables: CatalogTable[] = [];
   const foreignKeys: CatalogForeignKey[] = [];
-  const objects = selectRows("SELECT name, type FROM sqlite_schema WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name COLLATE NOCASE");
+  const schemaSqlByName = new Map(selectRows("SELECT name, sql FROM sqlite_schema WHERE type IN ('table', 'view')").map((row) => [String(row[0]), row[1] == null ? null : String(row[1])]));
+  const objects = selectRows('PRAGMA table_list')
+    .filter((row) => String(row[0] ?? '') === 'main')
+    .filter((row) => ['table', 'view', 'shadow'].includes(String(row[2] ?? '')))
+    .sort((left, right) => String(left[1] ?? '').localeCompare(String(right[1] ?? ''), undefined, { sensitivity: 'base' }));
   if (objects.length > MAX_TABLES) throw new Error('This database has too many tables for the browser catalog limit.');
   let columnCount = 0;
   let indexCount = 0;
 
-  for (const [rawName, rawKind] of objects) {
+  for (const row of objects) {
+    const rawName = row[1];
+    const rawKind = row[2];
     const name = String(rawName);
-    const kind = rawKind === 'view' ? 'view' : 'table';
+    const kind = rawKind === 'view' ? 'view' : rawKind === 'shadow' ? 'shadow' : 'table';
+    const internal = name.startsWith('sqlite_') || kind === 'shadow';
     const columns: CatalogColumn[] = selectRows(`PRAGMA table_xinfo(${quoteIdentifier(name)})`)
       .filter((row) => Number(row[6] ?? 0) === 0)
       .map((row) => ({
@@ -231,9 +238,9 @@ function readCatalog(): Catalog {
     }));
     indexCount += indexes.length;
     if (indexCount > MAX_INDEXES) throw new Error('This database has too many indexes for the browser catalog limit.');
-    tables.push({ name, kind, columns, indexes });
+    tables.push({ name, kind, internal, schemaSql: schemaSqlByName.get(name) ?? null, withoutRowid: Number(row[4] ?? 0) === 1, strict: Number(row[5] ?? 0) === 1, columns, indexes });
 
-    if (kind === 'table') {
+    if (kind === 'table' && !internal) {
       const grouped = new Map<number, CatalogForeignKey>();
       for (const row of selectRows(`PRAGMA foreign_key_list(${quoteIdentifier(name)})`)) {
         const id = Number(row[0] ?? 0);
