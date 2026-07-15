@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
@@ -17,4 +17,16 @@ for (const name of names.filter((entry) => entry.endsWith('.js'))) {
   const source = readFileSync(join(assets, name), 'utf8');
   if (source.includes('new Worker(`data:') || source.includes('new Worker("data:')) throw new Error('SeeQLite must not construct data URL workers.');
 }
+assertBudget(/index-.*\.js$/, 260 * 1024, 'main app JavaScript');
+assertBudget(/sqlite\.worker-.*\.js$/, 240 * 1024, 'SQLite worker JavaScript');
+assertBudget(/SqlEditor-.*\.js$/, 400 * 1024, 'lazy SQL editor JavaScript');
+assertBudget(/\.wasm$/, 1 * 1024 * 1024, 'SQLite WASM');
+assertBudget(/\.css$/, 25 * 1024, 'CSS');
 console.log(`SeeQLite bundle verified: ${names.length} emitted assets.`);
+
+function assertBudget(pattern, maxBytes, label) {
+  const name = names.find((entry) => pattern.test(entry));
+  if (!name) throw new Error(`Missing ${label} asset.`);
+  const size = statSync(join(assets, name)).size;
+  if (size > maxBytes) throw new Error(`${label} is ${size} bytes, over the ${maxBytes}-byte budget.`);
+}

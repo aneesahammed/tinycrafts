@@ -27,8 +27,8 @@ describe('responsive CSS', () => {
   });
 
   it('keeps the assistant panel compact by default with an explicit wide mode', () => {
-    expect(css).toMatch(/\.stage\[data-right-open="true"\]:has\(\.assistant-host\)\s*\{[^}]*grid-template-columns:\s*var\(--rail-w,\s*256px\) 1px minmax\(0,\s*1fr\) min\(480px,\s*38vw\)/s);
-    expect(css).toMatch(/\.stage\[data-right-open="true"\]:has\(\.assistant-panel\[data-panel-size="wide"\]\)\s*\{[^}]*grid-template-columns:\s*var\(--rail-w,\s*256px\) 1px minmax\(0,\s*1fr\) min\(760px,\s*54vw\)/s);
+    expect(css).toMatch(/\.stage\[data-right-open="true"\]:has\(\.assistant-host\)\s*\{[^}]*grid-template-columns:\s*var\(--rail-w,\s*256px\) 1px minmax\(0,\s*1fr\) 0 min\(480px,\s*38vw\)/s);
+    expect(css).toMatch(/\.stage\[data-right-open="true"\]:has\(\.assistant-panel\[data-panel-size="wide"\]\)\s*\{[^}]*grid-template-columns:\s*var\(--rail-w,\s*256px\) 1px minmax\(0,\s*1fr\) 0 min\(760px,\s*54vw\)/s);
     expect(css).toMatch(/\.stage > \.profile-drawer\.assistant-host\s*\{\s*width:\s*min\(380px,\s*100vw\);?\s*\}/s);
     expect(css).toMatch(/\.stage > \.profile-drawer\.assistant-host:has\(\.assistant-panel\[data-panel-size="wide"\]\)\s*\{\s*width:\s*min\(760px,\s*100vw\);?\s*\}/s);
     expect(css).toMatch(/\.assistant-suggestion\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*min-width:\s*0[^}]*white-space:\s*normal[^}]*overflow-wrap:\s*anywhere/s);

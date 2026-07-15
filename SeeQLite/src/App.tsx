@@ -1,20 +1,44 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import type { DragEvent } from 'react';
 import { DatabaseClient } from './engine/database-client';
 import type { Catalog, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
+const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
 const SAMPLE_QUERY = 'SELECT 1 AS ready, sqlite_version() AS sqlite_version;';
+const SOFT_FILE_LIMIT = 256 * 1024 * 1024;
+const HARD_FILE_LIMIT = 512 * 1024 * 1024;
 type AppSource = { kind: 'file'; file: File } | { kind: 'sample' };
-type HistoryItem = { sql: string; status: 'success' | 'error'; at: number; durationMs: number };
+type HistoryItem = { version: 1; sql: string; status: 'success' | 'error' | 'cancelled'; at: number; durationMs: number };
 const HISTORY_KEY = 'seeqlite.query-history.v1';
+const HISTORY_MAX_ITEMS = 100;
+const HISTORY_MAX_SQL_BYTES = 8 * 1024;
+const HISTORY_MAX_TOTAL_BYTES = 128 * 1024;
 
 function loadHistory(): HistoryItem[] {
   try {
     const value = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
-    return Array.isArray(value) ? value.filter((item): item is HistoryItem => typeof item?.sql === 'string').slice(0, 50) : [];
+    return Array.isArray(value) ? boundHistory(value) : [];
   } catch {
     return [];
   }
+}
+
+function boundHistory(items: unknown[]): HistoryItem[] {
+  const valid = items.flatMap((item) => {
+    if (typeof item !== 'object' || item === null || typeof (item as { sql?: unknown }).sql !== 'string') return [];
+    const candidate = item as Partial<HistoryItem>;
+    const sql = truncateUtf8(candidate.sql ?? '', HISTORY_MAX_SQL_BYTES);
+    if (!sql) return [];
+    return [{ version: 1 as const, sql, status: (candidate.status === 'success' || candidate.status === 'cancelled' ? candidate.status : 'error') as HistoryItem['status'], at: Number.isFinite(candidate.at) ? Number(candidate.at) : Date.now(), durationMs: Number.isFinite(candidate.durationMs) ? Math.max(0, Number(candidate.durationMs)) : 0 }];
+  }).slice(0, HISTORY_MAX_ITEMS);
+  while (valid.length && new TextEncoder().encode(JSON.stringify(valid)).byteLength > HISTORY_MAX_TOTAL_BYTES) valid.pop();
+  return valid;
+}
+
+function truncateUtf8(value: string, maxBytes: number) {
+  const encoded = new TextEncoder().encode(value);
+  return encoded.byteLength <= maxBytes ? value : new TextDecoder().decode(encoded.slice(0, maxBytes));
 }
 
 export function App() {
@@ -34,11 +58,12 @@ export function App() {
   const [history, setHistory] = useState<HistoryItem[]>(loadHistory);
   const [planResult, setPlanResult] = useState<QueryResult | null>(null);
   const operationRef = useRef(0);
+  const activeQueryRef = useRef<{ sql: string; started: number } | null>(null);
 
   useEffect(() => () => client.terminate('SeeQLite was closed.'), [client]);
   useEffect(() => { document.documentElement.toggleAttribute('data-dark', darkTheme); }, [darkTheme]);
 
-  async function openBytes(bytes: ArrayBuffer, name: string, source: AppSource) {
+  async function openBytes(bytes: ArrayBuffer, name: string, source: AppSource, notice = '') {
     sourceRef.current = source;
     setBusy(true);
     setFileName('No database open');
@@ -46,17 +71,18 @@ export function App() {
     setPlanResult(null);
     setCatalog(null);
     setSelectedTable(null);
-    setStatus('Opening a private, read-only database worker…');
+    setStatus(`${notice ? `${notice} ` : ''}Opening a private, read-only database worker…`);
     try {
       if (new TextDecoder().decode(bytes.slice(0, 16)) !== 'SQLite format 3\u0000') {
         throw new Error('That file does not have a readable SQLite 3 header.');
       }
+      const walWarning = new Uint8Array(bytes.slice(0, 20))[18] === 2;
       const ready = await client.openBytes(bytes, name);
       setFileName(name);
       setCatalog(ready.catalog);
       setSelectedTable(null);
       setView('query');
-      setStatus(`${ready.tableCount} table${ready.tableCount === 1 ? '' : 's'} ready. Run the sample query or write your own SELECT.`);
+      setStatus(`${ready.tableCount} table${ready.tableCount === 1 ? '' : 's'} ready. Run the sample query or write your own SELECT.${walWarning ? ' This file is WAL-mode; uncheckpointed sidecar changes may not be included.' : ''}`);
     } catch (error) {
       client.terminate('The database did not open.');
       setStatus(error instanceof Error ? error.message : 'Could not open that database.');
@@ -66,7 +92,22 @@ export function App() {
   }
 
   async function openFile(file: File) {
-    await openBytes(await file.arrayBuffer(), file.name, { kind: 'file', file });
+    if (file.size > HARD_FILE_LIMIT) {
+      setStatus('That file is over the 512 MB browser-safe limit and was not opened.');
+      return;
+    }
+    const notice = file.size >= SOFT_FILE_LIMIT ? 'This file is over 256 MB; importing it may use substantial browser memory.' : '';
+    await openBytes(await file.arrayBuffer(), file.name, { kind: 'file', file }, notice);
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length !== 1) {
+      setStatus(files.length > 1 ? 'Drop one SQLite file at a time.' : 'No file was dropped.');
+      return;
+    }
+    void openFile(files[0]);
   }
 
   async function openSample() {
@@ -115,22 +156,25 @@ export function App() {
     setStatus('Choose a SQLite file. It stays in this browser tab.');
   }
 
-  async function runQuery() {
+  async function runQuery(selectedSql?: string) {
+    const sql = selectedSql?.trim() ? selectedSql : query;
     const operation = ++operationRef.current;
     const started = performance.now();
+    activeQueryRef.current = { sql, started };
     setBusy(true);
     setStatus('Running in the SQLite worker…');
     try {
-      const nextResult = await client.query(query);
+      const nextResult = await client.query(sql);
       if (operation !== operationRef.current) return;
       setResult(nextResult);
-      addHistory({ sql: query, status: 'success', at: Date.now(), durationMs: performance.now() - started });
-      setStatus(`${nextResult.returnedRows} row${nextResult.returnedRows === 1 ? '' : 's'} returned${nextResult.truncated ? ' (display capped at 1,000)' : ''}.`);
+      addHistory({ sql, status: 'success', at: Date.now(), durationMs: performance.now() - started });
+      setStatus(`${nextResult.returnedRows} row${nextResult.returnedRows === 1 ? '' : 's'} returned${nextResult.truncated ? ` (${truncationLabel(nextResult.truncationReason)})` : ''}.`);
     } catch (error) {
       if (operation !== operationRef.current) return;
-      addHistory({ sql: query, status: 'error', at: Date.now(), durationMs: performance.now() - started });
+      addHistory({ sql, status: 'error', at: Date.now(), durationMs: performance.now() - started });
       setStatus(error instanceof Error ? error.message : 'Query failed.');
     } finally {
+      if (operation === operationRef.current) activeQueryRef.current = null;
       setBusy(false);
     }
   }
@@ -138,6 +182,7 @@ export function App() {
   async function runReadiness() {
     const operation = ++operationRef.current;
     const started = performance.now();
+    activeQueryRef.current = { sql: 'SELECT 1 AS ready;', started };
     setQuery('SELECT 1 AS ready;');
     setBusy(true);
     setStatus('Running SELECT 1…');
@@ -150,17 +195,19 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Readiness check failed.');
     } finally {
+      if (operation === operationRef.current) activeQueryRef.current = null;
       setBusy(false);
     }
   }
 
-  async function runPlan() {
+  async function runPlan(selectedSql?: string) {
+    const sql = selectedSql?.trim() ? selectedSql : query;
     const operation = ++operationRef.current;
     const started = performance.now();
     setBusy(true);
     setStatus('Explaining the query in the SQLite worker…');
     try {
-      const nextPlan = await client.query(`EXPLAIN QUERY PLAN ${query}`);
+      const nextPlan = await client.query(`EXPLAIN QUERY PLAN ${sql}`);
       if (operation !== operationRef.current) return;
       setPlanResult(nextPlan);
       setStatus(`Query plan ready in ${Math.round(performance.now() - started)} ms.`);
@@ -172,9 +219,9 @@ export function App() {
     }
   }
 
-  function addHistory(item: HistoryItem) {
+  function addHistory(item: Omit<HistoryItem, 'version'>) {
     setHistory((current) => {
-      const next = [item, ...current].slice(0, 50);
+      const next = boundHistory([{ version: 1, ...item }, ...current]);
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ }
       return next;
     });
@@ -186,7 +233,10 @@ export function App() {
   }
 
   function cancelQuery() {
+    const active = activeQueryRef.current;
     operationRef.current += 1;
+    activeQueryRef.current = null;
+    if (active) addHistory({ sql: active.sql, status: 'cancelled', at: Date.now(), durationMs: performance.now() - active.started });
     client.terminate('Query stopped.');
     setBusy(false);
     setFileName('No database open');
@@ -216,10 +266,10 @@ export function App() {
           {!capabilities.ok ? (
             <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div>
           ) : (
-            <div className="open-zone">
+            <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
               <div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div>
               <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
-              <p className="helper">SQLite 3 files up to the current browser-safe limit.</p>
+              <p className="helper">SQLite 3 files up to 512 MB. Drop one file here or use the picker.</p>
             </div>
           )}
           <div className="file-status"><span className="label">DATABASE</span><strong dir="auto">{fileName}</strong><span role="status" aria-live="polite">{status}</span><div className="file-status-actions">{sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}{fileName !== 'No database open' ? <button className="secondary-button compact" onClick={resetWorkspace} disabled={busy}>Reset workspace</button> : null}</div></div>
@@ -234,15 +284,15 @@ export function App() {
           {view === 'query' ? <>
             <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalog.tables.length} objects` : 'Open a database'}</span></div><div className="table-list">{catalog?.tables.map((table) => <button key={table.name} className="table-list-item" onClick={() => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); }} disabled={busy}><span>{table.name}</span><small>{table.kind} · {table.columns.length} columns</small></button>)}</div></div>
             {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} /> : null}
-            <textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />
-            <div className="query-actions"><button className="primary-button compact" onClick={runQuery} disabled={busy || fileName === 'No database open'}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness} disabled={fileName === 'No database open'}>Run readiness check</button>}<button className="secondary-button compact" onClick={runPlan} disabled={busy || fileName === 'No database open'}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
+            <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
+            <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy || fileName === 'No database open'}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness} disabled={fileName === 'No database open'}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy || fileName === 'No database open'}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
             <div className="result-panel">
               <div className="result-heading"><span className="label">RESULT</span><span>{result ? `${result.columns.length} columns` : 'Waiting for a query'}</span></div>
               {result ? <ResultTable result={result} /> : <div className="empty-result"><span className="empty-glyph" aria-hidden="true">⌁</span><p>Open a file, then run a SELECT.</p></div>}
             </div>
             {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><ResultTable result={planResult} /></div> : null}
             {result ? <div className="export-actions"><span className="label">EXPORT RESULT</span><button className="quiet-button" onClick={() => downloadResult(result, 'csv')}>Download CSV</button><button className="quiet-button" onClick={() => downloadResult(result, 'json')}>Download JSON</button></div> : null}
-            <QueryHistory items={history} onChoose={setQuery} onClear={clearHistory} />
+            <QueryHistory items={history} onChoose={setQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
           </> : <ErDiagram catalog={catalog} onSelectTable={(table) => { setSelectedTable(table); setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`); setView('query'); }} />}
         </section>
       </main>
@@ -275,18 +325,33 @@ function TableDetails({ table, catalog }: { table: CatalogTable; catalog: Catalo
 }
 
 function ResultTable({ result }: { result: QueryResult }) {
-  return <div className="table-wrap"><table><caption className="sr-only">Query result</caption><thead><tr>{result.columns.map((column, index) => <th scope="col" key={`${column.name}-${index}`}>{column.name || `column_${index + 1}`}</th>)}</tr></thead><tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((value, index) => <td key={index}>{formatValue(value)}</td>)}</tr>)}</tbody></table></div>;
+  const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ index: number; direction: 'asc' | 'desc' } | null>(null);
+  const pageSize = 50;
+  const sortedRows = useMemo(() => {
+    if (!sort) return result.rows;
+    return [...result.rows].sort((left, right) => compareValues(left[sort.index], right[sort.index]) * (sort.direction === 'asc' ? 1 : -1));
+  }, [result.rows, sort]);
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visibleRows = sortedRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const start = sortedRows.length === 0 ? 0 : currentPage * pageSize + 1;
+  const end = Math.min((currentPage + 1) * pageSize, sortedRows.length);
+  return <>
+    <div className="table-wrap"><table><caption className="sr-only">Query result</caption><thead><tr>{result.columns.map((column, index) => { const label = column.name || `column_${index + 1}`; const active = sort?.index === index; return <th scope="col" key={`${column.name}-${index}`}><button className="column-sort" onClick={() => { const direction = active && sort.direction === 'asc' ? 'desc' : 'asc'; setSort({ index, direction }); setPage(0); }} aria-label={`Sort by ${label}`} aria-pressed={active}>{label}{active ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ''}</button></th>; })}</tr></thead><tbody>{visibleRows.map((row, rowIndex) => <tr key={`${currentPage}-${rowIndex}`}>{row.map((value, index) => <td key={index}>{formatValue(value)}</td>)}</tr>)}</tbody></table></div>
+    <div className="result-pagination" aria-label="Result page controls"><span>Showing {start}–{end} of {sortedRows.length} returned rows{sort ? ' · sorted in browser' : ''}{result.truncated ? ` · ${truncationLabel(result.truncationReason)}` : ''}</span><div><button className="quiet-button" onClick={() => setPage((value) => Math.max(0, value - 1))} disabled={currentPage === 0}>Previous</button><span aria-live="polite">Page {currentPage + 1} of {pageCount}</span><button className="quiet-button" onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))} disabled={currentPage >= pageCount - 1}>Next</button></div></div>
+  </>;
 }
 
-function QueryHistory({ items, onChoose, onClear }: { items: HistoryItem[]; onChoose: (sql: string) => void; onClear: () => void }) {
-  return <details className="history-panel"><summary>Query history <span>{items.length}</span></summary>{items.length === 0 ? <p className="history-empty">Successful and failed SQL stays here only as UI history.</p> : <><div className="history-actions"><button className="quiet-button" onClick={onClear}>Clear query history</button></div><div className="history-list">{items.map((item, index) => <button key={`${item.at}-${index}`} className="history-item" onClick={() => onChoose(item.sql)}><span className={item.status === 'success' ? 'history-status success' : 'history-status error'}>{item.status}</span><code>{item.sql}</code><small>{Math.round(item.durationMs)} ms</small></button>)}</div></>}</details>;
+function QueryHistory({ items, onChoose, onDelete, onClear }: { items: HistoryItem[]; onChoose: (sql: string) => void; onDelete: (at: number) => void; onClear: () => void }) {
+  return <details className="history-panel"><summary>Query history <span>{items.length}</span></summary>{items.length === 0 ? <p className="history-empty">Successful, failed, and cancelled SQL stays here only as bounded UI history.</p> : <><div className="history-actions"><button className="quiet-button" onClick={onClear}>Clear query history</button></div><div className="history-list">{items.map((item, index) => <div key={`${item.at}-${index}`} className="history-item"><button className="history-open" onClick={() => onChoose(item.sql)}><span className={item.status === 'success' ? 'history-status success' : item.status === 'cancelled' ? 'history-status cancelled' : 'history-status error'}>{item.status}</span><code>{item.sql}</code><small>{Math.round(item.durationMs)} ms</small></button><button className="quiet-button history-delete" onClick={() => onDelete(item.at)} aria-label={`Delete history entry ${index + 1}`}>Delete</button></div>)}</div></>}</details>;
 }
 
 function downloadResult(result: QueryResult, format: 'csv' | 'json') {
   const headers = result.columns.map((column, index) => column.name || `column_${index + 1}`);
   const body = format === 'csv'
-    ? [headers, ...result.rows.map((row) => row.map(csvValue))].map((row) => row.map(csvEscape).join(',')).join('\n')
-    : JSON.stringify(result.rows.map((row) => Object.fromEntries(headers.map((header, index) => [header, jsonValue(row[index])]))), null, 2);
+    ? [headers.map(protectCsvFormula), ...result.rows.map((row) => row.map(csvValue))].map((row) => row.map(csvEscape).join(',')).join('\n')
+    : JSON.stringify({ columns: headers, rows: result.rows.map((row) => row.map(jsonValue)), returnedRows: result.returnedRows, truncated: result.truncated, truncationReason: result.truncationReason ?? null }, null, 2);
   const blob = new Blob([body], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -297,8 +362,13 @@ function downloadResult(result: QueryResult, format: 'csv' | 'json') {
 
 function csvValue(value: QueryResult['rows'][number][number]) {
   if (value === null) return '';
+  if (typeof value === 'object' && value.kind === 'text') return protectCsvFormula(`${value.value}${value.truncated ? ` [text preview of ${value.bytes} bytes]` : ''}`);
   if (typeof value === 'object') return `BLOB (${value.bytes} bytes)${value.preview ? ` ${value.preview}` : ''}`;
-  return String(value);
+  return typeof value === 'string' ? protectCsvFormula(value) : String(value);
+}
+
+function protectCsvFormula(value: string) {
+  return /^[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
 function csvEscape(value: string) {
@@ -313,6 +383,23 @@ function jsonValue(value: QueryResult['rows'][number][number]) {
 
 function formatValue(value: QueryResult['rows'][number][number]) {
   if (value === null) return <span className="null-value">NULL</span>;
-  if (typeof value === 'object') return <span className="blob-value">BLOB · {value.bytes} bytes</span>;
+  if (typeof value === 'object' && value.kind === 'text') return <span title={`${value.bytes} UTF-8 bytes`}>{value.value}{value.truncated ? ' …' : ''}</span>;
+  if (typeof value === 'object') return <span className="blob-value">BLOB · {value.bytes} bytes{value.truncated ? ' · preview' : ''}</span>;
   return String(value);
+}
+
+function compareValues(left: QueryResult['rows'][number][number], right: QueryResult['rows'][number][number]) {
+  if (left === right) return 0;
+  if (left === null) return 1;
+  if (right === null) return -1;
+  const leftValue = typeof left === 'object' && left.kind === 'text' ? left.value : typeof left === 'object' ? left.bytes : left;
+  const rightValue = typeof right === 'object' && right.kind === 'text' ? right.value : typeof right === 'object' ? right.bytes : right;
+  if (typeof leftValue === 'number' && typeof rightValue === 'number') return leftValue - rightValue;
+  return String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function truncationLabel(reason: QueryResult['truncationReason']) {
+  if (reason === 'cell-limit') return 'cell limit reached';
+  if (reason === 'byte-limit') return '8 MB result limit reached';
+  return 'row display capped at 1,000';
 }

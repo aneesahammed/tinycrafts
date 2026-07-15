@@ -38,13 +38,16 @@ export type Catalog = {
   foreignKeys: CatalogForeignKey[];
 };
 
-export type QueryValue = string | number | bigint | null | { kind: 'blob'; bytes: number; preview: string };
+export type QueryText = { kind: 'text'; value: string; bytes: number; truncated: boolean };
+export type QueryBlob = { kind: 'blob'; bytes: number; preview: string; previewBytes: number; truncated: boolean };
+export type QueryValue = string | number | bigint | null | QueryText | QueryBlob;
 
 export type QueryResult = {
   columns: Column[];
   rows: QueryValue[][];
   returnedRows: number;
   truncated: boolean;
+  truncationReason?: 'row-limit' | 'cell-limit' | 'byte-limit';
 };
 
 export type WorkerResponse =

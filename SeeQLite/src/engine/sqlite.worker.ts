@@ -5,10 +5,17 @@ let db: any = null;
 let sqlite3Runtime: any = null;
 let dbBufferPointer: number | undefined;
 let currentEpoch = 0;
+let queryDeadline = 0;
 
 const MAX_DATABASE_BYTES = 512 * 1024 * 1024;
 const MAX_QUERY_BYTES = 1 * 1024 * 1024;
 const MAX_RESULT_ROWS = 1000;
+const MAX_RESULT_COLUMNS = 250;
+const MAX_RESULT_CELLS = 50_000;
+const MAX_RESULT_BYTES = 8 * 1024 * 1024;
+const MAX_TEXT_PREVIEW_BYTES = 64 * 1024;
+const MAX_BLOB_PREVIEW_BYTES = 256;
+const QUERY_DEADLINE_MS = 30_000;
 const MAX_TABLES = 1000;
 const MAX_COLUMNS = 20_000;
 const MAX_INDEXES = 5_000;
@@ -37,6 +44,8 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       if (resultCode !== sqlite3.capi.SQLITE_OK) {
         throw new Error(`SQLite could not open that database (code ${resultCode}).`);
       }
+      configureReadOnly(sqlite3);
+      configureProgressHandler(sqlite3);
       const catalog = readCatalog();
       post({ type: 'ready', requestId: request.requestId, epoch: request.epoch, fileName: request.fileName, tableCount: catalog.tables.filter((table) => table.kind === 'table').length, catalog });
       return;
@@ -59,31 +68,120 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         throw new Error('SeeQLite is read-only. That statement would change the database.');
       }
       const columns = stmt.getColumnNames().map((name: string) => ({ name }));
+      if (columns.length > MAX_RESULT_COLUMNS) throw new Error('That result exceeds the 250-column browser limit.');
       const rows: QueryValue[][] = [];
       let truncated = false;
+      let truncationReason: 'row-limit' | 'cell-limit' | 'byte-limit' | undefined;
+      let resultBytes = 0;
+      queryDeadline = Date.now() + QUERY_DEADLINE_MS;
       while (stmt.step()) {
         if (rows.length === MAX_RESULT_ROWS) {
           truncated = true;
+          truncationReason = 'row-limit';
           break;
         }
-        rows.push(stmt.get([]).map(normalizeValue));
+        if ((rows.length + 1) * columns.length > MAX_RESULT_CELLS) {
+          truncated = true;
+          truncationReason = 'cell-limit';
+          break;
+        }
+        const row = stmt.get([]).map(normalizeValue);
+        const rowBytes = row.reduce((total: number, value: QueryValue) => total + estimateValueBytes(value), 0);
+        if (resultBytes + rowBytes > MAX_RESULT_BYTES) {
+          truncated = true;
+          truncationReason = 'byte-limit';
+          break;
+        }
+        rows.push(row);
+        resultBytes += rowBytes;
       }
-      post({ type: 'result', requestId: request.requestId, epoch: request.epoch, result: { columns, rows, returnedRows: rows.length, truncated } });
+      post({ type: 'result', requestId: request.requestId, epoch: request.epoch, result: { columns, rows, returnedRows: rows.length, truncated, ...(truncationReason ? { truncationReason } : {}) } });
     } finally {
+      queryDeadline = 0;
       stmt.finalize();
     }
   } catch (error) {
     if (request.type === 'open' && sqlite3Runtime) disposeDatabase(sqlite3Runtime);
-    post({ type: 'error', requestId: request.requestId, epoch: request.epoch, code: 'SQLITE_ERROR', message: error instanceof Error ? error.message : 'SQLite query failed.' });
+    post({ type: 'error', requestId: request.requestId, epoch: request.epoch, code: 'SQLITE_ERROR', message: toUserError(error, request.type) });
   }
 };
 
+function configureReadOnly(sqlite3: any) {
+  if (!db) throw new Error('SQLite database is not open.');
+  const capi = sqlite3.capi;
+  const resultCode = capi.sqlite3_set_authorizer(db.pointer, readOnlyAuthorizer, 0);
+  if (resultCode !== capi.SQLITE_OK) throw new Error('SQLite could not apply its read-only policy.');
+}
+
+function configureProgressHandler(sqlite3: any) {
+  if (!db) throw new Error('SQLite database is not open.');
+  sqlite3.capi.sqlite3_progress_handler(db.pointer, 10_000, queryProgressHandler, 0);
+}
+
+function queryProgressHandler(_cbArg: number) {
+  return queryDeadline > 0 && Date.now() >= queryDeadline ? 1 : 0;
+}
+
+function readOnlyAuthorizer(_cbArg: number, actionCode: number, arg1: string | 0, arg2: string | 0) {
+  if (!sqlite3Runtime) return 1;
+  const capi = sqlite3Runtime.capi;
+  if (actionCode === capi.SQLITE_READ || actionCode === capi.SQLITE_SELECT || actionCode === capi.SQLITE_RECURSIVE) return capi.SQLITE_OK;
+  if (actionCode === capi.SQLITE_FUNCTION) {
+    const functionName = `${arg1 || ''} ${arg2 || ''}`.toLowerCase();
+    return functionName.includes('load_extension') ? capi.SQLITE_DENY : capi.SQLITE_OK;
+  }
+  if (actionCode === capi.SQLITE_PRAGMA) {
+    const pragmaName = String(arg1 || '').toLowerCase();
+    return ['table_list', 'table_xinfo', 'index_list', 'index_info', 'foreign_key_list'].includes(pragmaName)
+      ? capi.SQLITE_OK
+      : capi.SQLITE_DENY;
+  }
+  return capi.SQLITE_DENY;
+}
+
+function toUserError(error: unknown, requestType: WorkerRequest['type']) {
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+  const resultCode = typeof error === 'object' && error !== null && 'resultCode' in error
+    ? Number((error as { resultCode?: unknown }).resultCode)
+    : undefined;
+  if (requestType === 'open') {
+    if (message.includes('too many tables') || message.includes('too many columns') || message.includes('too many indexes') || message.includes('too many relationships')) {
+      return error instanceof Error ? error.message : 'That database exceeds the browser catalog limit.';
+    }
+    return 'That file could not be opened as a SQLite database.';
+  }
+  if (message.includes('one read-only statement')) return 'Run one read-only statement at a time.';
+  if (resultCode === sqlite3Runtime?.capi.SQLITE_AUTH) return 'That statement was rejected by SeeQLite’s read-only policy.';
+  if (resultCode === sqlite3Runtime?.capi.SQLITE_INTERRUPT) return 'That query exceeded SeeQLite’s 30-second safety deadline.';
+  if (message.includes('one read-only statement') || message.includes('start with select') || message.includes('read-only') || message.includes('not authorized') || message.includes('readonly')) {
+    return 'That statement was rejected by SeeQLite’s read-only policy.';
+  }
+  if (message.includes('larger than') || message.includes('limit') || message.includes('too many')) {
+    return 'That request exceeded a browser safety limit.';
+  }
+  return 'SQLite could not run that query.';
+}
+
 function normalizeValue(value: unknown): QueryValue {
   if (value instanceof Uint8Array) {
-    const preview = Array.from(value.slice(0, 16), (byte) => byte.toString(16).padStart(2, '0')).join(' ');
-    return { kind: 'blob', bytes: value.byteLength, preview };
+    const previewBytes = Math.min(value.byteLength, MAX_BLOB_PREVIEW_BYTES);
+    const preview = Array.from(value.slice(0, previewBytes), (byte) => byte.toString(16).padStart(2, '0')).join(' ');
+    return { kind: 'blob', bytes: value.byteLength, preview, previewBytes, truncated: value.byteLength > previewBytes };
+  }
+  if (typeof value === 'string') {
+    const bytes = new TextEncoder().encode(value);
+    if (bytes.byteLength <= MAX_TEXT_PREVIEW_BYTES) return value;
+    return { kind: 'text', value: new TextDecoder().decode(bytes.slice(0, MAX_TEXT_PREVIEW_BYTES)), bytes: bytes.byteLength, truncated: true };
   }
   return value as QueryValue;
+}
+
+function estimateValueBytes(value: QueryValue) {
+  if (value === null) return 0;
+  if (typeof value === 'string') return new TextEncoder().encode(value).byteLength;
+  if (typeof value === 'bigint' || typeof value === 'number') return 8;
+  if (value.kind === 'text') return value.value.length + 16;
+  return value.previewBytes + 16;
 }
 
 function readCatalog(): Catalog {
