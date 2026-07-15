@@ -9,6 +9,10 @@ let currentEpoch = 0;
 const MAX_DATABASE_BYTES = 512 * 1024 * 1024;
 const MAX_QUERY_BYTES = 1 * 1024 * 1024;
 const MAX_RESULT_ROWS = 1000;
+const MAX_TABLES = 1000;
+const MAX_COLUMNS = 20_000;
+const MAX_INDEXES = 5_000;
+const MAX_FOREIGN_KEYS = 2_000;
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const request = event.data;
@@ -18,8 +22,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         throw new Error('That database is larger than the 512 MB browser-safe limit.');
       }
       const sqlite3 = sqlite3Runtime ?? (sqlite3Runtime = await sqlite3InitModule());
-      db?.close();
-      if (dbBufferPointer !== undefined) sqlite3.wasm.dealloc(dbBufferPointer);
+      disposeDatabase(sqlite3);
       currentEpoch = request.epoch;
       db = new sqlite3.oo1.DB(':memory:');
       dbBufferPointer = sqlite3.wasm.allocFromTypedArray(request.bytes);
@@ -46,7 +49,8 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     if (new TextEncoder().encode(trimmed).byteLength > MAX_QUERY_BYTES) {
       throw new Error('That query is larger than the 1 MB limit.');
     }
-    if (!/^select\b/i.test(trimmed) && !/^with\b/i.test(trimmed)) {
+    if (hasMultipleStatements(trimmed)) throw new Error('Run one read-only statement at a time.');
+    if (!/^select\b/i.test(trimmed) && !/^with\b/i.test(trimmed) && !/^explain\s+query\s+plan\s+(?:select|with)\b/i.test(trimmed)) {
       throw new Error('SeeQLite is read-only. Start with SELECT or WITH.');
     }
     const stmt = db.prepare(trimmed);
@@ -69,6 +73,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       stmt.finalize();
     }
   } catch (error) {
+    if (request.type === 'open' && sqlite3Runtime) disposeDatabase(sqlite3Runtime);
     post({ type: 'error', requestId: request.requestId, epoch: request.epoch, code: 'SQLITE_ERROR', message: error instanceof Error ? error.message : 'SQLite query failed.' });
   }
 };
@@ -85,6 +90,9 @@ function readCatalog(): Catalog {
   const tables: CatalogTable[] = [];
   const foreignKeys: CatalogForeignKey[] = [];
   const objects = selectRows("SELECT name, type FROM sqlite_schema WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name COLLATE NOCASE");
+  if (objects.length > MAX_TABLES) throw new Error('This database has too many tables for the browser catalog limit.');
+  let columnCount = 0;
+  let indexCount = 0;
 
   for (const [rawName, rawKind] of objects) {
     const name = String(rawName);
@@ -98,6 +106,8 @@ function readCatalog(): Catalog {
         primaryKey: Number(row[5] ?? 0),
         defaultValue: row[4] == null ? null : String(row[4]),
       }));
+    columnCount += columns.length;
+    if (columnCount > MAX_COLUMNS) throw new Error('This database has too many columns for the browser catalog limit.');
     const indexes: CatalogIndex[] = selectRows(`PRAGMA index_list(${quoteIdentifier(name)})`).map((row) => ({
       name: String(row[1] ?? ''),
       unique: Boolean(row[2]),
@@ -106,6 +116,8 @@ function readCatalog(): Catalog {
         .map((indexRow) => String(indexRow[2] ?? ''))
         .filter(Boolean),
     }));
+    indexCount += indexes.length;
+    if (indexCount > MAX_INDEXES) throw new Error('This database has too many indexes for the browser catalog limit.');
     tables.push({ name, kind, columns, indexes });
 
     if (kind === 'table') {
@@ -118,6 +130,7 @@ function readCatalog(): Catalog {
         grouped.set(id, existing);
       }
       foreignKeys.push(...grouped.values());
+      if (foreignKeys.length > MAX_FOREIGN_KEYS) throw new Error('This database has too many relationships for the browser catalog limit.');
     }
   }
   return { tables, foreignKeys };
@@ -137,6 +150,43 @@ function selectRows(sql: string): unknown[][] {
 
 function quoteIdentifier(identifier: string) {
   return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+function disposeDatabase(sqlite3: any) {
+  db?.close();
+  db = null;
+  if (dbBufferPointer !== undefined) sqlite3.wasm.dealloc(dbBufferPointer);
+  dbBufferPointer = undefined;
+}
+
+function hasMultipleStatements(sql: string) {
+  let quote: string | null = null;
+  let lineComment = false;
+  let blockComment = false;
+  for (let index = 0; index < sql.length; index += 1) {
+    const character = sql[index];
+    const next = sql[index + 1];
+    if (lineComment) {
+      if (character === '\n') lineComment = false;
+      continue;
+    }
+    if (blockComment) {
+      if (character === '*' && next === '/') { blockComment = false; index += 1; }
+      continue;
+    }
+    if (!quote && character === '-' && next === '-') { lineComment = true; index += 1; continue; }
+    if (!quote && character === '/' && next === '*') { blockComment = true; index += 1; continue; }
+    if (quote) {
+      if (character === quote && sql[index + 1] === quote) { index += 1; continue; }
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"' || character === '`') { quote = character; continue; }
+    if (character !== ';') continue;
+    const rest = sql.slice(index + 1).replace(/(?:--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/|\s)/g, '');
+    if (rest.length > 0) return true;
+  }
+  return false;
 }
 
 function post(response: WorkerResponse) {
