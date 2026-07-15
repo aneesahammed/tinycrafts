@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light;
+  --paper: #f7f3ec;
+  --paper-2: #eee8dd;
+  --paper-3: #fffdfa;
+  --ink: #191612;
+  --ink-2: #5d564c;
+  --ink-3: #918779;
+  --rule: #d8cfc1;
+  --rule-strong: #1f1b16;
+  --boundary: #786f63;
+  --accent: #3867e8;
+  --accent-deep: #244cc6;
+  --accent-soft: #edf2ff;
+  --accent-border: #8ca8ff;
+  --warning: #6e4a00;
+  --danger: #b42318;
+  --danger-soft: #fff0ed;
+  --success: #237a52;
+  --focus-ring: #244cc6;
+  --font-sans: "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+:root[data-dark] {
+  color-scheme: dark;
+  --paper: #171816;
+  --paper-2: #20211f;
+  --paper-3: #242522;
+  --ink: #f3eee5;
+  --ink-2: #c9c0b3;
+  --ink-3: #8d8579;
+  --rule: #343733;
+  --rule-strong: #ece5da;
+  --boundary: #9f978b;
+  --accent: #86a2ff;
+  --accent-deep: #b5c4ff;
+  --accent-soft: #222b46;
+  --accent-border: #4b609b;
+  --warning: #f2cf72;
+  --danger: #ff9b91;
+  --danger-soft: #40221f;
+  --success: #8fd3ae;
+  --focus-ring: #b5c4ff;
+}

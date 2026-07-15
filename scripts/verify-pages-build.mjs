@@ -28,6 +28,8 @@ const requiredFiles = [
   'dataduck/icon.svg',
   'dataduck/icon-192.png',
   'dataduck/icon-512.png',
+  'seeqlite/index.html',
+  'seeqlite/manifest.webmanifest',
 ];
 
 const forbiddenFiles = [
@@ -69,6 +71,8 @@ assertPagecrumbLandingHtml();
 assertPagecrumbPrivacyHtml();
 assertDataDuckManifest();
 assertDataDuckServiceWorkerRegistration();
+assertSeeQLiteAssets();
+assertSeeQLiteHtml();
 assertNoMacMetadata(pagesDir);
 
 if (failures.length > 0) {
@@ -235,6 +239,34 @@ function assertDataDuckServiceWorkerRegistration() {
 
   if (!jsSources.some((source) => source.includes('./sw.js'))) {
     failures.push('DataDuck bundle should register the root service-worker script');
+  }
+}
+
+function assertSeeQLiteAssets() {
+  const assetsDir = join(pagesDir, 'seeqlite/assets');
+  if (!existsSync(assetsDir)) {
+    failures.push('Missing SeeQLite asset directory');
+    return;
+  }
+
+  for (const [pattern, label] of [[/\.js$/, 'JavaScript'], [/\.css$/, 'CSS'], [/\.wasm$/, 'WASM']]) {
+    if (!readdirSync(assetsDir).some((entry) => pattern.test(entry))) {
+      failures.push(`Missing SeeQLite ${label} asset`);
+    }
+  }
+}
+
+function assertSeeQLiteHtml() {
+  const htmlPath = join(pagesDir, 'seeqlite/index.html');
+  if (!existsSync(htmlPath)) return;
+
+  const html = readFileSync(htmlPath, 'utf8');
+  for (const [needle, message] of [
+    ['SeeQLite', 'SeeQLite HTML should contain the app title'],
+    ['href="./manifest.webmanifest"', 'SeeQLite HTML should link the relative manifest'],
+    ['src="./assets/', 'SeeQLite HTML should load built JavaScript from assets'],
+  ]) {
+    if (!html.includes(needle)) failures.push(message);
   }
 }
 

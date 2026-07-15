@@ -31,11 +31,17 @@ jobs:
         with:
           node-version: 20.19.0
           cache: npm
-          cache-dependency-path: dataduck/package-lock.json
+          cache-dependency-path: |
+            dataduck/package-lock.json
+            SeeQLite/package-lock.json
 
       - name: Install DataDuck dependencies
         run: npm ci
         working-directory: dataduck
+
+      - name: Install SeeQLite dependencies
+        run: npm ci
+        working-directory: SeeQLite
 
       - name: Build Pages artifact
         run: node scripts/build-pages.mjs

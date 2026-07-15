@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pagesDir = join(root, '.pages-build');
 const dataduckDir = join(root, 'dataduck');
+const seeqliteDir = join(root, 'SeeQLite');
 
 const rootItems = ['CNAME', '.nojekyll', 'google63c1ffe1585127de.html', 'index.htm', 'assets'];
 
@@ -37,6 +38,14 @@ execFileSync('npm', ['run', 'build'], {
 });
 
 copySiteItem('dataduck/dist', 'dataduck');
+
+console.log('Building SeeQLite...');
+execFileSync('npm', ['run', 'build'], {
+  cwd: seeqliteDir,
+  stdio: 'inherit',
+});
+
+copySiteItem('SeeQLite/dist', 'seeqlite');
 console.log(`Pages artifact written to ${pagesDir}`);
 
 function copySiteItem(relativeSource, relativeDestination = relativeSource) {
