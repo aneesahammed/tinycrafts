@@ -25,7 +25,7 @@ npm run check:bundle    PASS
 npm run test:e2e -- --project=chromium PASS (7 production-preview tests)
 npm run test:e2e -- --project=firefox  PASS (7 production-preview tests)
 npm run test:e2e -- --project=webkit   PASS (7 production-preview tests)
-Full matrix                         PASS (24 production-preview tests across Chromium, Firefox, WebKit)
+Full matrix                         PASS (33 production-preview tests across Chromium, Firefox, WebKit)
 node scripts/build-pages.mjs       PASS
 node scripts/verify-pages-build.mjs PASS
 ```

@@ -99,3 +99,38 @@ test('registers the app shell without caching database files', async ({ page }) 
   });
   expect(cachedUrls.some((url) => url.endsWith('.sqlite') || url.endsWith('.db'))).toBe(false);
 });
+
+test('keeps the worker and database workflow same-origin and non-isolated', async ({ page }) => {
+  const externalRequests: string[] = [];
+  page.on('request', (request) => {
+    if (!request.url().startsWith('http://127.0.0.1:4174/')) externalRequests.push(request.url());
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByLabel('SQL query').fill('SELECT email FROM users;');
+  await page.getByRole('button', { name: 'Run query' }).click();
+  expect(externalRequests).toEqual([]);
+  expect(await page.evaluate(() => crossOriginIsolated)).toBe(false);
+  expect(await page.evaluate(() => localStorage.length)).toBeLessThanOrEqual(1);
+});
+
+test('keeps the narrow layout usable and preserves keyboard focus semantics', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  await page.locator('.skip-link').focus();
+  await expect(page.getByRole('link', { name: 'Skip to workspace' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#workspace')).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-dark', '');
+  await page.getByRole('button', { name: 'Switch to light theme' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-dark');
+});
+
+test('blocks intake when a required browser capability is missing', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(globalThis, 'Worker', { configurable: true, value: undefined }));
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('Web Worker');
+  await expect(page.getByRole('button', { name: 'Open SQLite database' })).toHaveCount(0);
+});
