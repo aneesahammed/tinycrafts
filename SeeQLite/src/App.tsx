@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import type { DragEvent } from 'react';
+import type { CSSProperties, DragEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { DatabaseClient } from './engine/database-client';
 import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
@@ -22,6 +22,13 @@ const HISTORY_MAX_ITEMS = 100;
 const HISTORY_MAX_SQL_BYTES = 8 * 1024;
 const HISTORY_MAX_TOTAL_BYTES = 128 * 1024;
 const CATALOG_PAGE_SIZE = 100;
+const MIN_WORKSPACE_WIDTH = 420;
+const CATALOG_RAIL_MIN_WIDTH = 208;
+const CATALOG_RAIL_MAX_WIDTH = 440;
+const INSPECTOR_RAIL_MIN_WIDTH = 244;
+const INSPECTOR_RAIL_MAX_WIDTH = 480;
+type RailSide = 'catalog' | 'inspector';
+type RailResizeState = { side: RailSide; pointerId: number; startX: number; startWidth: number };
 
 function loadHistory(): HistoryItem[] {
   try {
@@ -71,6 +78,14 @@ function FormatIcon() {
   return <svg className="action-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" strokeLinecap="round" /><circle cx="8" cy="5" r="1.4" fill="currentColor" stroke="none" /><circle cx="13" cy="10" r="1.4" fill="currentColor" stroke="none" /><circle cx="6" cy="15" r="1.4" fill="currentColor" stroke="none" /></svg>;
 }
 
+function CopyIcon() {
+  return <svg className="icon-button-glyph" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.65" aria-hidden="true"><rect x="6.5" y="3.5" width="9.5" height="11.5" rx="1.5" /><path d="M4 6.5v9a1.5 1.5 0 0 0 1.5 1.5h7" /></svg>;
+}
+
+function ThemeContrastIcon() {
+  return <svg className="theme-contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.75" opacity=".58" /><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" /></svg>;
+}
+
 export function App() {
   const client = useMemo(() => new DatabaseClient(), []);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -99,9 +114,16 @@ export function App() {
   const detailRequestsRef = useRef(new Set<string>());
   const queryRef = useRef(query);
   const previewSqlRef = useRef<string | null>(null);
+  const workbenchRef = useRef<HTMLElement>(null);
+  const railResizeRef = useRef<RailResizeState | null>(null);
+  const [catalogRailWidth, setCatalogRailWidth] = useState(256);
+  const [inspectorRailWidth, setInspectorRailWidth] = useState(320);
 
   useEffect(() => () => client.terminate('SeeQLite was closed.'), [client]);
   useEffect(() => { document.documentElement.toggleAttribute('data-dark', darkTheme); }, [darkTheme]);
+  useEffect(() => () => {
+    delete document.body.dataset.railResizing;
+  }, []);
   useEffect(() => {
     const handleOfflineUnavailable = () => setStatus('Online only — this browser cannot store SeeQLite’s offline shell. Database work is still available.');
     window.addEventListener('seeqlite-offline-unavailable', handleOfflineUnavailable);
@@ -123,6 +145,50 @@ export function App() {
     previewSqlRef.current = null;
     setRecoverableDraft(null);
     setQuery(value);
+  }
+
+  function toggleTheme() {
+    setDarkTheme((value) => !value);
+  }
+
+  function canStartRailResize(target: EventTarget | null) {
+    if (!(target instanceof Element)) return false;
+    return !target.closest('button, input, textarea, select, a, summary, [contenteditable="true"], [role="button"], [role="tab"], .cm-editor');
+  }
+
+  function beginRailResize(side: RailSide, event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerType === 'touch' && window.matchMedia('(max-width: 899px)').matches) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (!canStartRailResize(event.target) || !workbenchRef.current) return;
+    const startWidth = side === 'catalog' ? catalogRailWidth : inspectorRailWidth;
+    railResizeRef.current = { side, pointerId: event.pointerId, startX: event.clientX, startWidth };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.dataset.resizing = 'true';
+    document.body.dataset.railResizing = side;
+    event.preventDefault();
+  }
+
+  function moveRailResize(event: ReactPointerEvent<HTMLElement>) {
+    const resize = railResizeRef.current;
+    const workbench = workbenchRef.current;
+    if (!resize || resize.pointerId !== event.pointerId || !workbench) return;
+    const otherWidth = resize.side === 'catalog' ? inspectorRailWidth : catalogRailWidth;
+    const minimum = resize.side === 'catalog' ? CATALOG_RAIL_MIN_WIDTH : INSPECTOR_RAIL_MIN_WIDTH;
+    const maximum = resize.side === 'catalog' ? CATALOG_RAIL_MAX_WIDTH : INSPECTOR_RAIL_MAX_WIDTH;
+    const availableMaximum = Math.max(minimum, Math.min(maximum, workbench.clientWidth - MIN_WORKSPACE_WIDTH - otherWidth));
+    const delta = event.clientX - resize.startX;
+    const requestedWidth = resize.side === 'catalog' ? resize.startWidth + delta : resize.startWidth - delta;
+    const nextWidth = Math.round(Math.max(minimum, Math.min(availableMaximum, requestedWidth)));
+    if (resize.side === 'catalog') setCatalogRailWidth(nextWidth);
+    else setInspectorRailWidth(nextWidth);
+  }
+
+  function endRailResize(event: ReactPointerEvent<HTMLElement>) {
+    if (railResizeRef.current?.pointerId !== event.pointerId) return;
+    railResizeRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    delete event.currentTarget.dataset.resizing;
+    delete document.body.dataset.railResizing;
   }
 
   function formatEditorQuery() {
@@ -461,15 +527,15 @@ export function App() {
         </div>
         {catalog ? <span className="header-stats" aria-hidden="true">{dbStats}</span> : null}
         <div className="topbar-meta">
-          <button className="theme-button" aria-pressed={darkTheme} aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDarkTheme((value) => !value)}>{darkTheme ? 'Light' : 'Dark'}</button>
+          <button className="theme-button" aria-pressed={darkTheme} aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} title={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={toggleTheme}><ThemeContrastIcon /></button>
         </div>
         <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
       </header>
 
-      <main id="workspace" className="workbench" tabIndex={-1} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
+      <main id="workspace" ref={workbenchRef} className="workbench" tabIndex={-1} style={{ '--catalog-rail-width': `${catalogRailWidth}px`, '--inspector-rail-width': `${inspectorRailWidth}px` } as CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
         {catalog ? (
           <>
-            <aside className="catalog-rail" aria-label="Explorer">
+            <aside className="catalog-rail" aria-label="Explorer" onPointerDown={(event) => beginRailResize('catalog', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}>
               <div className="rail-title"><h2>Explorer</h2><button className="rail-filter" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}><span>{showInternalObjects ? 'Hide internal' : 'Show internal'}</span><span className="sr-only"> objects</span></button></div>
               <label className="catalog-search"><span className="search-glyph" aria-hidden="true"><SearchIcon /></span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or views" aria-label="Search tables and columns" autoComplete="off" /></label>
               <div className="table-list">
@@ -519,16 +585,16 @@ export function App() {
                 <div id="diagram-panel" className="diagram-panel" role="tabpanel" aria-labelledby="diagram-tab"><ErCanvas catalog={visibleCatalog} selectedTableName={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} /></div>
               )}
             </section>
-            <aside className="inspector-rail" aria-label="Object inspector">
+            <aside className="inspector-rail" aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}>
               <div className="inspector-heading"><span className="label">{view === 'diagram' ? 'Relationships' : 'Inspector'}</span><h2>{view === 'diagram' ? 'Declared relationships' : selectedTable ? selectedTable.name : 'Nothing selected'}</h2>{selectedTable && view !== 'diagram' ? <span className="inspector-kind">{selectedTable.kind}</span> : null}</div>
               {view === 'diagram' ? <RelationshipList catalog={visibleCatalog ?? catalog} selected={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} onGenerateJoin={generateJoin} /> : selectedTable ? view === 'schema' ? <InspectorSummary table={selectedTable} onOpenQuery={() => setView('query')} /> : <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>Select a table to see its columns, indexes, and relationships here.</p></div>}
             </aside>
           </>
         ) : (
           <>
-            <aside className="catalog-rail empty-rail" aria-label="Explorer"><div className="rail-title"><h2>Explorer</h2></div><div className="empty-rail-content"><span className="empty-glyph" aria-hidden="true">▦</span><p>Open a database to browse its tables, views, and relationships.</p></div><div className="rail-footer"><button className="quiet-button rail-open" onClick={() => fileInput.current?.click()} disabled={busy}>New database</button></div></aside>
+            <aside className="catalog-rail empty-rail" aria-label="Explorer" onPointerDown={(event) => beginRailResize('catalog', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}><div className="rail-title"><h2>Explorer</h2></div><div className="empty-rail-content"><span className="empty-glyph" aria-hidden="true">▦</span><p>Open a database to browse its tables, views, and relationships.</p></div><div className="rail-footer"><button className="quiet-button rail-open" onClick={() => fileInput.current?.click()} disabled={busy}>New database</button></div></aside>
             <section className="work-main empty-workspace" aria-label="Database workspace"><div className="empty-workspace-toolbar"><span className="label">Workspace</span><span>Local SQLite</span></div><div className="empty-workspace-body"><p className="eyebrow">Ready when you are</p><h1>Open a SQLite database</h1><p className="lede">Explore its shape, run read-only SQL, and understand relationships without uploading a byte.</p><div className="privacy-note"><span className="status-dot" /> No server. No account. Your database stays in this browser tab.</div>{!capabilities.ok ? <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div> : <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div><p className="helper">SQLite 3 files up to 512 MB. Drop one file anywhere in this workspace.</p></div>}<p className="intake-status" role="status" aria-live="polite">{status}</p></div></section>
-            <aside className="inspector-rail empty-inspector" aria-label="Object inspector"><div className="inspector-heading"><span className="label">Inspector</span><h2>Nothing selected</h2></div><div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>After you choose a table, its columns, indexes, and relationships will appear here.</p></div></aside>
+            <aside className="inspector-rail empty-inspector" aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}><div className="inspector-heading"><span className="label">Inspector</span><h2>Nothing selected</h2></div><div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>After you choose a table, its columns, indexes, and relationships will appear here.</p></div></aside>
           </>
         )}
       </main>
@@ -604,7 +670,7 @@ function TableDetails({ table, catalog, detail }: { table: CatalogTable; catalog
   const indexes = detail?.status === 'ready' ? detail.details?.indexes ?? [] : [];
   const uniqueColumns = new Set(indexes.filter((index) => index.unique && index.columns.length === 1 && index.columns[0].name && !index.columns[0].expression).map((index) => index.columns[0].name!));
   const foreignKeyColumns = new Set(relationships.filter((relation) => relation.fromTable === table.name).flatMap((relation) => relation.fromColumns));
-  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">Object details</span><strong className="detail-object-name"><SchemaIcon kind="table" />{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}{table.warnings?.length ? <p className="detail-error" role="status">{tableWarningText(table.warnings)}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3><SchemaIcon kind="column" />Columns</h3>{table.columns.length ? <ul>{table.columns.map((column) => <li key={column.name}><span className="detail-item-name"><SchemaIcon kind={column.primaryKey ? 'primary-key' : foreignKeyColumns.has(column.name) ? 'foreign-key' : 'column'} /><code>{column.name}</code></span><span className="detail-fact">{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul> : <p className="detail-loading">Column metadata is unavailable for this object; its name and safe query action remain available.</p>}</div><div><h3><SchemaIcon kind="index" />Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><span className="detail-item-name"><SchemaIcon kind="index" /><code>{index.name}</code></span><span className="detail-fact">{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''}{index.predicate ? ` · WHERE ${index.predicate}` : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span className="detail-fact">No explicit indexes</span></li>}</ul>}<h3><SchemaIcon kind="relationship" />Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><span className="detail-item-name"><SchemaIcon kind="relationship" /><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code></span><span className="detail-fact">→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span className="detail-fact">No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
+  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">Object details</span><strong className="detail-object-name"><SchemaIcon kind="table" />{table.name}</strong><div className="detail-actions"><button className="icon-button" aria-label="Copy identifier" title="Copy identifier" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}><CopyIcon /></button><button className="icon-button" aria-label="Copy SELECT" title="Copy SELECT" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}><CopyIcon /></button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}{table.warnings?.length ? <p className="detail-error" role="status">{tableWarningText(table.warnings)}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3><SchemaIcon kind="column" />Columns</h3>{table.columns.length ? <ul>{table.columns.map((column) => <li key={column.name}><span className="detail-item-name"><SchemaIcon kind={column.primaryKey ? 'primary-key' : foreignKeyColumns.has(column.name) ? 'foreign-key' : 'column'} /><code>{column.name}</code></span><span className="detail-fact">{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul> : <p className="detail-loading">Column metadata is unavailable for this object; its name and safe query action remain available.</p>}</div><div><h3><SchemaIcon kind="index" />Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><span className="detail-item-name"><SchemaIcon kind="index" /><code>{index.name}</code></span><span className="detail-fact">{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''}{index.predicate ? ` · WHERE ${index.predicate}` : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span className="detail-fact">No explicit indexes</span></li>}</ul>}<h3><SchemaIcon kind="relationship" />Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><span className="detail-item-name"><SchemaIcon kind="relationship" /><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code></span><span className="detail-fact">→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span className="detail-fact">No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
 }
 
 function tableWarningText(warnings: NonNullable<CatalogTable['warnings']>) {
