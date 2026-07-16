@@ -47,6 +47,8 @@ function foreignKeyColumns(catalog: Catalog, tableName: string) {
 export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: Catalog | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: CatalogForeignKey) => void }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  // click fires after pointerup, once dragRef is already cleared — this survives that gap.
+  const draggedRef = useRef(false);
   const [positions, setPositions] = useState<Record<string, Point>>({});
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -171,6 +173,7 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
   const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+    draggedRef.current = drag.moved;
     dragRef.current = null;
   };
 
@@ -240,7 +243,7 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
                   style={{ left: position.x, top: position.y, width: NODE_WIDTH }}
                   aria-label={`Open ${table.name} table`}
                   onPointerDown={(event) => onNodePointerDown(event, table)}
-                  onClick={() => { if (!dragRef.current?.moved) onSelectTable(table); }}
+                  onClick={() => { if (draggedRef.current) { draggedRef.current = false; return; } onSelectTable(table); }}
                 >
                   <span className="er-node-title"><span className="er-node-name">{table.name}</span><span className="er-node-kind">{table.kind}</span></span>
                   {table.columns.slice(0, MAX_ROWS).map((column) => (
