@@ -98,6 +98,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
       ],
     });
     view.current = new EditorView({ state, parent: host.current });
+    view.current.scrollDOM.tabIndex = 0;
     return () => {
       view.current?.destroy();
       view.current = null;

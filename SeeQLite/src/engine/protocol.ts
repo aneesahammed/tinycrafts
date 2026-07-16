@@ -25,7 +25,15 @@ export type CatalogIndex = {
   unique: boolean;
   origin: 'created' | 'unique' | 'primary-key' | 'unknown';
   partial: boolean;
+  predicate: string | null;
   columns: CatalogIndexColumn[];
+};
+
+export type CatalogWarning = 'columns-unavailable' | 'columns-limited' | 'foreign-keys-unavailable';
+
+export type CatalogLimit = {
+  kind: 'objects' | 'columns' | 'relationships';
+  limit: number;
 };
 
 export type CatalogTable = {
@@ -37,6 +45,7 @@ export type CatalogTable = {
   strict: boolean;
   columns: CatalogColumn[];
   indexes: CatalogIndex[];
+  warnings?: CatalogWarning[];
 };
 
 export type CatalogForeignKey = {
@@ -50,6 +59,7 @@ export type CatalogForeignKey = {
 export type Catalog = {
   tables: CatalogTable[];
   foreignKeys: CatalogForeignKey[];
+  limits: CatalogLimit[];
 };
 
 export type CatalogDetails = {

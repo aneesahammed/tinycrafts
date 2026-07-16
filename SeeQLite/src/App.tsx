@@ -16,6 +16,8 @@ const HISTORY_KEY = 'seeqlite.query-history.v1';
 const HISTORY_MAX_ITEMS = 100;
 const HISTORY_MAX_SQL_BYTES = 8 * 1024;
 const HISTORY_MAX_TOTAL_BYTES = 128 * 1024;
+const MAX_DIAGRAM_TABLES = 75;
+const CATALOG_PAGE_SIZE = 100;
 
 function loadHistory(): HistoryItem[] {
   try {
@@ -53,6 +55,7 @@ export function App() {
   const [result, setResult] = useState<QueryResult | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogPage, setCatalogPage] = useState(0);
   const [showInternalObjects, setShowInternalObjects] = useState(false);
   const [selectedTable, setSelectedTable] = useState<CatalogTable | null>(null);
   const [tableDetails, setTableDetails] = useState<Record<string, TableDetailState>>({});
@@ -84,6 +87,7 @@ export function App() {
     setPlanResult(null);
     setCatalog(null);
     setCatalogSearch('');
+    setCatalogPage(0);
     setShowInternalObjects(false);
     invalidateDetails();
     setSelectedTable(null);
@@ -98,7 +102,7 @@ export function App() {
       setCatalog(ready.catalog);
       setSelectedTable(null);
       setView('query');
-      setStatus(`${ready.tableCount} table${ready.tableCount === 1 ? '' : 's'} ready. Run the sample query or write your own SELECT.${walWarning ? ' This file is WAL-mode; uncheckpointed sidecar changes may not be included.' : ''}`);
+      setStatus(`${ready.tableCount} table${ready.tableCount === 1 ? '' : 's'} ready${catalogLimitSuffix(ready.catalog)}. Run the sample query or write your own SELECT.${walWarning ? ' This file is WAL-mode; uncheckpointed sidecar changes may not be included.' : ''}`);
     } catch (error) {
       client.terminate('The database did not open.');
       setStatus(error instanceof Error ? error.message : 'Could not open that database.');
@@ -138,6 +142,7 @@ export function App() {
     setPlanResult(null);
     setCatalog(null);
     setCatalogSearch('');
+    setCatalogPage(0);
     setShowInternalObjects(false);
     invalidateDetails();
     setSelectedTable(null);
@@ -148,7 +153,7 @@ export function App() {
       setCatalog(ready.catalog);
       setSelectedTable(null);
       setView('query');
-      setStatus(`${ready.tableCount} tables ready. Run the readiness check or write your own SELECT.`);
+      setStatus(`${ready.tableCount} tables ready${catalogLimitSuffix(ready.catalog)}. Run the readiness check or write your own SELECT.`);
     } catch (error) {
       client.terminate('The sample database did not open.');
       setStatus(error instanceof Error ? error.message : 'Could not open the sample database.');
@@ -171,6 +176,7 @@ export function App() {
     setFileName('No database open');
     setCatalog(null);
     setCatalogSearch('');
+    setCatalogPage(0);
     setShowInternalObjects(false);
     invalidateDetails();
     setSelectedTable(null);
@@ -187,6 +193,7 @@ export function App() {
     const operation = ++operationRef.current;
     const started = performance.now();
     activeQueryRef.current = { sql, started };
+    setPlanResult(null);
     setBusy(true);
     setStatus('Running in the SQLite worker…');
     try {
@@ -209,6 +216,7 @@ export function App() {
     const operation = ++operationRef.current;
     const started = performance.now();
     activeQueryRef.current = { sql: 'SELECT 1 AS ready;', started };
+    setPlanResult(null);
     setQuery('SELECT 1 AS ready;');
     setBusy(true);
     setStatus('Running SELECT 1…');
@@ -230,6 +238,7 @@ export function App() {
     const sql = selectedSql?.trim() ? selectedSql : query;
     const operation = ++operationRef.current;
     const started = performance.now();
+    setPlanResult(null);
     setBusy(true);
     setStatus('Explaining the query in the SQLite worker…');
     try {
@@ -320,9 +329,14 @@ export function App() {
     return visibleCatalog.tables.filter((table) => table.name.toLowerCase().includes(needle) || table.kind.toLowerCase().includes(needle) || table.columns.some((column) => column.name.toLowerCase().includes(needle)));
   }, [visibleCatalog, catalogSearch]);
 
+  const catalogPageCount = Math.max(1, Math.ceil(filteredTables.length / CATALOG_PAGE_SIZE));
+  const currentCatalogPage = Math.min(catalogPage, catalogPageCount - 1);
+  const visibleTables = filteredTables.slice(currentCatalogPage * CATALOG_PAGE_SIZE, (currentCatalogPage + 1) * CATALOG_PAGE_SIZE);
+
   useEffect(() => {
     if (selectedTable?.internal && !showInternalObjects) setSelectedTable(null);
   }, [selectedTable, showInternalObjects]);
+  useEffect(() => { setCatalogPage(0); }, [catalogSearch, showInternalObjects, catalog]);
 
   return (
     <div className="app-shell">
@@ -357,10 +371,10 @@ export function App() {
           <div className="workspace-heading"><div><span className="label">WORKSPACE</span><h2>{view === 'query' ? 'Ask the file' : 'See the shape'}</h2></div><span className="mode-badge">READ ONLY</span></div>
           <div className="mode-tabs" role="tablist" aria-label="Database workspace view">
             <button className={view === 'query' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'query'} onClick={() => setView('query')}>Query</button>
-            <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={!catalog} onClick={() => setView('diagram')}>Diagram {catalog ? `· ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}` : ''}</button>
+            <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={!catalog || Boolean(catalog?.limits.length) || Boolean(catalog && catalog.tables.length > MAX_DIAGRAM_TABLES)} title={catalog && catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog?.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>Diagram {catalog ? `· ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}` : ''}</button>
           </div>
           {view === 'query' ? <>
-            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalogSearch.trim() ? `${filteredTables.length} of ` : ''}${visibleCatalog?.tables.length ?? 0} objects${!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} internal hidden` : ''}` : 'Open a database'}</span></div>{catalog ? <><label className="catalog-search"><span>FIND</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label><div className="catalog-controls"><button className="secondary-button compact" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button><span>System and virtual tables stay hidden until requested.</span></div></> : null}<div className="table-list">{filteredTables.map((table) => <button key={table.name} className="table-list-item" onClick={() => void selectTable(table)} disabled={busy}><span>{table.name}</span><small>{table.internal ? 'internal · ' : ''}{table.kind} · {table.columns.length} columns</small></button>)}</div>{catalog && filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}</div>
+            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalogSearch.trim() ? `${filteredTables.length} of ` : ''}${visibleCatalog?.tables.length ?? 0} objects${!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} internal hidden` : ''}` : 'Open a database'}</span></div>{catalog ? <><label className="catalog-search"><span>FIND</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label><div className="catalog-controls"><button className="secondary-button compact" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button><span>System and virtual tables stay hidden until requested.</span></div>{catalog.limits.length ? <p className="catalog-limit" role="status">Catalog is limited: {catalogLimitText(catalog.limits)}. Search and read-only queries remain available; the ER diagram is paused.</p> : null}</> : null}<div className="table-list">{visibleTables.map((table) => <button key={table.name} className="table-list-item" onClick={() => void selectTable(table)} disabled={busy}><span>{table.name}</span><small>{table.internal ? 'internal · ' : ''}{table.kind} · {table.columns.length} columns{table.warnings?.length ? ' · metadata limited' : ''}</small></button>)}</div>{catalogPageCount > 1 ? <div className="catalog-pagination" role="navigation" aria-label="Catalog page controls"><span>Showing {currentCatalogPage * CATALOG_PAGE_SIZE + 1}–{Math.min((currentCatalogPage + 1) * CATALOG_PAGE_SIZE, filteredTables.length)} of {filteredTables.length} matches</span><div><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.max(0, page - 1))} disabled={currentCatalogPage === 0}>Previous objects</button><span aria-live="polite">Page {currentCatalogPage + 1} of {catalogPageCount}</span><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.min(catalogPageCount - 1, page + 1))} disabled={currentCatalogPage >= catalogPageCount - 1}>Next objects</button></div></div> : null}{catalog && filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}</div>
             {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : null}
             <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
             <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy || fileName === 'No database open'}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness} disabled={fileName === 'No database open'}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy || fileName === 'No database open'}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
@@ -383,6 +397,14 @@ function quoteIdentifier(identifier: string) {
   return `"${identifier.replaceAll('"', '""')}"`;
 }
 
+function catalogLimitText(limits: Catalog['limits']) {
+  return limits.map((limit) => `${limit.kind} capped at ${limit.limit.toLocaleString()}`).join(' · ');
+}
+
+function catalogLimitSuffix(catalog: Catalog) {
+  return catalog.limits.length ? `; Catalog limited (${catalogLimitText(catalog.limits)})` : '';
+}
+
 function isSQLiteSidecarName(name: string) {
   const lowerName = name.toLowerCase();
   return SQLITE_SIDECAR_SUFFIXES.some((suffix) => lowerName.endsWith(suffix));
@@ -401,6 +423,8 @@ function buildJoinSql(relation: Catalog['foreignKeys'][number], catalog: Catalog
 
 function ErDiagram({ catalog, onSelectTable, onGenerateJoin }: { catalog: Catalog | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: Catalog['foreignKeys'][number]) => void }) {
   if (!catalog) return <div className="diagram-empty">Open a database to see its tables and relationships.</div>;
+  if (catalog.limits.length) return <div className="diagram-empty">The catalog is limited to a bounded searchable list. Open a smaller database to render its ER diagram.</div>;
+  if (catalog.tables.length > MAX_DIAGRAM_TABLES) return <div className="diagram-empty">The ER diagram is limited to {MAX_DIAGRAM_TABLES} tables. Search the catalog or open a smaller database to inspect its shape.</div>;
   const columns = Math.min(3, Math.max(1, Math.ceil(Math.sqrt(catalog.tables.length))));
   const cardWidth = 250;
   const cardHeight = 190;
@@ -434,9 +458,13 @@ function TableDetails({ table, catalog, detail }: { table: CatalogTable; catalog
     }
   }
   const indexes = detail?.status === 'ready' ? detail.details?.indexes ?? [] : [];
-  const uniqueColumns = new Set(indexes.filter((index) => index.unique).flatMap((index) => index.columns.flatMap((column) => column.name ? [column.name] : [])));
+  const uniqueColumns = new Set(indexes.filter((index) => index.unique && index.columns.length === 1 && index.columns[0].name && !index.columns[0].expression).map((index) => index.columns[0].name!));
   const foreignKeyColumns = new Set(relationships.filter((relation) => relation.fromTable === table.name).flatMap((relation) => relation.fromColumns));
-  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3>Columns</h3><ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul></div><div><h3>Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul>}<h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
+  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}{table.warnings?.length ? <p className="detail-error" role="status">{tableWarningText(table.warnings)}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3>Columns</h3>{table.columns.length ? <ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul> : <p className="detail-loading">Column metadata is unavailable for this object; its name and safe query action remain available.</p>}</div><div><h3>Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''}{index.predicate ? ` · WHERE ${index.predicate}` : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul>}<h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
+}
+
+function tableWarningText(warnings: NonNullable<CatalogTable['warnings']>) {
+  return warnings.map((warning) => warning === 'columns-unavailable' ? 'Column metadata could not be read for this object.' : warning === 'columns-limited' ? 'Column metadata is limited by the browser catalog budget.' : 'Foreign-key metadata could not be read for this object.').join(' ');
 }
 
 function columnVisibility(column: CatalogTable['columns'][number]) {

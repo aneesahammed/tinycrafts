@@ -1,5 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import type { Catalog, CatalogColumn, CatalogDetails, CatalogForeignKey, CatalogIndex, CatalogTable, QueryValue, WorkerRequest, WorkerResponse } from './protocol';
+import type { Catalog, CatalogColumn, CatalogDetails, CatalogForeignKey, CatalogIndex, CatalogLimit, CatalogTable, CatalogWarning, QueryValue, WorkerRequest, WorkerResponse } from './protocol';
 
 let db: any = null;
 let sqlite3Runtime: any = null;
@@ -215,46 +215,78 @@ function estimateValueBytes(value: QueryValue) {
 function readCatalog(): Catalog {
   const tables: CatalogTable[] = [];
   const foreignKeys: CatalogForeignKey[] = [];
+  const limits: CatalogLimit[] = [];
   const schemaSqlByName = new Map(selectRows("SELECT name, sql FROM sqlite_schema WHERE type IN ('table', 'view')").map((row) => [String(row[0]), row[1] == null ? null : boundCatalogText(String(row[1]))]));
   const objects = selectRows('PRAGMA table_list')
     .filter((row) => String(row[0] ?? '') === 'main')
     .filter((row) => ['table', 'view', 'shadow'].includes(String(row[2] ?? '')))
-    .sort((left, right) => String(left[1] ?? '').localeCompare(String(right[1] ?? ''), undefined, { sensitivity: 'base' }));
-  if (objects.length > MAX_TABLES) throw new Error('This database has too many tables for the browser catalog limit.');
+    .sort((left, right) => {
+      const leftInternal = String(left[1] ?? '').startsWith('sqlite_') || String(left[2] ?? '') === 'shadow';
+      const rightInternal = String(right[1] ?? '').startsWith('sqlite_') || String(right[2] ?? '') === 'shadow';
+      return Number(leftInternal) - Number(rightInternal) || String(left[1] ?? '').localeCompare(String(right[1] ?? ''), undefined, { sensitivity: 'base' });
+    });
+  if (objects.length > MAX_TABLES) limits.push({ kind: 'objects', limit: MAX_TABLES });
   let columnCount = 0;
+  let columnBudgetReached = false;
+  let relationshipBudgetReached = false;
 
-  for (const row of objects) {
+  for (const row of objects.slice(0, MAX_TABLES)) {
     const rawName = row[1];
     const rawKind = row[2];
     const name = String(rawName);
     const kind = rawKind === 'view' ? 'view' : rawKind === 'shadow' ? 'shadow' : 'table';
     const internal = name.startsWith('sqlite_') || kind === 'shadow';
-    const columns: CatalogColumn[] = selectRows(`PRAGMA table_xinfo(${quoteIdentifier(name)})`).map((row) => ({
-        name: String(row[1] ?? ''),
-        type: String(row[2] ?? ''),
-        notNull: Number(row[3] ?? 0) === 1,
-        primaryKey: Number(row[5] ?? 0),
-        defaultValue: row[4] == null ? null : boundCatalogText(String(row[4])),
-        hidden: Number(row[6] ?? 0),
-      }));
-    columnCount += columns.length;
-    if (columnCount > MAX_COLUMNS) throw new Error('This database has too many columns for the browser catalog limit.');
-    tables.push({ name, kind, internal, schemaSql: schemaSqlByName.get(name) ?? null, withoutRowid: Number(row[4] ?? 0) === 1, strict: Number(row[5] ?? 0) === 1, columns, indexes: [] });
-
-    if (kind === 'table' && !internal) {
-      const grouped = new Map<number, CatalogForeignKey>();
-      for (const row of selectRows(`PRAGMA foreign_key_list(${quoteIdentifier(name)})`)) {
-        const id = Number(row[0] ?? 0);
-        const existing = grouped.get(id) ?? { id, fromTable: name, fromColumns: [], toTable: String(row[2] ?? ''), toColumns: [] };
-        existing.fromColumns.push(String(row[3] ?? ''));
-        existing.toColumns.push(String(row[4] ?? ''));
-        grouped.set(id, existing);
+    const warnings: CatalogWarning[] = [];
+    let columns: CatalogColumn[] = [];
+    if (columnBudgetReached) {
+      warnings.push('columns-limited');
+    } else {
+      try {
+        const nextColumns = selectRows(`PRAGMA table_xinfo(${quoteIdentifier(name)})`).map((row) => ({
+          name: String(row[1] ?? ''),
+          type: String(row[2] ?? ''),
+          notNull: Number(row[3] ?? 0) === 1,
+          primaryKey: Number(row[5] ?? 0),
+          defaultValue: row[4] == null ? null : boundCatalogText(String(row[4])),
+          hidden: Number(row[6] ?? 0),
+        }));
+        if (columnCount + nextColumns.length > MAX_COLUMNS) {
+          columnBudgetReached = true;
+          limits.push({ kind: 'columns', limit: MAX_COLUMNS });
+          warnings.push('columns-limited');
+        } else {
+          columns = nextColumns;
+          columnCount += columns.length;
+        }
+      } catch {
+        warnings.push('columns-unavailable');
       }
-      foreignKeys.push(...grouped.values());
-      if (foreignKeys.length > MAX_FOREIGN_KEYS) throw new Error('This database has too many relationships for the browser catalog limit.');
+    }
+    tables.push({ name, kind, internal, schemaSql: schemaSqlByName.get(name) ?? null, withoutRowid: Number(row[4] ?? 0) === 1, strict: Number(row[5] ?? 0) === 1, columns, indexes: [], ...(warnings.length ? { warnings } : {}) });
+
+    if (kind === 'table' && !internal && !relationshipBudgetReached) {
+      try {
+        const grouped = new Map<number, CatalogForeignKey>();
+        for (const row of selectRows(`PRAGMA foreign_key_list(${quoteIdentifier(name)})`)) {
+          const id = Number(row[0] ?? 0);
+          const existing = grouped.get(id) ?? { id, fromTable: name, fromColumns: [], toTable: String(row[2] ?? ''), toColumns: [] };
+          existing.fromColumns.push(String(row[3] ?? ''));
+          existing.toColumns.push(String(row[4] ?? ''));
+          grouped.set(id, existing);
+        }
+        if (foreignKeys.length + grouped.size > MAX_FOREIGN_KEYS) {
+          relationshipBudgetReached = true;
+          limits.push({ kind: 'relationships', limit: MAX_FOREIGN_KEYS });
+          warnings.push('foreign-keys-unavailable');
+        } else {
+          foreignKeys.push(...grouped.values());
+        }
+      } catch {
+        warnings.push('foreign-keys-unavailable');
+      }
     }
   }
-  return { tables, foreignKeys };
+  return { tables, foreignKeys, limits };
 }
 
 function readCatalogDetails(tableName: string): CatalogDetails {
@@ -268,25 +300,28 @@ function readCatalogDetails(tableName: string): CatalogDetails {
 
 function readTableIndexes(name: string): CatalogIndex[] {
   const indexesByName = new Map<string, CatalogIndex>();
+  const definitions = new Map(selectRows(`SELECT name, sql FROM sqlite_schema WHERE type = 'index' AND tbl_name = ${quoteString(name)} ORDER BY name COLLATE NOCASE`).map((row) => [String(row[0] ?? ''), row[1] == null ? null : String(row[1])]));
   for (const row of selectRows(`PRAGMA index_list(${quoteIdentifier(name)})`)) {
     const indexName = String(row[1] ?? '');
+    const predicate = indexPredicate(definitions.get(indexName) ?? null);
     indexesByName.set(indexName, {
       name: indexName,
       unique: Number(row[2] ?? 0) === 1,
       origin: row[3] === 'u' ? 'unique' : row[3] === 'pk' ? 'primary-key' : row[3] === 'c' ? 'created' : 'unknown',
-      partial: Number(row[4] ?? 0) === 1,
+      partial: Number(row[4] ?? 0) === 1 || predicate !== null,
+      predicate,
       columns: readIndexColumns(indexName),
     });
   }
-  for (const row of selectRows(`SELECT name, sql FROM sqlite_schema WHERE type = 'index' AND tbl_name = ${quoteString(name)} ORDER BY name COLLATE NOCASE`)) {
-    const indexName = String(row[0] ?? '');
+  for (const [indexName, sql] of definitions) {
     if (indexesByName.has(indexName)) continue;
-    const sql = row[1] == null ? '' : String(row[1]);
+    const predicate = indexPredicate(sql);
     indexesByName.set(indexName, {
       name: indexName,
-      unique: /^\s*CREATE\s+UNIQUE\s+INDEX\b/i.test(sql),
+      unique: /^\s*CREATE\s+UNIQUE\s+INDEX\b/i.test(sql ?? ''),
       origin: 'created',
-      partial: /\bWHERE\b/i.test(sql),
+      partial: predicate !== null,
+      predicate,
       columns: readIndexColumns(indexName),
     });
   }
@@ -320,6 +355,14 @@ function quoteIdentifier(identifier: string) {
 
 function quoteString(value: string) {
   return `'${value.replaceAll("'", "''")}'`;
+}
+
+function indexPredicate(sql: string | null) {
+  if (!sql) return null;
+  const match = /\)\s*WHERE\s+([\s\S]*)$/i.exec(sql);
+  if (!match) return null;
+  const predicate = match[1].replace(/;\s*$/, '').trim();
+  return predicate ? boundCatalogText(predicate) : null;
 }
 
 function boundCatalogText(value: string) {

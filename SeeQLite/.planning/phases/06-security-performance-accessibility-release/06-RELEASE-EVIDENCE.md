@@ -10,15 +10,15 @@ This checkpoint covers the incremental ER discoverability, safe-copy, query-plan
 |---|---|---|---|
 | CAT-05 | A selected table exposes a quoted identifier and a bounded `SELECT * ... LIMIT 100` action; clipboard denial leaves a visible recovery message. | `src/App.tsx` (`TableDetails`, `copyWithSelection`); `tests/e2e/app.spec.ts` relationship test | PASS |
 | CAT-01 | The opened catalog can be searched by object or column name with bounded filtered counts and an explicit no-match state; SQLite internals are hidden by default and revealed by an explicit toggle. | `src/App.tsx` (`catalogSearch`, `filteredTables`, `showInternalObjects`); `src/engine/sqlite.worker.ts` (`PRAGMA table_list`); `tests/e2e/app.spec.ts` internal-object test | PASS for search/toggle/runtime object discovery |
-| CAT-02 | Selected objects expose bounded column/index details, nullable CREATE SQL, explicit STRICT/rowid metadata, generated/hidden flags, ordered expression columns, uniqueness, origin, and partial status without inventing definitions. | `src/engine/protocol.ts` (`CatalogDetails`, `CatalogIndexColumn`); `src/engine/sqlite.worker.ts` (`readCatalogDetails`, `readIndexColumns`); `src/App.tsx` (`TableDetails`); `tests/e2e/app.spec.ts` internal-object test | PARTIAL — index predicate text, malformed-object isolation, and full golden coverage for views/virtual/WITHOUT ROWID objects remain open |
-| CAT-04 | Normal catalog summaries stay eager while selected-object index details load lazily, deduplicate, remain bounded, and cannot overwrite a newer database generation. | `src/engine/database-client.ts` (`details`); `src/App.tsx` (`selectTable`, `detailGenerationRef`); `src/engine/sqlite.worker.ts` (`MAX_INDEXES`, identifier/text bounds); cross-engine internal-object test | PARTIAL — malformed-object failure isolation and measured large-catalog detail budgets remain open |
+| CAT-02 | Selected objects expose bounded column/index details, nullable CREATE SQL, explicit STRICT/rowid metadata, generated/hidden flags, ordered expression columns, uniqueness, origin, partial status, and bounded predicate text without inventing definitions. | `src/engine/protocol.ts` (`CatalogDetails`, `CatalogIndexColumn`); `src/engine/sqlite.worker.ts` (`readCatalogDetails`, `readIndexColumns`, `indexPredicate`); `src/App.tsx` (`TableDetails`); cross-engine internal-object and malformed-object tests | PARTIAL — full virtual-table golden coverage remains open |
+| CAT-04 | Normal catalog summaries stay eager while selected-object index details load lazily, deduplicate, remain bounded, isolate malformed metadata, degrade to searchable limited mode, cap the catalog DOM at 100 rows, and cannot overwrite a newer database generation. | `src/engine/database-client.ts` (`details`); `src/App.tsx` (`selectTable`, catalog paging/limit/diagram guards); `src/engine/sqlite.worker.ts` (`readCatalog`, `MAX_INDEXES`, identifier/text bounds); cross-engine malformed/oversized-catalog tests | PARTIAL — measured large-catalog detail budgets remain open |
 | FILE-04 | Obvious SQLite `-wal`, `-shm`, and `-journal` sidecars are rejected before bytes reach the worker. | `src/App.tsx` (`isSQLiteSidecarName`); `tests/e2e/app.spec.ts` sidecar test | PASS |
 | ER-04 | Declared foreign keys are available in a keyboard-readable list independent of the SVG canvas, with direction, many-to-one semantics, source/target columns, and table navigation. | `src/App.tsx` (`RelationshipList`); `src/styles/app.css`; `tests/e2e/app.spec.ts` relationship test | PARTIAL — full ER-04 still requires ordered rules, resolution status, and complete table-grouping semantics |
-| SAFE-02 | SQLite-level query-length/column/compound/expression/function/attach/trigger/worker limits are applied, with catalog-specific bounds retained in the worker. | `src/engine/sqlite.worker.ts` (`configureReadOnly` limits) | PARTIAL — catalog metadata limits still need the full 50,000-column contract |
+| SAFE-02 | SQLite-level query-length/column/compound/expression/function/attach/trigger/worker limits are applied, with catalog-specific bounds retained and explicit limited-mode degradation in the worker. | `src/engine/sqlite.worker.ts` (`configureReadOnly`, `readCatalog`) | PARTIAL — the provisional 20,000-column/1,000-object budgets still need measured ratification against the broader 50,000-column contract |
 | SQL-02 | SQLite’s prepare/tail API rejects trailing statements and bound parameters before execution; no custom JavaScript statement scanner remains. | `src/engine/sqlite.worker.ts` (`assertSingleStatement`); `tests/e2e/app.spec.ts` trailing/native-policy tests | PASS for the implemented single-statement/parameter boundary |
 | ER-05 | A resolved relationship generates centrally quoted read-only join SQL, supports composite/implicit parent keys, and asks before replacing a non-empty draft; cancel leaves the draft intact. | `src/App.tsx` (`buildJoinSql`, `generateJoin`); `tests/e2e/app.spec.ts` generated-join tests | PARTIAL — broader unresolved/self/parallel fixture and join-model coverage remains |
-| PLAN-01 | Query plans are presented as an accessible bounded list with parent indentation, and already-explained SQL is not nested. | `src/App.tsx` (`PlanTree`, `runPlan`); `tests/e2e/app.spec.ts` plan tests | PARTIAL — stale-plan, empty-plan, and hostile-detail fixture coverage remains |
-| A11Y-01 | New relationship, copy, metadata, and toggle controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `npm run test:e2e` (66/66; axe test in Chromium/Firefox/WebKit) | PASS |
+| PLAN-01 | Query plans are presented as an accessible bounded list with parent indentation, already-explained SQL is not nested, and a new query cannot leave a stale plan visible. | `src/App.tsx` (`PlanTree`, `runPlan`, invalidation); `tests/e2e/app.spec.ts` plan/stale-plan tests | PARTIAL — empty-plan and hostile-detail fixture coverage remains |
+| A11Y-01 | New relationship, copy, metadata, toggle, paging, and forced-colors controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `npm run test:e2e` (78/78; axe plus forced-colors/zoom/reduced-motion paths in Chromium/Firefox/WebKit) | PASS for automated gates; manual Safari/VoiceOver/NVDA remains |
 | REL-01 | The new surface does not regress type safety, production bundle budgets, worker behavior, exports, history, cancellation, or hostile-query paths. | Commands below | PASS |
 | REL-02 | Pages artifact and sibling DataDuck build/test/bundle contracts remain green. | Commands below | PASS |
 
@@ -29,20 +29,22 @@ SeeQLite: npm test                         PASS (1 test)
 SeeQLite: npm run typecheck                 PASS
 SeeQLite: npm run build                     PASS
 SeeQLite: npm run check:bundle              PASS (24 emitted assets)
-SeeQLite: npm run test:e2e                  PASS (66 tests; Chromium, Firefox, WebKit)
+SeeQLite: npm run test:e2e                  PASS (78 tests; Chromium, Firefox, WebKit)
+SeeQLite: npm audit --omit=dev --audit-level=high PASS (0 production vulnerabilities)
 SeeQLite: focused negative E2E                 PASS (9 tests; trailing SQL, native policy, sidecars)
 Pages:    node scripts/build-pages.mjs      PASS
 Pages:    node scripts/verify-pages-build.mjs PASS
 DataDuck: npm --prefix dataduck test        PASS (195 tests / 54 files)
 DataDuck: npm --prefix dataduck run build   PASS (existing >500 kB chunk warnings)
 DataDuck: npm --prefix dataduck run check:bundle PASS
+DataDuck: npm --prefix dataduck audit --omit=dev --audit-level=high PASS (0 production vulnerabilities; full dev audit reports 9 advisories)
 ```
 
 ## Remaining release gates
 
 - Record current released Safari + VoiceOver and Windows NVDA workflow evidence, including forced colors, 200% zoom, reduced motion, IME, result containment, and ER-list parity.
 - Capture deployed Pages response headers/MIME/service-worker scope and rehearse rollback; retain the documented meta-CSP limitation when host headers are unavailable.
-- Keep the DataDuck advisory inventory visible: its existing `npm audit` reports upstream moderate/high/critical advisories even though its test/build/bundle gates pass.
-- Continue the broader requirement gaps already called out in `REQUIREMENTS.md` (complete catalog limit enforcement, index predicate text, dedicated plan tree, offline/update proof, measured performance budgets, and full negative fixture coverage).
-- CAT-02 follow-up: malformed-object isolation, predicate-text display, and full view/virtual/WITHOUT ROWID golden coverage.
-- CAT-02/CAT-04 follow-up: index predicate text, malformed-object fixtures, and measured large-catalog detail budgets.
+- Keep the DataDuck advisory inventory visible: its full development-tree audit reports 9 upstream moderate/high/critical transitive advisories even though its production-only audit and test/build/bundle gates pass; SeeQLite production-only audit is clean.
+- Continue the broader requirement gaps already called out in `REQUIREMENTS.md` (measured catalog/graph budgets, dedicated plan-tree fixtures, offline/update proof, and complete virtual-table golden coverage).
+- CAT-02/CAT-04 follow-up: measured large-catalog detail budgets and virtual-table/shadow-object golden coverage.
+- Automated accessibility follow-up: current Safari/VoiceOver and Windows NVDA evidence remains manual even though forced-colors/zoom/reduced-motion automation is green.

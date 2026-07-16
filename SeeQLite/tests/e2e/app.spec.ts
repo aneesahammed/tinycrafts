@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const fixture = path.join(process.cwd(), 'tests/fixtures/smoke.sqlite');
+const malformedFixture = path.join(process.cwd(), 'tests/fixtures/malformed.sqlite');
+const limitedFixture = path.join(process.cwd(), 'tests/fixtures/limited.sqlite');
 
 test('opens a local database and renders a bounded query result', async ({ page }) => {
   await page.goto('/');
@@ -113,6 +115,7 @@ test('keeps SQLite internal objects hidden until explicitly requested', async ({
   await page.getByRole('button', { name: /notes table/ }).click();
   await expect(page.getByRole('region', { name: 'notes details' })).toContainText('notes_body_partial_idx');
   await expect(page.getByRole('region', { name: 'notes details' })).toContainText('PARTIAL');
+  await expect(page.getByRole('region', { name: 'notes details' })).toContainText('WHERE body IS NOT NULL');
   await expect(page.getByRole('region', { name: 'notes details' })).toContainText('body_length');
   await expect(page.getByRole('region', { name: 'notes details' })).toContainText('GENERATED STORED');
   await expect(page.getByRole('region', { name: 'notes details' })).toContainText('FK');
@@ -120,6 +123,48 @@ test('keeps SQLite internal objects hidden until explicitly requested', async ({
   await page.getByRole('button', { name: 'Hide internal objects' }).click();
   await expect(page.locator('.table-list-item')).toHaveCount(2);
   await expect(page.getByRole('region', { name: 'notes details' })).toBeVisible();
+});
+
+test('keeps a malformed view isolated from healthy catalog objects', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(malformedFixture);
+  await expect(page.locator('.file-status')).toContainText('2 tables ready');
+  await expect(page.locator('.table-list-item')).toHaveCount(4);
+
+  await page.getByRole('button', { name: /settings table/ }).click();
+  await expect(page.getByRole('region', { name: 'settings details' })).toContainText('WITHOUT ROWID');
+  await expect(page.getByRole('region', { name: 'settings details' })).toContainText('STRICT');
+
+  await page.getByRole('button', { name: /broken_view view/ }).click();
+  await expect(page.getByRole('region', { name: 'broken_view details' })).toContainText('Column metadata could not be read');
+
+  await page.getByRole('button', { name: /healthy table/ }).click();
+  await expect(page.getByRole('region', { name: 'healthy details' })).toContainText('CREATE TABLE healthy');
+  await expect(page.getByRole('region', { name: 'healthy details' })).toContainText('No explicit indexes');
+});
+
+test('opens an oversized catalog in bounded searchable mode', async ({ page }) => {
+  await page.goto('/');
+  const started = Date.now();
+  await page.locator('input[type="file"]').setInputFiles(limitedFixture);
+  await expect(page.locator('.file-status')).toContainText('Catalog limited');
+  expect(Date.now() - started).toBeLessThan(5000);
+  await expect(page.locator('.catalog-limit')).toContainText('objects capped at 1,000');
+  await expect(page.getByRole('tab', { name: /Diagram/ })).toBeDisabled();
+  await expect(page.locator('.table-list-item')).toHaveCount(100);
+  await expect(page.getByRole('navigation', { name: 'Catalog page controls' })).toContainText('Page 1 of 10');
+
+  const detailStarted = Date.now();
+  await page.getByLabel('Search tables and columns').fill('t_0999');
+  await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await page.getByRole('button', { name: /t_0999 table/ }).click();
+  await expect(page.getByRole('region', { name: 't_0999 details' })).toContainText('No explicit indexes');
+  expect(Date.now() - detailStarted).toBeLessThan(2000);
+
+  await page.getByLabel('SQL query').fill('SELECT 1 AS ready;');
+  await page.getByRole('button', { name: 'Run query' }).click();
+  await expect(page.locator('.result-panel')).toContainText('ready');
+  await expect(page.locator('.result-panel')).toContainText('1');
 });
 
 test('provides a SQLite-aware editor with keyboard execution', async ({ page }) => {
@@ -218,6 +263,19 @@ test('plans an already-explained statement without nesting EXPLAIN', async ({ pa
   await page.getByLabel('SQL query').fill('EXPLAIN QUERY PLAN SELECT email FROM users;');
   await page.getByRole('button', { name: 'Show query plan' }).click();
   await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
+});
+
+test('clears a stale plan when the SQL result changes', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByLabel('SQL query').fill('SELECT email FROM users;');
+  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await expect(page.locator('.plan-panel')).toContainText('SCAN');
+
+  await page.getByLabel('SQL query').fill('SELECT id FROM users;');
+  await page.getByRole('button', { name: 'Run query' }).click();
+  await expect(page.locator('.result-panel')).toContainText('1');
+  await expect(page.locator('.plan-panel')).toHaveCount(0);
 });
 
 test('keeps duplicate labels positional and neutralizes CSV formulas', async ({ page }) => {
@@ -335,4 +393,18 @@ test('has no serious or critical accessibility violations in both themes', async
   await page.waitForTimeout(250);
   const lightDetailsViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
   expect(lightDetailsViolations).toEqual([]);
+});
+
+test('keeps the primary workflow usable in forced colors and 200% zoom', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.goto('/');
+  await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
+  await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open SQLite database' })).toBeVisible();
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await expect(page.getByRole('button', { name: 'Run readiness check' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth * 2)).toBe(true);
+  const violations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+  expect(violations).toEqual([]);
 });

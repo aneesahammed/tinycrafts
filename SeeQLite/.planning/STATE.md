@@ -22,8 +22,8 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
-Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, searchable catalog, internal-object metadata/toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added bounded, lazy PRAGMA-backed object details with generated/hidden-column and index metadata, stale-response guards, and expanded regression fixtures; 66/66 cross-engine browser tests are green.
+Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, accessibility gate, searchable/paged catalog, internal-object metadata/toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
+Last activity: 2026-07-16 — Added failure-isolated limited catalogs, bounded predicate metadata, 100-row catalog paging, forced-colors support, stale-plan invalidation, and expanded regression fixtures; 78/78 cross-engine browser tests are green.
 
 Progress: [█████████░] 89%
 
@@ -58,10 +58,10 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 
 ### Pending Todos
 
-- Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark and reduced-motion gate now passes in all three engines; the new relationship list is keyboard-readable).
+- Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark plus forced-colors/zoom/reduced-motion gates now pass in all three engines; the new relationship list is keyboard-readable).
 - Add production HTTP-header/CSP evidence where the Pages host permits it; retain the documented meta-CSP fallback limitation.
-- Keep the DataDuck dependency advisory inventory visible; its existing npm audit still reports upstream moderate/high/critical advisories despite the full test/build suite passing.
-- CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags and stale-response guards; remaining work is malformed-object isolation and measured large-catalog detail budgets.
+- Keep the DataDuck dependency advisory inventory visible; its full development-tree `npm audit --audit-level=moderate` currently reports 9 upstream advisories (including high/critical transitive issues), while production-only audits for SeeQLite and DataDuck are clean.
+- CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags, predicate text, malformed-object isolation, limited-mode degradation, graph caps, and stale-response guards; remaining work is measured large-catalog detail budgets and broader virtual-table golden coverage.
 
 ### Blockers/Concerns
 
