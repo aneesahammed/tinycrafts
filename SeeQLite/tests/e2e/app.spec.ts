@@ -124,6 +124,26 @@ test('browses an Explorer object in one click while preserving a custom SQL draf
   await expect(page.getByRole('region', { name: 'Query results' })).toContainText('Ready');
 });
 
+test('uses consistent semantic schema icons in the Inspector and Schema tab', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(fixture);
+  await page.getByRole('button', { name: /notes table/ }).click();
+
+  const inspectorDetails = page.getByRole('region', { name: 'notes details' });
+  await expect(inspectorDetails.locator('[data-schema-icon="primary-key"]').first()).toBeVisible();
+  await expect(inspectorDetails.locator('[data-schema-icon="foreign-key"]').first()).toBeVisible();
+  await expect(inspectorDetails.locator('[data-schema-icon="index"]').first()).toBeVisible();
+  await expect(inspectorDetails.locator('[data-schema-icon="relationship"]').first()).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Schema' }).click();
+  const schemaDetails = page.locator('#schema-panel').getByRole('region', { name: 'notes details' });
+  await expect(schemaDetails.locator('[data-schema-icon="primary-key"]').first()).toBeVisible();
+  await expect(schemaDetails.locator('[data-schema-icon="foreign-key"]').first()).toBeVisible();
+  await expect(schemaDetails.locator('[data-schema-icon="index"]').first()).toBeVisible();
+  await expect(schemaDetails.locator('[data-schema-icon="relationship"]').first()).toBeVisible();
+  await expect(page.locator('.inspector-summary [data-schema-icon="storage"]')).toBeVisible();
+});
+
 test('keeps SQLite internal objects hidden until explicitly requested', async ({ page }) => {
   await page.goto('/');
   await page.locator('input[type="file"]').setInputFiles(fixture);
