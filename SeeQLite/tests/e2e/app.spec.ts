@@ -77,6 +77,7 @@ test('opens the bundled sample and runs the fixed readiness check', async ({ pag
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
   await expect(page.locator('.file-status')).toContainText('sample.sqlite');
+  await page.locator('.db-pill').click();
   await page.getByRole('button', { name: 'Run readiness check' }).click();
   await expect(page.locator('.result-panel')).toContainText('ready');
   await expect(page.locator('.result-panel')).toContainText('1');
@@ -328,6 +329,7 @@ test('keeps the current SQL draft when generated-join replacement is cancelled',
 test('resets the worker-backed workspace without retaining the database view', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.locator('.db-pill').click();
   await expect(page.getByRole('button', { name: 'Close database' })).toBeVisible();
   await page.getByRole('button', { name: 'Close database' }).click();
   await expect(page.locator('.file-status')).toContainText('No database open');
@@ -342,7 +344,7 @@ test('shows a read-only query plan, exports the result, and keeps bounded histor
   await page.getByRole('button', { name: 'Run query' }).click();
   await expect(page.locator('.result-panel')).toContainText('ada@example.test');
 
-  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.locator('.plan-panel')).toContainText('SCAN');
   await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
   await expect(page.getByRole('list', { name: 'SQLite query plan' }).getByRole('listitem')).toHaveCount(1);
@@ -368,7 +370,7 @@ test('plans an already-explained statement without nesting EXPLAIN', async ({ pa
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
   await page.getByLabel('SQL query').fill('EXPLAIN QUERY PLAN SELECT email FROM users;');
-  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
 });
 
@@ -377,7 +379,7 @@ test('renders hostile query-plan detail as inert text', async ({ page }) => {
   await page.locator('input[type="file"]').setInputFiles(hostileFixture);
   await expect(page.locator('.file-status')).toContainText('1 table ready');
   await page.getByLabel('SQL query').fill('EXPLAIN QUERY PLAN SELECT * FROM "<img src=x onerror=alert(1)>";');
-  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.locator('.plan-detail')).toContainText('<img src=x onerror=alert(1)>');
   await expect(page.locator('.plan-detail img')).toHaveCount(0);
 });
@@ -399,7 +401,7 @@ test('clears a stale plan when the SQL result changes', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
   await page.getByLabel('SQL query').fill('SELECT email FROM users;');
-  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.locator('.plan-panel')).toContainText('SCAN');
 
   await page.getByLabel('SQL query').fill('SELECT id FROM users;');
@@ -569,7 +571,7 @@ test('keeps the primary workflow usable in forced colors and 200% zoom', async (
   await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open SQLite database' })).toBeVisible();
   await page.getByRole('button', { name: 'Try sample database' }).click();
-  await expect(page.getByRole('button', { name: 'Run readiness check' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run query' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth * 2)).toBe(true);
   const violations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
   expect(violations).toEqual([]);

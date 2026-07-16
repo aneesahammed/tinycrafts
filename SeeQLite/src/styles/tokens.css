@@ -70,57 +70,59 @@
   --focus-ring: #b5c4ff;
 }
 
-/* ---- App skin — Uber Base (monochrome) -------------------------------- */
+/* ---- App skin — database-tool neutrals ---------------------------------
+   Cool near-black ink on white/gray-tinted surfaces, one restrained blue for
+   the primary action, selection, and links. The register shared by D1 Studio,
+   TablePlus, and DataGrip: calm, dense, data-first. All pairs verified >= 4.5:1. */
 [data-skin="app"] {
   color-scheme: light;
-  --paper: #fafafa;
-  --paper-2: #f1f1f1;
+  --paper: #f7f8fa;
+  --paper-2: #eff1f4;
   --paper-3: #ffffff;
-  --ink: #000000;
-  --ink-2: #545454;
-  --ink-3: #6b6b6b;
-  --rule: #ededed;
-  --rule-strong: #e2e2e2;
-  --boundary: #cfcfcf;
+  --ink: #1a1d21;
+  --ink-2: #4a5158;
+  --ink-3: #646b71;
+  --rule: #e8eaed;
+  --rule-strong: #dcdfe3;
+  --boundary: #c6cbd1;
   --accent: #155ae0;
-  --accent-deep: #133f96;
-  --accent-soft: #eff3fe;
-  --accent-border: #a3bffc;
-  /* Uber's signature: black primary action (like DataDuck's Run). */
-  --btn-primary-bg: #000000;
+  --accent-deep: #1148b0;
+  --accent-soft: #ecf2fe;
+  --accent-border: #a7c1f7;
+  --btn-primary-bg: #155ae0;
   --btn-primary-ink: #ffffff;
   --success: #0a7d43;
   --danger: #cc2016;
   --danger-soft: #fdedeb;
   --warning: #8b5a00;
   --num: #8b5a00;
-  --blueprint: rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --focus-ring: #276ef1;
+  --blueprint: rgba(21, 90, 224, 0.04);
+  --shadow-card: 0 1px 2px rgba(20, 24, 33, 0.05);
+  --focus-ring: #155ae0;
 }
 :root[data-dark] [data-skin="app"] {
   color-scheme: dark;
-  --paper: #0a0a0a;
-  --paper-2: #161616;
-  --paper-3: #1c1c1c;
-  --ink: #ffffff;
-  --ink-2: #a8a8a8;
-  --ink-3: #909090;
-  --rule: #262626;
-  --rule-strong: #333333;
-  --boundary: #454545;
-  --accent: #4b8cff;
-  --accent-deep: #8bb4ff;
-  --accent-soft: #12213d;
-  --accent-border: #2f4d80;
-  --btn-primary-bg: #ffffff;
-  --btn-primary-ink: #000000;
+  --paper: #141519;
+  --paper-2: #1b1d22;
+  --paper-3: #212429;
+  --ink: #f2f4f6;
+  --ink-2: #a8b0b9;
+  --ink-3: #8b939d;
+  --rule: #2a2d33;
+  --rule-strong: #363a41;
+  --boundary: #4a4f57;
+  --accent: #6ba1ff;
+  --accent-deep: #9dc0ff;
+  --accent-soft: #1a2740;
+  --accent-border: #37507f;
+  --btn-primary-bg: #1d5fd6;
+  --btn-primary-ink: #ffffff;
   --success: #3fb950;
   --danger: #ff6b5a;
   --danger-soft: #40221f;
   --warning: #d1a35a;
   --num: #d1a35a;
-  --blueprint: rgba(255, 255, 255, 0.04);
+  --blueprint: rgba(107, 161, 255, 0.05);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --focus-ring: #4b8cff;
+  --focus-ring: #6ba1ff;
 }

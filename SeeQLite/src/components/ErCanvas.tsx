@@ -213,9 +213,11 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
           <div className="er-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
             <svg className="er-edges" aria-hidden="true" width={4000} height={4000}>
               <defs>
-                <marker id="er-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                  <path d="M0,0 L10,5 L0,10 z" />
-                </marker>
+                {(['default', 'active', 'unresolved'] as const).map((kind) => (
+                  <marker key={kind} id={`er-arrow-${kind}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M0,0 L10,5 L0,10 z" />
+                  </marker>
+                ))}
               </defs>
               {catalog.foreignKeys.map((relation) => {
                 const from = boxes.get(relation.fromTable);
@@ -226,7 +228,7 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
                 const [x1, y1, x2, y2] = edgeEndpoints(from, to);
                 return (
                   <g key={`${relation.fromTable}-${relation.id}-${relation.toTable}`} className={`er-edge${active ? ' active' : ''}${resolved ? '' : ' unresolved'}`}>
-                    <line x1={x1} y1={y1} x2={x2} y2={y2} markerEnd="url(#er-arrow)" />
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} markerEnd={`url(#er-arrow-${active ? 'active' : resolved ? 'default' : 'unresolved'})`} />
                   </g>
                 );
               })}

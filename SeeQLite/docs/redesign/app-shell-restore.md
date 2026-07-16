@@ -15,7 +15,7 @@ Skins are selected by `data-skin` on `.app-shell` and share token *names*, so
 | Skin | When | Palette |
 |------|------|---------|
 | `landing` | no database open | PageCrumb — cream `#f7f3ec` + blue `#3867e8`, blueprint radial-gradient |
-| `app` | database open | Uber Base — white/black/gray monochrome, **black primary buttons**, accent blue `#155ae0` (AA-tuned from `#276ef1`), num orange, functional green/red |
+| `app` | database open | Database-tool neutrals — cool near-black ink on white/gray surfaces, **blue primary button** `#155ae0`, one accent for action/selection/links, num orange, functional green/red. (An earlier Uber-monochrome direction was retired 2026-07-16.) |
 
 Both skins ship light + dark; all text pairs verified ≥ 4.5:1 (WCAG AA).
 

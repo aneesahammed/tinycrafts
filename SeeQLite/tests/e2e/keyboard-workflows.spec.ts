@@ -10,7 +10,7 @@ test('completes the primary workflow without pointer-only actions', async ({ pag
   const sample = page.getByRole('button', { name: 'Try sample database' });
   await sample.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('button', { name: 'Run readiness check' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run query' })).toBeVisible();
 
   const editor = page.getByLabel('SQL query');
   await editor.fill('SELECT email FROM users;');
@@ -19,7 +19,7 @@ test('completes the primary workflow without pointer-only actions', async ({ pag
   await expect(page.locator('.result-panel')).toContainText('ada@example.test');
   await expect(editor).toBeFocused();
 
-  const plan = page.getByRole('button', { name: 'Show query plan' });
+  const plan = page.getByRole('button', { name: 'Explain' });
   await plan.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');

@@ -4,7 +4,7 @@ import { autocompletion } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { EditorState, StateEffect } from '@codemirror/state';
-import { EditorView, keymap, drawSelection, highlightActiveLine, lineNumbers } from '@codemirror/view';
+import { EditorView, keymap, drawSelection, highlightActiveLine, highlightActiveLineGutter, lineNumbers } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import type { Catalog } from '../engine/protocol';
 
@@ -16,16 +16,20 @@ type SqlEditorProps = {
   onPlan: (selection?: string) => void;
 };
 
+// Chrome (border, focus, sizing) belongs to the surrounding .editor-pane — the
+// editor itself only styles text, gutter, and selection.
 const editorTheme = EditorView.theme({
-  '&': { minHeight: '180px', border: '1px solid var(--boundary)', borderRadius: '6px', backgroundColor: 'var(--paper-3)', color: 'var(--ink)' },
-  '.cm-scroller': { minHeight: '180px', overflow: 'auto', fontFamily: 'var(--font-mono)', fontSize: '14px', lineHeight: '1.65' },
-  '.cm-content': { padding: '20px', caretColor: 'var(--accent)' },
-  '.cm-gutters': { display: 'none' },
-  '.cm-line': { padding: '0' },
-  '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--accent-soft) 60%, transparent)' },
+  '&': { backgroundColor: 'var(--paper-3)', color: 'var(--ink)' },
+  '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono)', fontSize: '13px', lineHeight: '1.6' },
+  '.cm-content': { padding: '12px 8px', caretColor: 'var(--accent)' },
+  '.cm-gutters': { backgroundColor: 'var(--paper-3)', borderRight: '1px solid var(--rule)', color: 'var(--ink-3)' },
+  '.cm-lineNumbers .cm-gutterElement': { padding: '0 10px 0 14px', minWidth: '38px' },
+  '.cm-activeLineGutter': { backgroundColor: 'var(--paper-2)', color: 'var(--ink-2)' },
+  '.cm-line': { padding: '0 8px' },
+  '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--accent-soft) 55%, transparent)' },
   '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--accent)' },
   '.cm-selectionBackground, ::selection': { backgroundColor: 'var(--accent-soft) !important' },
-  '&.cm-focused': { outline: '2px solid var(--focus-ring)', outlineOffset: '4px' },
+  '&.cm-focused': { outline: 'none' },
 });
 
 const sqlHighlightStyle = HighlightStyle.define([
@@ -73,6 +77,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
       doc: valueRef.current,
       extensions: [
         lineNumbers(),
+        highlightActiveLineGutter(),
         history(),
         drawSelection(),
         highlightActiveLine(),
@@ -116,6 +121,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
     if (!editor) return;
     editor.dispatch({ effects: StateEffect.reconfigure.of([
       lineNumbers(),
+      highlightActiveLineGutter(),
       history(),
       drawSelection(),
       highlightActiveLine(),

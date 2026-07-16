@@ -21,7 +21,7 @@ for (const viewport of viewports) {
     await expectNoSeriousAxeViolations(page);
 
     await page.getByRole('button', { name: 'Try sample database' }).click();
-    await expect(page.getByRole('button', { name: 'Run readiness check' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Run query' })).toBeVisible();
     await expectNoSeriousAxeViolations(page);
 
     await page.getByLabel('SQL query').fill('SELECT email FROM users;');
@@ -45,7 +45,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: 'Try sample database' }).click();
     await page.getByLabel('SQL query').fill('SELECT email FROM users;');
     await page.getByRole('button', { name: 'Run query' }).click();
-    await page.getByRole('button', { name: 'Show query plan' }).click();
+    await page.getByRole('button', { name: 'Explain' }).click();
     await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
     await expectNoSeriousAxeViolations(page);
     await page.getByRole('tab', { name: /Diagram/ }).click();

@@ -50,6 +50,7 @@ function truncateUtf8(value: string, maxBytes: number) {
 export function App() {
   const client = useMemo(() => new DatabaseClient(), []);
   const fileInput = useRef<HTMLInputElement>(null);
+  const dbMenuRef = useRef<HTMLDetailsElement>(null);
   const sourceRef = useRef<AppSource | null>(null);
   const capabilities = checkCapabilities();
   const [fileName, setFileName] = useState('No database open');
@@ -79,6 +80,10 @@ export function App() {
     window.addEventListener('seeqlite-offline-unavailable', handleOfflineUnavailable);
     return () => window.removeEventListener('seeqlite-offline-unavailable', handleOfflineUnavailable);
   }, []);
+
+  function closeDbMenu() {
+    if (dbMenuRef.current) dbMenuRef.current.open = false;
+  }
 
   function invalidateDetails() {
     detailGenerationRef.current += 1;
@@ -160,7 +165,7 @@ export function App() {
       setCatalog(ready.catalog);
       setSelectedTable(null);
       setView('query');
-      setStatus(`${ready.tableCount} tables ready${catalogLimitSuffix(ready.catalog)}. Run the readiness check or write your own SELECT.`);
+      setStatus(`${ready.tableCount} tables ready${catalogLimitSuffix(ready.catalog)}. Pick a table or write your own SELECT.`);
     } catch (error) {
       client.terminate('The sample database did not open.');
       setStatus(error instanceof Error ? error.message : 'Could not open the sample database.');
@@ -357,28 +362,37 @@ export function App() {
       <a className="skip-link" href="#workspace">Skip to workspace</a>
       <header className="app-header">
         <a className="brand" href="../../index.htm" aria-label="TinyCrafts home">
-          <span className="brand-mark" aria-hidden="true">◫</span>
+          <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="12" fill="var(--accent)" /><path d="M16 18h32v8H16zm0 14h22v8H16zm0 14h32v8H16z" fill="#fffdfa" /></svg>
           <span><strong>SeeQLite</strong><small>SQLite, in your browser</small></span>
         </a>
-        {catalog ? <span className="header-stats" aria-hidden="true">{dbStats}</span> : null}
-        <div className="topbar-meta"><span>LOCAL ONLY</span><button className="theme-button" aria-pressed={darkTheme} aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDarkTheme((value) => !value)}>{darkTheme ? 'Light' : 'Dark'}</button></div>
-      </header>
-
-      <div className="database-bar">
-        <span className="db-badge" aria-hidden="true">▤</span>
         <div className="file-status">
-          <span className="label">DATABASE</span>
-          <strong dir="auto" title={fileName}>{fileName}</strong>
+          {catalog ? (
+            <details className="db-menu" ref={dbMenuRef}>
+              <summary className="db-pill" aria-label={`Database ${fileName}. Open database menu`}>
+                <span className={busy ? 'db-dot busy' : 'db-dot ok'} aria-hidden="true" />
+                <strong dir="auto" title={fileName}>{fileName}</strong>
+                <span className="db-caret" aria-hidden="true">▾</span>
+              </summary>
+              <div className="db-menu-list">
+                {capabilities.ok ? <button className="db-menu-item" onClick={() => { closeDbMenu(); fileInput.current?.click(); }} disabled={busy}>Open another database</button> : null}
+                <button className="db-menu-item" onClick={() => { closeDbMenu(); void runReadiness(); }} disabled={busy}>Run readiness check</button>
+                <button className="db-menu-item" onClick={() => { closeDbMenu(); resetWorkspace(); }} disabled={busy}>Close database</button>
+              </div>
+            </details>
+          ) : (
+            <strong dir="auto" className="db-none">{fileName}</strong>
+          )}
+          {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}
           <span className="db-status" role="status" aria-live="polite" title={status}>{status}</span>
         </div>
-        <div className="db-actions">
+        {catalog ? <span className="header-stats" aria-hidden="true">{dbStats}</span> : null}
+        <div className="topbar-meta">
           {catalog ? <span className="mode-badge">READ ONLY</span> : null}
-          {capabilities.ok && catalog ? <button className="secondary-button compact" onClick={() => fileInput.current?.click()} disabled={busy}>Open another database</button> : null}
-          {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}
-          {catalog ? <button className="secondary-button compact" onClick={resetWorkspace} disabled={busy}>Close database</button> : null}
+          <span className="mode-badge quiet">LOCAL ONLY</span>
+          <button className="theme-button" aria-pressed={darkTheme} aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDarkTheme((value) => !value)}>{darkTheme ? 'Light' : 'Dark'}</button>
         </div>
         <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
-      </div>
+      </header>
 
       <main id="workspace" className="workbench" tabIndex={-1} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
         {catalog ? (
@@ -421,13 +435,17 @@ export function App() {
               <div className="mode-tabs" role="tablist" aria-label="Database workspace view">
                 <button className={view === 'query' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'query'} onClick={() => setView('query')}>Query</button>
                 <button className={view === 'schema' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'schema'} onClick={() => setView('schema')}>Schema</button>
-                <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={Boolean(catalog.limits.length) || catalog.tables.length > MAX_DIAGRAM_TABLES} title={catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>ER Diagram · {catalog.foreignKeys.length} relation{catalog.foreignKeys.length === 1 ? '' : 's'}</button>
+                <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={Boolean(catalog.limits.length) || catalog.tables.length > MAX_DIAGRAM_TABLES} title={catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>ER Diagram</button>
               </div>
               {view === 'query' ? (
                 <div className="editor-tab">
                   <div className="editor-pane">
                     <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
-                    <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
+                    <div className="query-actions">
+                      <button className="primary-button compact" onClick={() => runQuery()} disabled={busy}>{busy ? 'Running…' : 'Run query'}<kbd className="kbd" aria-hidden="true">⌘↵</kbd></button>
+                      {busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : null}
+                      <button className="secondary-button compact" onClick={() => runPlan()} disabled={busy}>Explain<kbd className="kbd" aria-hidden="true">⌘⇧↵</kbd></button>
+                    </div>
                   </div>
                   <div className="output-pane">
                     <div className="result-panel">
