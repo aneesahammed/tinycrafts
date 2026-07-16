@@ -7,9 +7,10 @@ export const MAX_DIAGRAM_TABLES = 75;
 
 const NODE_WIDTH = 248;
 const NODE_HEADER = 52;
+const NODE_TITLE_HEIGHT = 36;
 const ROW_HEIGHT = 26;
 const MAX_ROWS = 8;
-const GAP_X = 72;
+const GAP_X = 104;
 const GAP_Y = 60;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2.4;
@@ -17,6 +18,13 @@ const CLICK_SLOP = 5;
 
 type Point = { x: number; y: number };
 type NodeBox = Point & { w: number; h: number };
+type EdgeRoute = {
+  path: string;
+  fromBadge: Point;
+  toBadge: Point;
+  label: Point;
+};
+type DiagramRelation = { relation: CatalogForeignKey; count: number; key: string };
 type DragState =
   | { mode: 'pan'; pointerId: number; startX: number; startY: number; panX: number; panY: number; moved: boolean }
   | { mode: 'node'; pointerId: number; name: string; startX: number; startY: number; originX: number; originY: number; moved: boolean };
@@ -27,12 +35,50 @@ function nodeHeight(table: CatalogTable) {
   return NODE_HEADER + rows * ROW_HEIGHT + overflow + 8;
 }
 
-// Deterministic grid so a diagram always opens tidy and re-arranges the same way.
-function gridLayout(tables: CatalogTable[]): Record<string, Point> {
+// Keep connected tables adjacent while preserving a deterministic grid for fast,
+// dependency-free layout. Isolated views and tables follow the connected groups.
+function relationshipOrder(tables: CatalogTable[], relations: CatalogForeignKey[]) {
+  const tableByName = new Map(tables.map((table) => [table.name, table]));
+  const adjacency = new Map(tables.map((table) => [table.name, new Set<string>()]));
+  for (const relation of relations) {
+    if (relation.fromTable === relation.toTable || !tableByName.has(relation.fromTable) || !tableByName.has(relation.toTable)) continue;
+    adjacency.get(relation.fromTable)?.add(relation.toTable);
+    adjacency.get(relation.toTable)?.add(relation.fromTable);
+  }
+  const compare = (left: CatalogTable, right: CatalogTable) => {
+    const degreeDifference = (adjacency.get(right.name)?.size ?? 0) - (adjacency.get(left.name)?.size ?? 0);
+    return degreeDifference || left.name.localeCompare(right.name, undefined, { sensitivity: 'base' });
+  };
+  const connected = tables.filter((table) => adjacency.get(table.name)?.size).sort(compare);
+  const isolated = tables.filter((table) => !adjacency.get(table.name)?.size).sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+  const ordered: CatalogTable[] = [];
+  const visited = new Set<string>();
+  for (const seed of connected) {
+    if (visited.has(seed.name)) continue;
+    const queue = [seed];
+    visited.add(seed.name);
+    while (queue.length) {
+      const current = queue.shift()!;
+      ordered.push(current);
+      const neighbours = [...(adjacency.get(current.name) ?? [])]
+        .flatMap((name) => tableByName.get(name) ?? [])
+        .filter((table) => !visited.has(table.name))
+        .sort(compare);
+      for (const neighbour of neighbours) {
+        visited.add(neighbour.name);
+        queue.push(neighbour);
+      }
+    }
+  }
+  return [...ordered, ...isolated];
+}
+
+function gridLayout(tables: CatalogTable[], relations: CatalogForeignKey[]): Record<string, Point> {
+  const orderedTables = relationshipOrder(tables, relations);
   const columns = Math.max(1, Math.ceil(Math.sqrt(tables.length)));
   const columnHeights = new Array(columns).fill(GAP_Y);
   const positions: Record<string, Point> = {};
-  tables.forEach((table, index) => {
+  orderedTables.forEach((table, index) => {
     const column = index % columns;
     positions[table.name] = { x: GAP_X + column * (NODE_WIDTH + GAP_X), y: columnHeights[column] };
     columnHeights[column] += nodeHeight(table) + GAP_Y;
@@ -42,6 +88,114 @@ function gridLayout(tables: CatalogTable[]): Record<string, Point> {
 
 function foreignKeyColumns(catalog: Catalog, tableName: string) {
   return new Set(catalog.foreignKeys.filter((relation) => relation.fromTable === tableName).flatMap((relation) => relation.fromColumns));
+}
+
+function relationKey(relation: CatalogForeignKey) {
+  return `${relation.fromTable}\u0000${relation.id}\u0000${relation.toTable}`;
+}
+
+function diagramRelations(relations: CatalogForeignKey[]): DiagramRelation[] {
+  const grouped = new Map<string, DiagramRelation>();
+  for (const relation of relations) {
+    const signature = JSON.stringify([relation.fromTable, relation.toTable, relation.fromColumns, relation.toColumns, relation.onUpdate, relation.onDelete, relation.match]);
+    const existing = grouped.get(signature);
+    if (existing) existing.count += 1;
+    else grouped.set(signature, { relation, count: 1, key: relationKey(relation) });
+  }
+  return [...grouped.values()];
+}
+
+function relationLaneOffsets(relations: CatalogForeignKey[]) {
+  const groups = new Map<string, CatalogForeignKey[]>();
+  for (const relation of relations) {
+    const pair = [relation.fromTable, relation.toTable].sort().join('\u0000');
+    groups.set(pair, [...(groups.get(pair) ?? []), relation]);
+  }
+  const offsets = new Map<string, number>();
+  for (const group of groups.values()) {
+    group.forEach((relation, index) => offsets.set(relationKey(relation), (index - (group.length - 1) / 2) * 18));
+  }
+  return offsets;
+}
+
+function relationColumnLabel(relation: CatalogForeignKey, count: number) {
+  const mapping = relation.fromColumns.length === 1 ? `${relation.fromColumns[0]} → ${relation.toColumns[0] || 'parent key'}` : `${relation.fromColumns.length}-col FK`;
+  return count > 1 ? `${mapping} · ${count}×` : mapping;
+}
+
+function columnAnchorY(box: NodeBox, table: CatalogTable, columnName: string | undefined) {
+  const implicitPrimaryKey = table.columns.find((column) => column.primaryKey)?.name;
+  const index = table.columns.findIndex((column) => column.name === (columnName || implicitPrimaryKey));
+  return index >= 0 && index < MAX_ROWS ? box.y + NODE_TITLE_HEIGHT + index * ROW_HEIGHT + ROW_HEIGHT / 2 : box.y + box.h / 2;
+}
+
+function roundedOrthogonalPath(points: Point[], radius = 12) {
+  if (points.length < 2) return '';
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const previous = points[index - 1];
+    const corner = points[index];
+    const next = points[index + 1];
+    const incoming = Math.hypot(corner.x - previous.x, corner.y - previous.y);
+    const outgoing = Math.hypot(next.x - corner.x, next.y - corner.y);
+    const bend = Math.min(radius, incoming / 2, outgoing / 2);
+    if (!bend) continue;
+    const enter = {
+      x: corner.x - ((corner.x - previous.x) / incoming) * bend,
+      y: corner.y - ((corner.y - previous.y) / incoming) * bend,
+    };
+    const exit = {
+      x: corner.x + ((next.x - corner.x) / outgoing) * bend,
+      y: corner.y + ((next.y - corner.y) / outgoing) * bend,
+    };
+    path += ` L ${enter.x} ${enter.y} Q ${corner.x} ${corner.y} ${exit.x} ${exit.y}`;
+  }
+  const last = points[points.length - 1];
+  return `${path} L ${last.x} ${last.y}`;
+}
+
+function routeRelationship(relation: CatalogForeignKey, from: NodeBox, to: NodeBox, fromTable: CatalogTable, toTable: CatalogTable, lane: number): EdgeRoute {
+  const fromColumnY = columnAnchorY(from, fromTable, relation.fromColumns[0]);
+  const toColumnY = columnAnchorY(to, toTable, relation.toColumns[0]);
+  if (relation.fromTable === relation.toTable) {
+    const loopRight = from.x + from.w + 54 + Math.abs(lane);
+    const loopTop = from.y - 44 - Math.abs(lane);
+    const start = { x: from.x + from.w, y: fromColumnY };
+    const end = { x: from.x + from.w * 0.72, y: from.y };
+    return {
+      path: roundedOrthogonalPath([start, { x: loopRight, y: start.y }, { x: loopRight, y: loopTop }, { x: end.x, y: loopTop }, end]),
+      fromBadge: { x: start.x + 18, y: start.y },
+      toBadge: { x: end.x, y: end.y - 18 },
+      label: { x: (loopRight + end.x) / 2, y: loopTop - 14 },
+    };
+  }
+
+  const fromCenter = { x: from.x + from.w / 2, y: from.y + from.h / 2 };
+  const toCenter = { x: to.x + to.w / 2, y: to.y + to.h / 2 };
+  const horizontal = Math.abs(toCenter.x - fromCenter.x) >= Math.abs(toCenter.y - fromCenter.y);
+  if (horizontal) {
+    const direction = toCenter.x >= fromCenter.x ? 1 : -1;
+    const start = { x: fromCenter.x + direction * from.w / 2, y: fromColumnY };
+    const end = { x: toCenter.x - direction * to.w / 2, y: toColumnY };
+    const middleX = (start.x + end.x) / 2 + lane;
+    return {
+      path: roundedOrthogonalPath([start, { x: middleX, y: start.y }, { x: middleX, y: end.y }, end]),
+      fromBadge: { x: start.x + direction * 18, y: start.y },
+      toBadge: { x: end.x - direction * 18, y: end.y },
+      label: { x: middleX, y: Math.min(start.y, end.y) - 28 },
+    };
+  }
+
+  const direction = toCenter.y >= fromCenter.y ? 1 : -1;
+  const start = { x: fromCenter.x + lane, y: fromCenter.y + direction * from.h / 2 };
+  const end = { x: toCenter.x + lane, y: toCenter.y - direction * to.h / 2 };
+  const middleY = (start.y + end.y) / 2 + lane;
+  return {
+    path: roundedOrthogonalPath([start, { x: start.x, y: middleY }, { x: end.x, y: middleY }, end]),
+    fromBadge: { x: start.x, y: start.y + direction * 18 },
+    toBadge: { x: end.x, y: end.y - direction * 18 },
+    label: { x: (start.x + end.x) / 2, y: middleY - 20 },
+  };
 }
 
 export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: { catalog: Catalog | null; selectedTableName?: string | null; onSelectTable: (table: CatalogTable) => void }) {
@@ -61,7 +215,12 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
   }, [selectedTableName]);
 
   const tables = catalog?.tables ?? [];
+  const relations = catalog?.foreignKeys ?? [];
   const tableKey = tables.map((table) => table.name).join('|');
+  const diagramKey = `${tableKey}::${relations.map(relationKey).join('|')}`;
+  const tableByName = useMemo(() => new Map(tables.map((table) => [table.name, table])), [tables]);
+  const renderedRelations = useMemo(() => diagramRelations(relations), [relations]);
+  const laneOffsets = useMemo(() => relationLaneOffsets(renderedRelations.map(({ relation }) => relation)), [renderedRelations]);
 
   const boxes = useMemo(() => {
     const map = new Map<string, NodeBox>();
@@ -97,15 +256,15 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
 
   // Reset layout whenever the set of tables changes, then fit once.
   useLayoutEffect(() => {
-    const next = gridLayout(tables);
+    const next = gridLayout(tables, relations);
     setPositions(next);
     setSelected(null);
     fit(next, tables);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableKey]);
+  }, [diagramKey]);
 
   const arrange = () => {
-    const next = gridLayout(tables);
+    const next = gridLayout(tables, relations);
     setPositions(next);
     fit(next, tables);
   };
@@ -192,7 +351,8 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
       <div className="er-diagram">
         <div className="er-toolbar" role="toolbar" aria-label="Diagram controls">
           <span className="label">DIAGRAM</span>
-          <span className="er-scope">{catalog.tables.length} table{catalog.tables.length === 1 ? '' : 's'} · {catalog.foreignKeys.length} relation{catalog.foreignKeys.length === 1 ? '' : 's'}</span>
+          <span className="er-scope">{catalog.tables.length} object{catalog.tables.length === 1 ? '' : 's'} · {catalog.foreignKeys.length} relation{catalog.foreignKeys.length === 1 ? '' : 's'}</span>
+          {catalog.foreignKeys.length ? <div className="er-legend" aria-label="Relationship cardinality legend"><span><b>N</b> child</span><span><b>1</b> parent</span></div> : null}
           <div className="er-toolbar-actions">
             <button className="quiet-button" onClick={arrange}>Arrange</button>
             <button className="quiet-button" onClick={() => fit(positions, tables)}>Fit</button>
@@ -216,23 +376,28 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
         >
           <div className="er-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
             <svg className="er-edges" aria-hidden="true" width={4000} height={4000}>
-              <defs>
-                {(['default', 'active', 'unresolved'] as const).map((kind) => (
-                  <marker key={kind} id={`er-arrow-${kind}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                    <path d="M0,0 L10,5 L0,10 z" />
-                  </marker>
-                ))}
-              </defs>
-              {catalog.foreignKeys.map((relation) => {
+              {renderedRelations.map(({ relation, count, key }) => {
                 const from = boxes.get(relation.fromTable);
                 const to = boxes.get(relation.toTable);
-                if (!from || !to) return null;
+                const fromTable = tableByName.get(relation.fromTable);
+                const toTable = tableByName.get(relation.toTable);
+                if (!from || !to || !fromTable || !toTable) return null;
                 const active = selected === relation.fromTable || selected === relation.toTable;
                 const resolved = Boolean(buildJoinSql(relation, catalog));
-                const [x1, y1, x2, y2] = edgeEndpoints(from, to);
+                const route = routeRelationship(relation, from, to, fromTable, toTable, laneOffsets.get(relationKey(relation)) ?? 0);
                 return (
-                  <g key={`${relation.fromTable}-${relation.id}-${relation.toTable}`} className={`er-edge${active ? ' active' : ''}${resolved ? '' : ' unresolved'}`}>
-                    <line x1={x1} y1={y1} x2={x2} y2={y2} markerEnd={`url(#er-arrow-${active ? 'active' : resolved ? 'default' : 'unresolved'})`} />
+                  <g key={key} className={`er-edge${active ? ' active' : ''}${resolved ? '' : ' unresolved'}`} data-self-relation={relation.fromTable === relation.toTable ? 'true' : undefined} data-constraint-count={count}>
+                    <path className="er-edge-halo" d={route.path} />
+                    <path className="er-edge-line" d={route.path} />
+                    <g className="er-cardinality er-cardinality-from" transform={`translate(${route.fromBadge.x} ${route.fromBadge.y})`}>
+                      <circle r="11" />
+                      <text textAnchor="middle" dominantBaseline="central">N</text>
+                    </g>
+                    <g className="er-cardinality er-cardinality-to" transform={`translate(${route.toBadge.x} ${route.toBadge.y})`}>
+                      <circle r="11" />
+                      <text textAnchor="middle" dominantBaseline="central">1</text>
+                    </g>
+                    {active ? <text className="er-edge-label" x={route.label.x} y={route.label.y} textAnchor="middle" dominantBaseline="central">{relationColumnLabel(relation, count)}</text> : null}
                   </g>
                 );
               })}
@@ -269,21 +434,6 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
       </div>
     </div>
   );
-}
-
-// Anchor each edge on the facing side of both node boxes so lines read as flows.
-function edgeEndpoints(from: NodeBox, to: NodeBox): [number, number, number, number] {
-  const fc = { x: from.x + from.w / 2, y: from.y + from.h / 2 };
-  const tc = { x: to.x + to.w / 2, y: to.y + to.h / 2 };
-  const horizontal = Math.abs(tc.x - fc.x) >= Math.abs(tc.y - fc.y);
-  if (horizontal) {
-    const x1 = fc.x + (tc.x >= fc.x ? from.w / 2 : -from.w / 2);
-    const x2 = tc.x + (tc.x >= fc.x ? -to.w / 2 : to.w / 2);
-    return [x1, fc.y, x2, tc.y];
-  }
-  const y1 = fc.y + (tc.y >= fc.y ? from.h / 2 : -from.h / 2);
-  const y2 = tc.y + (tc.y >= fc.y ? -to.h / 2 : to.h / 2);
-  return [fc.x, y1, tc.x, y2];
 }
 
 export function RelationshipList({ catalog, selected, onSelectTable, onGenerateJoin }: { catalog: Catalog; selected: string | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: CatalogForeignKey) => void }) {

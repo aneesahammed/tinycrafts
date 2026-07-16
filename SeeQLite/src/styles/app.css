@@ -198,6 +198,9 @@ tbody tr:hover td { background: var(--paper-2); }
 .er-diagram { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .er-toolbar { flex: none; display: flex; align-items: center; gap: 14px; padding: 8px 16px; border-bottom: 1px solid var(--rule); background: var(--paper-3); }
 .er-scope { color: var(--ink-3); font: 11px var(--font-mono); }
+.er-legend { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font: 10px var(--font-sans); }
+.er-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.er-legend b { display: inline-grid; width: 18px; height: 18px; place-items: center; border: 1px solid var(--boundary); border-radius: 50%; background: var(--paper-3); color: var(--ink-2); font: 650 9px var(--font-sans); }
 .er-toolbar-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .er-zoom { display: flex; align-items: center; gap: 8px; color: var(--ink-3); font: 11px var(--font-mono); }
 .er-zoom-button { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--rule-strong); border-radius: var(--r-sm); background: var(--paper-3); color: var(--ink-2); font-size: 15px; line-height: 1; }
@@ -206,12 +209,18 @@ tbody tr:hover td { background: var(--paper-2); }
 .er-canvas:active { cursor: grabbing; }
 .er-world { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
 .er-edges { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
-.er-edge line { stroke: var(--boundary); stroke-width: 1.5; }
-.er-edge.unresolved line { stroke: var(--warning); stroke-width: 1.5; stroke-dasharray: 5 4; }
-.er-edge.active line { stroke: var(--accent); stroke-width: 2; }
-.er-edges marker path { fill: var(--boundary); }
-.er-edges #er-arrow-active path { fill: var(--accent); }
-.er-edges #er-arrow-unresolved path { fill: var(--warning); }
+.er-edge-halo, .er-edge-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.er-edge-halo { stroke: var(--paper); stroke-width: 7; opacity: .94; }
+.er-edge-line { stroke: var(--boundary); stroke-width: 1.7; }
+.er-edge.unresolved .er-edge-line { stroke: var(--warning); stroke-dasharray: 5 5; }
+.er-edge.active .er-edge-line { stroke: var(--accent); stroke-width: 2.3; }
+.er-cardinality circle { fill: var(--paper-3); stroke: var(--boundary); stroke-width: 1.4; }
+.er-cardinality text { fill: var(--ink-2); font: 650 9px var(--font-sans); }
+.er-edge.unresolved .er-cardinality circle { stroke: var(--warning); }
+.er-edge.unresolved .er-cardinality text { fill: var(--warning); }
+.er-edge.active .er-cardinality circle { fill: var(--accent); stroke: var(--accent); }
+.er-edge.active .er-cardinality text { fill: white; }
+.er-edge-label { fill: var(--accent-deep); stroke: var(--paper); stroke-width: 6px; paint-order: stroke; font: 650 9px var(--font-mono); letter-spacing: .01em; }
 .er-node { position: absolute; display: flex; flex-direction: column; padding: 0; border: 1px solid var(--rule-strong); border-radius: var(--r-md); background: var(--paper-3); color: var(--ink); text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px -12px rgba(0,0,0,.14); overflow: hidden; cursor: grab; user-select: none; touch-action: none; }
 .er-node:active { cursor: grabbing; }
 .er-node.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 26px -10px rgba(0,0,0,.22); }
@@ -293,6 +302,7 @@ h1, h2, p { margin: 0; }
   .app-header { flex-wrap: wrap; }
   .topbar-meta > .mode-badge { display: none; }
   .db-status { display: none; }
+  .er-legend { display: none; }
   .welcome { padding: 28px 18px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
@@ -300,6 +310,9 @@ h1, h2, p { margin: 0; }
   .primary-button { background: ButtonText; border-color: ButtonText; color: ButtonFace; }
   .secondary-button { background: ButtonFace; border-color: ButtonText; color: ButtonText; }
   .er-node, .result-panel, .catalog-rail, .table-details { border-color: ButtonText; }
+  .er-edge-halo { display: none; }
+  .er-edge-line, .er-cardinality circle { stroke: CanvasText; }
+  .er-cardinality text, .er-edge-label { fill: CanvasText; stroke: Canvas; }
 }
 
 /* ---- SeeQLite workspace refinement ------------------------------------
