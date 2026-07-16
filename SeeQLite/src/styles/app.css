@@ -329,9 +329,13 @@ body { background: var(--paper); color: var(--ink); }
 .workbench { display: grid; grid-template-columns: var(--catalog-rail-width, 256px) minmax(0, 1fr) var(--inspector-rail-width, 320px); min-height: 0; background: var(--paper-3); }
 .catalog-rail, .inspector-rail { min-width: 0; min-height: 0; width: auto; max-width: none; resize: none; overflow: hidden; background: var(--paper-3); }
 .catalog-rail { display: flex; flex-direction: column; border-right: 1px solid var(--rule); }
-.inspector-rail { display: flex; flex-direction: column; border-left: 1px solid var(--rule); }
+.inspector-rail { display: flex; position: relative; flex-direction: column; border-left: 1px solid var(--rule); }
 .work-main { min-width: 0; min-height: 0; background: var(--paper-3); }
 @media (min-width: 900px) { .catalog-rail, .inspector-rail { touch-action: pan-y; } }
+@media (min-width: 900px) {
+  .inspector-rail.is-collapsed > :not(.inspector-toggle) { display: none; }
+  .inspector-rail.is-collapsed .inspector-toggle { right: 7px; }
+}
 body[data-rail-resizing] { cursor: col-resize; user-select: none; }
 body[data-rail-resizing] * { cursor: col-resize !important; }
 
@@ -407,6 +411,10 @@ td { color: var(--ink-2); }
 .diagram-panel { flex: 1; min-height: 0; display: flex; overflow: hidden; }
 
 .inspector-heading { flex: none; position: relative; padding: 22px 20px 16px; border-bottom: 1px solid var(--rule); }
+.inspector-toggle { display: inline-grid; position: absolute; z-index: 2; top: 12px; right: 12px; width: 28px; min-height: 28px; place-items: center; border: 1px solid transparent; border-radius: 4px; background: var(--paper-3); color: var(--ink-3); padding: 0; }
+.inspector-toggle:hover { border-color: var(--rule-strong); background: var(--paper-2); color: var(--accent-deep); }
+.inspector-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.inspector-toggle-icon { width: 16px; height: 16px; }
 .inspector-heading .label { display: block; margin-bottom: 6px; color: var(--ink-3); font: 600 10px var(--font-sans); letter-spacing: .07em; text-transform: uppercase; }
 .inspector-kind { position: absolute; top: 40px; right: 20px; color: var(--ink-3); font: 11px var(--font-sans); text-transform: capitalize; }
 .inspector-preview { position: absolute; top: 16px; right: 14px; border: 1px solid var(--rule-strong); background: var(--paper-3); }

@@ -37,3 +37,26 @@ test('resizes both workspace rails from their non-interactive surfaces', async (
   await expect(page.getByRole('button', { name: 'Copy SELECT' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Switch to dark theme' }).locator('svg')).toBeVisible();
 });
+
+test('collapses and restores the inspector without losing its chosen width', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(fixture);
+  await page.getByRole('button', { name: /notes table/ }).click();
+
+  const inspector = page.locator('#object-inspector');
+  const expandedWidth = (await inspector.boundingBox())!.width;
+  const collapse = page.getByRole('button', { name: 'Collapse inspector' });
+  await expect(collapse).toHaveAttribute('aria-controls', 'object-inspector');
+  await expect(collapse).toHaveAttribute('aria-expanded', 'true');
+
+  await collapse.click();
+  await expect(page.getByRole('button', { name: 'Expand inspector' })).toHaveAttribute('aria-expanded', 'false');
+  await expect(inspector).toHaveClass(/is-collapsed/);
+  expect((await inspector.boundingBox())!.width).toBeLessThanOrEqual(42);
+  await expect(page.getByRole('heading', { name: 'Notes' })).not.toBeVisible();
+
+  await page.getByRole('button', { name: 'Expand inspector' }).click();
+  await expect(page.getByRole('button', { name: 'Collapse inspector' })).toHaveAttribute('aria-expanded', 'true');
+  expect((await inspector.boundingBox())!.width).toBeGreaterThanOrEqual(expandedWidth - 1);
+  await expect(page.getByRole('heading', { name: 'Notes' })).toBeVisible();
+});

@@ -27,6 +27,7 @@ const CATALOG_RAIL_MIN_WIDTH = 208;
 const CATALOG_RAIL_MAX_WIDTH = 440;
 const INSPECTOR_RAIL_MIN_WIDTH = 244;
 const INSPECTOR_RAIL_MAX_WIDTH = 480;
+const INSPECTOR_COLLAPSED_WIDTH = 42;
 type RailSide = 'catalog' | 'inspector';
 type RailResizeState = { side: RailSide; pointerId: number; startX: number; startWidth: number };
 
@@ -86,6 +87,15 @@ function ThemeContrastIcon() {
   return <svg className="theme-contrast-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.75" opacity=".58" /><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" /></svg>;
 }
 
+function InspectorToggleIcon({ collapsed }: { collapsed: boolean }) {
+  return <svg className="inspector-toggle-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d={collapsed ? 'm12 5-4 5 4 5M17 5l-4 5 4 5' : 'm8 5 4 5-4 5M3 5l4 5-4 5'} strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function InspectorToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  const label = collapsed ? 'Expand inspector' : 'Collapse inspector';
+  return <button className="inspector-toggle" type="button" aria-controls="object-inspector" aria-expanded={!collapsed} aria-label={label} title={label} onClick={onToggle}><InspectorToggleIcon collapsed={collapsed} /></button>;
+}
+
 export function App() {
   const client = useMemo(() => new DatabaseClient(), []);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -118,6 +128,7 @@ export function App() {
   const railResizeRef = useRef<RailResizeState | null>(null);
   const [catalogRailWidth, setCatalogRailWidth] = useState(256);
   const [inspectorRailWidth, setInspectorRailWidth] = useState(320);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   useEffect(() => () => client.terminate('SeeQLite was closed.'), [client]);
   useEffect(() => { document.documentElement.toggleAttribute('data-dark', darkTheme); }, [darkTheme]);
@@ -159,6 +170,7 @@ export function App() {
   function beginRailResize(side: RailSide, event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === 'touch' && window.matchMedia('(max-width: 899px)').matches) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (side === 'inspector' && inspectorCollapsed) return;
     if (!canStartRailResize(event.target) || !workbenchRef.current) return;
     const startWidth = side === 'catalog' ? catalogRailWidth : inspectorRailWidth;
     railResizeRef.current = { side, pointerId: event.pointerId, startX: event.clientX, startWidth };
@@ -172,7 +184,7 @@ export function App() {
     const resize = railResizeRef.current;
     const workbench = workbenchRef.current;
     if (!resize || resize.pointerId !== event.pointerId || !workbench) return;
-    const otherWidth = resize.side === 'catalog' ? inspectorRailWidth : catalogRailWidth;
+    const otherWidth = resize.side === 'catalog' ? (inspectorCollapsed ? INSPECTOR_COLLAPSED_WIDTH : inspectorRailWidth) : catalogRailWidth;
     const minimum = resize.side === 'catalog' ? CATALOG_RAIL_MIN_WIDTH : INSPECTOR_RAIL_MIN_WIDTH;
     const maximum = resize.side === 'catalog' ? CATALOG_RAIL_MAX_WIDTH : INSPECTOR_RAIL_MAX_WIDTH;
     const availableMaximum = Math.max(minimum, Math.min(maximum, workbench.clientWidth - MIN_WORKSPACE_WIDTH - otherWidth));
@@ -532,7 +544,7 @@ export function App() {
         <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
       </header>
 
-      <main id="workspace" ref={workbenchRef} className="workbench" tabIndex={-1} style={{ '--catalog-rail-width': `${catalogRailWidth}px`, '--inspector-rail-width': `${inspectorRailWidth}px` } as CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
+      <main id="workspace" ref={workbenchRef} className="workbench" tabIndex={-1} style={{ '--catalog-rail-width': `${catalogRailWidth}px`, '--inspector-rail-width': `${inspectorCollapsed ? INSPECTOR_COLLAPSED_WIDTH : inspectorRailWidth}px` } as CSSProperties} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
         {catalog ? (
           <>
             <aside className="catalog-rail" aria-label="Explorer" onPointerDown={(event) => beginRailResize('catalog', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}>
@@ -585,7 +597,8 @@ export function App() {
                 <div id="diagram-panel" className="diagram-panel" role="tabpanel" aria-labelledby="diagram-tab"><ErCanvas catalog={visibleCatalog} selectedTableName={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} /></div>
               )}
             </section>
-            <aside className="inspector-rail" aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}>
+            <aside id="object-inspector" className={`inspector-rail${inspectorCollapsed ? ' is-collapsed' : ''}`} aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}>
+              <InspectorToggle collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((value) => !value)} />
               <div className="inspector-heading"><span className="label">{view === 'diagram' ? 'Relationships' : 'Inspector'}</span><h2>{view === 'diagram' ? 'Declared relationships' : selectedTable ? selectedTable.name : 'Nothing selected'}</h2>{selectedTable && view !== 'diagram' ? <span className="inspector-kind">{selectedTable.kind}</span> : null}</div>
               {view === 'diagram' ? <RelationshipList catalog={visibleCatalog ?? catalog} selected={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} onGenerateJoin={generateJoin} /> : selectedTable ? view === 'schema' ? <InspectorSummary table={selectedTable} onOpenQuery={() => setView('query')} /> : <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>Select a table to see its columns, indexes, and relationships here.</p></div>}
             </aside>
@@ -594,7 +607,7 @@ export function App() {
           <>
             <aside className="catalog-rail empty-rail" aria-label="Explorer" onPointerDown={(event) => beginRailResize('catalog', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}><div className="rail-title"><h2>Explorer</h2></div><div className="empty-rail-content"><span className="empty-glyph" aria-hidden="true">▦</span><p>Open a database to browse its tables, views, and relationships.</p></div><div className="rail-footer"><button className="quiet-button rail-open" onClick={() => fileInput.current?.click()} disabled={busy}>New database</button></div></aside>
             <section className="work-main empty-workspace" aria-label="Database workspace"><div className="empty-workspace-toolbar"><span className="label">Workspace</span><span>Local SQLite</span></div><div className="empty-workspace-body"><p className="eyebrow">Ready when you are</p><h1>Open a SQLite database</h1><p className="lede">Explore its shape, run read-only SQL, and understand relationships without uploading a byte.</p><div className="privacy-note"><span className="status-dot" /> No server. No account. Your database stays in this browser tab.</div>{!capabilities.ok ? <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div> : <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div><p className="helper">SQLite 3 files up to 512 MB. Drop one file anywhere in this workspace.</p></div>}<p className="intake-status" role="status" aria-live="polite">{status}</p></div></section>
-            <aside className="inspector-rail empty-inspector" aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}><div className="inspector-heading"><span className="label">Inspector</span><h2>Nothing selected</h2></div><div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>After you choose a table, its columns, indexes, and relationships will appear here.</p></div></aside>
+            <aside id="object-inspector" className={`inspector-rail empty-inspector${inspectorCollapsed ? ' is-collapsed' : ''}`} aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}><InspectorToggle collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((value) => !value)} /><div className="inspector-heading"><span className="label">Inspector</span><h2>Nothing selected</h2></div><div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>After you choose a table, its columns, indexes, and relationships will appear here.</p></div></aside>
           </>
         )}
       </main>
