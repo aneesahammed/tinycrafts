@@ -23,6 +23,7 @@ This checkpoint covers the incremental ER discoverability, safe-copy, query-plan
 | OFF-01/OFF-02 | Complete built-artifact precache supports repeat shell reload, excludes database/sidecar paths, and preserves sibling caches through scoped activation. | `scripts/build-service-worker.mjs`, generated `dist/sw.js`, `tests/e2e/app.spec.ts` offline cache test, `scripts/check-seeqlite-bundle.mjs` | PASS for Chromium/Firefox offline reload and WebKit cached-document contract; manual Safari reload/update remains |
 | OFF-03 | Service-worker registration failure is visible without blocking the core workflow. | `src/main.tsx`, `src/App.tsx` offline-unavailable status event | PASS for registration/unsupported fallback path |
 | REL-02 | Pages artifact and sibling DataDuck build/test/bundle contracts remain green. | Commands below | PASS |
+| PERF-01 | Exact 64/128/256 MiB imports, query recovery, cancel acknowledgement, reopen, reimport, and bounded catalog/result DOM meet qualified per-engine budgets without changing safety caps. | `tests/performance/release-benchmarks.spec.ts`, `tests/performance/scalability.spec.ts`, `tests/performance/budgets.json`, `docs/release/performance.md`; 15/15 across Chromium, Firefox, WebKit | PASS for the declared local macOS arm64/64 GiB headless profile |
 
 ## Automated commands
 
@@ -38,6 +39,8 @@ SeeQLite: offline shell E2E                 PASS (Chromium/Firefox reload; WebKi
 SeeQLite: npm audit --omit=dev --audit-level=high PASS (0 production vulnerabilities)
 SeeQLite: focused negative E2E                 PASS (9 tests; trailing SQL, native policy, sidecars)
 SeeQLite: catalog boundary E2E                 PASS (virtual/shadow fixture plus 5,001-object limited-mode timing in all three engines)
+SeeQLite: npm run test:performance                PASS (15 tests; exact 64/128/256 MiB fixtures, all three engines)
+SeeQLite: performance budget report               PASS (qualified local-darwin-arm64-64g-headless profile; see docs/release/performance.md)
 Pages:    node scripts/build-pages.mjs      PASS
 Pages:    node scripts/verify-pages-build.mjs PASS
 DataDuck: npm --prefix dataduck test        PASS (195 tests / 54 files)

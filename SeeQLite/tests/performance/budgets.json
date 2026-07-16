@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "unit": "milliseconds",
+  "profiles": {
+    "local-darwin-arm64-64g-headless": {
+      "qualification": {
+        "os": "darwin",
+        "arch": "arm64",
+        "memoryClassGiB": 64,
+        "mode": "headless",
+        "ciImage": "local",
+        "sampleStatistic": "single-run-hard-ceiling",
+        "qualifiedOn": "2026-07-16"
+      },
+      "engines": {
+        "chromium": { "openMs": 1000, "reopenMs": 1000, "reimportMs": 1000, "queryMs": 1000 },
+        "firefox": { "openMs": 1500, "reopenMs": 1500, "reimportMs": 1000, "queryMs": 1000 },
+        "webkit": { "openMs": 1500, "reopenMs": 1500, "reimportMs": 1000, "queryMs": 1000 }
+      },
+      "hardLimits": {
+        "cancelAckMs": 250,
+        "maxResultRowsInDom": 50,
+        "maxVisibleCatalogRows": 100
+      }
+    }
+  }
+}
