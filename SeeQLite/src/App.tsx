@@ -3,6 +3,7 @@ import type { DragEvent } from 'react';
 import { DatabaseClient } from './engine/database-client';
 import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
+import { buildPlanNodes, planDepth } from './plan';
 const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
 const SAMPLE_QUERY = 'SELECT 1 AS ready, sqlite_version() AS sqlite_version;';
@@ -525,35 +526,9 @@ function ResultTable({ result }: { result: QueryResult }) {
 }
 
 function PlanTree({ result }: { result: QueryResult }) {
-  const idIndex = result.columns.findIndex((column) => column.name.toLowerCase() === 'id');
-  const parentIndex = result.columns.findIndex((column) => column.name.toLowerCase() === 'parent');
-  const detailIndex = result.columns.findIndex((column) => column.name.toLowerCase() === 'detail');
-  const nodes = result.rows.map((row, index) => ({
-    id: planText(row[idIndex] ?? index),
-    parent: planText(row[parentIndex] ?? ''),
-    detail: planText(row[detailIndex] ?? row[row.length - 1] ?? 'Plan step'),
-  }));
+  const nodes = buildPlanNodes(result);
   const positions = new Map(nodes.map((node, index) => [node.id, index]));
   return <div className="plan-tree" role="list" aria-label="SQLite query plan">{nodes.length ? nodes.map((node, index) => <div className="plan-item" role="listitem" key={`${node.id}-${index}`} style={{ marginLeft: `${planDepth(node, positions, nodes)}rem` }}><span className="plan-marker" aria-hidden="true">↳</span><span className="plan-detail">{node.detail}</span></div>) : <p className="plan-empty">SQLite returned no plan steps.</p>}</div>;
-}
-
-function planDepth(node: { id: string; parent: string }, positions: Map<string, number>, nodes: Array<{ id: string; parent: string }>) {
-  let depth = 0;
-  let parent = node.parent;
-  const seen = new Set<string>();
-  while (parent && parent !== '-1' && positions.has(parent) && !seen.has(parent) && depth < 8) {
-    seen.add(parent);
-    depth += 1;
-    parent = nodes[positions.get(parent)!].parent;
-  }
-  return Math.min(depth, 6);
-}
-
-function planText(value: QueryResult['rows'][number][number]) {
-  if (value === null) return '';
-  if (typeof value === 'object' && value.kind === 'text') return value.value;
-  if (typeof value === 'object') return value.preview;
-  return String(value);
 }
 
 function QueryHistory({ items, onChoose, onDelete, onClear }: { items: HistoryItem[]; onChoose: (sql: string) => void; onDelete: (at: number) => void; onClear: () => void }) {

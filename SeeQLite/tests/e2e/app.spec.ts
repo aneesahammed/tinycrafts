@@ -10,6 +10,7 @@ const virtualFixture = path.join(process.cwd(), 'tests/fixtures/virtual.sqlite')
 const hostileFixture = path.join(process.cwd(), 'tests/fixtures/hostile.sqlite');
 const wideCatalogFixture = path.join(process.cwd(), 'tests/fixtures/wide-catalog.sqlite');
 const relationshipsFixture = path.join(process.cwd(), 'tests/fixtures/relationships.sqlite');
+const identifiersFixture = path.join(process.cwd(), 'tests/fixtures/identifiers.sqlite');
 
 test('opens a local database and renders a bounded query result', async ({ page }) => {
   await page.goto('/');
@@ -349,6 +350,19 @@ test('renders hostile query-plan detail as inert text', async ({ page }) => {
   await page.getByRole('button', { name: 'Show query plan' }).click();
   await expect(page.locator('.plan-detail')).toContainText('<img src=x onerror=alert(1)>');
   await expect(page.locator('.plan-detail img')).toHaveCount(0);
+});
+
+test('quotes unusual catalog identifiers in bounded SELECT actions', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(identifiersFixture);
+  await expect(page.locator('.file-status')).toContainText('4 tables ready');
+  await page.getByLabel('Search tables and columns').fill('a"b');
+  const table = page.getByRole('button', { name: /a"b table/ });
+  await expect(table).toBeVisible();
+  await table.click();
+  await expect(page.getByLabel('SQL query')).toHaveText(/SELECT \* FROM "a""b" LIMIT 100;/);
+  await page.getByRole('button', { name: 'Run query' }).click();
+  await expect(page.locator('.result-panel')).toContainText('7');
 });
 
 test('clears a stale plan when the SQL result changes', async ({ page }) => {

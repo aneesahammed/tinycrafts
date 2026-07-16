@@ -1,0 +1,5 @@
+CREATE TABLE "select" (id INTEGER);
+CREATE TABLE "a""b" (id INTEGER);
+CREATE TABLE "a.b" (id INTEGER);
+CREATE TABLE "数据" (id INTEGER);
+INSERT INTO "a""b" VALUES (7);

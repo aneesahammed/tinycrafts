@@ -23,7 +23,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
 Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, scoped offline shell, accessibility gate, searchable/paged catalog, virtual/shadow metadata, internal-object toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Ratified 5,000-object/50,000-column catalog budgets, added FTS5/relationship/hostile-plan fixtures, and replaced the unsafe minimal service worker with a generated scoped precache; 93/93 browser tests pass.
+Last activity: 2026-07-16 — Added pure bounded plan projection and unusual-identifier quoting coverage on top of the ratified 5,000-object/50,000-column catalog budgets and generated scoped precache; 96/96 browser tests pass.
 
 Progress: [█████████░] 89%
 
@@ -79,6 +79,6 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 ## Session Continuity
 
 Last session: 2026-07-16
-Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, relationship join handoff, virtual/shadow catalog metadata, bounded offline shell, and 93-test verification.
+Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, relationship join handoff, virtual/shadow catalog metadata, bounded offline shell, pure plan projection, identifier quoting, and 96-test verification.
 Resume file: `.planning/ROADMAP.md`
 Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current automated checkpoint.
