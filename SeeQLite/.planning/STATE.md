@@ -23,7 +23,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
 Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, scoped offline shell, accessibility gate, searchable/paged catalog, virtual/shadow metadata, internal-object toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added qualified 64/128/256 MiB performance fixtures and cross-engine import/query/cancel/reopen/reimport gates, exact-size structural bounds, and release performance/gap evidence; performance 15/15 and full product E2E 120/120 pass.
+Last activity: 2026-07-16 — Added the fail-closed PF-01…PF-14 risk-evidence manifest/checker, 20 mutation/schema tests, deterministic gap output, and the 06-03 release-runner handoff; current runner, dependency, public deployment, manual AT, and rollback gates remain open.
 
 Progress: [█████████░] 89%
 
@@ -61,6 +61,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 - Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark plus forced-colors/zoom/reduced-motion gates now pass in all three engines; the new relationship list is keyboard-readable).
 - Static Pages artifact/header checker now records relative assets, MIME, precache, and absent local response headers; run it against the authorized public `/seeqlite/` deployment before claiming production CSP/service-worker/header evidence.
 - Manual accessibility protocol now has a fail-closed validator, mutation tests, and an explicitly incomplete Safari/VoiceOver/NVDA template; human execution and signed reruns remain open.
+- PF-01…PF-14 now have one exact machine-checked manifest with source digests, literal test IDs, result keys, freshness, skip/retry, and prevention/recovery requirements; a current `.release-evidence/test-results.json` is intentionally still required from the release orchestrator.
 - Keep the DataDuck dependency advisory inventory visible; its full development-tree `npm audit --audit-level=moderate` currently reports 9 upstream advisories (including high/critical transitive issues), while production-only audits for SeeQLite and DataDuck are clean.
 - CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags, predicate text, FTS5/FTS4/RTree virtual-shadow metadata, malformed-object isolation, 5,001-object/52,000-column limited-mode degradation, graph caps, and stale-response guards; remaining work is additional module families and low-memory/25–50 MiB evidence.
 - PERF-01 now has a qualified local-darwin-arm64-64g-headless profile with exact 25/50 MiB catalog and 64/128/256 MiB import/reopen/reimport samples plus hard structural limits; peak memory, worker-transfer/long-task traces, and constrained-host memory pressure remain in `docs/release/gaps/PERFORMANCE-GAPS.md`.
@@ -83,4 +84,4 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 Last session: 2026-07-16
 Stopped at: Phase 6 release hardening after authorizer, timeout, result bounds, editor, intake, history, exports, accessibility, bundle, relationship join handoff, virtual/shadow catalog metadata, bounded offline shell, pure plan projection, identifier quoting, and 96-test verification.
 Resume file: `.planning/ROADMAP.md`
-Next command: `$gsd-validate-phase 6` after manual Safari/a11y and deployment-header evidence; see `phases/06-security-performance-accessibility-release/06-RELEASE-EVIDENCE.md` for the current automated checkpoint.
+Next command: `$gsd-validate-phase 6` after 06-03 emits a fresh runner artifact and closes dependency, manual Safari/a11y, deployment-header, and rollback evidence; see `phases/06-security-performance-accessibility-release/06-04-SUMMARY.md` and `06-RELEASE-EVIDENCE.md` for the current checkpoint.
