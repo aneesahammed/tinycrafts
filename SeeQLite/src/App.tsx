@@ -4,7 +4,7 @@ import { DatabaseClient } from './engine/database-client';
 import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
 import { buildPlanNodes, planDepth } from './plan';
-import { ErCanvas, MAX_DIAGRAM_TABLES, RelationshipList } from './components/ErCanvas';
+import { ErCanvas, filterDiagramCatalog, MAX_DIAGRAM_TABLES, RelationshipList, type DiagramObjectFilter } from './components/ErCanvas';
 import { buildJoinSql, formatSql, quoteIdentifier } from './sql';
 const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
@@ -113,6 +113,7 @@ export function App() {
   const [selectedTable, setSelectedTable] = useState<CatalogTable | null>(null);
   const [tableDetails, setTableDetails] = useState<Record<string, TableDetailState>>({});
   const [view, setView] = useState<WorkspaceView>('query');
+  const [diagramObjectFilter, setDiagramObjectFilter] = useState<DiagramObjectFilter>('all');
   const [status, setStatus] = useState('Choose a SQLite file. It stays in this browser tab.');
   const [busy, setBusy] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
@@ -488,6 +489,7 @@ export function App() {
     const tableByName = new Map(catalog.tables.map((table) => [table.name, table]));
     return { ...catalog, tables, foreignKeys: catalog.foreignKeys.filter((relation) => !tableByName.get(relation.fromTable)?.internal && !tableByName.get(relation.toTable)?.internal) };
   }, [catalog, showInternalObjects]);
+  const diagramCatalog = useMemo(() => visibleCatalog ? filterDiagramCatalog(visibleCatalog, diagramObjectFilter) : visibleCatalog, [visibleCatalog, diagramObjectFilter]);
 
   const filteredTables = useMemo(() => {
     const needle = catalogSearch.trim().toLowerCase();
@@ -594,13 +596,13 @@ export function App() {
                   {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="schema-empty"><span className="empty-glyph" aria-hidden="true">▤</span><p>Select a table on the left to inspect its columns, indexes, and keys.</p></div>}
                 </div>
               ) : (
-                <div id="diagram-panel" className="diagram-panel" role="tabpanel" aria-labelledby="diagram-tab"><ErCanvas catalog={visibleCatalog} selectedTableName={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} /></div>
+                <div id="diagram-panel" className="diagram-panel" role="tabpanel" aria-labelledby="diagram-tab"><ErCanvas catalog={visibleCatalog} objectFilter={diagramObjectFilter} selectedTableName={selectedTable?.name ?? null} onObjectFilterChange={setDiagramObjectFilter} onSelectTable={(table) => void selectTable(table)} /></div>
               )}
             </section>
             <aside id="object-inspector" className={`inspector-rail${inspectorCollapsed ? ' is-collapsed' : ''}`} aria-label="Object inspector" onPointerDown={(event) => beginRailResize('inspector', event)} onPointerMove={moveRailResize} onPointerUp={endRailResize} onPointerCancel={endRailResize}>
               <InspectorToggle collapsed={inspectorCollapsed} onToggle={() => setInspectorCollapsed((value) => !value)} />
               <div className="inspector-heading"><span className="label">{view === 'diagram' ? 'Relationships' : 'Inspector'}</span><h2>{view === 'diagram' ? 'Declared relationships' : selectedTable ? selectedTable.name : 'Nothing selected'}</h2>{selectedTable && view !== 'diagram' ? <span className="inspector-kind">{selectedTable.kind}</span> : null}</div>
-              {view === 'diagram' ? <RelationshipList catalog={visibleCatalog ?? catalog} selected={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} onGenerateJoin={generateJoin} /> : selectedTable ? view === 'schema' ? <InspectorSummary table={selectedTable} onOpenQuery={() => setView('query')} /> : <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>Select a table to see its columns, indexes, and relationships here.</p></div>}
+              {view === 'diagram' ? <RelationshipList catalog={diagramCatalog ?? catalog} selected={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} onGenerateJoin={generateJoin} /> : selectedTable ? view === 'schema' ? <InspectorSummary table={selectedTable} onOpenQuery={() => setView('query')} /> : <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>Select a table to see its columns, indexes, and relationships here.</p></div>}
             </aside>
           </>
         ) : (

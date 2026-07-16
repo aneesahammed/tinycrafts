@@ -4,6 +4,14 @@ import type { Catalog, CatalogForeignKey, CatalogTable } from '../engine/protoco
 import { buildJoinSql } from '../sql';
 
 export const MAX_DIAGRAM_TABLES = 75;
+export type DiagramObjectFilter = 'all' | 'tables' | 'views';
+
+export function filterDiagramCatalog(catalog: Catalog, filter: DiagramObjectFilter): Catalog {
+  if (filter === 'all') return catalog;
+  const tables = catalog.tables.filter((table) => filter === 'views' ? table.kind === 'view' : table.kind !== 'view');
+  const names = new Set(tables.map((table) => table.name));
+  return { ...catalog, tables, foreignKeys: catalog.foreignKeys.filter((relation) => names.has(relation.fromTable) && names.has(relation.toTable)) };
+}
 
 const NODE_WIDTH = 248;
 const NODE_HEADER = 52;
@@ -198,7 +206,7 @@ function routeRelationship(relation: CatalogForeignKey, from: NodeBox, to: NodeB
   };
 }
 
-export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: { catalog: Catalog | null; selectedTableName?: string | null; onSelectTable: (table: CatalogTable) => void }) {
+export function ErCanvas({ catalog, objectFilter, selectedTableName = null, onObjectFilterChange, onSelectTable }: { catalog: Catalog | null; objectFilter: DiagramObjectFilter; selectedTableName?: string | null; onObjectFilterChange: (filter: DiagramObjectFilter) => void; onSelectTable: (table: CatalogTable) => void }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   // click fires after pointerup, once dragRef is already cleared — this survives that gap.
@@ -210,17 +218,18 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
   zoomRef.current = zoom;
   const [selected, setSelected] = useState<string | null>(null);
 
-  useEffect(() => {
-    setSelected(selectedTableName);
-  }, [selectedTableName]);
-
-  const tables = catalog?.tables ?? [];
-  const relations = catalog?.foreignKeys ?? [];
+  const filteredCatalog = useMemo(() => catalog ? filterDiagramCatalog(catalog, objectFilter) : null, [catalog, objectFilter]);
+  const tables = filteredCatalog?.tables ?? [];
+  const relations = filteredCatalog?.foreignKeys ?? [];
   const tableKey = tables.map((table) => table.name).join('|');
   const diagramKey = `${tableKey}::${relations.map(relationKey).join('|')}`;
   const tableByName = useMemo(() => new Map(tables.map((table) => [table.name, table])), [tables]);
   const renderedRelations = useMemo(() => diagramRelations(relations), [relations]);
   const laneOffsets = useMemo(() => relationLaneOffsets(renderedRelations.map(({ relation }) => relation)), [renderedRelations]);
+
+  useEffect(() => {
+    setSelected(selectedTableName && tableByName.has(selectedTableName) ? selectedTableName : null);
+  }, [selectedTableName, tableKey, tableByName]);
 
   const boxes = useMemo(() => {
     const map = new Map<string, NodeBox>();
@@ -342,17 +351,28 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
 
   if (!catalog) return <div className="diagram-empty">Open a database to see its tables and relationships.</div>;
   if (catalog.limits.length) return <div className="diagram-empty">The catalog is limited to a bounded searchable list. Open a smaller database to render its ER diagram.</div>;
-  if (catalog.tables.length > MAX_DIAGRAM_TABLES) return <div className="diagram-empty">The ER diagram is limited to {MAX_DIAGRAM_TABLES} tables. Search the catalog or open a smaller database to inspect its shape.</div>;
+  if (tables.length > MAX_DIAGRAM_TABLES) return <div className="diagram-empty">The ER diagram is limited to {MAX_DIAGRAM_TABLES} objects. Choose a narrower filter or open a smaller database to inspect its shape.</div>;
 
   const zoomPercent = Math.round(zoom * 100);
+  const tableCount = catalog.tables.filter((table) => table.kind !== 'view').length;
+  const viewCount = catalog.tables.length - tableCount;
+  const filterOptions: Array<{ value: DiagramObjectFilter; label: string; count: number }> = [
+    { value: 'all', label: 'All', count: catalog.tables.length },
+    { value: 'tables', label: 'Tables', count: tableCount },
+    { value: 'views', label: 'Views', count: viewCount },
+  ];
+  const objectScope = objectFilter === 'all' ? `${tables.length} object${tables.length === 1 ? '' : 's'}` : `${tables.length} of ${catalog.tables.length} objects`;
 
   return (
     <div className="er-layout">
       <div className="er-diagram">
         <div className="er-toolbar" role="toolbar" aria-label="Diagram controls">
           <span className="label">DIAGRAM</span>
-          <span className="er-scope">{catalog.tables.length} object{catalog.tables.length === 1 ? '' : 's'} · {catalog.foreignKeys.length} relation{catalog.foreignKeys.length === 1 ? '' : 's'}</span>
-          {catalog.foreignKeys.length ? <div className="er-legend" aria-label="Relationship cardinality legend"><span><b>N</b> child</span><span><b>1</b> parent</span></div> : null}
+          <span className="er-scope">{objectScope} · {relations.length} relation{relations.length === 1 ? '' : 's'}</span>
+          <div className="er-object-filter" role="group" aria-label="Diagram objects">
+            {filterOptions.map((option) => <button key={option.value} type="button" aria-pressed={objectFilter === option.value} onClick={() => onObjectFilterChange(option.value)}><span>{option.label}</span><small>{option.count}</small></button>)}
+          </div>
+          {relations.length ? <div className="er-legend" aria-label="Relationship cardinality legend"><span><b>N</b> child</span><span><b>1</b> parent</span></div> : null}
           <div className="er-toolbar-actions">
             <button className="quiet-button" onClick={arrange}>Arrange</button>
             <button className="quiet-button" onClick={() => fit(positions, tables)}>Fit</button>
@@ -383,7 +403,7 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
                 const toTable = tableByName.get(relation.toTable);
                 if (!from || !to || !fromTable || !toTable) return null;
                 const active = selected === relation.fromTable || selected === relation.toTable;
-                const resolved = Boolean(buildJoinSql(relation, catalog));
+                const resolved = Boolean(buildJoinSql(relation, filteredCatalog ?? catalog));
                 const route = routeRelationship(relation, from, to, fromTable, toTable, laneOffsets.get(relationKey(relation)) ?? 0);
                 return (
                   <g key={key} className={`er-edge${active ? ' active' : ''}${resolved ? '' : ' unresolved'}`} data-self-relation={relation.fromTable === relation.toTable ? 'true' : undefined} data-constraint-count={count}>
@@ -402,10 +422,10 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
                 );
               })}
             </svg>
-            {catalog.tables.map((table) => {
+            {tables.map((table) => {
               const position = positions[table.name];
               if (!position) return null;
-              const fkCols = foreignKeyColumns(catalog, table.name);
+              const fkCols = foreignKeyColumns(filteredCatalog ?? catalog, table.name);
               const active = selected === table.name;
               return (
                 <button
@@ -429,7 +449,7 @@ export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: {
               );
             })}
           </div>
-          {catalog.tables.length === 0 ? <div className="er-hint">This database has no tables to diagram.</div> : <div className="er-hint">Drag a table to move it · drag the canvas to pan · ⌘/Ctrl + scroll to zoom</div>}
+          {tables.length === 0 ? <div className="er-filter-empty">No {objectFilter === 'views' ? 'views' : objectFilter === 'tables' ? 'tables' : 'objects'} to display.</div> : <div className="er-hint">Drag a table to move it · drag the canvas to pan · ⌘/Ctrl + scroll to zoom</div>}
         </div>
       </div>
     </div>

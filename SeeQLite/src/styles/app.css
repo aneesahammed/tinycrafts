@@ -198,6 +198,12 @@ tbody tr:hover td { background: var(--paper-2); }
 .er-diagram { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .er-toolbar { flex: none; display: flex; align-items: center; gap: 14px; padding: 8px 16px; border-bottom: 1px solid var(--rule); background: var(--paper-3); }
 .er-scope { color: var(--ink-3); font: 11px var(--font-mono); }
+.er-object-filter { display: inline-flex; align-items: center; border: 1px solid var(--rule-strong); border-radius: 6px; background: var(--paper-2); padding: 2px; }
+.er-object-filter button { display: inline-flex; min-height: 27px; align-items: center; gap: 6px; border: 0; border-radius: 4px; background: transparent; color: var(--ink-2); padding: 4px 8px; font: 550 11px var(--font-sans); }
+.er-object-filter button:hover { color: var(--ink); }
+.er-object-filter button[aria-pressed="true"] { background: var(--paper-3); color: var(--accent-deep); box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent); }
+.er-object-filter button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.er-object-filter small { display: inline-grid; min-width: 17px; height: 17px; place-items: center; border-radius: 3px; background: color-mix(in srgb, var(--boundary) 10%, transparent); color: inherit; font: 600 9px var(--font-mono); }
 .er-legend { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font: 10px var(--font-sans); }
 .er-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .er-legend b { display: inline-grid; width: 18px; height: 18px; place-items: center; border: 1px solid var(--boundary); border-radius: 50%; background: var(--paper-3); color: var(--ink-2); font: 650 9px var(--font-sans); }
@@ -237,6 +243,7 @@ tbody tr:hover td { background: var(--paper-2); }
 .er-col-type { color: var(--ink-3); font: 9px var(--font-mono); letter-spacing: .04em; }
 .er-node-more { padding: 6px 12px; border-top: 1px solid var(--rule); color: var(--ink-3); font: 10px var(--font-mono); }
 .er-hint { position: absolute; left: 12px; bottom: 10px; padding: 5px 9px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--paper-3) 88%, transparent); border: 1px solid var(--rule); color: var(--ink-3); font: 10px var(--font-mono); pointer-events: none; }
+.er-filter-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; pointer-events: none; }
 .diagram-empty { flex: 1; display: grid; place-items: center; color: var(--ink-2); margin: 16px; padding: 24px; border: 1px dashed var(--boundary); border-radius: var(--r-md); text-align: center; }
 
 /* ---- Relationship panel (ER right side) -------------------------------- */
@@ -313,6 +320,7 @@ h1, h2, p { margin: 0; }
   .er-edge-halo { display: none; }
   .er-edge-line, .er-cardinality circle { stroke: CanvasText; }
   .er-cardinality text, .er-edge-label { fill: CanvasText; stroke: Canvas; }
+  .er-object-filter button[aria-pressed="true"] { outline: 2px solid Highlight; }
 }
 
 /* ---- SeeQLite workspace refinement ------------------------------------
@@ -487,6 +495,11 @@ td { color: var(--ink-2); }
   .app-header { gap: 14px; padding-inline: 18px; }
   .header-stats { font-size: 12px; }
   .mode-badge { padding-inline: 8px; }
+  .er-toolbar { gap: 10px; }
+  .er-toolbar > .label, .er-scope, .er-legend { display: none; }
+  .er-object-filter button { gap: 4px; padding-inline: 6px; }
+  .er-toolbar-actions { gap: 8px; }
+  .er-zoom { gap: 5px; }
 }
 
 @media (max-width: 899px) {
