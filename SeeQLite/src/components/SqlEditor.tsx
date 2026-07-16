@@ -14,6 +14,7 @@ type SqlEditorProps = {
   onChange: (value: string) => void;
   onRun: (selection?: string) => void;
   onPlan: (selection?: string) => void;
+  onFormat: () => void;
 };
 
 // Chrome (border, focus, sizing) belongs to the surrounding .editor-pane — the
@@ -43,9 +44,14 @@ const sqlHighlightStyle = HighlightStyle.define([
   { tag: tags.function(tags.variableName), class: 'sql-token-function' },
 ]);
 
-function shortcutHandlers(onRun: (selection?: string) => void, onPlan: (selection?: string) => void) {
+function shortcutHandlers(onRun: (selection?: string) => void, onPlan: (selection?: string) => void, onFormat: () => void) {
   return EditorView.domEventHandlers({
     keydown(event, view) {
+      if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyF') {
+        event.preventDefault();
+        onFormat();
+        return true;
+      }
       if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return false;
       event.preventDefault();
       const selection = view.state.selection.main;
@@ -57,7 +63,7 @@ function shortcutHandlers(onRun: (selection?: string) => void, onPlan: (selectio
   });
 }
 
-export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditorProps) {
+export function SqlEditor({ value, catalog, onChange, onRun, onPlan, onFormat }: SqlEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const valueRef = useRef(value);
@@ -65,12 +71,14 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
   const onChangeRef = useRef(onChange);
   const onRunRef = useRef(onRun);
   const onPlanRef = useRef(onPlan);
+  const onFormatRef = useRef(onFormat);
   const schema = useMemo(() => Object.fromEntries((catalog?.tables ?? []).map((table) => [table.name, table.columns.map((column) => column.name)])), [catalog]);
 
   valueRef.current = value;
   onChangeRef.current = onChange;
   onRunRef.current = onRun;
   onPlanRef.current = onPlan;
+  onFormatRef.current = onFormat;
 
   useEffect(() => {
     if (!host.current) return;
@@ -92,7 +100,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
           ...historyKeymap,
         ]),
         EditorView.contentAttributes.of({ 'aria-label': 'SQL query', 'aria-multiline': 'true' }),
-        shortcutHandlers(() => onRunRef.current(), () => onPlanRef.current()),
+        shortcutHandlers(() => onRunRef.current(), () => onPlanRef.current(), () => onFormatRef.current()),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             const next = update.state.doc.toString();
@@ -138,7 +146,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
         ...historyKeymap,
       ]),
       EditorView.contentAttributes.of({ 'aria-label': 'SQL query', 'aria-multiline': 'true' }),
-      shortcutHandlers(() => onRunRef.current(), () => onPlanRef.current()),
+      shortcutHandlers(() => onRunRef.current(), () => onPlanRef.current(), () => onFormatRef.current()),
       EditorView.updateListener.of((update) => {
         if (!update.docChanged) return;
         const next = update.state.doc.toString();

@@ -10,8 +10,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-01",
       "owner": "SQLite engine",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"enforces the read-only policy for SQLite-native mutation paths","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"SQLite-native mutation paths are denied and a following SELECT succeeds.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-01.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"opens a local database and renders a bounded query result","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A valid read query renders bounded rows after the policy boundary is exercised.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-01.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"enforces the read-only policy for SQLite-native mutation paths","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"SQLite-native mutation paths are denied and a following SELECT succeeds.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-01.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"opens a local database and renders a bounded query result","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A valid read query renders bounded rows after the policy boundary is exercised.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-01.recovery.0"}]
     },
     {
       "id": "PF-02",
@@ -21,7 +21,7 @@
       "source": ".planning/research/PITFALLS.md#PF-02",
       "owner": "SQLite worker lifecycle",
       "prevention": [{"file":"tests/performance/release-benchmarks.spec.ts","testId":"measures ${sizeMiB} MiB import, cancel/reopen, reimport, and query recovery","command":"npm run test:performance -- tests/performance/release-benchmarks.spec.ts --project=chromium","expectedAssertion":"Cancel acknowledges within the qualified budget and stale worker responses do not publish.","sourceSha256":"2e978d0db53e7ff9444c4a2cffcb441a16d0561b949437693024482a15af4c63","resultKey":"PF-02.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"resets the worker-backed workspace without retaining the database view","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Worker-backed state can be reset to an explicit no-database state without stale results.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-02.recovery.0"}]
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"resets the worker-backed workspace without retaining the database view","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Worker-backed state can be reset to an explicit no-database state without stale results.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-02.recovery.0"}]
     },
     {
       "id": "PF-03",
@@ -31,7 +31,7 @@
       "source": ".planning/research/PITFALLS.md#PF-03",
       "owner": "SQLite result bounds",
       "prevention": [{"file":"tests/performance/scalability.spec.ts","testId":"renders at most one result page in the DOM while retaining the bounded result model","command":"npm run test:performance -- tests/performance/scalability.spec.ts --project=chromium","expectedAssertion":"Result rows, cells, and rendered DOM remain within configured bounds.","sourceSha256":"45213ea406f615cb274b393170d54d4ddbd1ced3f31df2fa939ca0dc3efd0868","resultKey":"PF-03.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"opens an oversized catalog in bounded searchable mode","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"An oversized catalog enters bounded mode and SELECT 1 remains usable.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-03.recovery.0"}]
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"opens an oversized catalog in bounded searchable mode","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"An oversized catalog enters bounded mode and SELECT 1 remains usable.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-03.recovery.0"}]
     },
     {
       "id": "PF-04",
@@ -40,8 +40,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-04",
       "owner": "SQLite file intake",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps a malformed view isolated from healthy catalog objects","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Malformed metadata is isolated while healthy catalog objects remain visible.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-04.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"rejects SQLite sidecar files before opening them","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A sidecar is rejected before worker intake and the no-database state remains actionable.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-04.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps a malformed view isolated from healthy catalog objects","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Malformed metadata is isolated while healthy catalog objects remain visible.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-04.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"rejects SQLite sidecar files before opening them","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A sidecar is rejected before worker intake and the no-database state remains actionable.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-04.recovery.0"}]
     },
     {
       "id": "PF-05",
@@ -50,8 +50,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-05",
       "owner": "UI data rendering",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"renders hostile query-plan detail as inert text","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Hostile identifiers render as text and do not create executable DOM nodes.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-05.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"quotes unusual catalog identifiers in bounded SELECT actions","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Quoted identifiers produce a safe bounded SELECT and remain queryable.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-05.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"renders hostile query-plan detail as inert text","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Hostile identifiers render as text and do not create executable DOM nodes.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-05.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"quotes unusual catalog identifiers in bounded SELECT actions","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Quoted identifiers produce a safe bounded SELECT and remain queryable.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-05.recovery.0"}]
     },
     {
       "id": "PF-06",
@@ -60,8 +60,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-06",
       "owner": "Catalog extraction",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps FTS4 and RTree virtual modules visible with bounded shadow metadata","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"FTS4, RTree, virtual, and shadow metadata remain explicitly visible and bounded.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-06.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"represents virtual and shadow objects without losing the virtual table","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A virtual table remains discoverable after shadow-object normalization.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-06.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps FTS4 and RTree virtual modules visible with bounded shadow metadata","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"FTS4, RTree, virtual, and shadow metadata remain explicitly visible and bounded.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-06.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"represents virtual and shadow objects without losing the virtual table","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A virtual table remains discoverable after shadow-object normalization.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-06.recovery.0"}]
     },
     {
       "id": "PF-07",
@@ -70,8 +70,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-07",
       "owner": "Result model and export",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps duplicate labels positional and neutralizes CSV formulas","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Duplicate columns retain positional identity and formula-like CSV cells are neutralized.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-07.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"shows a read-only query plan, exports the result, and keeps bounded history","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"The result can be planned, exported, and revisited without losing exact values.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-07.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps duplicate labels positional and neutralizes CSV formulas","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Duplicate columns retain positional identity and formula-like CSV cells are neutralized.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-07.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"shows a read-only query plan, exports the result, and keeps bounded history","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"The result can be planned, exported, and revisited without losing exact values.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-07.recovery.0"}]
     },
     {
       "id": "PF-08",
@@ -80,7 +80,7 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-08",
       "owner": "Catalog and result presentation",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"opens an oversized catalog in bounded searchable mode","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Large catalog intake stays searchable, paginated, and diagram-safe.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-08.prevention.0"}],
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"opens an oversized catalog in bounded searchable mode","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Large catalog intake stays searchable, paginated, and diagram-safe.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-08.prevention.0"}],
       "recovery": [{"file":"tests/performance/scalability.spec.ts","testId":"keeps limited catalogs and result pages structurally bounded","command":"npm run test:performance -- tests/performance/scalability.spec.ts --project=chromium","expectedAssertion":"Catalog and result structural budgets hold while a bounded query remains usable.","sourceSha256":"45213ea406f615cb274b393170d54d4ddbd1ced3f31df2fa939ca0dc3efd0868","resultKey":"PF-08.recovery.0"}]
     },
     {
@@ -90,7 +90,7 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-09",
       "owner": "Export boundary",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps duplicate labels positional and neutralizes CSV formulas","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Formula-like text is apostrophe-prefixed in CSV and truncation remains explicit.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-09.prevention.0"}],
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps duplicate labels positional and neutralizes CSV formulas","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Formula-like text is apostrophe-prefixed in CSV and truncation remains explicit.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-09.prevention.0"}],
       "recovery": [{"file":"tests/e2e/keyboard-workflows.spec.ts","testId":"completes the primary workflow without pointer-only actions","command":"npm run test:e2e -- tests/e2e/keyboard-workflows.spec.ts --project=chromium","expectedAssertion":"Export remains reachable in the primary workflow and acknowledges a bounded download.","sourceSha256":"25b2bae1ab0fd704395c669689ef8e9baa16ab84d94ee262611fb43861652fda","resultKey":"PF-09.recovery.0"}]
     },
     {
@@ -100,8 +100,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-10",
       "owner": "Local history and logging",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"shows a read-only query plan, exports the result, and keeps bounded history","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"History is bounded to SQL metadata and does not retain result cell values.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-10.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"keeps the current SQL draft when generated-join replacement is cancelled","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A cancelled generated action preserves only the SQL draft and leaves the workspace usable.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-10.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"shows a read-only query plan, exports the result, and keeps bounded history","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"History is bounded to SQL metadata and does not retain result cell values.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-10.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"keeps the current SQL draft when generated-join replacement is cancelled","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A cancelled generated action preserves only the SQL draft and leaves the workspace usable.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-10.recovery.0"}]
     },
     {
       "id": "PF-11",
@@ -110,8 +110,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-11",
       "owner": "Offline shell and service worker",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"reloads the complete shell offline without deleting sibling caches","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Offline shell reload succeeds while a sibling cache survives and database files are absent.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-11.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"registers the app shell without caching database files","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"The shell registers and its cache excludes imported database files.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-11.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"reloads the complete shell offline without deleting sibling caches","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Offline shell reload succeeds while a sibling cache survives and database files are absent.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-11.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"registers the app shell without caching database files","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"The shell registers and its cache excludes imported database files.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-11.recovery.0"}]
     },
     {
       "id": "PF-12",
@@ -120,8 +120,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-12",
       "owner": "Static artifact and capability gate",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps the worker and database workflow same-origin and non-isolated","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Worker, WASM, and database workflow stay same-origin with no external runtime requests.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-12.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"blocks intake when a required browser capability is missing","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Missing Worker capability fails closed with a visible recovery state before file intake.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-12.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"keeps the worker and database workflow same-origin and non-isolated","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Worker, WASM, and database workflow stay same-origin with no external runtime requests.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-12.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"blocks intake when a required browser capability is missing","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"Missing Worker capability fails closed with a visible recovery state before file intake.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-12.recovery.0"}]
     },
     {
       "id": "PF-13",
@@ -140,8 +140,8 @@
       "status": "resolved",
       "source": ".planning/research/PITFALLS.md#PF-14",
       "owner": "Real browser and WASM verification",
-      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"opens the bundled sample and runs the fixed readiness check","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"The bundled SQLite WASM sample opens and executes the fixed readiness query in a real browser.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-14.prevention.0"}],
-      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"opens a local database and renders a bounded query result","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A real local SQLite file opens and renders exact bounded result values.","sourceSha256":"0322e765cace95f27c9a65f16cda83fd30648fe11336cf88764790e6dcc88f03","resultKey":"PF-14.recovery.0"}]
+      "prevention": [{"file":"tests/e2e/app.spec.ts","testId":"opens the bundled sample and runs the fixed readiness check","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"The bundled SQLite WASM sample opens and executes the fixed readiness query in a real browser.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-14.prevention.0"}],
+      "recovery": [{"file":"tests/e2e/app.spec.ts","testId":"opens a local database and renders a bounded query result","command":"npm run test:e2e -- tests/e2e/app.spec.ts --project=chromium","expectedAssertion":"A real local SQLite file opens and renders exact bounded result values.","sourceSha256":"01a8120c375a5f4fd343f83db6c7d88518a5a89a6d08c69e751970a448dfa50a","resultKey":"PF-14.recovery.0"}]
     }
   ]
 }

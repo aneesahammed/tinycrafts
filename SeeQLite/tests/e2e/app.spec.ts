@@ -29,6 +29,17 @@ test('opens a local database and renders a bounded query result', async ({ page 
   await expect(results).toContainText('BLOB · 2 bytes');
 });
 
+test('reports non-internal tables and views separately from visible objects', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(malformedFixture);
+
+  await expect(page.locator('.header-stats')).toHaveText('2 tables · 2 views · 0 relations');
+  await expect(page.locator('.rail-footer')).toContainText('4 objects');
+  await page.getByRole('button', { name: 'Show internal objects' }).click();
+  await expect(page.locator('.header-stats')).toHaveText('2 tables · 2 views · 0 relations');
+  await expect(page.locator('.rail-footer')).toContainText('5 objects');
+});
+
 test('rejects mutation queries before they reach SQLite', async ({ page }) => {
   await page.goto('/');
   await page.locator('input[type="file"]').setInputFiles(fixture);
@@ -266,6 +277,23 @@ test('provides a SQLite-aware editor with keyboard execution', async ({ page }) 
   await editor.click();
   await page.keyboard.press('Control+Enter');
   await expect(page.locator('.result-panel')).toContainText('ada@example.test');
+});
+
+test('formats SQL locally from the query toolbar without executing it', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  const editor = page.getByLabel('SQL query');
+  await editor.fill("select id,email from users where email = 'select from' order by id;");
+
+  await page.getByRole('button', { name: 'Format' }).click();
+  await expect(page.locator('.cm-line')).toHaveText(['SELECT', 'id, email', 'FROM users', "WHERE email = 'select from'", 'ORDER BY id;']);
+  await expect(page.locator('.file-status')).toContainText('SQL formatted');
+  await expect(page.getByRole('region', { name: 'Query results' })).toContainText('Ready');
+
+  await editor.fill('select id from users;');
+  await editor.focus();
+  await page.keyboard.press('Alt+F');
+  await expect(page.locator('.cm-line')).toHaveText(['SELECT', 'id', 'FROM users;']);
 });
 
 test('shows the catalog as a relationship diagram and can select a table without leaving it', async ({ page }) => {

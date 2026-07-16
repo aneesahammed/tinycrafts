@@ -5,7 +5,7 @@ import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engin
 import { checkCapabilities } from './platform/capabilities';
 import { buildPlanNodes, planDepth } from './plan';
 import { ErCanvas, MAX_DIAGRAM_TABLES, RelationshipList } from './components/ErCanvas';
-import { buildJoinSql, quoteIdentifier } from './sql';
+import { buildJoinSql, formatSql, quoteIdentifier } from './sql';
 const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
 const SAMPLE_QUERY = 'SELECT 1 AS ready, sqlite_version() AS sqlite_version;';
@@ -16,7 +16,7 @@ type AppSource = { kind: 'file'; file: File } | { kind: 'sample' };
 type HistoryItem = { version: 1; sql: string; status: 'success' | 'error' | 'cancelled'; at: number; durationMs: number };
 type TableDetailState = { status: 'loading' | 'ready' | 'error'; details?: CatalogDetails; message?: string };
 type WorkspaceView = 'query' | 'schema' | 'diagram';
-type SqlEditorFallbackProps = { value: string; onChange: (value: string) => void; onRun: () => void; onPlan: () => void };
+type SqlEditorFallbackProps = { value: string; onChange: (value: string) => void; onRun: () => void; onPlan: () => void; onFormat: () => void };
 const HISTORY_KEY = 'seeqlite.query-history.v1';
 const HISTORY_MAX_ITEMS = 100;
 const HISTORY_MAX_SQL_BYTES = 8 * 1024;
@@ -49,14 +49,26 @@ function truncateUtf8(value: string, maxBytes: number) {
   return encoded.byteLength <= maxBytes ? value : new TextDecoder().decode(encoded.slice(0, maxBytes));
 }
 
-function SqlEditorFallback({ value, onChange, onRun, onPlan }: SqlEditorFallbackProps) {
+function SqlEditorFallback({ value, onChange, onRun, onPlan, onFormat }: SqlEditorFallbackProps) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   const restoreFocus = useRef(false);
   useEffect(() => () => {
     if (!restoreFocus.current && document.activeElement !== textarea.current) return;
     requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-label="SQL query"]')?.focus());
   }, []);
-  return <textarea ref={textarea} aria-label="SQL query" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return; restoreFocus.current = true; event.preventDefault(); if (event.shiftKey) onPlan(); else onRun(); }} spellCheck={false} />;
+  return <textarea ref={textarea} aria-label="SQL query" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.altKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyF') { event.preventDefault(); onFormat(); return; } if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return; restoreFocus.current = true; event.preventDefault(); if (event.shiftKey) onPlan(); else onRun(); }} spellCheck={false} />;
+}
+
+function RunIcon() {
+  return <svg className="action-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m6 4 9 6-9 6V4Z" strokeLinejoin="round" /></svg>;
+}
+
+function ExplainIcon() {
+  return <svg className="action-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M7.1 3.4A7 7 0 0 0 3.5 9.5M3.5 9.5l2.8-1.7M3.5 9.5l1.7 2.8M12.9 16.6a7 7 0 0 0 3.6-6.1m0 0-2.8 1.7m2.8-1.7-1.7-2.8M10 3a7 7 0 0 1 5.8 3.1M10 17a7 7 0 0 1-5.8-3.1" strokeLinecap="round" strokeLinejoin="round" /><circle cx="10" cy="10" r="2.1" /></svg>;
+}
+
+function FormatIcon() {
+  return <svg className="action-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h12" strokeLinecap="round" /><circle cx="8" cy="5" r="1.4" fill="currentColor" stroke="none" /><circle cx="13" cy="10" r="1.4" fill="currentColor" stroke="none" /><circle cx="6" cy="15" r="1.4" fill="currentColor" stroke="none" /></svg>;
 }
 
 export function App() {
@@ -111,6 +123,21 @@ export function App() {
     previewSqlRef.current = null;
     setRecoverableDraft(null);
     setQuery(value);
+  }
+
+  function formatEditorQuery() {
+    const currentQuery = queryRef.current;
+    if (!currentQuery.trim()) {
+      setStatus('Write SQL before formatting.');
+      return;
+    }
+    const formatted = formatSql(currentQuery);
+    if (formatted === currentQuery) {
+      setStatus('SQL is already formatted.');
+      return;
+    }
+    setEditorQuery(formatted);
+    setStatus('SQL formatted.');
   }
 
   function browseObject(table: CatalogTable) {
@@ -401,7 +428,10 @@ export function App() {
   }, [selectedTable, showInternalObjects]);
   useEffect(() => { setCatalogPage(0); }, [catalogSearch, showInternalObjects, catalog]);
 
-  const dbStats = catalog ? `${catalog.tables.length} table${catalog.tables.length === 1 ? '' : 's'} · ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}${result ? ` · ${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'}` : ''}` : '';
+  const databaseObjects = catalog?.tables.filter((table) => !table.internal) ?? [];
+  const databaseTableCount = databaseObjects.filter((table) => table.kind === 'table' || table.kind === 'virtual').length;
+  const databaseViewCount = databaseObjects.filter((table) => table.kind === 'view').length;
+  const dbStats = catalog ? `${databaseTableCount} table${databaseTableCount === 1 ? '' : 's'} · ${databaseViewCount} view${databaseViewCount === 1 ? '' : 's'} · ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}${result ? ` · ${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'}` : ''}` : '';
 
   return (
     <div className="app-shell" data-skin="app">
@@ -461,11 +491,12 @@ export function App() {
               {view === 'query' ? (
                 <div id="query-panel" className="editor-tab" role="tabpanel" aria-labelledby="query-tab">
                   <div className="editor-pane">
-                    <Suspense fallback={<SqlEditorFallback value={query} onChange={setEditorQuery} onRun={() => void runQuery()} onPlan={() => void runPlan()} />}><SqlEditor value={query} catalog={catalog} onChange={setEditorQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
+                    <Suspense fallback={<SqlEditorFallback value={query} onChange={setEditorQuery} onRun={() => void runQuery()} onPlan={() => void runPlan()} onFormat={formatEditorQuery} />}><SqlEditor value={query} catalog={catalog} onChange={setEditorQuery} onRun={runQuery} onPlan={runPlan} onFormat={formatEditorQuery} /></Suspense>
                     <div className="query-actions">
-                      <button className="primary-button compact" onClick={() => runQuery()} disabled={busy}>{busy ? 'Running…' : 'Run query'}<kbd className="kbd" aria-hidden="true">⌘↵</kbd></button>
+                      <button className="primary-button compact toolbar-action run-action" onClick={() => runQuery()} disabled={busy}><RunIcon /><span>{busy ? 'Running…' : 'Run query'}</span><kbd className="kbd" aria-hidden="true">⌘↵</kbd></button>
                       {busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : null}
-                      <button className="secondary-button compact" onClick={() => runPlan()} disabled={busy}>Explain<kbd className="kbd" aria-hidden="true">⌘⇧↵</kbd></button>
+                      <button className="secondary-button compact toolbar-action" onClick={() => runPlan()} disabled={busy}><ExplainIcon /><span>Explain</span><kbd className="kbd" aria-hidden="true">⌘⇧↵</kbd></button>
+                      <button className="secondary-button compact toolbar-action" onClick={formatEditorQuery} disabled={busy} title="Format SQL (⌥F)"><FormatIcon /><span>Format</span><kbd className="kbd" aria-hidden="true">⌥F</kbd></button>
                       {recoverableDraft !== null ? <button className="quiet-button draft-restore" onClick={restoreDraft} disabled={busy}>Restore SQL draft</button> : null}
                       <span className="query-status" role="status" aria-live="polite">{status}</span>
                     </div>

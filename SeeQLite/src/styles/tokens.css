@@ -76,6 +76,9 @@
    TablePlus, and DataGrip: calm, dense, data-first. All pairs verified >= 4.5:1. */
 [data-skin="app"] {
   color-scheme: light;
+  --r-sm: 3px;
+  --r-md: 4.5px;
+  --r-lg: 6px;
   --paper: #fbfcfe;
   --paper-2: #f4f6f9;
   --paper-3: #ffffff;
