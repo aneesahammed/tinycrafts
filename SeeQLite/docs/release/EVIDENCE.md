@@ -15,7 +15,7 @@ The current repository state has protocol evidence for:
 - manual Safari/VoiceOver/NVDA schema validation;
 - shared Pages artifact and local deployed-shape verification.
 
-It does not yet contain a complete release-run artifact. That is intentional until all automated commands finish and human/public gates are executed.
+The latest local release run produced an incomplete artifact for the checked commit: all 20 automated command outcomes passed with zero retries or skips, but the artifact remains incomplete until the human accessibility, authorized public deployment, and rollback gates are executed. The generated artifact is deliberately not committed because its embedded commit SHA must match the source commit under test; regenerate it for the exact release candidate with the command above.
 
 ## Required evidence inputs
 
