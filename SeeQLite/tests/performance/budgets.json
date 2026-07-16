@@ -13,9 +13,9 @@
         "qualifiedOn": "2026-07-16"
       },
       "engines": {
-        "chromium": { "openMs": 1000, "reopenMs": 1000, "reimportMs": 1000, "queryMs": 1000 },
-        "firefox": { "openMs": 1500, "reopenMs": 1500, "reimportMs": 1000, "queryMs": 1000 },
-        "webkit": { "openMs": 1500, "reopenMs": 1500, "reimportMs": 1000, "queryMs": 1000 }
+        "chromium": { "openMs": 1000, "reopenMs": 1000, "reimportMs": 1000, "queryMs": 1000, "catalogOpenMs": 2000 },
+        "firefox": { "openMs": 1500, "reopenMs": 1500, "reimportMs": 1000, "queryMs": 1000, "catalogOpenMs": 2000 },
+        "webkit": { "openMs": 1500, "reopenMs": 1500, "reimportMs": 1000, "queryMs": 1000, "catalogOpenMs": 2000 }
       },
       "hardLimits": {
         "cancelAckMs": 250,

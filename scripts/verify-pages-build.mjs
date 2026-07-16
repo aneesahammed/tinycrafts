@@ -41,9 +41,12 @@ const forbiddenFiles = [
   'dataduck/package.json',
   'dataduck/package-lock.json',
   'dataduck/vite.config.js',
+  'seeqlite/package.json',
+  'seeqlite/package-lock.json',
+  'seeqlite/vite.config.js',
 ];
 
-const forbiddenDirs = ['dataduck/node_modules', 'dataduck/dist', 'parqview'];
+const forbiddenDirs = ['dataduck/node_modules', 'dataduck/dist', 'seeqlite/node_modules', 'seeqlite/dist', 'seeqlite/src', 'seeqlite/tests', 'parqview'];
 
 const failures = [];
 
@@ -77,6 +80,7 @@ assertDataDuckServiceWorkerRegistration();
 assertSeeQLiteAssets();
 assertSeeQLiteHtml();
 assertSeeQLiteSample();
+assertSeeQLiteServiceWorker();
 assertNoMacMetadata(pagesDir);
 
 if (failures.length > 0) {
@@ -253,7 +257,7 @@ function assertSeeQLiteAssets() {
     return;
   }
 
-  for (const [pattern, label] of [[/\.js$/, 'JavaScript'], [/\.css$/, 'CSS'], [/\.wasm$/, 'WASM']]) {
+  for (const [pattern, label] of [[/\.js$/, 'JavaScript'], [/\.css$/, 'CSS'], [/\.wasm$/, 'WASM'], [/sqlite\.worker-.*\.js$/, 'SQLite database worker'], [/sqlite3-worker1-.*\.js$/, 'SQLite runtime worker']]) {
     if (!readdirSync(assetsDir).some((entry) => pattern.test(entry))) {
       failures.push(`Missing SeeQLite ${label} asset`);
     }
@@ -272,6 +276,8 @@ function assertSeeQLiteHtml() {
   ]) {
     if (!html.includes(needle)) failures.push(message);
   }
+  if (html.includes('src="/') || html.includes('href="/')) failures.push('SeeQLite HTML must not contain root-relative asset paths');
+  if (!html.includes('href="./manifest.webmanifest"')) failures.push('SeeQLite HTML should expose its relative manifest link');
 }
 
 function assertSeeQLiteSample() {
@@ -279,6 +285,34 @@ function assertSeeQLiteSample() {
   if (!existsSync(samplePath)) return;
   const header = readFileSync(samplePath).subarray(0, 16).toString('utf8');
   if (header !== 'SQLite format 3\u0000') failures.push('SeeQLite sample must be a SQLite 3 database');
+}
+
+function assertSeeQLiteServiceWorker() {
+  const workerPath = join(pagesDir, 'seeqlite/sw.js');
+  if (!existsSync(workerPath)) return;
+  const source = readFileSync(workerPath, 'utf8');
+  if (!source.includes("const CACHE_PREFIX = 'seeqlite-'")) failures.push('SeeQLite service worker must use a scoped cache prefix');
+  const precacheMatch = /const PRECACHE = (\[[\s\S]*?\]);/.exec(source);
+  if (!precacheMatch) {
+    failures.push('SeeQLite service worker precache manifest is unreadable');
+    return;
+  }
+  let precache;
+  try {
+    precache = JSON.parse(precacheMatch[1]);
+  } catch {
+    failures.push('SeeQLite service worker precache manifest is invalid JSON');
+    return;
+  }
+  for (const asset of precache) {
+    if (typeof asset !== 'string') {
+      failures.push('SeeQLite service worker precache contains a non-string path');
+      continue;
+    }
+    if (/\.(?:sqlite|sqlite3|db|wal|shm|journal)$/i.test(asset)) failures.push(`SeeQLite service worker must not precache database path: ${asset}`);
+    if (asset.startsWith('/') || asset.includes('..')) failures.push(`SeeQLite precache path must stay relative: ${asset}`);
+    if (!existsSync(join(pagesDir, 'seeqlite', asset.replace(/^\.\//, '')))) failures.push(`SeeQLite precache references missing asset: ${asset}`);
+  }
 }
 
 function assertNoMacMetadata(dir) {

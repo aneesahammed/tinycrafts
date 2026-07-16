@@ -70,11 +70,17 @@ for (const sizeMiB of LARGE_DATABASE_SIZES_MIB) {
     started = performance.now();
     await page.getByRole('button', { name: 'Reopen database' }).click();
     await expect(page.locator('.file-status')).toContainText('1 table ready');
+    await expect(page.getByRole('button', { name: 'Reopen database' })).toHaveCount(0);
+    await expect(page.locator('.table-list-item')).toHaveCount(1);
     const reopenMs = elapsed(started);
 
     started = performance.now();
-    await input.setInputFiles(fixture.path);
+    await input.evaluate((element) => { (element as HTMLInputElement).value = ''; });
+    await input.setInputFiles(fixture.reimportPath);
+    await expect(page.locator('.file-status')).toContainText(`large-${sizeMiB}MiB-reimport.sqlite`);
     await expect(page.locator('.file-status')).toContainText('1 table ready');
+    await expect(page.locator('.table-list-item')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Run query' })).toBeEnabled();
     const reimportMs = elapsed(started);
     await page.getByLabel('SQL query').fill('SELECT 1 AS ready;');
     await page.getByRole('button', { name: 'Run query' }).click();

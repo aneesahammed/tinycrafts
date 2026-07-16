@@ -20,17 +20,25 @@ The test generates valid SQLite files whose byte lengths are exactly 64 MiB, 128
 
 | Engine | Size | Open | Query | Cancel ack | Reopen | Reimport |
 |---|---:|---:|---:|---:|---:|---:|
-| Chromium | 64 MiB | 132 | 117 | 33 | 109 | 6 |
-| Chromium | 128 MiB | 218 | 124 | 35 | 208 | 4 |
-| Chromium | 256 MiB | 226 | 120 | 34 | 211 | 5 |
-| Firefox | 64 MiB | 239 | 78 | 70 | 282 | 9 |
-| Firefox | 128 MiB | 217 | 48 | 51 | 228 | 5 |
-| Firefox | 256 MiB | 214 | 62 | 51 | 231 | 5 |
-| WebKit | 64 MiB | 171 | 45 | 45 | 108 | 6 |
-| WebKit | 128 MiB | 250 | 37 | 32 | 112 | 6 |
-| WebKit | 256 MiB | 261 | 48 | 31 | 215 | 4 |
+| Chromium | 64 MiB | 134 | 126 | 34 | 110 | 101 |
+| Chromium | 128 MiB | 223 | 114 | 37 | 214 | 202 |
+| Chromium | 256 MiB | 224 | 125 | 42 | 217 | 209 |
+| Firefox | 64 MiB | 282 | 143 | 106 | 275 | 369 |
+| Firefox | 128 MiB | 219 | 65 | 50 | 231 | 204 |
+| Firefox | 256 MiB | 216 | 60 | 47 | 232 | 205 |
+| WebKit | 64 MiB | 167 | 44 | 48 | 110 | 107 |
+| WebKit | 128 MiB | 261 | 50 | 41 | 271 | 213 |
+| WebKit | 256 MiB | 268 | 39 | 34 | 220 | 207 |
 
 The ratcheted ceilings are stored in `tests/performance/budgets.json`: Chromium 1,000 ms for each measured operation; Firefox and WebKit 1,500 ms for open/reopen and 1,000 ms for reimport/query. Cancel acknowledgement remains a hard 250 ms limit for every engine.
+
+The exact 25 MiB and 50 MiB oversized-catalog matrix also passes in all three engines. Each file contains 5,001 synthetic user tables plus a filler BLOB, enters the approved 5,000-object limited mode, renders 100 catalog rows, disables the ER diagram, and completes `SELECT 1` recovery. The catalog-open ceiling is 2,000 ms per engine profile.
+
+| Engine | 25 MiB catalog | 50 MiB catalog |
+|---|---:|---:|
+| Chromium | 323 ms | 345 ms |
+| Firefox | 850 ms | 372 ms |
+| WebKit | 386 ms | 375 ms |
 
 ## Structural safety evidence
 

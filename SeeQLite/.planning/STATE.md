@@ -59,10 +59,10 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 ### Pending Todos
 
 - Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark plus forced-colors/zoom/reduced-motion gates now pass in all three engines; the new relationship list is keyboard-readable).
-- Add production HTTP-header/CSP evidence where the Pages host permits it; retain the documented meta-CSP fallback limitation.
+- Static Pages artifact/header checker now records relative assets, MIME, precache, and absent local response headers; run it against the authorized public `/seeqlite/` deployment before claiming production CSP/service-worker/header evidence.
 - Keep the DataDuck dependency advisory inventory visible; its full development-tree `npm audit --audit-level=moderate` currently reports 9 upstream advisories (including high/critical transitive issues), while production-only audits for SeeQLite and DataDuck are clean.
 - CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags, predicate text, FTS5/FTS4/RTree virtual-shadow metadata, malformed-object isolation, 5,001-object/52,000-column limited-mode degradation, graph caps, and stale-response guards; remaining work is additional module families and low-memory/25–50 MiB evidence.
-- PERF-01 now has a qualified local-darwin-arm64-64g-headless profile with exact 64/128/256 MiB import/reopen/reimport samples and hard structural limits; peak memory, worker-transfer/long-task traces, and 25/50 MiB low-memory coverage remain in `docs/release/gaps/PERFORMANCE-GAPS.md`.
+- PERF-01 now has a qualified local-darwin-arm64-64g-headless profile with exact 25/50 MiB catalog and 64/128/256 MiB import/reopen/reimport samples plus hard structural limits; peak memory, worker-transfer/long-task traces, and constrained-host memory pressure remain in `docs/release/gaps/PERFORMANCE-GAPS.md`.
 - OFF-01/OFF-02/OFF-03 now have a generated non-database precache, SeeQLite-only cache cleanup, offline shell E2E, and visible registration fallback; manual Safari update/reload remains open.
 
 ### Blockers/Concerns
