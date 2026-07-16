@@ -28,6 +28,7 @@ This checkpoint covers the incremental ER discoverability, safe-copy, query-plan
 | A11Y-MANUAL | Manual Safari/VoiceOver and NVDA evidence has a strict schema, freshness/signature/sanitization checks, and mutation coverage; the checked-in record is explicitly incomplete until human execution. | `scripts/validate-release-evidence.mjs`, `tests/release/manual-evidence.test.ts`, `docs/release/accessibility-safari.md`, `docs/release/gaps/MANUAL-EVIDENCE-GAPS.md`; 11 tests PASS | PASS for protocol; human platform evidence remains open |
 | RISK-PF-01..14 | Every researched PF risk has one exact prevention and recovery reference with source digest, test identity, expected assertion, canonical result key, and fail-closed freshness/skip/retry contract. | `docs/release/risk-evidence.json`, `scripts/check-risk-evidence.mjs`, `tests/release/risk-evidence.test.ts`, `docs/release/gaps/RISK-GAPS.md`; 20 tests PASS | PASS for manifest/checker protocol; current release runner evidence remains open |
 | DEP-AUDIT | Every shipped SeeQLite runtime package has exact version/purpose/license/notice/source/asset/request evidence, and unresolved production High/Critical advisories block. | `scripts/audit-release-dependencies.mjs`, `docs/release/dependency-inventory.md`, `../THIRD_PARTY_NOTICES.md`, `tests/release/dependency-audit.test.ts`; 8 tests PASS; `npm audit --omit=dev` clean | PASS for SeeQLite dependency protocol; DataDuck dev-tree advisories remain disclosed |
+| RELEASE-GATE | The release transaction has one no-retry command matrix, current-commit/source-output digests, atomic incomplete diagnostics, 48 requirement/10 DoD links, PF handoff, manual/public/rollback inputs, and sanitized gap output. | `scripts/release-gate.mjs`, `tests/release/release-gate.test.ts`, `docs/release/EVIDENCE.md`, `docs/release/LIMITATIONS.md`, `docs/release/RELEASE-CHECKLIST.md`, `docs/release/ROLLBACK.md`, `docs/release/gaps/RELEASE-GAPS.md`; 7 tests PASS | PASS for orchestration contract; current full run and external gates remain open |
 
 ## Automated commands
 
@@ -49,6 +50,7 @@ SeeQLite: shared Pages artifact verifier          PASS (SeeQLite/DataDuck artifa
 SeeQLite: manual evidence protocol                PASS (11 mutation/schema tests; template intentionally incomplete)
 SeeQLite: PF risk evidence protocol                PASS (20 mutation/schema tests; current runner artifact intentionally absent)
 SeeQLite: dependency/license/notice protocol       PASS (8 mutation tests; 19 runtime packages; production audit clean)
+SeeQLite: release-gate orchestration protocol       PASS (7 contract tests; current full run intentionally absent)
 Pages:    node scripts/build-pages.mjs      PASS
 Pages:    node scripts/verify-pages-build.mjs PASS
 DataDuck: npm --prefix dataduck test        PASS (195 tests / 54 files)
