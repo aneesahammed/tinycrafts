@@ -7,6 +7,7 @@ const fixture = path.join(process.cwd(), 'tests/fixtures/smoke.sqlite');
 const malformedFixture = path.join(process.cwd(), 'tests/fixtures/malformed.sqlite');
 const limitedFixture = path.join(process.cwd(), 'tests/fixtures/limited.sqlite');
 const virtualFixture = path.join(process.cwd(), 'tests/fixtures/virtual.sqlite');
+const exoticFixture = path.join(process.cwd(), 'tests/fixtures/exotic.sqlite');
 const hostileFixture = path.join(process.cwd(), 'tests/fixtures/hostile.sqlite');
 const wideCatalogFixture = path.join(process.cwd(), 'tests/fixtures/wide-catalog.sqlite');
 const relationshipsFixture = path.join(process.cwd(), 'tests/fixtures/relationships.sqlite');
@@ -166,6 +167,25 @@ test('represents virtual and shadow objects without losing the virtual table', a
   await expect(page.getByRole('region', { name: 'documents details' })).toContainText('VIRTUAL');
   await expect(page.getByRole('region', { name: 'documents details' })).toContainText('title');
   await expect(page.getByRole('region', { name: 'documents details' })).toContainText('body');
+});
+
+test('keeps FTS4 and RTree virtual modules visible with bounded shadow metadata', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(exoticFixture);
+  await expect(page.locator('.file-status')).toContainText('3 tables ready');
+  await expect(page.locator('.table-list-item')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: /points virtual/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /search4 virtual/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /points_archive table/ })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Show internal objects' }).click();
+  await expect(page.locator('.table-list-item')).toHaveCount(12);
+  await page.getByRole('button', { name: /points virtual/ }).click();
+  await expect(page.getByRole('region', { name: 'points details' })).toContainText('VIRTUAL');
+  await expect(page.getByRole('region', { name: 'points details' })).toContainText('Column metadata could not be read');
+  await page.getByRole('button', { name: /search4 virtual/ }).click();
+  await expect(page.getByRole('region', { name: 'search4 details' })).toContainText('VIRTUAL');
+  await expect(page.getByRole('region', { name: 'search4 details' })).toContainText('Column metadata could not be read');
 });
 
 test('opens an oversized catalog in bounded searchable mode', async ({ page }) => {

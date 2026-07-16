@@ -23,7 +23,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
 Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, scoped offline shell, accessibility gate, searchable/paged catalog, virtual/shadow metadata, internal-object toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added pure bounded plan projection and unusual-identifier quoting coverage on top of the ratified 5,000-object/50,000-column catalog budgets and generated scoped precache; 96/96 browser tests pass.
+Last activity: 2026-07-16 — Added dedicated 4-width/both-theme keyboard and accessibility coverage, FTS4/RTree virtual fixtures, virtual-prefix shadow normalization, and theme-following CodeMirror token classes; 120/120 browser tests pass.
 
 Progress: [█████████░] 89%
 
@@ -61,7 +61,7 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 - Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark plus forced-colors/zoom/reduced-motion gates now pass in all three engines; the new relationship list is keyboard-readable).
 - Add production HTTP-header/CSP evidence where the Pages host permits it; retain the documented meta-CSP fallback limitation.
 - Keep the DataDuck dependency advisory inventory visible; its full development-tree `npm audit --audit-level=moderate` currently reports 9 upstream advisories (including high/critical transitive issues), while production-only audits for SeeQLite and DataDuck are clean.
-- CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags, predicate text, virtual/shadow metadata, malformed-object isolation, 5,001-object/52,000-column limited-mode degradation, graph caps, and stale-response guards; remaining work is exotic virtual modules and low-memory/25–50 MiB evidence.
+- CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags, predicate text, FTS5/FTS4/RTree virtual-shadow metadata, malformed-object isolation, 5,001-object/52,000-column limited-mode degradation, graph caps, and stale-response guards; remaining work is additional module families and low-memory/25–50 MiB evidence.
 - OFF-01/OFF-02/OFF-03 now have a generated non-database precache, SeeQLite-only cache cleanup, offline shell E2E, and visible registration fallback; manual Safari update/reload remains open.
 
 ### Blockers/Concerns

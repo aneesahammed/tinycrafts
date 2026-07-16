@@ -29,14 +29,14 @@ const editorTheme = EditorView.theme({
 });
 
 const sqlHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: 'var(--accent-deep)', fontWeight: '700' },
-  { tag: tags.number, color: 'var(--warning)' },
-  { tag: tags.string, color: 'var(--success)' },
-  { tag: tags.comment, color: 'var(--ink-3)' },
-  { tag: tags.operator, color: 'var(--accent-deep)' },
-  { tag: tags.variableName, color: 'var(--ink)' },
-  { tag: tags.typeName, color: 'var(--accent-deep)' },
-  { tag: tags.function(tags.variableName), color: 'var(--accent-deep)' },
+  { tag: tags.keyword, class: 'sql-token-keyword' },
+  { tag: tags.number, class: 'sql-token-number' },
+  { tag: tags.string, class: 'sql-token-string' },
+  { tag: tags.comment, class: 'sql-token-comment' },
+  { tag: tags.operator, class: 'sql-token-operator' },
+  { tag: tags.variableName, class: 'sql-token-variable' },
+  { tag: tags.typeName, class: 'sql-token-type' },
+  { tag: tags.function(tags.variableName), class: 'sql-token-function' },
 ]);
 
 function shortcutHandlers(onRun: (selection?: string) => void, onPlan: (selection?: string) => void) {

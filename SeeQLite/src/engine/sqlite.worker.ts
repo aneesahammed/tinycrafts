@@ -22,6 +22,7 @@ const MAX_INDEXES = 5_000;
 const MAX_FOREIGN_KEYS = 2_000;
 const MAX_CATALOG_TEXT_BYTES = 16 * 1024;
 const MAX_CATALOG_IDENTIFIER_BYTES = 64 * 1024;
+const VIRTUAL_SHADOW_SUFFIXES = new Set(['config', 'content', 'data', 'docsize', 'idx', 'node', 'parent', 'rowid', 'segdir', 'segments', 'stat']);
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const request = event.data;
@@ -225,6 +226,11 @@ function readCatalog(): Catalog {
       const rightInternal = String(right[1] ?? '').startsWith('sqlite_') || String(right[2] ?? '') === 'shadow';
       return Number(leftInternal) - Number(rightInternal) || String(left[1] ?? '').localeCompare(String(right[1] ?? ''), undefined, { sensitivity: 'base' });
     });
+  const virtualPrefixes = new Set(
+    objects
+      .filter((row) => String(row[2] ?? '') === 'virtual')
+      .map((row) => String(row[1] ?? '')),
+  );
   if (objects.length > MAX_TABLES) limits.push({ kind: 'objects', limit: MAX_TABLES });
   let columnCount = 0;
   let columnBudgetReached = false;
@@ -234,7 +240,11 @@ function readCatalog(): Catalog {
     const rawName = row[1];
     const rawKind = row[2];
     const name = String(rawName);
-    const kind = rawKind === 'view' ? 'view' : rawKind === 'virtual' ? 'virtual' : rawKind === 'shadow' ? 'shadow' : 'table';
+    const shadowByVirtualPrefix = [...virtualPrefixes].some((prefix) => {
+      if (!prefix || !name.startsWith(`${prefix}_`)) return false;
+      return VIRTUAL_SHADOW_SUFFIXES.has(name.slice(prefix.length + 1));
+    });
+    const kind = rawKind === 'view' ? 'view' : rawKind === 'virtual' ? 'virtual' : rawKind === 'shadow' || shadowByVirtualPrefix ? 'shadow' : 'table';
     const internal = name.startsWith('sqlite_') || kind === 'shadow';
     const warnings: CatalogWarning[] = [];
     let columns: CatalogColumn[] = [];

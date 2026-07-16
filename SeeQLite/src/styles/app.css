@@ -90,6 +90,11 @@ h2 { font-size: 22px; letter-spacing: -.04em; margin-top: 5px; }
 .copy-status { margin: 0; padding: 8px 14px; color: var(--success); border-bottom: 1px solid var(--rule); font: 10px var(--font-mono); }
 .copy-status.error { color: var(--danger); }
 textarea { display: block; width: 100%; min-height: 180px; resize: vertical; border: 1px solid var(--boundary); background: var(--paper-3); color: var(--ink); padding: 20px; font: 14px/1.65 var(--font-mono); tab-size: 2; border-radius: 6px; }
+.sql-token-keyword, .sql-token-operator, .sql-token-type, .sql-token-function { color: var(--accent-deep); font-weight: 700; }
+.sql-token-number { color: var(--warning); }
+.sql-token-string { color: var(--success); }
+.sql-token-comment { color: var(--ink-3); }
+.sql-token-variable { color: var(--ink); }
 .query-actions { display: flex; align-items: center; gap: 12px; padding: 12px 0 28px; flex-wrap: wrap; }
 .shortcut { color: var(--ink-3); font: 10px var(--font-mono); }
 .quiet-button { min-height: 32px; border: 0; background: transparent; color: var(--accent-deep); padding: 6px 0; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }

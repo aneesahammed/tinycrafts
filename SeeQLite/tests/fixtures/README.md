@@ -5,6 +5,7 @@ These files contain synthetic data only.
 - `smoke.sqlite` is generated from `smoke.sql` with `sqlite3 smoke.sqlite < smoke.sql`.
 - `malformed.sqlite` is generated from `malformed.sql` with `sqlite3 malformed.sqlite < malformed.sql`.
 - `virtual.sqlite` is generated from `virtual.sql` and covers an FTS5 virtual table plus its SQLite shadow tables. It verifies that the virtual object remains visible while shadow metadata is opt-in.
+- `exotic.sqlite` is generated from `exotic.sql` and covers FTS4 and RTree virtual modules, their shadow objects, and a `points_archive` near-collision that must remain a visible user table.
 - `hostile.sqlite` is generated from `hostile.sql` and uses an HTML-like identifier to prove catalog and query-plan text stays inert when rendered.
 - `identifiers.sqlite` is generated from `identifiers.sql` and covers a keyword, embedded quote, dotted name, and Unicode identifier for centralized quoting tests.
 - `wide-catalog.sqlite` contains 26 tables with 2,000 columns each (52,000 catalog columns including the schema row). It is generated with the same Node/sqlite3 pipeline used by the boundary test:
