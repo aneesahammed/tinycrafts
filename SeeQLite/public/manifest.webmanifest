@@ -3,7 +3,7 @@
   "short_name": "SeeQLite",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f7f3ec",
-  "theme_color": "#3867e8",
+  "background_color": "#fbfcfe",
+  "theme_color": "#fbfcfe",
   "icons": [{ "src": "./seeqlite-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

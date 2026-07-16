@@ -61,6 +61,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const valueRef = useRef(value);
+  const syncingExternalValue = useRef(false);
   const onChangeRef = useRef(onChange);
   const onRunRef = useRef(onRun);
   const onPlanRef = useRef(onPlan);
@@ -96,7 +97,7 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
           if (update.docChanged) {
             const next = update.state.doc.toString();
             valueRef.current = next;
-            onChangeRef.current(next);
+            if (!syncingExternalValue.current) onChangeRef.current(next);
           }
         }),
         editorTheme,
@@ -113,7 +114,9 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
   useEffect(() => {
     const editor = view.current;
     if (!editor || editor.state.doc.toString() === value) return;
+    syncingExternalValue.current = true;
     editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
+    syncingExternalValue.current = false;
   }, [value]);
 
   useEffect(() => {
@@ -137,7 +140,10 @@ export function SqlEditor({ value, catalog, onChange, onRun, onPlan }: SqlEditor
       EditorView.contentAttributes.of({ 'aria-label': 'SQL query', 'aria-multiline': 'true' }),
       shortcutHandlers(() => onRunRef.current(), () => onPlanRef.current()),
       EditorView.updateListener.of((update) => {
-        if (update.docChanged) onChangeRef.current(update.state.doc.toString());
+        if (!update.docChanged) return;
+        const next = update.state.doc.toString();
+        valueRef.current = next;
+        if (!syncingExternalValue.current) onChangeRef.current(next);
       }),
       editorTheme,
     ]) });

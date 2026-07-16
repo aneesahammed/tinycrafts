@@ -76,27 +76,27 @@
    TablePlus, and DataGrip: calm, dense, data-first. All pairs verified >= 4.5:1. */
 [data-skin="app"] {
   color-scheme: light;
-  --paper: #f7f8fa;
-  --paper-2: #eff1f4;
+  --paper: #fbfcfe;
+  --paper-2: #f4f6f9;
   --paper-3: #ffffff;
-  --ink: #1a1d21;
-  --ink-2: #4a5158;
-  --ink-3: #646b71;
-  --rule: #e8eaed;
-  --rule-strong: #dcdfe3;
-  --boundary: #c6cbd1;
-  --accent: #155ae0;
-  --accent-deep: #1148b0;
-  --accent-soft: #ecf2fe;
-  --accent-border: #a7c1f7;
-  --btn-primary-bg: #155ae0;
+  --ink: #18202b;
+  --ink-2: #4f5967;
+  --ink-3: #6d7682;
+  --rule: #e6eaf0;
+  --rule-strong: #d8dee7;
+  --boundary: #bcc6d3;
+  --accent: #2468e8;
+  --accent-deep: #1954c3;
+  --accent-soft: #edf3ff;
+  --accent-border: #a9c4fb;
+  --btn-primary-bg: #2468e8;
   --btn-primary-ink: #ffffff;
   --success: #0a7d43;
   --danger: #cc2016;
   --danger-soft: #fdedeb;
   --warning: #8b5a00;
   --num: #8b5a00;
-  --blueprint: rgba(21, 90, 224, 0.04);
+  --blueprint: rgba(36, 104, 232, 0.035);
   --shadow-card: 0 1px 2px rgba(20, 24, 33, 0.05);
   --focus-ring: #155ae0;
 }

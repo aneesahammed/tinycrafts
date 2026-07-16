@@ -15,7 +15,7 @@ const identifiersFixture = path.join(process.cwd(), 'tests/fixtures/identifiers.
 
 test('opens a local database and renders a bounded query result', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Open a SQLite database' })).toBeVisible();
 
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await expect(page.locator('.file-status')).toContainText('2 tables ready');
@@ -90,13 +90,27 @@ test('searches tables and columns with explicit filtered and empty states', asyn
   const search = page.getByLabel('Search tables and columns');
   await search.fill('notes');
   await expect(page.locator('.table-list-item')).toHaveCount(1);
-  await expect(page.locator('.catalog-rail')).toContainText('1 of 2');
+  await expect(page.locator('.catalog-rail')).toContainText('1 match');
   await search.fill('user_id');
   await expect(page.locator('.table-list-item')).toHaveCount(1);
   await expect(page.locator('.table-list-item')).toContainText('notes');
   await search.fill('does-not-exist');
   await expect(page.locator('.table-list-item')).toHaveCount(0);
   await expect(page.locator('.catalog-empty')).toContainText('No objects match');
+});
+
+test('browses an Explorer object in one click while preserving a custom SQL draft', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try sample database' }).click();
+  await page.getByLabel('SQL query').fill('SELECT 1 AS draft;');
+
+  await page.getByRole('button', { name: /users table/ }).click();
+  await expect(page.getByLabel('SQL query')).toHaveText('SELECT * FROM "users" LIMIT 100;');
+  await expect(page.getByRole('region', { name: 'users details' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Query results' })).toContainText('ada@example.test');
+  await page.getByRole('button', { name: 'Restore SQL draft' }).click();
+  await expect(page.getByLabel('SQL query')).toHaveText('SELECT 1 AS draft;');
+  await expect(page.getByRole('region', { name: 'Query results' })).toContainText('Ready');
 });
 
 test('keeps SQLite internal objects hidden until explicitly requested', async ({ page }) => {
@@ -254,7 +268,7 @@ test('provides a SQLite-aware editor with keyboard execution', async ({ page }) 
   await expect(page.locator('.result-panel')).toContainText('ada@example.test');
 });
 
-test('shows the catalog as a relationship diagram and can target a table', async ({ page }) => {
+test('shows the catalog as a relationship diagram and can select a table without leaving it', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
   await expect(page.locator('.table-list-item')).toHaveCount(2);
@@ -264,7 +278,7 @@ test('shows the catalog as a relationship diagram and can target a table', async
   await expect(page.getByRole('region', { name: 'Declared relationships' })).toContainText('user_id references id');
   await expect(page.locator('.er-node')).toHaveCount(2);
   await page.locator('.er-node').filter({ hasText: 'users' }).click();
-  await expect(page.getByLabel('SQL query')).toHaveText('SELECT * FROM "users" LIMIT 100;');
+  await expect(page.getByRole('tab', { name: /Diagram/ })).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: 'Copy SELECT' }).click();
   await expect(page.locator('.copy-status')).toContainText('Copied a safe SELECT statement');
@@ -333,7 +347,7 @@ test('resets the worker-backed workspace without retaining the database view', a
   await expect(page.getByRole('button', { name: 'Close database' })).toBeVisible();
   await page.getByRole('button', { name: 'Close database' }).click();
   await expect(page.locator('.file-status')).toContainText('No database open');
-  await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Open a SQLite database' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Run query' })).toHaveCount(0);
 });
 
@@ -393,7 +407,6 @@ test('quotes unusual catalog identifiers in bounded SELECT actions', async ({ pa
   await expect(table).toBeVisible();
   await table.click();
   await expect(page.getByLabel('SQL query')).toHaveText(/SELECT \* FROM "a""b" LIMIT 100;/);
-  await page.getByRole('button', { name: 'Run query' }).click();
   await expect(page.locator('.result-panel')).toContainText('7');
 });
 
@@ -466,7 +479,7 @@ test('reloads the complete shell offline without deleting sibling caches', async
   } else {
     await page.route('**/*', (route) => route.abort());
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Open a SQLite database' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open SQLite database' })).toBeVisible();
   }
   const cacheState = await page.evaluate(async () => {
@@ -568,7 +581,7 @@ test('keeps the primary workflow usable in forced colors and 200% zoom', async (
   await page.setViewportSize({ width: 640, height: 900 });
   await page.goto('/');
   await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
-  await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Open a SQLite database' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open SQLite database' })).toBeVisible();
   await page.getByRole('button', { name: 'Try sample database' }).click();
   await expect(page.getByRole('button', { name: 'Run query' })).toBeVisible();

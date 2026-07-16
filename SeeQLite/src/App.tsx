@@ -4,7 +4,7 @@ import { DatabaseClient } from './engine/database-client';
 import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
 import { buildPlanNodes, planDepth } from './plan';
-import { ErCanvas, MAX_DIAGRAM_TABLES } from './components/ErCanvas';
+import { ErCanvas, MAX_DIAGRAM_TABLES, RelationshipList } from './components/ErCanvas';
 import { buildJoinSql, quoteIdentifier } from './sql';
 const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
@@ -15,6 +15,8 @@ const SQLITE_SIDECAR_SUFFIXES = ['.sqlite-wal', '.sqlite-shm', '.sqlite-journal'
 type AppSource = { kind: 'file'; file: File } | { kind: 'sample' };
 type HistoryItem = { version: 1; sql: string; status: 'success' | 'error' | 'cancelled'; at: number; durationMs: number };
 type TableDetailState = { status: 'loading' | 'ready' | 'error'; details?: CatalogDetails; message?: string };
+type WorkspaceView = 'query' | 'schema' | 'diagram';
+type SqlEditorFallbackProps = { value: string; onChange: (value: string) => void; onRun: () => void; onPlan: () => void };
 const HISTORY_KEY = 'seeqlite.query-history.v1';
 const HISTORY_MAX_ITEMS = 100;
 const HISTORY_MAX_SQL_BYTES = 8 * 1024;
@@ -47,6 +49,16 @@ function truncateUtf8(value: string, maxBytes: number) {
   return encoded.byteLength <= maxBytes ? value : new TextDecoder().decode(encoded.slice(0, maxBytes));
 }
 
+function SqlEditorFallback({ value, onChange, onRun, onPlan }: SqlEditorFallbackProps) {
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const restoreFocus = useRef(false);
+  useEffect(() => () => {
+    if (!restoreFocus.current && document.activeElement !== textarea.current) return;
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-label="SQL query"]')?.focus());
+  }, []);
+  return <textarea ref={textarea} aria-label="SQL query" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (!(event.ctrlKey || event.metaKey) || event.key !== 'Enter') return; restoreFocus.current = true; event.preventDefault(); if (event.shiftKey) onPlan(); else onRun(); }} spellCheck={false} />;
+}
+
 export function App() {
   const client = useMemo(() => new DatabaseClient(), []);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -55,6 +67,7 @@ export function App() {
   const capabilities = checkCapabilities();
   const [fileName, setFileName] = useState('No database open');
   const [query, setQuery] = useState(SAMPLE_QUERY);
+  const [recoverableDraft, setRecoverableDraft] = useState<string | null>(null);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -62,7 +75,7 @@ export function App() {
   const [showInternalObjects, setShowInternalObjects] = useState(false);
   const [selectedTable, setSelectedTable] = useState<CatalogTable | null>(null);
   const [tableDetails, setTableDetails] = useState<Record<string, TableDetailState>>({});
-  const [view, setView] = useState<'query' | 'schema' | 'diagram'>('query');
+  const [view, setView] = useState<WorkspaceView>('query');
   const [status, setStatus] = useState('Choose a SQLite file. It stays in this browser tab.');
   const [busy, setBusy] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
@@ -72,6 +85,8 @@ export function App() {
   const activeQueryRef = useRef<{ sql: string; started: number } | null>(null);
   const detailGenerationRef = useRef(0);
   const detailRequestsRef = useRef(new Set<string>());
+  const queryRef = useRef(query);
+  const previewSqlRef = useRef<string | null>(null);
 
   useEffect(() => () => client.terminate('SeeQLite was closed.'), [client]);
   useEffect(() => { document.documentElement.toggleAttribute('data-dark', darkTheme); }, [darkTheme]);
@@ -91,6 +106,37 @@ export function App() {
     setTableDetails({});
   }
 
+  function setEditorQuery(value: string) {
+    queryRef.current = value;
+    previewSqlRef.current = null;
+    setRecoverableDraft(null);
+    setQuery(value);
+  }
+
+  function browseObject(table: CatalogTable) {
+    const browseSql = `SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`;
+    const currentQuery = queryRef.current;
+    if (currentQuery !== browseSql && currentQuery !== SAMPLE_QUERY && currentQuery !== previewSqlRef.current) {
+      setRecoverableDraft(currentQuery);
+    }
+    previewSqlRef.current = browseSql;
+    queryRef.current = browseSql;
+    setQuery(browseSql);
+    setView('query');
+    void runQuery(browseSql);
+  }
+
+  function restoreDraft() {
+    if (recoverableDraft === null) return;
+    previewSqlRef.current = null;
+    queryRef.current = recoverableDraft;
+    setQuery(recoverableDraft);
+    setRecoverableDraft(null);
+    setResult(null);
+    setPlanResult(null);
+    setStatus('SQL draft restored. Run it when ready.');
+  }
+
   async function openBytes(bytes: ArrayBuffer, name: string, source: AppSource, notice = '') {
     sourceRef.current = source;
     setBusy(true);
@@ -103,6 +149,8 @@ export function App() {
     setShowInternalObjects(false);
     invalidateDetails();
     setSelectedTable(null);
+    previewSqlRef.current = null;
+    setRecoverableDraft(null);
     setStatus(`${notice ? `${notice} ` : ''}Opening a private, read-only database worker…`);
     try {
       if (new TextDecoder().decode(bytes.slice(0, 16)) !== 'SQLite format 3\u0000') {
@@ -158,6 +206,8 @@ export function App() {
     setShowInternalObjects(false);
     invalidateDetails();
     setSelectedTable(null);
+    previewSqlRef.current = null;
+    setRecoverableDraft(null);
     setStatus('Opening the bundled sample database…');
     try {
       const ready = await client.openSample('./sample.sqlite');
@@ -195,13 +245,13 @@ export function App() {
     setResult(null);
     setPlanResult(null);
     setView('query');
-    setQuery(SAMPLE_QUERY);
+    setEditorQuery(SAMPLE_QUERY);
     setBusy(false);
     setStatus('Choose a SQLite file. It stays in this browser tab.');
   }
 
   async function runQuery(selectedSql?: string) {
-    const sql = selectedSql?.trim() ? selectedSql : query;
+    const sql = selectedSql?.trim() ? selectedSql : queryRef.current;
     const operation = ++operationRef.current;
     const started = performance.now();
     activeQueryRef.current = { sql, started };
@@ -229,7 +279,7 @@ export function App() {
     const started = performance.now();
     activeQueryRef.current = { sql: 'SELECT 1 AS ready;', started };
     setPlanResult(null);
-    setQuery('SELECT 1 AS ready;');
+    setEditorQuery('SELECT 1 AS ready;');
     setBusy(true);
     setStatus('Running SELECT 1…');
     try {
@@ -247,7 +297,7 @@ export function App() {
   }
 
   async function runPlan(selectedSql?: string) {
-    const sql = selectedSql?.trim() ? selectedSql : query;
+    const sql = selectedSql?.trim() ? selectedSql : queryRef.current;
     const operation = ++operationRef.current;
     const started = performance.now();
     setPlanResult(null);
@@ -295,14 +345,9 @@ export function App() {
     setStatus('Query stopped. Reopen the database to continue.');
   }
 
-  async function selectTable(table: CatalogTable, options: { returnToQuery?: boolean; autoRun?: boolean } = {}) {
+  async function selectTable(table: CatalogTable, { browse = false }: { browse?: boolean } = {}) {
     setSelectedTable(table);
-    const browseSql = `SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`;
-    setQuery(browseSql);
-    // Diagram clicks jump to Query; rail clicks browse in place (only leaving the diagram).
-    if (options.returnToQuery) setView('query');
-    else if (options.autoRun) setView((current) => (current === 'diagram' ? 'query' : current));
-    if (options.autoRun && fileName !== 'No database open') void runQuery(browseSql);
+    if (browse) browseObject(table);
     const existing = tableDetails[table.name];
     if (existing?.status === 'ready' || detailRequestsRef.current.has(table.name)) return;
     const generation = detailGenerationRef.current;
@@ -326,8 +371,8 @@ export function App() {
       setStatus('This relationship cannot generate a join because its referenced table or columns are unresolved.');
       return;
     }
-    if (query.trim() && !window.confirm('Replace the current SQL draft with this generated read-only join?')) return;
-    setQuery(sql);
+    if (queryRef.current.trim() && !window.confirm('Replace the current SQL draft with this generated read-only join?')) return;
+    setEditorQuery(sql);
     setView('query');
     setStatus('Generated a quoted read-only join. Review it, then run the query.');
   }
@@ -348,6 +393,8 @@ export function App() {
   const catalogPageCount = Math.max(1, Math.ceil(filteredTables.length / CATALOG_PAGE_SIZE));
   const currentCatalogPage = Math.min(catalogPage, catalogPageCount - 1);
   const visibleTables = filteredTables.slice(currentCatalogPage * CATALOG_PAGE_SIZE, (currentCatalogPage + 1) * CATALOG_PAGE_SIZE);
+  const visibleTableObjects = visibleTables.filter((table) => table.kind !== 'view');
+  const visibleViewObjects = visibleTables.filter((table) => table.kind === 'view');
 
   useEffect(() => {
     if (selectedTable?.internal && !showInternalObjects) setSelectedTable(null);
@@ -355,14 +402,13 @@ export function App() {
   useEffect(() => { setCatalogPage(0); }, [catalogSearch, showInternalObjects, catalog]);
 
   const dbStats = catalog ? `${catalog.tables.length} table${catalog.tables.length === 1 ? '' : 's'} · ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}${result ? ` · ${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'}` : ''}` : '';
-  const selectedFkCols = new Set(catalog && selectedTable ? catalog.foreignKeys.filter((relation) => relation.fromTable === selectedTable.name).flatMap((relation) => relation.fromColumns) : []);
 
   return (
-    <div className="app-shell" data-skin={catalog ? 'app' : 'landing'}>
+    <div className="app-shell" data-skin="app">
       <a className="skip-link" href="#workspace">Skip to workspace</a>
       <header className="app-header">
         <a className="brand" href="../../index.htm" aria-label="TinyCrafts home">
-          <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="12" fill="var(--accent)" /><path d="M16 18h32v8H16zm0 14h22v8H16zm0 14h32v8H16z" fill="#fffdfa" /></svg>
+          <img className="brand-mark" src="./seeqlite-icon.svg" alt="" />
           <span><strong>SeeQLite</strong><small>SQLite, in your browser</small></span>
         </a>
         <div className="file-status">
@@ -379,16 +425,12 @@ export function App() {
                 <button className="db-menu-item" onClick={() => { closeDbMenu(); resetWorkspace(); }} disabled={busy}>Close database</button>
               </div>
             </details>
-          ) : (
-            <strong dir="auto" className="db-none">{fileName}</strong>
-          )}
+          ) : <strong className="db-none"><span aria-hidden="true">Open a database</span><span className="sr-only">No database open</span></strong>}
           {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}
-          <span className="db-status" role="status" aria-live="polite" title={status}>{status}</span>
+          <span className="db-status sr-only" title={status}>{status}</span>
         </div>
         {catalog ? <span className="header-stats" aria-hidden="true">{dbStats}</span> : null}
         <div className="topbar-meta">
-          {catalog ? <span className="mode-badge">READ ONLY</span> : null}
-          <span className="mode-badge quiet">LOCAL ONLY</span>
           <button className="theme-button" aria-pressed={darkTheme} aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDarkTheme((value) => !value)}>{darkTheme ? 'Light' : 'Dark'}</button>
         </div>
         <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
@@ -397,111 +439,92 @@ export function App() {
       <main id="workspace" className="workbench" tabIndex={-1} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
         {catalog ? (
           <>
-            <aside className="catalog-rail" aria-label="Database objects">
-              <label className="catalog-search"><span className="search-glyph" aria-hidden="true">⌕</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label>
-              <div className="rail-head"><span className="label">TABLES</span><span>{catalogSearch.trim() ? `${filteredTables.length} of ` : ''}{visibleCatalog?.tables.length ?? 0}{!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} hidden` : ''}</span></div>
+            <aside className="catalog-rail" aria-label="Explorer">
+              <div className="rail-title"><h2>Explorer</h2><button className="rail-filter" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}><span>{showInternalObjects ? 'Hide internal' : 'Show internal'}</span><span className="sr-only"> objects</span></button></div>
+              <label className="catalog-search"><span className="search-glyph" aria-hidden="true"><SearchIcon /></span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or views" aria-label="Search tables and columns" autoComplete="off" /></label>
               <div className="table-list">
-                {visibleTables.map((table) => (
-                  <button key={table.name} className={selectedTable?.name === table.name ? 'table-list-item active' : 'table-list-item'} onClick={() => void selectTable(table, { autoRun: true })} disabled={busy}>
-                    <span className="table-glyph" aria-hidden="true">{objectGlyph(table.kind)}</span>
-                    <span className="table-list-name">{table.name}</span>
-                    <span className="sr-only">{table.internal ? 'internal ' : ''}{table.kind}{table.warnings?.length ? ' limited' : ''}</span>
-                    <span className="table-list-count" aria-hidden="true">{table.columns.length}</span>
-                  </button>
-                ))}
+                {visibleTableObjects.length ? <div className="object-group"><div className="group-heading"><span>Tables</span><span>{visibleTableObjects.length}</span></div>{visibleTableObjects.map((table) => <ObjectListItem key={table.name} table={table} selected={selectedTable?.name === table.name} onSelect={() => void selectTable(table, { browse: true })} disabled={busy} />)}</div> : null}
+                {visibleViewObjects.length ? <div className="object-group"><div className="group-heading"><span>Views</span><span>{visibleViewObjects.length}</span></div>{visibleViewObjects.map((table) => <ObjectListItem key={table.name} table={table} selected={selectedTable?.name === table.name} onSelect={() => void selectTable(table, { browse: true })} disabled={busy} />)}</div> : null}
               </div>
               {catalogPageCount > 1 ? <div className="catalog-pagination" role="navigation" aria-label="Catalog page controls"><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.max(0, page - 1))} disabled={currentCatalogPage === 0}>Prev</button><span aria-live="polite">Page {currentCatalogPage + 1} of {catalogPageCount}</span><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.min(catalogPageCount - 1, page + 1))} disabled={currentCatalogPage >= catalogPageCount - 1}>Next</button></div> : null}
               {filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}
               {catalog.limits.length ? <p className="catalog-limit" role="status">Catalog is limited: {catalogLimitText(catalog.limits)}. Search and read-only queries remain available; the ER diagram is paused.</p> : null}
-              <div className="catalog-controls"><button className="quiet-button" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button></div>
-              {selectedTable ? (
-                <div className="rail-columns">
-                  <div className="rail-head"><span className="label">COLUMNS OF {selectedTable.name}</span><span>{selectedTable.columns.length}</span></div>
-                  <div className="column-list">
-                    {selectedTable.columns.map((column) => (
-                      <div className="column-row" key={column.name}>
-                        <span className={`type-glyph glyph-${columnTypeGlyph(column.type).toLowerCase()}`} aria-hidden="true">{columnTypeGlyph(column.type)}</span>
-                        <span className="column-name">{column.name}</span>
-                        <span className="column-flag">{column.primaryKey ? 'PK' : selectedFkCols.has(column.name) ? 'FK' : (column.type || 'ANY')}</span>
-                      </div>
-                    ))}
-                    {selectedTable.columns.length === 0 ? <p className="column-empty">Column metadata unavailable.</p> : null}
-                  </div>
-                </div>
-              ) : null}
+              <div className="rail-footer"><button className="quiet-button rail-open" onClick={() => fileInput.current?.click()} disabled={busy}>Open another database</button><span>{catalogSearch.trim() ? `${filteredTables.length} match${filteredTables.length === 1 ? '' : 'es'}` : `${visibleCatalog?.tables.length ?? 0} objects`}</span></div>
             </aside>
 
             <section className="work-main" aria-label="Query workspace">
               <div className="mode-tabs" role="tablist" aria-label="Database workspace view">
-                <button className={view === 'query' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'query'} onClick={() => setView('query')}>Query</button>
-                <button className={view === 'schema' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'schema'} onClick={() => setView('schema')}>Schema</button>
-                <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={Boolean(catalog.limits.length) || catalog.tables.length > MAX_DIAGRAM_TABLES} title={catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>ER Diagram</button>
+                <button id="query-tab" className={view === 'query' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-controls="query-panel" aria-selected={view === 'query'} onClick={() => setView('query')}>Query</button>
+                <button id="schema-tab" className={view === 'schema' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-controls="schema-panel" aria-selected={view === 'schema'} onClick={() => setView('schema')}>Schema</button>
+                <button id="diagram-tab" className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-controls="diagram-panel" aria-selected={view === 'diagram'} disabled={Boolean(catalog.limits.length) || catalog.tables.length > MAX_DIAGRAM_TABLES} title={catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>ER Diagram</button>
               </div>
               {view === 'query' ? (
-                <div className="editor-tab">
+                <div id="query-panel" className="editor-tab" role="tabpanel" aria-labelledby="query-tab">
                   <div className="editor-pane">
-                    <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
+                    <Suspense fallback={<SqlEditorFallback value={query} onChange={setEditorQuery} onRun={() => void runQuery()} onPlan={() => void runPlan()} />}><SqlEditor value={query} catalog={catalog} onChange={setEditorQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
                     <div className="query-actions">
                       <button className="primary-button compact" onClick={() => runQuery()} disabled={busy}>{busy ? 'Running…' : 'Run query'}<kbd className="kbd" aria-hidden="true">⌘↵</kbd></button>
                       {busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : null}
                       <button className="secondary-button compact" onClick={() => runPlan()} disabled={busy}>Explain<kbd className="kbd" aria-hidden="true">⌘⇧↵</kbd></button>
+                      {recoverableDraft !== null ? <button className="quiet-button draft-restore" onClick={restoreDraft} disabled={busy}>Restore SQL draft</button> : null}
+                      <span className="query-status" role="status" aria-live="polite">{status}</span>
                     </div>
                   </div>
                   <div className="output-pane">
-                    <div className="result-panel">
-                      <div className="result-heading"><span className="result-status"><span className={busy ? 'dot busy' : result ? 'dot ok' : 'dot'} aria-hidden="true" />{busy ? 'Running…' : result ? `${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'} · ${result.columns.length} col${result.columns.length === 1 ? '' : 's'}` : 'Ready'}</span><span className="result-meta">{result?.truncated ? truncationLabel(result.truncationReason) : ''}</span></div>
-                      {result ? <ResultTable result={result} /> : <div className="empty-result"><span className="empty-glyph" aria-hidden="true">⌁</span><p>Pick a table on the left, or run a SELECT.</p></div>}
+                    <div className="result-panel" role="region" aria-label="Query results">
+                      <div className="result-heading"><span className="label">Results</span><span className="result-status"><span className={busy ? 'dot busy' : result ? 'dot ok' : 'dot'} aria-hidden="true" />{busy ? 'Running…' : result ? `${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'} · ${result.columns.length} col${result.columns.length === 1 ? '' : 's'}` : 'Ready'}</span><span className="result-meta">{result?.truncated ? truncationLabel(result.truncationReason) : ''}</span></div>
+                      {result ? <ResultTable result={result} /> : <div className="empty-result"><span className="empty-glyph" aria-hidden="true">⌁</span><p>Select a table to inspect it, or run a SELECT.</p></div>}
                     </div>
                     {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><PlanTree result={planResult} /></div> : null}
                     {result ? <div className="export-actions"><span className="label">EXPORT RESULT</span><button className="quiet-button" onClick={() => downloadResult(result, 'csv')}>Download CSV</button><button className="quiet-button" onClick={() => downloadResult(result, 'json')}>Download JSON</button></div> : null}
-                    <QueryHistory items={history} onChoose={setQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
+                    <QueryHistory items={history} onChoose={setEditorQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
                   </div>
                 </div>
               ) : view === 'schema' ? (
-                <div className="schema-pane">
+                <div id="schema-panel" className="schema-pane" role="tabpanel" aria-labelledby="schema-tab">
                   {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="schema-empty"><span className="empty-glyph" aria-hidden="true">▤</span><p>Select a table on the left to inspect its columns, indexes, and keys.</p></div>}
                 </div>
               ) : (
-                <ErCanvas catalog={visibleCatalog} onSelectTable={(table) => void selectTable(table, { returnToQuery: true })} onGenerateJoin={generateJoin} />
+                <div id="diagram-panel" className="diagram-panel" role="tabpanel" aria-labelledby="diagram-tab"><ErCanvas catalog={visibleCatalog} selectedTableName={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} /></div>
               )}
             </section>
+            <aside className="inspector-rail" aria-label="Object inspector">
+              <div className="inspector-heading"><span className="label">{view === 'diagram' ? 'Relationships' : 'Inspector'}</span><h2>{view === 'diagram' ? 'Declared relationships' : selectedTable ? selectedTable.name : 'Nothing selected'}</h2>{selectedTable && view !== 'diagram' ? <span className="inspector-kind">{selectedTable.kind}</span> : null}</div>
+              {view === 'diagram' ? <RelationshipList catalog={visibleCatalog ?? catalog} selected={selectedTable?.name ?? null} onSelectTable={(table) => void selectTable(table)} onGenerateJoin={generateJoin} /> : selectedTable ? view === 'schema' ? <InspectorSummary table={selectedTable} onOpenQuery={() => setView('query')} /> : <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>Select a table to see its columns, indexes, and relationships here.</p></div>}
+            </aside>
           </>
         ) : (
-          <section className="welcome">
-            <p className="eyebrow">TINYCRAFTS / 08</p>
-            <h1>See what’s inside.</h1>
-            <p className="lede">Open a SQLite file, understand its shape, and ask it questions without uploading a byte.</p>
-            <div className="privacy-note"><span className="status-dot" /> No server. No account. No database file is saved.</div>
-            {!capabilities.ok ? (
-              <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div>
-            ) : (
-              <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
-                <div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div>
-                <p className="helper">SQLite 3 files up to 512 MB. Drop one file here or use the picker.</p>
-              </div>
-            )}
-          </section>
+          <>
+            <aside className="catalog-rail empty-rail" aria-label="Explorer"><div className="rail-title"><h2>Explorer</h2></div><div className="empty-rail-content"><span className="empty-glyph" aria-hidden="true">▦</span><p>Open a database to browse its tables, views, and relationships.</p></div><div className="rail-footer"><button className="quiet-button rail-open" onClick={() => fileInput.current?.click()} disabled={busy}>New database</button></div></aside>
+            <section className="work-main empty-workspace" aria-label="Database workspace"><div className="empty-workspace-toolbar"><span className="label">Workspace</span><span>Local SQLite</span></div><div className="empty-workspace-body"><p className="eyebrow">Ready when you are</p><h1>Open a SQLite database</h1><p className="lede">Explore its shape, run read-only SQL, and understand relationships without uploading a byte.</p><div className="privacy-note"><span className="status-dot" /> No server. No account. Your database stays in this browser tab.</div>{!capabilities.ok ? <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div> : <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}><div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div><p className="helper">SQLite 3 files up to 512 MB. Drop one file anywhere in this workspace.</p></div>}<p className="intake-status" role="status" aria-live="polite">{status}</p></div></section>
+            <aside className="inspector-rail empty-inspector" aria-label="Object inspector"><div className="inspector-heading"><span className="label">Inspector</span><h2>Nothing selected</h2></div><div className="inspector-empty"><span className="empty-glyph" aria-hidden="true">◎</span><p>After you choose a table, its columns, indexes, and relationships will appear here.</p></div></aside>
+          </>
         )}
       </main>
-      <footer className="footer"><span>SeeQLite v0.1</span><span>Built for curious local data</span></footer>
     </div>
   );
 }
 
-function objectGlyph(kind: CatalogTable['kind']) {
-  if (kind === 'view') return '◇';
-  if (kind === 'virtual') return '◈';
-  if (kind === 'shadow') return '◌';
-  return '▦';
+function SearchIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="5.8" /><path d="m16 16 4 4" /></svg>;
 }
 
-function columnTypeGlyph(type: string) {
-  const upper = (type || '').toUpperCase();
-  if (/INT|REAL|FLOA|DOUB|NUM|DEC/.test(upper)) return '#';
-  if (/BLOB/.test(upper)) return 'B';
-  if (/CHAR|CLOB|TEXT/.test(upper)) return 'T';
-  if (!upper) return '·';
-  return 'T';
+function ObjectIcon({ kind }: { kind: CatalogTable['kind'] }) {
+  if (kind === 'view') return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 12s3.2-5 9-5 9 5 9 5-3.2 5-9 5-9-5-9-5Z" /><circle cx="12" cy="12" r="2" /></svg>;
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="4" y="4" width="16" height="16" rx="1.5" /><path d="M4 10h16M10 4v16" /></svg>;
+}
+
+function ObjectListItem({ table, selected, onSelect, disabled }: { table: CatalogTable; selected: boolean; onSelect: () => void; disabled: boolean }) {
+  return <button className={selected ? 'table-list-item active' : 'table-list-item'} onClick={onSelect} disabled={disabled} aria-current={selected ? 'page' : undefined}>
+    <span className="table-glyph" aria-hidden="true"><ObjectIcon kind={table.kind} /></span>
+    <span className="table-list-name">{table.name}</span>
+    <span className="sr-only">{table.internal ? 'internal ' : ''}{table.kind}{table.warnings?.length ? ' limited' : ''}</span>
+    <span className="table-list-count" aria-hidden="true">{table.columns.length}</span>
+  </button>;
+}
+
+function InspectorSummary({ table, onOpenQuery }: { table: CatalogTable; onOpenQuery: () => void }) {
+  return <div className="inspector-summary"><p>The complete schema is open in the center workspace.</p><dl><div><dt>Type</dt><dd>{table.kind}</dd></div><div><dt>Columns</dt><dd>{table.columns.length}</dd></div><div><dt>Storage</dt><dd>{table.withoutRowid ? 'Without rowid' : 'Rowid table'}</dd></div></dl><div className="summary-actions"><button className="quiet-button" onClick={onOpenQuery}>Return to query</button></div></div>;
 }
 
 function catalogLimitText(limits: Catalog['limits']) {
@@ -532,7 +555,7 @@ function TableDetails({ table, catalog, detail }: { table: CatalogTable; catalog
   const indexes = detail?.status === 'ready' ? detail.details?.indexes ?? [] : [];
   const uniqueColumns = new Set(indexes.filter((index) => index.unique && index.columns.length === 1 && index.columns[0].name && !index.columns[0].expression).map((index) => index.columns[0].name!));
   const foreignKeyColumns = new Set(relationships.filter((relation) => relation.fromTable === table.name).flatMap((relation) => relation.fromColumns));
-  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">OBJECT DETAILS</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}{table.warnings?.length ? <p className="detail-error" role="status">{tableWarningText(table.warnings)}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3>Columns</h3>{table.columns.length ? <ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul> : <p className="detail-loading">Column metadata is unavailable for this object; its name and safe query action remain available.</p>}</div><div><h3>Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''}{index.predicate ? ` · WHERE ${index.predicate}` : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul>}<h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
+  return <section className="table-details" aria-label={`${table.name} details`}><div className="result-heading"><span className="label">Object details</span><strong>{table.name}</strong><div className="detail-actions"><button className="quiet-button" onClick={() => copy(quoteIdentifier(table.name), 'identifier')}>Copy identifier</button><button className="quiet-button" onClick={() => copy(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`, 'select')}>Copy SELECT</button></div></div>{copyState !== 'idle' ? <p className={copyState === 'error' ? 'copy-status error' : 'copy-status'} role="status" aria-live="polite">{copyState === 'error' ? 'Clipboard access was denied. Select the text from the editor instead.' : `Copied ${copyState === 'identifier' ? 'the quoted identifier' : 'a safe SELECT statement'}.`}</p> : null}{table.warnings?.length ? <p className="detail-error" role="status">{tableWarningText(table.warnings)}</p> : null}<div className="object-meta"><span>{table.internal ? 'INTERNAL' : table.kind.toUpperCase()}</span><span>{table.withoutRowid ? 'WITHOUT ROWID' : 'ROWID'}</span><span>{table.strict ? 'STRICT' : 'NORMAL AFFINITY'}</span></div><div className="detail-grid"><div><h3>Columns</h3>{table.columns.length ? <ul>{table.columns.map((column) => <li key={column.name}><code>{column.name}</code><span>{column.type || 'ANY'}{column.primaryKey ? ' · PK' : ''}{column.notNull ? ' · NOT NULL' : ''}{uniqueColumns.has(column.name) ? ' · UNIQUE' : ''}{foreignKeyColumns.has(column.name) ? ' · FK' : ''}{column.defaultValue !== null ? ` · DEFAULT ${column.defaultValue}` : ''}{columnVisibility(column)}</span></li>)}</ul> : <p className="detail-loading">Column metadata is unavailable for this object; its name and safe query action remain available.</p>}</div><div><h3>Indexes</h3>{!detail || detail.status === 'loading' ? <p className="detail-loading" role="status">Loading index details…</p> : detail.status === 'error' ? <p className="detail-error" role="status">{detail.message}</p> : <ul>{indexes.length ? indexes.map((index) => <li key={index.name}><code>{index.name}</code><span>{indexOrigin(index.origin)}{index.unique ? ' · UNIQUE' : ''}{index.partial ? ' · PARTIAL' : ''}{index.predicate ? ` · WHERE ${index.predicate}` : ''} · {index.columns.map(formatIndexColumn).join(', ') || 'rowid'}</span></li>) : <li><span>No explicit indexes</span></li>}</ul>}<h3>Relationships</h3><ul>{relationships.length ? relationships.map((relation) => <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><code>{relation.fromTable === table.name ? relation.fromColumns.join(', ') : relation.toColumns.join(', ')}</code><span>→ {relation.fromTable === table.name ? relation.toTable : relation.fromTable}</span></li>) : <li><span>No declared foreign keys</span></li>}</ul></div></div>{table.schemaSql ? <details className="schema-details"><summary>Show CREATE SQL</summary><pre>{table.schemaSql}</pre></details> : null}</section>;
 }
 
 function tableWarningText(warnings: NonNullable<CatalogTable['warnings']>) {

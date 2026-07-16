@@ -44,7 +44,7 @@ function foreignKeyColumns(catalog: Catalog, tableName: string) {
   return new Set(catalog.foreignKeys.filter((relation) => relation.fromTable === tableName).flatMap((relation) => relation.fromColumns));
 }
 
-export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: Catalog | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: CatalogForeignKey) => void }) {
+export function ErCanvas({ catalog, selectedTableName = null, onSelectTable }: { catalog: Catalog | null; selectedTableName?: string | null; onSelectTable: (table: CatalogTable) => void }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   // click fires after pointerup, once dragRef is already cleared — this survives that gap.
@@ -55,6 +55,10 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelected(selectedTableName);
+  }, [selectedTableName]);
 
   const tables = catalog?.tables ?? [];
   const tableKey = tables.map((table) => table.name).join('|');
@@ -263,7 +267,6 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
           {catalog.tables.length === 0 ? <div className="er-hint">This database has no tables to diagram.</div> : <div className="er-hint">Drag a table to move it · drag the canvas to pan · ⌘/Ctrl + scroll to zoom</div>}
         </div>
       </div>
-      <RelationshipList catalog={catalog} selected={selected} onSelectTable={(table) => { setSelected(table.name); onSelectTable(table); }} onGenerateJoin={onGenerateJoin} />
     </div>
   );
 }
@@ -283,7 +286,7 @@ function edgeEndpoints(from: NodeBox, to: NodeBox): [number, number, number, num
   return [fc.x, y1, tc.x, y2];
 }
 
-function RelationshipList({ catalog, selected, onSelectTable, onGenerateJoin }: { catalog: Catalog; selected: string | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: CatalogForeignKey) => void }) {
+export function RelationshipList({ catalog, selected, onSelectTable, onGenerateJoin }: { catalog: Catalog; selected: string | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: CatalogForeignKey) => void }) {
   const tableByName = new Map(catalog.tables.map((table) => [table.name, table]));
   return (
     <section className="relationship-panel" aria-label="Declared relationships">
