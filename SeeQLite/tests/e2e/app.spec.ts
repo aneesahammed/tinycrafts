@@ -6,6 +6,10 @@ import path from 'node:path';
 const fixture = path.join(process.cwd(), 'tests/fixtures/smoke.sqlite');
 const malformedFixture = path.join(process.cwd(), 'tests/fixtures/malformed.sqlite');
 const limitedFixture = path.join(process.cwd(), 'tests/fixtures/limited.sqlite');
+const virtualFixture = path.join(process.cwd(), 'tests/fixtures/virtual.sqlite');
+const hostileFixture = path.join(process.cwd(), 'tests/fixtures/hostile.sqlite');
+const wideCatalogFixture = path.join(process.cwd(), 'tests/fixtures/wide-catalog.sqlite');
+const relationshipsFixture = path.join(process.cwd(), 'tests/fixtures/relationships.sqlite');
 
 test('opens a local database and renders a bounded query result', async ({ page }) => {
   await page.goto('/');
@@ -143,16 +147,36 @@ test('keeps a malformed view isolated from healthy catalog objects', async ({ pa
   await expect(page.getByRole('region', { name: 'healthy details' })).toContainText('No explicit indexes');
 });
 
+test('represents virtual and shadow objects without losing the virtual table', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(virtualFixture);
+  await expect(page.locator('.file-status')).toContainText('1 table ready');
+  await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: /documents virtual/ })).toBeVisible();
+
+  await page.getByRole('button', { name: /Show internal objects/ }).click();
+  await expect(page.locator('.table-list-item')).toHaveCount(7);
+  await expect(page.getByRole('button', { name: /documents virtual/ })).toContainText('virtual');
+  const shadow = page.getByRole('button', { name: /documents_config/ });
+  await expect(shadow).toContainText('internal');
+  await expect(shadow).toContainText('shadow');
+
+  await page.getByRole('button', { name: /documents virtual/ }).click();
+  await expect(page.getByRole('region', { name: 'documents details' })).toContainText('VIRTUAL');
+  await expect(page.getByRole('region', { name: 'documents details' })).toContainText('title');
+  await expect(page.getByRole('region', { name: 'documents details' })).toContainText('body');
+});
+
 test('opens an oversized catalog in bounded searchable mode', async ({ page }) => {
   await page.goto('/');
   const started = Date.now();
   await page.locator('input[type="file"]').setInputFiles(limitedFixture);
   await expect(page.locator('.file-status')).toContainText('Catalog limited');
   expect(Date.now() - started).toBeLessThan(5000);
-  await expect(page.locator('.catalog-limit')).toContainText('objects capped at 1,000');
+  await expect(page.locator('.catalog-limit')).toContainText('objects capped at 5,000');
   await expect(page.getByRole('tab', { name: /Diagram/ })).toBeDisabled();
   await expect(page.locator('.table-list-item')).toHaveCount(100);
-  await expect(page.getByRole('navigation', { name: 'Catalog page controls' })).toContainText('Page 1 of 10');
+  await expect(page.getByRole('navigation', { name: 'Catalog page controls' })).toContainText('Page 1 of 50');
 
   const detailStarted = Date.now();
   await page.getByLabel('Search tables and columns').fill('t_0999');
@@ -165,6 +189,28 @@ test('opens an oversized catalog in bounded searchable mode', async ({ page }) =
   await page.getByRole('button', { name: 'Run query' }).click();
   await expect(page.locator('.result-panel')).toContainText('ready');
   await expect(page.locator('.result-panel')).toContainText('1');
+});
+
+test('degrades only column metadata at the approved catalog-column boundary', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(wideCatalogFixture);
+  await expect(page.locator('.file-status')).toContainText('26 tables ready');
+  await expect(page.locator('.catalog-limit')).toContainText('columns capped at 50,000');
+  await expect(page.locator('.catalog-limit')).not.toContainText('objects capped');
+  await expect(page.getByRole('tab', { name: /Diagram/ })).toBeDisabled();
+
+  await page.getByLabel('Search tables and columns').fill('wide_25');
+  await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await page.getByRole('button', { name: /wide_25 table/ }).click();
+  await expect(page.getByRole('region', { name: 'wide_25 details' })).toContainText('Column metadata is limited by the browser catalog budget');
+
+  await page.getByLabel('SQL query').fill('SELECT 1 AS ready;');
+  await page.getByRole('button', { name: 'Run query' }).click();
+  await expect(page.locator('.result-panel')).toContainText('ready');
+
+  await page.getByLabel('SQL query').fill('SELECT * FROM wide_00;');
+  await page.getByRole('button', { name: 'Run query' }).click();
+  await expect(page.locator('.file-status')).toContainText('browser safety limit');
 });
 
 test('provides a SQLite-aware editor with keyboard execution', async ({ page }) => {
@@ -191,6 +237,36 @@ test('shows the catalog as a relationship diagram and can target a table', async
   await expect(page.getByLabel('SQL query')).toHaveText('SELECT * FROM "users" LIMIT 100;');
   await page.getByRole('button', { name: 'Copy SELECT' }).click();
   await expect(page.locator('.copy-status')).toContainText('Copied a safe SELECT statement');
+});
+
+test('labels unresolved relationships and generates composite implicit-key joins', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(relationshipsFixture);
+  await expect(page.locator('.file-status')).toContainText('4 tables ready');
+  await page.getByRole('tab', { name: /Diagram/ }).click();
+  const relationships = page.getByRole('region', { name: 'Declared relationships' });
+  await expect(relationships).toContainText('4 declared');
+  await expect(relationships).toContainText('RESOLVED');
+  await expect(relationships).toContainText('UNRESOLVED');
+  await expect(relationships).toContainText('ON UPDATE NO ACTION');
+  await expect(relationships).toContainText('ON DELETE NO ACTION');
+  await expect(relationships).toContainText('MATCH NONE');
+  await expect(page.getByRole('button', { name: 'Generate join from unresolved to missing_parent' })).toBeDisabled();
+
+  const dialog = page.waitForEvent('dialog').then(async (event) => {
+    await event.accept();
+  });
+  await page.getByRole('button', { name: 'Generate join from child to parent' }).first().click();
+  await dialog;
+  await expect(page.getByLabel('SQL query')).toHaveText(/child\."parent_a" = parent\."part_a"\s+AND\s+child\."parent_b" = parent\."part_b"/);
+
+  await page.getByRole('tab', { name: /Diagram/ }).click();
+  const selfDialog = page.waitForEvent('dialog').then(async (event) => {
+    await event.accept();
+  });
+  await page.getByRole('button', { name: 'Generate join from self_link to self_link' }).click();
+  await selfDialog;
+  await expect(page.getByLabel('SQL query')).toHaveText(/FROM "self_link" AS child\s*JOIN "self_link" AS parent/);
 });
 
 test('generates a quoted join only after confirming draft replacement', async ({ page }) => {
@@ -265,6 +341,16 @@ test('plans an already-explained statement without nesting EXPLAIN', async ({ pa
   await expect(page.getByRole('list', { name: 'SQLite query plan' })).toContainText('SCAN');
 });
 
+test('renders hostile query-plan detail as inert text', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('input[type="file"]').setInputFiles(hostileFixture);
+  await expect(page.locator('.file-status')).toContainText('1 table ready');
+  await page.getByLabel('SQL query').fill('EXPLAIN QUERY PLAN SELECT * FROM "<img src=x onerror=alert(1)>";');
+  await page.getByRole('button', { name: 'Show query plan' }).click();
+  await expect(page.locator('.plan-detail')).toContainText('<img src=x onerror=alert(1)>');
+  await expect(page.locator('.plan-detail img')).toHaveCount(0);
+});
+
 test('clears a stale plan when the SQL result changes', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
@@ -311,6 +397,42 @@ test('registers the app shell without caching database files', async ({ page }) 
     return (await cache.keys()).map((request) => request.url);
   });
   expect(cachedUrls.some((url) => url.endsWith('.sqlite') || url.endsWith('.db'))).toBe(false);
+});
+
+test('reloads the complete shell offline without deleting sibling caches', async ({ page, browserName }) => {
+  await page.goto('/');
+  await expect.poll(() => page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return false;
+    await navigator.serviceWorker.ready;
+    return Boolean(navigator.serviceWorker.controller);
+  })).toBe(true);
+  await page.evaluate(async () => {
+    const cache = await caches.open('dataduck-sentinel-v1');
+    await cache.put('/dataduck/sentinel', new Response('keep sibling cache'));
+  });
+
+  if (browserName === 'webkit') {
+    const cachedDocument = await page.evaluate(async () => {
+      const response = await caches.match(location.href);
+      return response ? response.text() : null;
+    });
+    expect(cachedDocument).toContain('SeeQLite');
+  } else {
+    await page.route('**/*', (route) => route.abort());
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open SQLite database' })).toBeVisible();
+  }
+  const cacheState = await page.evaluate(async () => {
+    const keys = await caches.keys();
+    const seeqliteKeys = keys.filter((key) => key.startsWith('seeqlite-'));
+    const urls = (await Promise.all(seeqliteKeys.map(async (key) => (await (await caches.open(key)).keys()).map((request) => request.url)))).flat();
+    const sibling = await caches.match('/dataduck/sentinel');
+    return { keys, urls, sibling: sibling ? await sibling.text() : null };
+  });
+  expect(cacheState.keys).toContain('dataduck-sentinel-v1');
+  expect(cacheState.sibling).toBe('keep sibling cache');
+  expect(cacheState.urls.some((url) => /\.(sqlite|sqlite3|db|wal|shm|journal)(?:$|\?)/i.test(url))).toBe(false);
 });
 
 test('keeps the worker and database workflow same-origin and non-isolated', async ({ page }) => {

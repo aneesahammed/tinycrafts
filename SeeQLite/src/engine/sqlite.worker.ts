@@ -16,8 +16,8 @@ const MAX_RESULT_BYTES = 8 * 1024 * 1024;
 const MAX_TEXT_PREVIEW_BYTES = 64 * 1024;
 const MAX_BLOB_PREVIEW_BYTES = 256;
 const QUERY_DEADLINE_MS = 30_000;
-const MAX_TABLES = 1000;
-const MAX_COLUMNS = 20_000;
+const MAX_TABLES = 5_000;
+const MAX_COLUMNS = 50_000;
 const MAX_INDEXES = 5_000;
 const MAX_FOREIGN_KEYS = 2_000;
 const MAX_CATALOG_TEXT_BYTES = 16 * 1024;
@@ -50,7 +50,8 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       configureReadOnly(sqlite3);
       configureProgressHandler(sqlite3);
       const catalog = readCatalog();
-      post({ type: 'ready', requestId: request.requestId, epoch: request.epoch, fileName: request.fileName, tableCount: catalog.tables.filter((table) => table.kind === 'table' && !table.internal).length, catalog });
+      sqlite3.capi.sqlite3_limit(db.pointer, sqlite3.capi.SQLITE_LIMIT_COLUMN, MAX_RESULT_COLUMNS);
+      post({ type: 'ready', requestId: request.requestId, epoch: request.epoch, fileName: request.fileName, tableCount: catalog.tables.filter((table) => (table.kind === 'table' || table.kind === 'virtual') && !table.internal).length, catalog });
       return;
     }
 
@@ -124,7 +125,6 @@ function configureReadOnly(sqlite3: any) {
   if (resultCode !== capi.SQLITE_OK) throw new Error('SQLite could not apply its read-only policy.');
   const limits: Array<[number, number]> = [
     [capi.SQLITE_LIMIT_SQL_LENGTH, MAX_QUERY_BYTES],
-    [capi.SQLITE_LIMIT_COLUMN, MAX_RESULT_COLUMNS],
     [capi.SQLITE_LIMIT_COMPOUND_SELECT, 64],
     [capi.SQLITE_LIMIT_EXPR_DEPTH, 1000],
     [capi.SQLITE_LIMIT_FUNCTION_ARG, 100],
@@ -219,7 +219,7 @@ function readCatalog(): Catalog {
   const schemaSqlByName = new Map(selectRows("SELECT name, sql FROM sqlite_schema WHERE type IN ('table', 'view')").map((row) => [String(row[0]), row[1] == null ? null : boundCatalogText(String(row[1]))]));
   const objects = selectRows('PRAGMA table_list')
     .filter((row) => String(row[0] ?? '') === 'main')
-    .filter((row) => ['table', 'view', 'shadow'].includes(String(row[2] ?? '')))
+    .filter((row) => ['table', 'view', 'virtual', 'shadow'].includes(String(row[2] ?? '')))
     .sort((left, right) => {
       const leftInternal = String(left[1] ?? '').startsWith('sqlite_') || String(left[2] ?? '') === 'shadow';
       const rightInternal = String(right[1] ?? '').startsWith('sqlite_') || String(right[2] ?? '') === 'shadow';
@@ -234,7 +234,7 @@ function readCatalog(): Catalog {
     const rawName = row[1];
     const rawKind = row[2];
     const name = String(rawName);
-    const kind = rawKind === 'view' ? 'view' : rawKind === 'shadow' ? 'shadow' : 'table';
+    const kind = rawKind === 'view' ? 'view' : rawKind === 'virtual' ? 'virtual' : rawKind === 'shadow' ? 'shadow' : 'table';
     const internal = name.startsWith('sqlite_') || kind === 'shadow';
     const warnings: CatalogWarning[] = [];
     let columns: CatalogColumn[] = [];
@@ -269,7 +269,7 @@ function readCatalog(): Catalog {
         const grouped = new Map<number, CatalogForeignKey>();
         for (const row of selectRows(`PRAGMA foreign_key_list(${quoteIdentifier(name)})`)) {
           const id = Number(row[0] ?? 0);
-          const existing = grouped.get(id) ?? { id, fromTable: name, fromColumns: [], toTable: String(row[2] ?? ''), toColumns: [] };
+          const existing = grouped.get(id) ?? { id, fromTable: name, fromColumns: [], toTable: String(row[2] ?? ''), toColumns: [], onUpdate: String(row[5] ?? 'NO ACTION'), onDelete: String(row[6] ?? 'NO ACTION'), match: String(row[7] ?? 'NONE') };
           existing.fromColumns.push(String(row[3] ?? ''));
           existing.toColumns.push(String(row[4] ?? ''));
           grouped.set(id, existing);

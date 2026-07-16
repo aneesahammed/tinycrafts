@@ -128,6 +128,8 @@ td { color: var(--ink-2); }
 .relationship-list li { display: grid; gap: 6px; padding: 11px 14px; border-bottom: 1px solid var(--rule); }
 .relationship-list li:last-child { border-bottom: 0; }
 .relationship-kind { color: var(--ink-2); font: 9px var(--font-mono); letter-spacing: .08em; }
+.relationship-status { justify-self: start; color: var(--success); font: 9px var(--font-mono); letter-spacing: .08em; }
+.relationship-status.unresolved { color: var(--warning); }
 .relationship-tables { display: flex; align-items: center; gap: 8px; font: 12px var(--font-mono); }
 .relationship-table { border: 0; background: transparent; color: var(--accent-deep); padding: 0; font: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .relationship-table:hover { color: var(--ink); }

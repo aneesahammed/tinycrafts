@@ -15,7 +15,9 @@ createRoot(document.getElementById('root')!).render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {
-      // Offline enhancement is optional; the core database workflow stays available.
+      window.dispatchEvent(new Event('seeqlite-offline-unavailable'));
     });
   });
+} else {
+  queueMicrotask(() => window.dispatchEvent(new Event('seeqlite-offline-unavailable')));
 }

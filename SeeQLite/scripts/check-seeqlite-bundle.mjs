@@ -13,6 +13,14 @@ const html = readFileSync(join(dist, 'index.html'), 'utf8');
 if (html.includes('src="/') || html.includes('href="/')) throw new Error('SeeQLite artifact contains a root-relative asset path.');
 if (!existsSync(join(dist, 'sample.sqlite'))) throw new Error('SeeQLite artifact is missing the bundled sample database.');
 if (!existsSync(join(dist, 'sw.js'))) throw new Error('SeeQLite artifact is missing the service worker.');
+const serviceWorker = readFileSync(join(dist, 'sw.js'), 'utf8');
+if (!serviceWorker.includes('const CACHE_PREFIX = \'seeqlite-\'')) throw new Error('SeeQLite service worker must use a scoped cache prefix.');
+if (!serviceWorker.includes('const PRECACHE =')) throw new Error('SeeQLite service worker must contain the generated precache manifest.');
+if (serviceWorker.includes("caches.delete(key)" ) && !serviceWorker.includes("key.startsWith(CACHE_PREFIX)")) throw new Error('SeeQLite service worker must not delete sibling caches.');
+const precacheMatch = /const PRECACHE = (\[[\s\S]*?\]);/.exec(serviceWorker);
+if (!precacheMatch) throw new Error('SeeQLite service worker precache manifest is unreadable.');
+const precachedPaths = JSON.parse(precacheMatch[1]);
+if (precachedPaths.some((path) => /\.(?:sqlite|sqlite3|db|wal|shm|journal)$/i.test(path))) throw new Error('SeeQLite service worker must not precache database or sidecar paths.');
 for (const name of names.filter((entry) => entry.endsWith('.js'))) {
   const source = readFileSync(join(assets, name), 'utf8');
   if (source.includes('new Worker(`data:') || source.includes('new Worker("data:')) throw new Error('SeeQLite must not construct data URL workers.');

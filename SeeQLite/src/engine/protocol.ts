@@ -38,7 +38,7 @@ export type CatalogLimit = {
 
 export type CatalogTable = {
   name: string;
-  kind: 'table' | 'view' | 'shadow';
+  kind: 'table' | 'view' | 'virtual' | 'shadow';
   internal: boolean;
   schemaSql: string | null;
   withoutRowid: boolean;
@@ -54,6 +54,9 @@ export type CatalogForeignKey = {
   fromColumns: string[];
   toTable: string;
   toColumns: string[];
+  onUpdate: string;
+  onDelete: string;
+  match: string;
 };
 
 export type Catalog = {
