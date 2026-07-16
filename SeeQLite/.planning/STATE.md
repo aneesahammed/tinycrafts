@@ -23,7 +23,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-15)
 Phase: 6 of 6 (Security, Performance, Accessibility, and Release)
 Plan: release hardening checkpoint
 Status: Core product shipped; security policy, bounded output, intake edges, editor, bundle budgets, scoped offline shell, accessibility gate, searchable/paged catalog, virtual/shadow metadata, internal-object toggle, accessible plan list, relationship list/copy/join actions, and cross-engine browser evidence verified
-Last activity: 2026-07-16 — Added the fail-fast 06-03 release-gate orchestrator, atomic/incomplete evidence contract, sanitized release gaps, and truthful limitations/rollback/checklist docs; current full runner, public deployment, manual AT, and rollback gates remain open.
+Last activity: 2026-07-16 — Fixed a real dark-theme CodeMirror contrast regression, made landing visual evidence deterministic/no-skip, sanitized release-evidence paths, regenerated dependency digests, and completed a current 20/20-command release run; public deployment, manual AT, and rollback gates remain open.
 
 Progress: [█████████░] 89%
 
@@ -61,8 +61,8 @@ Full decisions live in `PROJECT.md`; research resolutions live in `.planning/res
 - Record manual current-Safari/VoiceOver evidence, including forced-colors/200% zoom/reduced-motion checks (automated axe light/dark plus forced-colors/zoom/reduced-motion gates now pass in all three engines; the new relationship list is keyboard-readable).
 - Static Pages artifact/header checker now records relative assets, MIME, precache, and absent local response headers; run it against the authorized public `/seeqlite/` deployment before claiming production CSP/service-worker/header evidence.
 - Manual accessibility protocol now has a fail-closed validator, mutation tests, and an explicitly incomplete Safari/VoiceOver/NVDA template; human execution and signed reruns remain open.
-- PF-01…PF-14 now have one exact machine-checked manifest with source digests, literal test IDs, result keys, freshness, skip/retry, and prevention/recovery requirements; a current `.release-evidence/test-results.json` is intentionally still required from the release orchestrator.
-- 06-03 now has a release-gate contract that runs the 20-command matrix without automatic retries, emits current-commit evidence atomically, redacts command output to digests, and fails incomplete on missing manual/public/rollback evidence.
+- PF-01…PF-14 now have one exact machine-checked manifest with source digests, literal test IDs, result keys, freshness, skip/retry, and prevention/recovery requirements; the current 20-command run produced `risk.checked: true` with sanitized repo-relative evidence.
+- 06-03 now has a release-gate contract that runs the 20-command matrix without automatic retries, emits current-commit evidence atomically, redacts command output to digests, sanitizes paths, and fails incomplete on missing manual/public/rollback evidence.
 - Keep the dependency inventories visible: SeeQLite runtime inventory is 19 packages with clean production-only audit and exact notices; DataDuck's full development-tree `npm audit --audit-level=moderate` currently reports 9 upstream advisories (including high/critical transitive issues), while production-only audits for SeeQLite and DataDuck are clean.
 - CAT-02/CAT-04 now have lazy, bounded index details with generated/hidden-column flags, predicate text, FTS5/FTS4/RTree virtual-shadow metadata, malformed-object isolation, 5,001-object/52,000-column limited-mode degradation, graph caps, and stale-response guards; remaining work is additional module families and low-memory/25–50 MiB evidence.
 - PERF-01 now has a qualified local-darwin-arm64-64g-headless profile with exact 25/50 MiB catalog and 64/128/256 MiB import/reopen/reimport samples plus hard structural limits; peak memory, worker-transfer/long-task traces, and constrained-host memory pressure remain in `docs/release/gaps/PERFORMANCE-GAPS.md`.

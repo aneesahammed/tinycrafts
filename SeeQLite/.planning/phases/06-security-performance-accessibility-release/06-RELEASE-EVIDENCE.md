@@ -18,7 +18,7 @@ This checkpoint covers the incremental ER discoverability, safe-copy, query-plan
 | SQL-02 | SQLite’s prepare/tail API rejects trailing statements and bound parameters before execution; no custom JavaScript statement scanner remains. | `src/engine/sqlite.worker.ts` (`assertSingleStatement`); `tests/e2e/app.spec.ts` trailing/native-policy tests | PASS for the implemented single-statement/parameter boundary |
 | ER-05 | A resolved relationship generates centrally quoted read-only join SQL, supports composite/implicit parent keys, and asks before replacing a non-empty draft; cancel leaves the draft intact. | `src/App.tsx` (`buildJoinSql`, `generateJoin`); cross-engine relationship and unusual-identifier fixtures | PASS for composite implicit keys, self joins, unresolved disablement, dirty-draft confirmation, and keyword/quote/dot/Unicode identifiers |
 | PLAN-01 | Query plans are presented as an accessible bounded list with parent indentation, already-explained SQL is not nested, and a new query cannot leave a stale plan visible. | `src/plan.ts`, `src/plan.test.ts`, `src/App.tsx` (`PlanTree`, `runPlan`, invalidation); cross-engine plan/hostile/stale tests | PASS for empty, orphan, cyclic, already-explained, hostile inert text, and stale invalidation paths |
-| A11Y-01 | New relationship, copy, metadata, toggle, paging, and forced-colors controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `src/components/SqlEditor.tsx`/`src/styles/app.css` theme-following token classes; `tests/e2e/accessibility.spec.ts` (4 widths plus both themes), `tests/e2e/keyboard-workflows.spec.ts`, and `npm run test:e2e` (120/120; axe, keyboard, forced-colors/zoom/reduced-motion paths in Chromium/Firefox/WebKit) | PASS for automated gates; manual Safari/VoiceOver/NVDA remains |
+| A11Y-01 | New relationship, copy, metadata, toggle, paging, and forced-colors controls preserve serious/critical axe cleanliness in light/dark themes and all three browser engines. | `src/components/SqlEditor.tsx`/`src/styles/app.css` theme-following token classes; `tests/e2e/accessibility.spec.ts` (4 widths plus both themes), `tests/e2e/keyboard-workflows.spec.ts`, and `npm run test:e2e` (144/144; no retries/skips; axe, keyboard, forced-colors/zoom/reduced-motion paths in Chromium/Firefox/WebKit) | PASS for automated gates; manual Safari/VoiceOver/NVDA remains |
 | REL-01 | The new surface does not regress type safety, production bundle budgets, worker behavior, exports, history, cancellation, or hostile-query paths. | Commands below | PASS |
 | OFF-01/OFF-02 | Complete built-artifact precache supports repeat shell reload, excludes database/sidecar paths, and preserves sibling caches through scoped activation. | `scripts/build-service-worker.mjs`, generated `dist/sw.js`, `tests/e2e/app.spec.ts` offline cache test, `scripts/check-seeqlite-bundle.mjs` | PASS for Chromium/Firefox offline reload and WebKit cached-document contract; manual Safari reload/update remains |
 | OFF-03 | Service-worker registration failure is visible without blocking the core workflow. | `src/main.tsx`, `src/App.tsx` offline-unavailable status event | PASS for registration/unsupported fallback path |
@@ -28,16 +28,16 @@ This checkpoint covers the incremental ER discoverability, safe-copy, query-plan
 | A11Y-MANUAL | Manual Safari/VoiceOver and NVDA evidence has a strict schema, freshness/signature/sanitization checks, and mutation coverage; the checked-in record is explicitly incomplete until human execution. | `scripts/validate-release-evidence.mjs`, `tests/release/manual-evidence.test.ts`, `docs/release/accessibility-safari.md`, `docs/release/gaps/MANUAL-EVIDENCE-GAPS.md`; 11 tests PASS | PASS for protocol; human platform evidence remains open |
 | RISK-PF-01..14 | Every researched PF risk has one exact prevention and recovery reference with source digest, test identity, expected assertion, canonical result key, and fail-closed freshness/skip/retry contract. | `docs/release/risk-evidence.json`, `scripts/check-risk-evidence.mjs`, `tests/release/risk-evidence.test.ts`, `docs/release/gaps/RISK-GAPS.md`; 20 tests PASS | PASS for manifest/checker protocol; current release runner evidence remains open |
 | DEP-AUDIT | Every shipped SeeQLite runtime package has exact version/purpose/license/notice/source/asset/request evidence, and unresolved production High/Critical advisories block. | `scripts/audit-release-dependencies.mjs`, `docs/release/dependency-inventory.md`, `../THIRD_PARTY_NOTICES.md`, `tests/release/dependency-audit.test.ts`; 8 tests PASS; `npm audit --omit=dev` clean | PASS for SeeQLite dependency protocol; DataDuck dev-tree advisories remain disclosed |
-| RELEASE-GATE | The release transaction has one no-retry command matrix, current-commit/source-output digests, atomic incomplete diagnostics, 48 requirement/10 DoD links, PF handoff, manual/public/rollback inputs, and sanitized gap output. | `scripts/release-gate.mjs`, `tests/release/release-gate.test.ts`, `docs/release/EVIDENCE.md`, `docs/release/LIMITATIONS.md`, `docs/release/RELEASE-CHECKLIST.md`, `docs/release/ROLLBACK.md`, `docs/release/gaps/RELEASE-GAPS.md`; 7 tests PASS | PASS for orchestration contract; current full run and external gates remain open |
+| RELEASE-GATE | The release transaction has one no-retry command matrix, current-commit/source-output digests, atomic incomplete diagnostics, 48 requirement/10 DoD links, PF handoff, manual/public/rollback inputs, and sanitized gap output. | `scripts/release-gate.mjs`, `tests/release/release-gate.test.ts`, `docs/release/EVIDENCE.md`, `docs/release/LIMITATIONS.md`, `docs/release/RELEASE-CHECKLIST.md`, `docs/release/ROLLBACK.md`, `docs/release/gaps/RELEASE-GAPS.md`; 7 tests PASS | PASS for orchestration and current 20/20 command run; external gates remain open |
 
 ## Automated commands
 
 ```text
-SeeQLite: npm test                         PASS (3 tests)
+SeeQLite: npm test                         PASS (49 tests)
 SeeQLite: npm run typecheck                 PASS
 SeeQLite: npm run build                     PASS
 SeeQLite: npm run check:bundle              PASS (24 emitted assets)
-SeeQLite: npm run test:e2e                  PASS (120 tests; Chromium, Firefox, WebKit)
+SeeQLite: npm run test:e2e                  PASS (144 tests; Chromium, Firefox, WebKit; no retries/skips)
 SeeQLite: accessibility + keyboard E2E     PASS (21 tests across Chromium, Firefox, WebKit)
 SeeQLite: exotic virtual E2E                PASS (FTS4/RTree, 3 tests across Chromium, Firefox, WebKit)
 SeeQLite: offline shell E2E                 PASS (Chromium/Firefox reload; WebKit cache contract)
@@ -50,7 +50,7 @@ SeeQLite: shared Pages artifact verifier          PASS (SeeQLite/DataDuck artifa
 SeeQLite: manual evidence protocol                PASS (11 mutation/schema tests; template intentionally incomplete)
 SeeQLite: PF risk evidence protocol                PASS (20 mutation/schema tests; current runner artifact intentionally absent)
 SeeQLite: dependency/license/notice protocol       PASS (8 mutation tests; 19 runtime packages; production audit clean)
-SeeQLite: release-gate orchestration protocol       PASS (7 contract tests; current full run intentionally absent)
+SeeQLite: release-gate orchestration protocol       PASS (7 contract tests; current 20-command run passed; external gates incomplete)
 Pages:    node scripts/build-pages.mjs      PASS
 Pages:    node scripts/verify-pages-build.mjs PASS
 DataDuck: npm --prefix dataduck test        PASS (195 tests / 54 files)

@@ -90,6 +90,7 @@ h2 { font-size: 22px; letter-spacing: -.04em; margin-top: 5px; }
 .copy-status { margin: 0; padding: 8px 14px; color: var(--success); border-bottom: 1px solid var(--rule); font: 10px var(--font-mono); }
 .copy-status.error { color: var(--danger); }
 textarea { display: block; width: 100%; min-height: 180px; resize: vertical; border: 1px solid var(--boundary); background: var(--paper-3); color: var(--ink); padding: 20px; font: 14px/1.65 var(--font-mono); tab-size: 2; border-radius: 6px; }
+.cm-line { color: var(--ink) !important; font-weight: 400 !important; }
 .sql-token-keyword, .sql-token-operator, .sql-token-type, .sql-token-function { color: var(--accent-deep); font-weight: 700; }
 .sql-token-number { color: var(--warning); }
 .sql-token-string { color: var(--success); }

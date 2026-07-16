@@ -26,7 +26,9 @@ Tags are exactly `sqlite`, `browser-only`, `read-only`, `live`; no unproven ER-i
 | Responsive layout | 375, 768, 1024, and 1440; no document-level horizontal overflow; PASS in Chromium, Firefox, and WebKit |
 | Keyboard/focus/hover/theme | Semantic focus, hover state, and light/dark toggle; PASS in Chromium, Firefox, and WebKit |
 | 200% zoom | Card remains reachable and no document-level overflow; PASS in Chromium, Firefox, and WebKit |
-| Full-page visual regression | 8 Chromium baselines: light/dark × 375/768/1024/1440; PASS |
+| Full-page visual regression | 8 deterministic Chromium baselines: light/dark × 375/768/1024/1440; pointer neutralized before capture; PASS |
+
+The complete SeeQLite E2E suite now reports 144/144 passed with no retries or skipped tests. Non-Chromium landing projects execute the semantic landing assertion while Chromium owns the visual baselines, so the release gate does not treat visual-platform scope as masked coverage.
 
 Landing tests block external Google Fonts and GoatCounter requests so visual evidence is local and repeatable. No landing CSS, font, asset, script, analytics, or layout override was added.
 

@@ -126,6 +126,8 @@ describe('release gate evidence contract', () => {
       expect(result.ok).toBe(false);
       expect(result.evidence.status).toBe('incomplete');
       expect(JSON.parse(await readFile(evidencePath, 'utf8')).commitSha).toBe(commit);
+      expect(JSON.stringify(result.evidence)).not.toContain(rootDir);
+      expect(result.evidence.manual.path).toBe('external-artifact');
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

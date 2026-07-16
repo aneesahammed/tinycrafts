@@ -219,13 +219,18 @@ test('resolves the direct SeeQLite route as an app document', async ({ page }) =
 });
 
 test('captures full-page light and dark catalogue snapshots', async ({ page, browserName }) => {
-  test.skip(browserName !== 'chromium', 'Visual baselines are maintained in Chromium only');
+  if (browserName !== 'chromium') {
+    await openLanding(page, viewports[0]);
+    await expect(page.getByRole('link', { name: seeqlite.name })).toBeVisible();
+    return;
+  }
 
   for (const theme of ['light', 'dark'] as const) {
     for (const viewport of viewports) {
       await openLanding(page, viewport);
       if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark theme' }).click();
       await expect(page.getByRole('link', { name: seeqlite.name })).toBeVisible();
+      await page.mouse.move(0, 0);
       await expect(await page.screenshot({ fullPage: true })).toMatchSnapshot(`landing-${theme}-${viewport.name}.png`);
     }
   }

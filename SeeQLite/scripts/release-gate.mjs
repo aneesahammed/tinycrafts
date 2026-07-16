@@ -141,29 +141,38 @@ export function buildRiskResults(manifest, commandEvidence, commitSha) {
   return results;
 }
 
-function statusFromManual(manualPath, expectedCommit, now) {
-  if (!manualPath || !existsSync(manualPath)) return { outcome: 'missing', path: manualPath ?? null, issues: ['Manual accessibility evidence file is missing.'] };
+function statusFromManual(manualPath, expectedCommit, now, rootDir) {
+  const safePath = safeEvidencePath(manualPath, rootDir);
+  if (!manualPath || !existsSync(manualPath)) return { outcome: 'missing', path: safePath, issues: ['Manual accessibility evidence file is missing.'] };
   try {
     const evidence = parseManualEvidence(readFileSync(manualPath, 'utf8'));
     const validation = validateManualEvidence(evidence, { expectedCommit, now });
-    return { outcome: validation.complete ? 'passed' : 'incomplete', path: manualPath, issues: [...validation.issues, ...validation.warnings] };
+    return { outcome: validation.complete ? 'passed' : 'incomplete', path: safePath, issues: [...validation.issues, ...validation.warnings] };
   } catch (error) {
-    return { outcome: 'invalid', path: manualPath, issues: [error instanceof Error ? error.message : String(error)] };
+    return { outcome: 'invalid', path: safePath, issues: [error instanceof Error ? error.message : String(error)] };
   }
 }
 
-function statusFromJson(filePath, label) {
-  if (!filePath || !existsSync(filePath)) return { outcome: 'missing', path: filePath ?? null, issues: [`${label} evidence file is missing.`] };
+function statusFromJson(filePath, label, rootDir) {
+  const safePath = safeEvidencePath(filePath, rootDir);
+  if (!filePath || !existsSync(filePath)) return { outcome: 'missing', path: safePath, issues: [`${label} evidence file is missing.`] };
   try {
     const value = loadJson(filePath);
     const outcome = value?.outcome ?? value?.status;
     const issues = [];
     if (value?.schemaVersion !== 1) issues.push(`${label} evidence schemaVersion must be 1.`);
     if (outcome !== 'passed') issues.push(`${label} evidence is not passed.`);
-    return { outcome: issues.length === 0 ? 'passed' : 'incomplete', path: filePath, issues };
+    return { outcome: issues.length === 0 ? 'passed' : 'incomplete', path: safePath, issues };
   } catch (error) {
-    return { outcome: 'invalid', path: filePath, issues: [error instanceof Error ? error.message : String(error)] };
+    return { outcome: 'invalid', path: safePath, issues: [error instanceof Error ? error.message : String(error)] };
   }
+}
+
+function safeEvidencePath(filePath, rootDir) {
+  if (!filePath) return null;
+  const relative = path.relative(path.resolve(rootDir), path.resolve(filePath));
+  if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) return relative.split(path.sep).join('/');
+  return 'external-artifact';
 }
 
 export function validateReleaseEvidence(evidence, { requirementIds = [], now = new Date() } = {}) {
@@ -273,10 +282,10 @@ export async function runReleaseGate({ rootDir = path.resolve(path.dirname(fileU
   }
   const completedAt = new Date().toISOString();
   const allCommandsPassed = commandIssues.length === 0 && commandEvidence.length === normalized.length && commandEvidence.every((entry) => entry.outcome === 'passed');
-  const manual = statusFromManual(manualPath, commitSha, now);
-  const deployed = statusFromJson(deployedPath, 'Deployed');
-  const rollback = statusFromJson(rollbackPath, 'Rollback');
-  let risk = { checked: false, manifestPath: riskManifestPath, resultPath: evidencePath, issues: ['Risk checker is deferred until all release commands finish.'] };
+  const manual = statusFromManual(manualPath, commitSha, now, rootDir);
+  const deployed = statusFromJson(deployedPath, 'Deployed', rootDir);
+  const rollback = statusFromJson(rollbackPath, 'Rollback', rootDir);
+  let risk = { checked: false, manifestPath: safeEvidencePath(riskManifestPath, rootDir), resultPath: safeEvidencePath(evidencePath, rootDir), issues: ['Risk checker is deferred until all release commands finish.'] };
   const riskResults = existsSync(riskManifestPath) && allCommandsPassed ? buildRiskResults(loadJson(riskManifestPath), commandEvidence, commitSha) : [];
   const evidenceSkeleton = { schemaVersion: 1, commitSha, startedAt, completedAt, commands: commandEvidence, requirements: [], definitionOfDone: [], manual, deployed, rollback, risk, status: 'incomplete' };
   const requirementIds = extractRequirementIds(readRequirements());
@@ -284,7 +293,7 @@ export async function runReleaseGate({ rootDir = path.resolve(path.dirname(fileU
   if (allCommandsPassed) {
     const manifest = loadJson(riskManifestPath);
     const riskResult = validateRiskEvidence({ manifest, results: { schemaVersion: 1, commitSha, startedAt, completedAt, results: riskResults }, rootDir, expectedCommit: commitSha, now });
-    risk = { checked: riskResult.ok, manifestPath: riskManifestPath, resultPath: evidencePath, issues: riskResult.issues };
+    risk = { checked: riskResult.ok, manifestPath: safeEvidencePath(riskManifestPath, rootDir), resultPath: safeEvidencePath(evidencePath, rootDir), issues: riskResult.issues };
   }
   const finalIssues = [...provisional.issues, ...manual.issues, ...deployed.issues, ...rollback.issues, ...risk.issues];
   const final = buildReleaseEvidence({ commitSha, startedAt, completedAt, commands: commandEvidence, manual, deployed, rollback, risk, requirementIds, status: allCommandsPassed && manual.outcome === 'passed' && deployed.outcome === 'passed' && rollback.outcome === 'passed' && risk.checked ? 'complete' : 'incomplete', issues: [...new Set(finalIssues)] });
