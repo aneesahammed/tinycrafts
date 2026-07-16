@@ -16,3 +16,7 @@ On 2026-07-16, the exact `.pages-build/seeqlite/` artifact was served by a local
 - no CSP, COOP, COEP, or `Service-Worker-Allowed` response headers were present on the local static server, so no header protection is claimed.
 
 The public-host command is intentionally not marked complete until it is run against the authorized deployment and its JSON output is attached to the release evidence. No deployment or rollback mutation is performed by the checker.
+
+## Current public checkpoint
+
+The latest check against `https://tinycrafts.ai/seeqlite/` remains failed: both the route entry and `sw.js` returned HTTP 404 with an HTML response. The host returned a restrictive Content-Security-Policy header, but no route or service-worker evidence can be claimed until the SeeQLite artifact is published at that path. Re-run the checker after the authorized Pages deployment; do not treat this failed diagnostic as a release pass.
