@@ -1,4 +1,23 @@
+/* Two design skins, selected by [data-skin] on .app-shell.
+   - "landing"  = PageCrumb (warm cream + blue), the marketing face shown before a DB is open.
+   - "app"      = Uber Base (bold black/white monochrome + accent blue), the developer tool.
+   Dark variants key off :root[data-dark] (toggled on <html>). Both share token NAMES so
+   the component CSS is skin-agnostic. */
+
 :root {
+  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: ui-serif, "New York", Charter, "Iowan Old Style", Georgia, serif;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Landing keeps softer corners; the app skin sharpens these to feel like a tool. */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-pill: 999px;
+}
+
+/* ---- Landing skin — PageCrumb ----------------------------------------- */
+[data-skin="landing"] {
   color-scheme: light;
   --paper: #f7f3ec;
   --paper-2: #eee8dd;
@@ -8,39 +27,100 @@
   --ink-3: #6f675c;
   --rule: #d8cfc1;
   --rule-strong: #1f1b16;
-  --boundary: #786f63;
+  --boundary: #b8ab97;
   --accent: #3867e8;
   --accent-deep: #244cc6;
   --accent-soft: #edf2ff;
   --accent-border: #8ca8ff;
-  --warning: #6e4a00;
+  --btn-primary-bg: #3867e8;
+  --btn-primary-ink: #fffdfa;
+  --success: #237a52;
   --danger: #b42318;
   --danger-soft: #fff0ed;
-  --success: #237a52;
+  --warning: #6e4a00;
+  --num: #b85c00;
+  --blueprint: rgba(56, 103, 232, 0.12);
+  --shadow-card: 0 1px 2px rgba(31, 27, 22, 0.06);
   --focus-ring: #244cc6;
-  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
-
-:root[data-dark] {
+:root[data-dark] [data-skin="landing"] {
   color-scheme: dark;
   --paper: #171816;
   --paper-2: #20211f;
   --paper-3: #242522;
   --ink: #f3eee5;
   --ink-2: #c9c0b3;
-  --ink-3: #b5ab9e;
+  --ink-3: #a39a8b;
   --rule: #343733;
   --rule-strong: #ece5da;
-  --boundary: #9f978b;
-  --accent: #526dcc;
+  --boundary: #5a5348;
+  --accent: #86a2ff;
   --accent-deep: #b5c4ff;
   --accent-soft: #222b46;
   --accent-border: #4b609b;
-  --warning: #f2cf72;
+  --btn-primary-bg: #86a2ff;
+  --btn-primary-ink: #171816;
+  --success: #8fd3ae;
   --danger: #ff9b91;
   --danger-soft: #40221f;
-  --success: #8fd3ae;
+  --warning: #f2cf72;
+  --num: #d18a4a;
+  --blueprint: rgba(134, 162, 255, 0.1);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
   --focus-ring: #b5c4ff;
+}
+
+/* ---- App skin — Uber Base (monochrome) -------------------------------- */
+[data-skin="app"] {
+  color-scheme: light;
+  --paper: #fafafa;
+  --paper-2: #f1f1f1;
+  --paper-3: #ffffff;
+  --ink: #000000;
+  --ink-2: #545454;
+  --ink-3: #6b6b6b;
+  --rule: #ededed;
+  --rule-strong: #e2e2e2;
+  --boundary: #cfcfcf;
+  --accent: #155ae0;
+  --accent-deep: #133f96;
+  --accent-soft: #eff3fe;
+  --accent-border: #a3bffc;
+  /* Uber's signature: black primary action (like DataDuck's Run). */
+  --btn-primary-bg: #000000;
+  --btn-primary-ink: #ffffff;
+  --success: #0a7d43;
+  --danger: #cc2016;
+  --danger-soft: #fdedeb;
+  --warning: #8b5a00;
+  --num: #8b5a00;
+  --blueprint: rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --focus-ring: #276ef1;
+}
+:root[data-dark] [data-skin="app"] {
+  color-scheme: dark;
+  --paper: #0a0a0a;
+  --paper-2: #161616;
+  --paper-3: #1c1c1c;
+  --ink: #ffffff;
+  --ink-2: #a8a8a8;
+  --ink-3: #909090;
+  --rule: #262626;
+  --rule-strong: #333333;
+  --boundary: #454545;
+  --accent: #4b8cff;
+  --accent-deep: #8bb4ff;
+  --accent-soft: #12213d;
+  --accent-border: #2f4d80;
+  --btn-primary-bg: #ffffff;
+  --btn-primary-ink: #000000;
+  --success: #3fb950;
+  --danger: #ff6b5a;
+  --danger-soft: #40221f;
+  --warning: #d1a35a;
+  --num: #d1a35a;
+  --blueprint: rgba(255, 255, 255, 0.04);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --focus-ring: #4b8cff;
 }

@@ -4,6 +4,8 @@ import { DatabaseClient } from './engine/database-client';
 import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
 import { buildPlanNodes, planDepth } from './plan';
+import { ErCanvas, MAX_DIAGRAM_TABLES } from './components/ErCanvas';
+import { buildJoinSql, quoteIdentifier } from './sql';
 const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
 
 const SAMPLE_QUERY = 'SELECT 1 AS ready, sqlite_version() AS sqlite_version;';
@@ -17,7 +19,6 @@ const HISTORY_KEY = 'seeqlite.query-history.v1';
 const HISTORY_MAX_ITEMS = 100;
 const HISTORY_MAX_SQL_BYTES = 8 * 1024;
 const HISTORY_MAX_TOTAL_BYTES = 128 * 1024;
-const MAX_DIAGRAM_TABLES = 75;
 const CATALOG_PAGE_SIZE = 100;
 
 function loadHistory(): HistoryItem[] {
@@ -60,7 +61,7 @@ export function App() {
   const [showInternalObjects, setShowInternalObjects] = useState(false);
   const [selectedTable, setSelectedTable] = useState<CatalogTable | null>(null);
   const [tableDetails, setTableDetails] = useState<Record<string, TableDetailState>>({});
-  const [view, setView] = useState<'query' | 'diagram'>('query');
+  const [view, setView] = useState<'query' | 'schema' | 'diagram'>('query');
   const [status, setStatus] = useState('Choose a SQLite file. It stays in this browser tab.');
   const [busy, setBusy] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
@@ -289,10 +290,14 @@ export function App() {
     setStatus('Query stopped. Reopen the database to continue.');
   }
 
-  async function selectTable(table: CatalogTable, returnToQuery = false) {
+  async function selectTable(table: CatalogTable, options: { returnToQuery?: boolean; autoRun?: boolean } = {}) {
     setSelectedTable(table);
-    setQuery(`SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`);
-    if (returnToQuery) setView('query');
+    const browseSql = `SELECT * FROM ${quoteIdentifier(table.name)} LIMIT 100;`;
+    setQuery(browseSql);
+    // Diagram clicks jump to Query; rail clicks browse in place (only leaving the diagram).
+    if (options.returnToQuery) setView('query');
+    else if (options.autoRun) setView((current) => (current === 'diagram' ? 'query' : current));
+    if (options.autoRun && fileName !== 'No database open') void runQuery(browseSql);
     const existing = tableDetails[table.name];
     if (existing?.status === 'ready' || detailRequestsRef.current.has(table.name)) return;
     const generation = detailGenerationRef.current;
@@ -344,63 +349,141 @@ export function App() {
   }, [selectedTable, showInternalObjects]);
   useEffect(() => { setCatalogPage(0); }, [catalogSearch, showInternalObjects, catalog]);
 
+  const dbStats = catalog ? `${catalog.tables.length} table${catalog.tables.length === 1 ? '' : 's'} · ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}${result ? ` · ${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'}` : ''}` : '';
+  const selectedFkCols = new Set(catalog && selectedTable ? catalog.foreignKeys.filter((relation) => relation.fromTable === selectedTable.name).flatMap((relation) => relation.fromColumns) : []);
+
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-skin={catalog ? 'app' : 'landing'}>
       <a className="skip-link" href="#workspace">Skip to workspace</a>
-      <header className="topbar">
+      <header className="app-header">
         <a className="brand" href="../../index.htm" aria-label="TinyCrafts home">
           <span className="brand-mark" aria-hidden="true">◫</span>
           <span><strong>SeeQLite</strong><small>SQLite, in your browser</small></span>
         </a>
-        <div className="topbar-meta"><span>LOCAL ONLY</span><button className="theme-button" aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDarkTheme((value) => !value)}>{darkTheme ? 'Light theme' : 'Dark theme'}</button></div>
+        {catalog ? <span className="header-stats" aria-hidden="true">{dbStats}</span> : null}
+        <div className="topbar-meta"><span>LOCAL ONLY</span><button className="theme-button" aria-pressed={darkTheme} aria-label={darkTheme ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setDarkTheme((value) => !value)}>{darkTheme ? 'Light' : 'Dark'}</button></div>
       </header>
 
-      <main id="workspace" className="workspace" tabIndex={-1}>
-        <section className="intro-column">
-          <p className="eyebrow">TINYCRAFTS / 08</p>
-          <h1>See what’s inside.</h1>
-          <p className="lede">Open a SQLite file, understand its shape, and ask it questions without uploading a byte.</p>
-          <div className="privacy-note"><span className="status-dot" /> No server. No account. No database file is saved.</div>
-          {!capabilities.ok ? (
-            <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div>
-          ) : (
-            <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
-              <div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div>
-              <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
-              <p className="helper">SQLite 3 files up to 512 MB. Drop one file here or use the picker.</p>
-            </div>
-          )}
-          <div className="file-status"><span className="label">DATABASE</span><strong dir="auto">{fileName}</strong><span role="status" aria-live="polite">{status}</span><div className="file-status-actions">{sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}{fileName !== 'No database open' ? <button className="secondary-button compact" onClick={resetWorkspace} disabled={busy}>Reset workspace</button> : null}</div></div>
-        </section>
+      <div className="database-bar">
+        <span className="db-badge" aria-hidden="true">▤</span>
+        <div className="file-status">
+          <span className="label">DATABASE</span>
+          <strong dir="auto" title={fileName}>{fileName}</strong>
+          <span className="db-status" role="status" aria-live="polite" title={status}>{status}</span>
+        </div>
+        <div className="db-actions">
+          {catalog ? <span className="mode-badge">READ ONLY</span> : null}
+          {capabilities.ok && catalog ? <button className="secondary-button compact" onClick={() => fileInput.current?.click()} disabled={busy}>Open another database</button> : null}
+          {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}
+          {catalog ? <button className="secondary-button compact" onClick={resetWorkspace} disabled={busy}>Close database</button> : null}
+        </div>
+        <input ref={fileInput} type="file" accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3" hidden onChange={(event) => event.target.files?.[0] && openFile(event.target.files[0])} />
+      </div>
 
-        <section className="query-column" aria-label="Query workspace">
-          <div className="workspace-heading"><div><span className="label">WORKSPACE</span><h2>{view === 'query' ? 'Ask the file' : 'See the shape'}</h2></div><span className="mode-badge">READ ONLY</span></div>
-          <div className="mode-tabs" role="tablist" aria-label="Database workspace view">
-            <button className={view === 'query' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'query'} onClick={() => setView('query')}>Query</button>
-            <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={!catalog || Boolean(catalog?.limits.length) || Boolean(catalog && catalog.tables.length > MAX_DIAGRAM_TABLES)} title={catalog && catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog?.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>Diagram {catalog ? `· ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}` : ''}</button>
-          </div>
-          {view === 'query' ? <>
-            <div className="table-explorer"><div className="result-heading"><span className="label">TABLES</span><span>{catalog ? `${catalogSearch.trim() ? `${filteredTables.length} of ` : ''}${visibleCatalog?.tables.length ?? 0} objects${!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} internal hidden` : ''}` : 'Open a database'}</span></div>{catalog ? <><label className="catalog-search"><span>FIND</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label><div className="catalog-controls"><button className="secondary-button compact" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button><span>System and shadow tables stay hidden until requested.</span></div>{catalog.limits.length ? <p className="catalog-limit" role="status">Catalog is limited: {catalogLimitText(catalog.limits)}. Search and read-only queries remain available; the ER diagram is paused.</p> : null}</> : null}<div className="table-list">{visibleTables.map((table) => <button key={table.name} className="table-list-item" onClick={() => void selectTable(table)} disabled={busy}><span>{table.name}</span><small>{table.internal ? 'internal · ' : ''}{table.kind} · {table.columns.length} columns{table.warnings?.length ? ' · metadata limited' : ''}</small></button>)}</div>{catalogPageCount > 1 ? <div className="catalog-pagination" role="navigation" aria-label="Catalog page controls"><span>Showing {currentCatalogPage * CATALOG_PAGE_SIZE + 1}–{Math.min((currentCatalogPage + 1) * CATALOG_PAGE_SIZE, filteredTables.length)} of {filteredTables.length} matches</span><div><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.max(0, page - 1))} disabled={currentCatalogPage === 0}>Previous objects</button><span aria-live="polite">Page {currentCatalogPage + 1} of {catalogPageCount}</span><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.min(catalogPageCount - 1, page + 1))} disabled={currentCatalogPage >= catalogPageCount - 1}>Next objects</button></div></div> : null}{catalog && filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}</div>
-            {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : null}
-            <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
-            <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy || fileName === 'No database open'}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness} disabled={fileName === 'No database open'}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy || fileName === 'No database open'}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
-            <div className="result-panel">
-              <div className="result-heading"><span className="label">RESULT</span><span>{result ? `${result.columns.length} columns` : 'Waiting for a query'}</span></div>
-              {result ? <ResultTable result={result} /> : <div className="empty-result"><span className="empty-glyph" aria-hidden="true">⌁</span><p>Open a file, then run a SELECT.</p></div>}
-            </div>
-            {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><PlanTree result={planResult} /></div> : null}
-            {result ? <div className="export-actions"><span className="label">EXPORT RESULT</span><button className="quiet-button" onClick={() => downloadResult(result, 'csv')}>Download CSV</button><button className="quiet-button" onClick={() => downloadResult(result, 'json')}>Download JSON</button></div> : null}
-            <QueryHistory items={history} onChoose={setQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
-          </> : <ErDiagram catalog={visibleCatalog} onSelectTable={(table) => void selectTable(table, true)} onGenerateJoin={generateJoin} />}
-        </section>
+      <main id="workspace" className="workbench" tabIndex={-1} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
+        {catalog ? (
+          <>
+            <aside className="catalog-rail" aria-label="Database objects">
+              <label className="catalog-search"><span className="search-glyph" aria-hidden="true">⌕</span><input type="search" value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Search tables or columns" aria-label="Search tables and columns" autoComplete="off" /></label>
+              <div className="rail-head"><span className="label">TABLES</span><span>{catalogSearch.trim() ? `${filteredTables.length} of ` : ''}{visibleCatalog?.tables.length ?? 0}{!showInternalObjects && catalog.tables.length !== (visibleCatalog?.tables.length ?? 0) ? ` · ${catalog.tables.length - (visibleCatalog?.tables.length ?? 0)} hidden` : ''}</span></div>
+              <div className="table-list">
+                {visibleTables.map((table) => (
+                  <button key={table.name} className={selectedTable?.name === table.name ? 'table-list-item active' : 'table-list-item'} onClick={() => void selectTable(table, { autoRun: true })} disabled={busy}>
+                    <span className="table-glyph" aria-hidden="true">{objectGlyph(table.kind)}</span>
+                    <span className="table-list-name">{table.name}</span>
+                    <span className="sr-only">{table.internal ? 'internal ' : ''}{table.kind}{table.warnings?.length ? ' limited' : ''}</span>
+                    <span className="table-list-count" aria-hidden="true">{table.columns.length}</span>
+                  </button>
+                ))}
+              </div>
+              {catalogPageCount > 1 ? <div className="catalog-pagination" role="navigation" aria-label="Catalog page controls"><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.max(0, page - 1))} disabled={currentCatalogPage === 0}>Prev</button><span aria-live="polite">Page {currentCatalogPage + 1} of {catalogPageCount}</span><button className="quiet-button" onClick={() => setCatalogPage((page) => Math.min(catalogPageCount - 1, page + 1))} disabled={currentCatalogPage >= catalogPageCount - 1}>Next</button></div> : null}
+              {filteredTables.length === 0 ? <p className="catalog-empty">{(visibleCatalog?.tables.length ?? 0) === 0 ? 'No visible tables or views were found in this database.' : <>No objects match <code>{catalogSearch}</code>.</>}</p> : null}
+              {catalog.limits.length ? <p className="catalog-limit" role="status">Catalog is limited: {catalogLimitText(catalog.limits)}. Search and read-only queries remain available; the ER diagram is paused.</p> : null}
+              <div className="catalog-controls"><button className="quiet-button" type="button" aria-pressed={showInternalObjects} onClick={() => setShowInternalObjects((value) => !value)}>{showInternalObjects ? 'Hide internal objects' : 'Show internal objects'}</button></div>
+              {selectedTable ? (
+                <div className="rail-columns">
+                  <div className="rail-head"><span className="label">COLUMNS OF {selectedTable.name}</span><span>{selectedTable.columns.length}</span></div>
+                  <div className="column-list">
+                    {selectedTable.columns.map((column) => (
+                      <div className="column-row" key={column.name}>
+                        <span className={`type-glyph glyph-${columnTypeGlyph(column.type).toLowerCase()}`} aria-hidden="true">{columnTypeGlyph(column.type)}</span>
+                        <span className="column-name">{column.name}</span>
+                        <span className="column-flag">{column.primaryKey ? 'PK' : selectedFkCols.has(column.name) ? 'FK' : (column.type || 'ANY')}</span>
+                      </div>
+                    ))}
+                    {selectedTable.columns.length === 0 ? <p className="column-empty">Column metadata unavailable.</p> : null}
+                  </div>
+                </div>
+              ) : null}
+            </aside>
+
+            <section className="work-main" aria-label="Query workspace">
+              <div className="mode-tabs" role="tablist" aria-label="Database workspace view">
+                <button className={view === 'query' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'query'} onClick={() => setView('query')}>Query</button>
+                <button className={view === 'schema' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'schema'} onClick={() => setView('schema')}>Schema</button>
+                <button className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-selected={view === 'diagram'} disabled={Boolean(catalog.limits.length) || catalog.tables.length > MAX_DIAGRAM_TABLES} title={catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>ER Diagram · {catalog.foreignKeys.length} relation{catalog.foreignKeys.length === 1 ? '' : 's'}</button>
+              </div>
+              {view === 'query' ? (
+                <div className="editor-tab">
+                  <div className="editor-pane">
+                    <Suspense fallback={<textarea aria-label="SQL query" value={query} onChange={(event) => setQuery(event.target.value)} spellCheck={false} />}><SqlEditor value={query} catalog={catalog} onChange={setQuery} onRun={runQuery} onPlan={runPlan} /></Suspense>
+                    <div className="query-actions"><button className="primary-button compact" onClick={() => runQuery()} disabled={busy}>{busy ? 'Running…' : 'Run query'}</button>{busy ? <button className="secondary-button compact" onClick={cancelQuery}>Stop running query</button> : <button className="secondary-button compact" onClick={runReadiness}>Run readiness check</button>}<button className="secondary-button compact" onClick={() => runPlan()} disabled={busy}>Show query plan</button><span className="shortcut">⌘ ↵</span></div>
+                  </div>
+                  <div className="output-pane">
+                    <div className="result-panel">
+                      <div className="result-heading"><span className="result-status"><span className={busy ? 'dot busy' : result ? 'dot ok' : 'dot'} aria-hidden="true" />{busy ? 'Running…' : result ? `${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'} · ${result.columns.length} col${result.columns.length === 1 ? '' : 's'}` : 'Ready'}</span><span className="result-meta">{result?.truncated ? truncationLabel(result.truncationReason) : ''}</span></div>
+                      {result ? <ResultTable result={result} /> : <div className="empty-result"><span className="empty-glyph" aria-hidden="true">⌁</span><p>Pick a table on the left, or run a SELECT.</p></div>}
+                    </div>
+                    {planResult ? <div className="result-panel plan-panel"><div className="result-heading"><span className="label">QUERY PLAN</span><button className="quiet-button" onClick={() => setPlanResult(null)}>Hide query plan</button></div><PlanTree result={planResult} /></div> : null}
+                    {result ? <div className="export-actions"><span className="label">EXPORT RESULT</span><button className="quiet-button" onClick={() => downloadResult(result, 'csv')}>Download CSV</button><button className="quiet-button" onClick={() => downloadResult(result, 'json')}>Download JSON</button></div> : null}
+                    <QueryHistory items={history} onChoose={setQuery} onDelete={(at) => { const next = history.filter((item) => item.at !== at); setHistory(next); try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* storage is optional */ } }} onClear={clearHistory} />
+                  </div>
+                </div>
+              ) : view === 'schema' ? (
+                <div className="schema-pane">
+                  {selectedTable ? <TableDetails table={selectedTable} catalog={catalog} detail={tableDetails[selectedTable.name]} /> : <div className="schema-empty"><span className="empty-glyph" aria-hidden="true">▤</span><p>Select a table on the left to inspect its columns, indexes, and keys.</p></div>}
+                </div>
+              ) : (
+                <ErCanvas catalog={visibleCatalog} onSelectTable={(table) => void selectTable(table, { returnToQuery: true })} onGenerateJoin={generateJoin} />
+              )}
+            </section>
+          </>
+        ) : (
+          <section className="welcome">
+            <p className="eyebrow">TINYCRAFTS / 08</p>
+            <h1>See what’s inside.</h1>
+            <p className="lede">Open a SQLite file, understand its shape, and ask it questions without uploading a byte.</p>
+            <div className="privacy-note"><span className="status-dot" /> No server. No account. No database file is saved.</div>
+            {!capabilities.ok ? (
+              <div className="callout error" role="alert"><strong>Browser capability missing</strong><p>This browser needs {capabilities.missing.join(', ')} to run SeeQLite locally.</p></div>
+            ) : (
+              <div className="open-zone" onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
+                <div className="open-actions"><button className="primary-button" onClick={() => fileInput.current?.click()} disabled={busy}>{busy ? 'Working…' : 'Open SQLite database'}</button><button className="secondary-button" onClick={openSample} disabled={busy}>Try sample database</button></div>
+                <p className="helper">SQLite 3 files up to 512 MB. Drop one file here or use the picker.</p>
+              </div>
+            )}
+          </section>
+        )}
       </main>
       <footer className="footer"><span>SeeQLite v0.1</span><span>Built for curious local data</span></footer>
     </div>
   );
 }
 
-function quoteIdentifier(identifier: string) {
-  return `"${identifier.replaceAll('"', '""')}"`;
+function objectGlyph(kind: CatalogTable['kind']) {
+  if (kind === 'view') return '◇';
+  if (kind === 'virtual') return '◈';
+  if (kind === 'shadow') return '◌';
+  return '▦';
+}
+
+function columnTypeGlyph(type: string) {
+  const upper = (type || '').toUpperCase();
+  if (/INT|REAL|FLOA|DOUB|NUM|DEC/.test(upper)) return '#';
+  if (/BLOB/.test(upper)) return 'B';
+  if (/CHAR|CLOB|TEXT/.test(upper)) return 'T';
+  if (!upper) return '·';
+  return 'T';
 }
 
 function catalogLimitText(limits: Catalog['limits']) {
@@ -414,41 +497,6 @@ function catalogLimitSuffix(catalog: Catalog) {
 function isSQLiteSidecarName(name: string) {
   const lowerName = name.toLowerCase();
   return SQLITE_SIDECAR_SUFFIXES.some((suffix) => lowerName.endsWith(suffix));
-}
-
-function buildJoinSql(relation: Catalog['foreignKeys'][number], catalog: Catalog) {
-  const child = catalog.tables.find((table) => table.name === relation.fromTable);
-  const parent = catalog.tables.find((table) => table.name === relation.toTable);
-  if (!child || !parent || relation.fromColumns.length === 0 || relation.fromColumns.length !== relation.toColumns.length || relation.fromColumns.some((column) => !column)) return null;
-  const parentPrimaryKey = parent.columns.filter((column) => column.primaryKey).sort((left, right) => left.primaryKey - right.primaryKey).map((column) => column.name);
-  const parentColumns = relation.toColumns.map((column, index) => column || parentPrimaryKey[index] || '');
-  if (parentColumns.some((column) => !column)) return null;
-  const predicates = relation.fromColumns.map((column, index) => `child.${quoteIdentifier(column)} = parent.${quoteIdentifier(parentColumns[index])}`).join(' AND ');
-  return `SELECT *\nFROM ${quoteIdentifier(child.name)} AS child\nJOIN ${quoteIdentifier(parent.name)} AS parent ON ${predicates};`;
-}
-
-function ErDiagram({ catalog, onSelectTable, onGenerateJoin }: { catalog: Catalog | null; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: Catalog['foreignKeys'][number]) => void }) {
-  if (!catalog) return <div className="diagram-empty">Open a database to see its tables and relationships.</div>;
-  if (catalog.limits.length) return <div className="diagram-empty">The catalog is limited to a bounded searchable list. Open a smaller database to render its ER diagram.</div>;
-  if (catalog.tables.length > MAX_DIAGRAM_TABLES) return <div className="diagram-empty">The ER diagram is limited to {MAX_DIAGRAM_TABLES} tables. Search the catalog or open a smaller database to inspect its shape.</div>;
-  const columns = Math.min(3, Math.max(1, Math.ceil(Math.sqrt(catalog.tables.length))));
-  const cardWidth = 250;
-  const cardHeight = 190;
-  const gapX = 34;
-  const gapY = 42;
-  const width = Math.max(620, columns * (cardWidth + gapX) + gapX);
-  const rows = Math.max(1, Math.ceil(catalog.tables.length / columns));
-  const height = rows * (cardHeight + gapY) + gapY;
-  const positions = new Map(catalog.tables.map((table, index) => [table.name, { x: gapX + (index % columns) * (cardWidth + gapX), y: gapY + Math.floor(index / columns) * (cardHeight + gapY) }]));
-  return <>
-    <RelationshipList catalog={catalog} onSelectTable={onSelectTable} onGenerateJoin={onGenerateJoin} />
-    <div className="diagram-scroll" role="region" aria-label="Entity relationship diagram" tabIndex={0}><div className="diagram-canvas" style={{ width, height }}><svg className="diagram-lines" width={width} height={height} aria-hidden="true">{catalog.foreignKeys.map((relation) => { const from = positions.get(relation.fromTable); const to = positions.get(relation.toTable); if (!from || !to) return null; return <line key={`${relation.fromTable}-${relation.id}-${relation.toTable}`} x1={from.x + cardWidth / 2} y1={from.y + cardHeight / 2} x2={to.x + cardWidth / 2} y2={to.y + cardHeight / 2} />; })}</svg>{catalog.tables.map((table) => { const position = positions.get(table.name); if (!position) return null; return <button key={table.name} className="diagram-card" style={{ left: position.x, top: position.y }} onClick={() => onSelectTable(table)}><span className="diagram-card-title">{table.name}</span><span className="diagram-card-kind">{table.kind}</span>{table.columns.slice(0, 7).map((column) => <span className="diagram-column" key={column.name}><b>{column.primaryKey ? 'PK' : column.notNull ? '·' : ''}</b><span>{column.name}</span><small>{column.type || 'ANY'}</small></span>)}{table.columns.length > 7 && <span className="diagram-more">+ {table.columns.length - 7} more columns</span>}</button>; })}</div></div>
-  </>;
-}
-
-function RelationshipList({ catalog, onSelectTable, onGenerateJoin }: { catalog: Catalog; onSelectTable: (table: CatalogTable) => void; onGenerateJoin: (relation: Catalog['foreignKeys'][number]) => void }) {
-  const tableByName = new Map(catalog.tables.map((table) => [table.name, table]));
-  return <section className="relationship-panel" aria-label="Declared relationships"><div className="result-heading"><span className="label">RELATIONSHIPS</span><span>{catalog.foreignKeys.length} declared</span></div>{catalog.foreignKeys.length ? <ul className="relationship-list">{catalog.foreignKeys.map((relation) => { const resolved = Boolean(tableByName.get(relation.fromTable) && tableByName.get(relation.toTable) && buildJoinSql(relation, catalog)); return <li key={`${relation.fromTable}-${relation.id}-${relation.toTable}`}><span className="relationship-kind">FOREIGN KEY · MANY → ONE</span><span className={resolved ? 'relationship-status resolved' : 'relationship-status unresolved'}>{resolved ? 'RESOLVED' : 'UNRESOLVED'}</span><div className="relationship-tables"><button className="relationship-table" onClick={() => tableByName.get(relation.fromTable) && onSelectTable(tableByName.get(relation.fromTable)!)} aria-label={`Open ${relation.fromTable} table`}>{relation.fromTable}</button><span aria-hidden="true">→</span><button className="relationship-table" onClick={() => tableByName.get(relation.toTable) && onSelectTable(tableByName.get(relation.toTable)!)} aria-label={`Open ${relation.toTable} table`}>{relation.toTable}</button></div><small><code>{relation.fromColumns.join(', ')}</code> references <code>{relation.toColumns.filter(Boolean).join(', ') || 'the parent primary key'}</code></small><small>ON UPDATE {relation.onUpdate} · ON DELETE {relation.onDelete} · MATCH {relation.match}</small><button className="relationship-join" onClick={() => onGenerateJoin(relation)} disabled={!resolved} aria-label={`Generate join from ${relation.fromTable} to ${relation.toTable}`} title={resolved ? 'Generate a quoted read-only join' : 'The referenced table or columns could not be resolved'}>Generate join</button></li>; })}</ul> : <p className="relationship-empty">No declared foreign keys. The diagram still shows every table and view.</p>}</section>;
 }
 
 function TableDetails({ table, catalog, detail }: { table: CatalogTable; catalog: Catalog | null; detail?: TableDetailState }) {

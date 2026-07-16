@@ -50,6 +50,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expectNoSeriousAxeViolations(page);
     await page.getByRole('tab', { name: /Diagram/ }).click();
     await page.getByRole('button', { name: /users table/ }).first().click();
+    await page.getByRole('tab', { name: 'Schema' }).click();
     await expect(page.getByRole('region', { name: 'users details' })).toBeVisible();
     await expectNoSeriousAxeViolations(page);
   });

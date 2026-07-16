@@ -242,13 +242,12 @@ export function ErCanvas({ catalog, onSelectTable, onGenerateJoin }: { catalog: 
                   onPointerDown={(event) => onNodePointerDown(event, table)}
                   onClick={() => { if (!dragRef.current?.moved) onSelectTable(table); }}
                 >
-                  <span className="er-node-title">{table.name}</span>
-                  <span className="er-node-kind">{table.kind}</span>
+                  <span className="er-node-title"><span className="er-node-name">{table.name}</span><span className="er-node-kind">{table.kind}</span></span>
                   {table.columns.slice(0, MAX_ROWS).map((column) => (
                     <span className="er-node-row" key={column.name}>
-                      <b>{column.primaryKey ? 'PK' : fkCols.has(column.name) ? 'FK' : column.notNull ? '·' : ''}</b>
-                      <span>{column.name}</span>
-                      <small>{column.type || 'ANY'}</small>
+                      <b className={column.primaryKey ? 'er-key pk' : fkCols.has(column.name) ? 'er-key fk' : 'er-key'} aria-hidden="true" />
+                      <span className="er-col-name">{column.name}</span>
+                      <small className="er-col-type">{(column.type || 'ANY').toUpperCase()}</small>
                     </span>
                   ))}
                   {table.columns.length > MAX_ROWS && <span className="er-node-more">+ {table.columns.length - MAX_ROWS} more columns</span>}

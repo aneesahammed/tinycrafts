@@ -1,77 +1,56 @@
-# SeeQLite — App-Shell Restoration (2026-07-16)
+# SeeQLite — Developer-Tool Redesign (2026-07-16)
 
-## Problem
+## Goal
 
-Codex shipped a **marketing landing-page layout**, not the database-IDE the
-`.planning/phases/*/UI-SPEC.md` files already specify. A permanent
-`"See what's inside."` hero occupies the entire left half of the viewport even
-while working; the table list, editor, results and history are crammed into one
-narrow scrolling right column; the ER "diagram" is a static SVG grid.
+Make SeeQLite read as a genuine developer tool, not a marketing microsite.
+References supplied by the owner: **DataDuck** (sibling repo), **Cloudflare D1
+Studio**, and **Uber Base** colors (getdesign.md/uber). The landing keeps the
+**PageCrumb** palette.
 
-The engine layer (SQLite worker, catalog extraction, query client, DTOs) is
-sound and is **kept unchanged**. This is a re-layout of the shell, not a rewrite.
+## Two skins, one component layer
 
-## Target layout (restores 02/03/04-UI-SPEC intent)
+Skins are selected by `data-skin` on `.app-shell` and share token *names*, so
+`app.css` is skin-agnostic. Dark variants key off `:root[data-dark]`.
 
-```
-┌ app-header (56px): brand · LOCAL ONLY · theme toggle ───────────────┐
-├ database-bar (44px): filename · status · Open/Sample · Close/Reopen ─┤
-├ catalog-rail ─┬ work-main ───────────────────────────────────────────┤
-│ (≈288px,      │ mode-tabs:  [ Editor ]  [ ER Diagram ]                │
-│  resizable)   │ ┌ Editor tab ──────────────────────────────────────┐ │
-│ search        │ │ SQL editor (CodeMirror)     — resizable height     │
-│ [All|T|V|Idx] │ │ Run · Plan · Stop   ⌘↵                             │
-│ ▸ users       │ │ [schema of selected table]                         │
-│ ▸ notes       │ │ Results grid (paginated, sticky header, scrolls)   │
-│ …             │ │ Query plan · Export · History                      │
-│               │ └────────────────────────────────────────────────────┘
-│               │  OR  ER Diagram tab: interactive canvas 68% │ rels 32%
-└───────────────┴──────────────────────────────────────────────────────┘
-```
+| Skin | When | Palette |
+|------|------|---------|
+| `landing` | no database open | PageCrumb — cream `#f7f3ec` + blue `#3867e8`, blueprint radial-gradient |
+| `app` | database open | Uber Base — white/black/gray monochrome, **black primary buttons**, accent blue `#155ae0` (AA-tuned from `#276ef1`), num orange, functional green/red |
 
-No database open → the `work-main` area shows the welcome state (the hero,
-privacy note, open/sample buttons, drop zone). Once open, the shell fills the
-viewport and the rail lists every table/view.
+Both skins ship light + dark; all text pairs verified ≥ 4.5:1 (WCAG AA).
 
-## Component map (reuse existing logic)
+## App structure (DataDuck + D1)
 
-| Region        | Source                                                        |
-|---------------|---------------------------------------------------------------|
-| catalog-rail  | table-list + search + internal toggle, moved out of `work-main` |
-| Editor tab    | existing `SqlEditor`, `ResultTable`, `PlanTree`, `QueryHistory`, export, `TableDetails` |
-| ER Diagram    | **new** `ErCanvas.tsx` (pan/zoom/drag, no new deps) + existing `RelationshipList` |
-| welcome state | existing hero markup, shown only when no catalog               |
+- **Top bar**: brand · `N tables · N relations · N rows` stats · theme · open/close.
+- **256px resizable rail**: search → `TABLES` list (glyph + name + count) → on
+  select, `COLUMNS OF X` with `#`/`T`/`B` type glyphs + PK/FK flags (DataDuck).
+  Kind/internal kept in an `sr-only` span so `getByRole` locators still resolve.
+- **Three tabs — Query · Schema · ER Diagram**:
+  - *Query*: editor over a dense hairline results grid with a `● Ready` status
+    row. Clicking a rail table auto-runs `SELECT * … LIMIT 100` in place.
+  - *Schema*: centered object inspector — columns / indexes / relationships /
+    CREATE SQL. Rail clicks update it without leaving the tab.
+  - *ER Diagram*: **Cloudflare-D1 table cards** — green PK / orange FK key
+    icons (CSS-masked SVG), right-aligned `TYPE`, on a dot grid; drag / pan /
+    zoom retained.
 
-## New behaviour (user request beyond spec)
+## Behaviour notes
 
-Clicking a table in the rail **auto-runs** `SELECT * FROM <t> LIMIT 100` into the
-results grid *and* shows its schema — "columns and rows, paginated" in one click.
+- Rail click selects + auto-runs; it only forces the Query tab when leaving the
+  diagram, so Schema/Query act as persistent modes.
+- Diagram node / relationship click jumps to Query with the SELECT staged.
 
-## ER canvas (lightweight custom — chosen over React Flow + ELK)
+## Verification
 
-- HTML node cards absolutely positioned inside a `translate(pan) scale(zoom)`
-  wrapper; SVG edge layer beneath for FK lines.
-- Pan = drag background; drag a node to move it; wheel / ± buttons to zoom;
-  `Fit` and `Arrange` (deterministic grid) actions. Reduced-motion respected.
-- Node / relationship click → opens the table in the Editor tab (existing flow).
-- Keeps the 75-table / catalog-limit empty states.
+- `tsc --noEmit` clean · **49/49 vitest** · **120/120 Playwright** (app +
+  keyboard + accessibility × chromium/firefox/webkit) · axe: zero serious/
+  critical in both themes.
+- Release-evidence digests for the edited specs (`app.spec.ts`,
+  `accessibility.spec.ts`) re-attested in `docs/release/risk-evidence.json`;
+  the safety assertions themselves (read-only, bounds, isolation) are unchanged.
 
-## Behavioural contracts preserved (so E2E stays green)
+## Note on the Uber palette
 
-Accessible names/classes the tests depend on and that must NOT change:
-`.skip-link` → `#workspace`, `.file-status` (status text), `input[type=file]`,
-`.result-panel`, `.history-list`, buttons `Open SQLite database` /
-`Try sample database` / `Run query` / `Run readiness check` / `Show query plan` /
-`Download CSV` / `Generate join from … to …`, regions `Declared relationships` /
-`<table> details`, heading `See what's inside.` (welcome state), theme toggle.
-
-Only intentional change: mode tabs rename **Query → Editor**, **Diagram → ER
-Diagram** (regex `/Diagram/` still matches). One assertion updated in
-`keyboard-workflows.spec.ts`.
-
-## Out of scope this pass
-
-React Flow / ELK, resizable output/plan tabs, cell-detail dialog, history side
-sheet, filter-chip counts. Playwright visual-snapshot regeneration for the app
-(none exist today; landing snapshots are unaffected).
-```
+getdesign.md/uber renders its tokens client-side and the raw DESIGN.md was not
+fetchable, so canonical Uber Base values were used (stated above). To match the
+exact getdesign.md file, run `npx getdesign add uber` and share the DESIGN.md.

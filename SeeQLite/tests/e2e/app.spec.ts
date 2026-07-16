@@ -89,7 +89,7 @@ test('searches tables and columns with explicit filtered and empty states', asyn
   const search = page.getByLabel('Search tables and columns');
   await search.fill('notes');
   await expect(page.locator('.table-list-item')).toHaveCount(1);
-  await expect(page.locator('.table-explorer')).toContainText('1 of 2 objects');
+  await expect(page.locator('.catalog-rail')).toContainText('1 of 2');
   await search.fill('user_id');
   await expect(page.locator('.table-list-item')).toHaveCount(1);
   await expect(page.locator('.table-list-item')).toContainText('notes');
@@ -108,6 +108,7 @@ test('keeps SQLite internal objects hidden until explicitly requested', async ({
   await page.getByRole('button', { name: 'Show internal objects' }).click();
   await expect(page.getByRole('button', { name: 'Hide internal objects' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.table-list-item')).toHaveCount(4);
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: /sqlite_schema/ }).click();
   await expect(page.getByRole('region', { name: 'sqlite_schema details' })).toContainText('INTERNAL');
 
@@ -137,6 +138,7 @@ test('keeps a malformed view isolated from healthy catalog objects', async ({ pa
   await expect(page.locator('.file-status')).toContainText('2 tables ready');
   await expect(page.locator('.table-list-item')).toHaveCount(4);
 
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: /settings table/ }).click();
   await expect(page.getByRole('region', { name: 'settings details' })).toContainText('WITHOUT ROWID');
   await expect(page.getByRole('region', { name: 'settings details' })).toContainText('STRICT');
@@ -163,6 +165,7 @@ test('represents virtual and shadow objects without losing the virtual table', a
   await expect(shadow).toContainText('internal');
   await expect(shadow).toContainText('shadow');
 
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: /documents virtual/ }).click();
   await expect(page.getByRole('region', { name: 'documents details' })).toContainText('VIRTUAL');
   await expect(page.getByRole('region', { name: 'documents details' })).toContainText('title');
@@ -180,6 +183,7 @@ test('keeps FTS4 and RTree virtual modules visible with bounded shadow metadata'
 
   await page.getByRole('button', { name: 'Show internal objects' }).click();
   await expect(page.locator('.table-list-item')).toHaveCount(12);
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: /points virtual/ }).click();
   await expect(page.getByRole('region', { name: 'points details' })).toContainText('VIRTUAL');
   await expect(page.getByRole('region', { name: 'points details' })).toContainText('Column metadata could not be read');
@@ -202,10 +206,12 @@ test('opens an oversized catalog in bounded searchable mode', async ({ page }) =
   const detailStarted = Date.now();
   await page.getByLabel('Search tables and columns').fill('t_0999');
   await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: /t_0999 table/ }).click();
   await expect(page.getByRole('region', { name: 't_0999 details' })).toContainText('No explicit indexes');
   expect(Date.now() - detailStarted).toBeLessThan(2000);
 
+  await page.getByRole('tab', { name: 'Query' }).click();
   await page.getByLabel('SQL query').fill('SELECT 1 AS ready;');
   await page.getByRole('button', { name: 'Run query' }).click();
   await expect(page.locator('.result-panel')).toContainText('ready');
@@ -222,9 +228,11 @@ test('degrades only column metadata at the approved catalog-column boundary', as
 
   await page.getByLabel('Search tables and columns').fill('wide_25');
   await expect(page.locator('.table-list-item')).toHaveCount(1);
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: /wide_25 table/ }).click();
   await expect(page.getByRole('region', { name: 'wide_25 details' })).toContainText('Column metadata is limited by the browser catalog budget');
 
+  await page.getByRole('tab', { name: 'Query' }).click();
   await page.getByLabel('SQL query').fill('SELECT 1 AS ready;');
   await page.getByRole('button', { name: 'Run query' }).click();
   await expect(page.locator('.result-panel')).toContainText('ready');
@@ -253,9 +261,10 @@ test('shows the catalog as a relationship diagram and can target a table', async
   await expect(page.getByRole('region', { name: 'Entity relationship diagram' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Declared relationships' })).toContainText('FOREIGN KEY · MANY → ONE');
   await expect(page.getByRole('region', { name: 'Declared relationships' })).toContainText('user_id references id');
-  await expect(page.locator('.diagram-card')).toHaveCount(2);
-  await page.locator('.diagram-card').filter({ hasText: 'users' }).click();
+  await expect(page.locator('.er-node')).toHaveCount(2);
+  await page.locator('.er-node').filter({ hasText: 'users' }).click();
   await expect(page.getByLabel('SQL query')).toHaveText('SELECT * FROM "users" LIMIT 100;');
+  await page.getByRole('tab', { name: 'Schema' }).click();
   await page.getByRole('button', { name: 'Copy SELECT' }).click();
   await expect(page.locator('.copy-status')).toContainText('Copied a safe SELECT statement');
 });
@@ -319,10 +328,11 @@ test('keeps the current SQL draft when generated-join replacement is cancelled',
 test('resets the worker-backed workspace without retaining the database view', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Try sample database' }).click();
-  await expect(page.getByRole('button', { name: 'Reset workspace' })).toBeVisible();
-  await page.getByRole('button', { name: 'Reset workspace' }).click();
+  await expect(page.getByRole('button', { name: 'Close database' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close database' }).click();
   await expect(page.locator('.file-status')).toContainText('No database open');
-  await expect(page.getByRole('button', { name: 'Run query' })).toBeDisabled();
+  await expect(page.getByRole('heading', { name: 'See what’s inside.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run query' })).toHaveCount(0);
 });
 
 test('shows a read-only query plan, exports the result, and keeps bounded history', async ({ page }) => {
@@ -542,7 +552,7 @@ test('has no serious or critical accessibility violations in both themes', async
   expect(lightDiagramViolations).toEqual([]);
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
   await page.waitForTimeout(250);
-  await page.locator('.diagram-card').filter({ hasText: 'users' }).click();
+  await page.locator('.er-node').filter({ hasText: 'users' }).click();
   const darkDetailsViolations = (await new AxeBuilder({ page }).analyze()).violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
   expect(darkDetailsViolations).toEqual([]);
   await page.getByRole('button', { name: 'Switch to light theme' }).click();
