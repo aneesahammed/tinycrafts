@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, DragEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { DatabaseClient } from './engine/database-client';
+import { SQLITE_RUNTIME_LOAD_ERROR } from './engine/protocol';
 import type { Catalog, CatalogDetails, CatalogTable, QueryResult } from './engine/protocol';
 import { checkCapabilities } from './platform/capabilities';
 import { buildPlanNodes, planDepth } from './plan';
@@ -512,6 +513,7 @@ export function App() {
   const databaseTableCount = databaseObjects.filter((table) => table.kind === 'table' || table.kind === 'virtual').length;
   const databaseViewCount = databaseObjects.filter((table) => table.kind === 'view').length;
   const dbStats = catalog ? `${databaseTableCount} table${databaseTableCount === 1 ? '' : 's'} · ${databaseViewCount} view${databaseViewCount === 1 ? '' : 's'} · ${catalog.foreignKeys.length} relation${catalog.foreignKeys.length === 1 ? '' : 's'}${result ? ` · ${result.returnedRows} row${result.returnedRows === 1 ? '' : 's'}` : ''}` : '';
+  const runtimeLoadFailed = status === SQLITE_RUNTIME_LOAD_ERROR;
 
   return (
     <div className="app-shell" data-skin="app">
@@ -536,7 +538,7 @@ export function App() {
               </div>
             </details>
           ) : <strong className="db-none"><span aria-hidden="true">Open a database</span><span className="sr-only">No database open</span></strong>}
-          {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>Reopen database</button> : null}
+          {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>{runtimeLoadFailed ? 'Retry opening database' : 'Reopen database'}</button> : null}
           <span className="db-status sr-only" title={status}>{status}</span>
         </div>
         {catalog ? <span className="header-stats" aria-hidden="true">{dbStats}</span> : null}

@@ -1,4 +1,5 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+import { SQLITE_RUNTIME_LOAD_ERROR } from './protocol';
 import type { Catalog, CatalogColumn, CatalogDetails, CatalogForeignKey, CatalogIndex, CatalogLimit, CatalogTable, CatalogWarning, QueryValue, WorkerRequest, WorkerResponse } from './protocol';
 
 let db: any = null;
@@ -31,7 +32,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       if (request.bytes.byteLength > MAX_DATABASE_BYTES) {
         throw new Error('That database is larger than the 512 MB browser-safe limit.');
       }
-      const sqlite3 = sqlite3Runtime ?? (sqlite3Runtime = await sqlite3InitModule());
+      const sqlite3 = sqlite3Runtime ?? (sqlite3Runtime = await initializeSqliteRuntime());
       disposeDatabase(sqlite3);
       currentEpoch = request.epoch;
       db = new sqlite3.oo1.DB(':memory:');
@@ -119,6 +120,17 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   }
 };
 
+async function initializeSqliteRuntime() {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await sqlite3InitModule();
+    } catch {
+      // A content-length mismatch is transient and safe to retry before any DB exists.
+    }
+  }
+  throw new Error(SQLITE_RUNTIME_LOAD_ERROR);
+}
+
 function configureReadOnly(sqlite3: any) {
   if (!db) throw new Error('SQLite database is not open.');
   const capi = sqlite3.capi;
@@ -168,6 +180,7 @@ function toUserError(error: unknown, requestType: WorkerRequest['type']) {
     ? Number((error as { resultCode?: unknown }).resultCode)
     : undefined;
   if (requestType === 'open') {
+    if (message.includes('sqlite runtime download was interrupted')) return SQLITE_RUNTIME_LOAD_ERROR;
     if (message.includes('too many tables') || message.includes('too many columns') || message.includes('too many indexes') || message.includes('too many relationships')) {
       return error instanceof Error ? error.message : 'That database exceeds the browser catalog limit.';
     }

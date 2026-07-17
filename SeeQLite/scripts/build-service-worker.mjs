@@ -11,7 +11,7 @@ const files = collect(dist)
   .filter((file) => !file.endsWith('.map'))
   .sort();
 
-const records = files.map((file) => {
+const records = files.filter(shouldPrecache).map((file) => {
   const bytes = readFileSync(join(dist, file));
   return { path: `./${file.replaceAll('\\', '/')}`, bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') };
 });
@@ -24,7 +24,19 @@ const PRECACHE = ${JSON.stringify(precache)};
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(PRECACHE);
+    const failures = [];
+    for (const asset of PRECACHE) {
+      try {
+        await cacheAsset(cache, asset);
+      } catch {
+        failures.push(asset);
+      }
+    }
+    // Keep a previously working worker and cache when an update is incomplete.
+    if (failures.length && self.registration.active) {
+      await caches.delete(CACHE_NAME);
+      throw new Error('SeeQLite update download was incomplete.');
+    }
     // The first install has no active worker; later updates wait for a safe reload.
     if (!self.registration.active) self.skipWaiting();
   })());
@@ -46,9 +58,35 @@ self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     const cached = await caches.match(request);
     if (cached) return cached;
-    return fetch(request);
+    const response = await fetchAsset(request);
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(request, response.clone());
+    } catch {
+      // Cache storage is optional; a successful live response must still be returned.
+    }
+    return response;
   })());
 });
+
+async function cacheAsset(cache, request) {
+  const response = await fetchAsset(request);
+  await cache.put(request, response);
+}
+
+async function fetchAsset(request) {
+  let failure;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(request, { cache: attempt ? 'reload' : 'default' });
+      if (!response.ok) throw new Error('Asset returned HTTP ' + response.status + '.');
+      return response;
+    } catch (error) {
+      failure = error;
+    }
+  }
+  throw failure;
+}
 `;
 
 writeFileSync(join(dist, 'sw.js'), worker);
@@ -60,4 +98,11 @@ function collect(directory) {
     if (entry.isDirectory()) return collect(path);
     return [relative(dist, path)];
   });
+}
+
+function shouldPrecache(file) {
+  if (['index.html', 'manifest.webmanifest', 'seeqlite-icon.svg'].includes(file)) return true;
+  if (/^assets\/index-.*\.(?:js|css)$/.test(file)) return true;
+  if (/^assets\/sqlite\.worker-.*\.js$/.test(file) || file.endsWith('.wasm')) return true;
+  return /^assets\/(?:inter|jetbrains-mono)-latin-wght-normal-.*\.woff2$/.test(file);
 }

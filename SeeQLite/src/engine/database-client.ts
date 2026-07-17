@@ -1,3 +1,4 @@
+import { SQLITE_RUNTIME_LOAD_ERROR } from './protocol';
 import type { Catalog, CatalogDetails, QueryResult, WorkerRequest, WorkerResponse } from './protocol';
 
 type Pending = { epoch: number; resolve: (value: unknown) => void; reject: (error: Error) => void };
@@ -26,7 +27,7 @@ export class DatabaseClient {
       }
       this.pending.delete(response.requestId);
     });
-    worker.addEventListener('error', () => this.rejectAll('SQLite worker stopped unexpectedly.'));
+    worker.addEventListener('error', () => this.rejectAll(SQLITE_RUNTIME_LOAD_ERROR));
     this.worker = worker;
     return worker;
   }

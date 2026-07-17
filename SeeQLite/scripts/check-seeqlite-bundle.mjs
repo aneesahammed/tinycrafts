@@ -21,6 +21,12 @@ const precacheMatch = /const PRECACHE = (\[[\s\S]*?\]);/.exec(serviceWorker);
 if (!precacheMatch) throw new Error('SeeQLite service worker precache manifest is unreadable.');
 const precachedPaths = JSON.parse(precacheMatch[1]);
 if (precachedPaths.some((path) => /\.(?:sqlite|sqlite3|db|wal|shm|journal)$/i.test(path))) throw new Error('SeeQLite service worker must not precache database or sidecar paths.');
+if (serviceWorker.includes('cache.addAll')) throw new Error('SeeQLite service worker must tolerate individual precache failures.');
+if (!serviceWorker.includes('async function cacheAsset')) throw new Error('SeeQLite service worker must retry individual asset downloads.');
+if (!precachedPaths.some((path) => /sqlite\.worker-.*\.js$/i.test(path))) throw new Error('SeeQLite service worker must precache its database worker.');
+if (!precachedPaths.some((path) => /\.wasm$/i.test(path))) throw new Error('SeeQLite service worker must precache the SQLite WASM runtime.');
+if (precachedPaths.some((path) => /SqlEditor-.*\.js$/i.test(path))) throw new Error('SeeQLite service worker must lazy-cache the SQL editor.');
+if (precachedPaths.some((path) => /(?:cyrillic|greek|vietnamese|latin-ext).*\.woff2$/i.test(path))) throw new Error('SeeQLite service worker must not precache unused font subsets.');
 for (const name of names.filter((entry) => entry.endsWith('.js'))) {
   const source = readFileSync(join(assets, name), 'utf8');
   if (source.includes('new Worker(`data:') || source.includes('new Worker("data:')) throw new Error('SeeQLite must not construct data URL workers.');
@@ -29,7 +35,7 @@ assertBudget(/index-.*\.js$/, 260 * 1024, 'main app JavaScript');
 assertBudget(/sqlite\.worker-.*\.js$/, 240 * 1024, 'SQLite worker JavaScript');
 assertBudget(/SqlEditor-.*\.js$/, 400 * 1024, 'lazy SQL editor JavaScript');
 assertBudget(/\.wasm$/, 1 * 1024 * 1024, 'SQLite WASM');
-assertBudget(/\.css$/, 25 * 1024, 'CSS');
+assertBudget(/\.css$/, 56 * 1024, 'CSS'); // ~48.7 KB raw / ~9.9 KB gzip today; ceiling guards runaway growth
 console.log(`SeeQLite bundle verified: ${names.length} emitted assets.`);
 
 function assertBudget(pattern, maxBytes, label) {

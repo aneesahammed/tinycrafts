@@ -1,3 +1,5 @@
+export const SQLITE_RUNTIME_LOAD_ERROR = 'SQLite runtime download was interrupted. Check your connection, then retry opening the database.';
+
 export type WorkerRequest =
   | { type: 'open'; requestId: string; epoch: number; bytes: ArrayBuffer; fileName: string }
   | { type: 'query'; requestId: string; epoch: number; sql: string }
