@@ -1,0 +1,30 @@
+{
+  "name": "markv",
+  "version": "1.0.0",
+  "description": "",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "esbuild src/visual-editor.js --bundle --minify --format=iife --outfile=assets/visual-editor.js",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "dependencies": {
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-image": "3.31.3",
+    "@tiptap/extension-placeholder": "3.31.3",
+    "@tiptap/extension-table": "3.31.3",
+    "@tiptap/extension-task-item": "3.31.3",
+    "@tiptap/extension-task-list": "3.31.3",
+    "@tiptap/markdown": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "jsdom": "30.1.0"
+  },
+  "private": true
+}

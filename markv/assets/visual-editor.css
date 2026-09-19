@@ -1,0 +1,157 @@
+.visual-editor-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  color: var(--fg-muted);
+  font-size: 13px;
+}
+.visual-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 24px;
+  border-block: 1px solid var(--border-default);
+  background: var(--bg-canvas);
+}
+.visual-editor-toolbar button,
+.visual-editor-toolbar select,
+.visual-editor-dialog button {
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg-default);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 7px 9px;
+  cursor: pointer;
+  min-height: 36px;
+}
+.visual-editor-toolbar button:hover,
+.visual-editor-toolbar button[aria-pressed="true"] {
+  background: var(--bg-muted);
+  color: var(--accent-fg);
+}
+.visual-editor-toolbar :focus-visible,
+.visual-editor-dialog :focus-visible {
+  outline: 2px solid var(--accent-fg);
+  outline-offset: 2px;
+}
+.visual-editor-toolbar :disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.visual-editor-document {
+  width: 100%;
+  max-width: 868px;
+  margin: 0 auto;
+  padding: 36px 24px 120px;
+  min-height: 65vh;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+.visual-editor-document:focus-visible {
+  box-shadow: inset 2px 0 var(--accent-fg);
+}
+.visual-editor-document p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--fg-subtle);
+  height: 0;
+  pointer-events: none;
+}
+.visual-editor-document img {
+  max-width: 100%;
+  height: auto;
+}
+.visual-editor-document table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+}
+.visual-editor-document td,
+.visual-editor-document th {
+  border: 1px solid var(--border-default);
+  min-width: 70px;
+  padding: 8px;
+  position: relative;
+}
+.visual-editor-document .selectedCell {
+  background: var(--bg-muted);
+}
+.visual-editor-document ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+.visual-editor-document li[data-type="taskItem"] {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.visual-editor-document li[data-type="taskItem"] > div {
+  flex: 1;
+  min-width: 0;
+}
+.visual-editor-document li[data-type="taskItem"] p {
+  margin: 4px 0;
+}
+#editor.visual-source-hidden,
+.visual-editor-shell [hidden] {
+  display: none !important;
+}
+.visual-editor-notice {
+  margin: 8px 24px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.visual-editor-dialog {
+  width: min(440px, calc(100vw - 32px));
+  background: var(--bg-canvas);
+  color: var(--fg-default);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 24px;
+}
+.visual-editor-dialog::backdrop {
+  background: #0007;
+}
+.visual-editor-dialog h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+.visual-editor-dialog label {
+  display: block;
+  margin: 16px 0;
+}
+.visual-editor-dialog input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-top: 6px;
+  color: inherit;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  font: inherit;
+}
+.visual-editor-dialog form > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .visual-editor-top {
+    padding: 10px 12px;
+  }
+  .visual-editor-top > span {
+    max-width: 160px;
+  }
+  .visual-editor-toolbar {
+    padding: 8px 12px;
+  }
+  .visual-editor-document {
+    padding: 24px 18px 90px;
+  }
+}
