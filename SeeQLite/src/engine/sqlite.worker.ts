@@ -37,6 +37,11 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       currentEpoch = request.epoch;
       db = new sqlite3.oo1.DB(':memory:');
       const bytes = new Uint8Array(request.bytes);
+      // Deserialize rejects WAL-mode headers; this buffer contains only the main-file snapshot.
+      if (bytes[18] === 2 && bytes[19] === 2) {
+        bytes[18] = 1;
+        bytes[19] = 1;
+      }
       dbBufferPointer = sqlite3.wasm.allocFromTypedArray(bytes);
       const resultCode = sqlite3.capi.sqlite3_deserialize(
         db.pointer,

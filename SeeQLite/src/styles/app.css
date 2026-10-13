@@ -86,6 +86,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, [tabindex]:fo
 
 /* ---- Main work area ---------------------------------------------------- */
 .work-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.wal-notice { flex: none; margin: 0; padding: 9px 14px; color: var(--warning); background: color-mix(in srgb, var(--warning) 8%, var(--paper)); border-bottom: 1px solid var(--rule); font: 11px/1.5 var(--font-sans); }
 .mode-tabs { flex: none; display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--rule); background: var(--paper-3); }
 .mode-tab { min-height: 42px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--ink-3); padding: 10px 10px; font: 12px var(--font-sans); font-weight: 500; letter-spacing: -.01em; }
 .mode-tab:hover { color: var(--ink); }

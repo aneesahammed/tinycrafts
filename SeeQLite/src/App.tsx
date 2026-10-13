@@ -116,6 +116,7 @@ export function App() {
   const [view, setView] = useState<WorkspaceView>('query');
   const [diagramObjectFilter, setDiagramObjectFilter] = useState<DiagramObjectFilter>('all');
   const [status, setStatus] = useState('Choose a SQLite file. It stays in this browser tab.');
+  const [walSnapshot, setWalSnapshot] = useState(false);
   const [busy, setBusy] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>(loadHistory);
@@ -251,6 +252,7 @@ export function App() {
     setResult(null);
     setPlanResult(null);
     setCatalog(null);
+    setWalSnapshot(false);
     setCatalogSearch('');
     setCatalogPage(0);
     setShowInternalObjects(false);
@@ -267,9 +269,10 @@ export function App() {
       const ready = await client.openBytes(bytes, name);
       setFileName(name);
       setCatalog(ready.catalog);
+      setWalSnapshot(walWarning);
       setSelectedTable(null);
       setView('query');
-      setStatus(`${ready.tableCount} table${ready.tableCount === 1 ? '' : 's'} ready${catalogLimitSuffix(ready.catalog)}. Run the sample query or write your own SELECT.${walWarning ? ' This file is WAL-mode; uncheckpointed sidecar changes may not be included.' : ''}`);
+      setStatus(`${ready.tableCount} table${ready.tableCount === 1 ? '' : 's'} ready${catalogLimitSuffix(ready.catalog)}. Run the sample query or write your own SELECT.`);
     } catch (error) {
       client.terminate('The database did not open.');
       setStatus(error instanceof Error ? error.message : 'Could not open that database.');
@@ -308,6 +311,7 @@ export function App() {
     setResult(null);
     setPlanResult(null);
     setCatalog(null);
+    setWalSnapshot(false);
     setCatalogSearch('');
     setCatalogPage(0);
     setShowInternalObjects(false);
@@ -344,6 +348,7 @@ export function App() {
     sourceRef.current = null;
     setFileName('No database open');
     setCatalog(null);
+    setWalSnapshot(false);
     setCatalogSearch('');
     setCatalogPage(0);
     setShowInternalObjects(false);
@@ -570,6 +575,7 @@ export function App() {
                 <button id="schema-tab" className={view === 'schema' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-controls="schema-panel" aria-selected={view === 'schema'} onClick={() => setView('schema')}>Schema</button>
                 <button id="diagram-tab" className={view === 'diagram' ? 'mode-tab active' : 'mode-tab'} role="tab" aria-controls="diagram-panel" aria-selected={view === 'diagram'} disabled={Boolean(catalog.limits.length) || catalog.tables.length > MAX_DIAGRAM_TABLES} title={catalog.tables.length > MAX_DIAGRAM_TABLES ? `The ER diagram is limited to ${MAX_DIAGRAM_TABLES} tables.` : catalog.limits.length ? 'The catalog is limited; open a smaller database to see the diagram.' : undefined} onClick={() => setView('diagram')}>ER Diagram</button>
               </div>
+              {walSnapshot ? <p className="wal-notice" role="status">This main database opened, but changes held only in a separate WAL file are not included. For a complete snapshot, checkpoint it before opening.</p> : null}
               {view === 'query' ? (
                 <div id="query-panel" className="editor-tab" role="tabpanel" aria-labelledby="query-tab">
                   <div className="editor-pane">
