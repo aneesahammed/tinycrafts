@@ -291,7 +291,7 @@ h1, h2, p { margin: 0; }
 .primary-button.compact { padding: 8px 14px; font-size: 12px; min-height: 34px; }
 .secondary-button.compact { min-height: 32px; padding: 6px 11px; font-size: 12px; }
 
-.footer { flex: none; display: flex; justify-content: space-between; border-top: 1px solid var(--rule); padding: 9px 18px; color: var(--ink-3); font: 10px var(--font-mono); letter-spacing: .06em; background: var(--paper-3); }
+.footer { flex: none; display: flex; justify-content: flex-end; border-top: 1px solid var(--rule); padding: 9px 18px; color: var(--ink-3); font: 11px var(--font-mono); letter-spacing: .06em; background: var(--paper-3); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ---- Responsive -------------------------------------------------------- */

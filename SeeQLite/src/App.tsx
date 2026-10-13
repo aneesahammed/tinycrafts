@@ -7,7 +7,11 @@ import { checkCapabilities } from './platform/capabilities';
 import { buildPlanNodes, planDepth } from './plan';
 import { ErCanvas, filterDiagramCatalog, MAX_DIAGRAM_TABLES, RelationshipList, type DiagramObjectFilter } from './components/ErCanvas';
 import { buildJoinSql, formatSql, quoteIdentifier } from './sql';
-const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })));
+import { BUILD_ID } from './build-id';
+const SqlEditor = lazy(() => import('./components/SqlEditor').then((module) => ({ default: module.SqlEditor })).catch((error: unknown) => {
+  console.error(`[SeeQLite build ${BUILD_ID}] SQL editor module failed to load.`, error instanceof Error ? error.name : 'unknown');
+  throw error;
+}));
 
 const SAMPLE_QUERY = 'SELECT 1 AS ready, sqlite_version() AS sqlite_version;';
 const SOFT_FILE_LIMIT = 256 * 1024 * 1024;
@@ -542,7 +546,7 @@ export function App() {
                 <button className="db-menu-item" onClick={() => { closeDbMenu(); resetWorkspace(); }} disabled={busy}>Close database</button>
               </div>
             </details>
-          ) : <strong className="db-none"><span aria-hidden="true">Open a database</span><span className="sr-only">No database open</span></strong>}
+          ) : <strong className="db-none"><span aria-hidden="true"></span><span className="sr-only">No database open</span></strong>}
           {sourceRef.current && fileName === 'No database open' ? <button className="secondary-button compact" onClick={reopenDatabase} disabled={busy}>{runtimeLoadFailed ? 'Retry opening database' : 'Reopen database'}</button> : null}
           <span className="db-status sr-only" title={status}>{status}</span>
         </div>
@@ -621,6 +625,7 @@ export function App() {
           </>
         )}
       </main>
+      <footer className="footer">Build {BUILD_ID}</footer>
     </div>
   );
 }
