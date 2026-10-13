@@ -25,7 +25,9 @@ if (serviceWorker.includes('cache.addAll')) throw new Error('SeeQLite service wo
 if (!serviceWorker.includes('async function cacheAsset')) throw new Error('SeeQLite service worker must retry individual asset downloads.');
 if (!precachedPaths.some((path) => /sqlite\.worker-.*\.js$/i.test(path))) throw new Error('SeeQLite service worker must precache its database worker.');
 if (!precachedPaths.some((path) => /\.wasm$/i.test(path))) throw new Error('SeeQLite service worker must precache the SQLite WASM runtime.');
-if (precachedPaths.some((path) => /SqlEditor-.*\.js$/i.test(path))) throw new Error('SeeQLite service worker must lazy-cache the SQL editor.');
+for (const name of names.filter((entry) => /\.(?:js|css)$/.test(entry))) {
+  if (!precachedPaths.includes(`./assets/${name}`)) throw new Error(`SeeQLite service worker must precache ${name}.`);
+}
 if (precachedPaths.some((path) => /(?:cyrillic|greek|vietnamese|latin-ext).*\.woff2$/i.test(path))) throw new Error('SeeQLite service worker must not precache unused font subsets.');
 for (const name of names.filter((entry) => entry.endsWith('.js'))) {
   const source = readFileSync(join(assets, name), 'utf8');

@@ -102,7 +102,6 @@ function collect(directory) {
 
 function shouldPrecache(file) {
   if (['index.html', 'manifest.webmanifest', 'seeqlite-icon.svg'].includes(file)) return true;
-  if (/^assets\/index-.*\.(?:js|css)$/.test(file)) return true;
-  if (/^assets\/sqlite\.worker-.*\.js$/.test(file) || file.endsWith('.wasm')) return true;
+  if (/^assets\/.*\.(?:js|css)$/.test(file) || file.endsWith('.wasm')) return true;
   return /^assets\/(?:inter|jetbrains-mono)-latin-wght-normal-.*\.woff2$/.test(file);
 }
