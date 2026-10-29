@@ -149,7 +149,7 @@
 
       .topbar {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 24px;
         padding-bottom: 30px;
@@ -335,21 +335,7 @@
       }
 
       .catalogue {
-        padding-top: 8px;
-      }
-
-      .catalogue-head {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 20px;
-        align-items: end;
-        padding-bottom: 13px;
-        border-bottom: 1px solid var(--rule-strong);
-        color: var(--ink-3);
-        font-size: 11px;
-        letter-spacing: 0.12em;
-        line-height: 1.35;
-        text-transform: uppercase;
+        border-top: 1px solid var(--rule-strong);
       }
 
       .specimen {
@@ -398,13 +384,6 @@
         border-color: var(--accent);
         background: var(--accent);
         color: #fff;
-      }
-
-      .num {
-        margin-top: 8px;
-        color: var(--ink-3);
-        font-size: 10px;
-        letter-spacing: 0.12em;
       }
 
       .specimen-title {
@@ -542,18 +521,7 @@
         letter-spacing: 0.08em;
       }
 
-      .stamp-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        padding-bottom: 9px;
-        border-bottom: 1px solid var(--rule);
-        color: var(--ink-3);
-        text-transform: uppercase;
-      }
-
       .stamp-body {
-        padding-top: 10px;
         line-height: 1.8;
       }
 
@@ -627,10 +595,6 @@
         .lede {
           max-width: 640px;
         }
-
-        .catalogue {
-          padding-top: 0;
-        }
       }
 
       @media (max-width: 720px) {
@@ -639,13 +603,7 @@
         }
 
         .topbar {
-          grid-template-columns: minmax(0, 1fr) auto;
           gap: 16px;
-          padding-bottom: 30px;
-        }
-
-        .topbar span:first-child {
-          display: none;
         }
 
         .brand {
@@ -660,11 +618,6 @@
 
         .hero-actions {
           margin-bottom: 2px;
-        }
-
-        .catalogue-head {
-          grid-template-columns: 1fr 1fr;
-          gap: 18px;
         }
 
         .specimen {
@@ -730,10 +683,6 @@
           width: 100%;
         }
 
-        .catalogue-head {
-          font-size: 10px;
-        }
-
         .specimen {
           grid-template-columns: 1fr;
         }
@@ -765,8 +714,7 @@
 
     <div class="page">
       <header class="topbar">
-        <span>TinyCrafts - studio catalogue - vol. 01</span>
-        <span>MMXXVI - for developers, by one</span>
+        <span>for developers, by one</span>
         <button
           id="themeToggleBtn"
           class="theme-toggle"
@@ -803,20 +751,21 @@
         <aside class="intro" aria-labelledby="page-title">
           <a class="brand" href="/" aria-label="TinyCrafts home">
             <span class="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 40 40" fill="none">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              >
+                <path d="M12 4 18.9 8 12 12 5.1 8Z" fill="currentColor" />
                 <path
-                  d="M11 26.5 19.5 18 26.5 25"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="square"
+                  d="M12 12 18.9 8V16L12 20Z"
+                  fill="currentColor"
+                  fill-opacity=".35"
                 />
-                <path
-                  d="M23 15.5 30 22.5"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="square"
-                />
-                <circle cx="13.5" cy="13.5" r="2" fill="currentColor" />
+                <path d="M5.1 8V16L12 20" />
               </svg>
             </span>
             <span class="brand-name" translate="no"
@@ -850,11 +799,6 @@
         </aside>
 
         <main id="tools" class="catalogue">
-          <div class="catalogue-head">
-            <span>Specimens - 08 shipped</span>
-            <span>Status - type - try it</span>
-          </div>
-
           <a
             class="specimen"
             href="https://sentinel.tinycrafts.ai"
@@ -862,7 +806,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">!</div>
-              <div class="num">No. 01</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -896,7 +839,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">&para;</div>
-              <div class="num">No. 02</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -930,7 +872,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">Dd</div>
-              <div class="num">No. 03</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -965,7 +906,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">F1</div>
-              <div class="num">No. 04</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -1000,7 +940,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">&#9680;</div>
-              <div class="num">No. 05</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -1034,7 +973,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">Ch</div>
-              <div class="num">No. 06</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -1069,7 +1007,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">P</div>
-              <div class="num">No. 07</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -1104,7 +1041,6 @@
           >
             <div aria-hidden="true">
               <div class="glyph">Sq</div>
-              <div class="num">No. 08</div>
             </div>
             <div>
               <div class="specimen-title">
@@ -1144,10 +1080,6 @@
 
       <section class="meta-band" aria-label="Studio details">
         <div class="stamp">
-          <div class="stamp-head">
-            <span>Studio stamp</span>
-            <span>No. 001</span>
-          </div>
           <div class="stamp-body">
             <div>built - by one human</div>
             <div>ships - in a browser tab</div>
@@ -1174,7 +1106,6 @@
 
       <footer class="bottombar">
         <span>tinycrafts.ai</span>
-        <span>page - 01 / 01</span>
       </footer>
     </div>
 
