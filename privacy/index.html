@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta id="themeColor" name="theme-color" content="#f7f3ec" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" />
+    <link rel="shortcut icon" href="/assets/icons/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      href="/assets/icons/apple-touch-icon.png"
+      sizes="180x180"
+    />
+    <title>Privacy - TinyCrafts</title>
+    <meta
+      name="description"
+      content="What each TinyCrafts tool keeps in your browser, and exactly what leaves it."
+    />
+    <link rel="canonical" href="https://tinycrafts.ai/privacy/" />
+    <script>
+      (function () {
+        var root = document.documentElement;
+        try {
+          root.setAttribute(
+            "data-theme",
+            localStorage.getItem("tinycrafts-theme") ||
+              (matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"),
+          );
+        } catch (_) {
+          root.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      * {
+        margin: 0;
+      }
+
+      :root {
+        color-scheme: light;
+        --paper: #f7f3ec;
+        --paper-2: #eee8dd;
+        --paper-3: #ffffff;
+        --ink: #191612;
+        --ink-2: #5d564c;
+        --ink-3: #918779;
+        --rule: #d8cfc1;
+        --rule-strong: #1f1b16;
+        --accent: #3867e8;
+        --accent-deep: #244cc6;
+        --accent-soft: #edf2ff;
+        --accent-border: #8ca8ff;
+        --mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+          monospace;
+        --sans:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --paper: #171816;
+        --paper-2: #20211f;
+        --paper-3: #242522;
+        --ink: #f3eee5;
+        --ink-2: #c9c0b3;
+        --ink-3: #8d8579;
+        --rule: #343733;
+        --rule-strong: #ece5da;
+        --accent: #86a2ff;
+        --accent-deep: #b5c4ff;
+        --accent-soft: #222b46;
+        --accent-border: #4b609b;
+      }
+
+      body {
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(25, 22, 18, 0.026) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(25, 22, 18, 0.018) 1px, transparent 1px),
+          var(--paper);
+        background-size: 36px 36px;
+        color: var(--ink);
+        font-family: var(--mono);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 20;
+        transform: translateY(-160%);
+        background: var(--ink);
+        color: var(--paper);
+        padding: 10px 14px;
+        font: 12px/1 var(--mono);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .page {
+        width: min(100%, 1180px);
+        margin: 0 auto;
+        padding: 34px 72px 68px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 24px;
+        padding-bottom: 30px;
+        color: var(--ink-3);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        line-height: 1.4;
+        text-transform: uppercase;
+      }
+
+      .topbar a {
+        justify-self: start;
+        border-bottom: 1px solid transparent;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .topbar a:hover {
+        border-color: var(--accent);
+        color: var(--ink);
+      }
+
+      .theme-toggle {
+        appearance: none;
+        min-height: 40px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--paper) 82%, var(--paper-3));
+        color: var(--ink-3);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        font: 11px/1 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: lowercase;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      .theme-toggle:hover,
+      .theme-toggle[aria-pressed="true"] {
+        border-color: var(--accent-border);
+        color: var(--accent-deep);
+        background: var(--accent-soft);
+      }
+
+      .theme-toggle svg {
+        width: 13px;
+        height: 13px;
+        color: var(--accent);
+        flex: 0 0 auto;
+      }
+
+      .theme-toggle .icon-sun,
+      :root[data-theme="dark"] .theme-toggle .icon-moon {
+        display: none;
+      }
+
+      :root[data-theme="dark"] .theme-toggle .icon-sun {
+        display: block;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(250px, 0.42fr) minmax(0, 1fr);
+        gap: 60px;
+        align-items: start;
+      }
+
+      .mast {
+        position: sticky;
+        top: 28px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 38px;
+      }
+
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        border: 1.5px solid var(--accent);
+        border-radius: 7px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        background: color-mix(in srgb, var(--paper) 88%, var(--paper-3));
+      }
+
+      .brand-mark svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .brand-name {
+        color: var(--ink);
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .brand-name span {
+        color: var(--accent);
+      }
+
+      .eyebrow {
+        margin-bottom: 18px;
+        color: var(--accent-deep);
+        font-size: 11px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 520px;
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 56px;
+        font-weight: 360;
+        line-height: 1;
+        text-wrap: balance;
+      }
+
+      .summary {
+        max-width: 420px;
+        margin-top: 26px;
+        color: var(--ink-2);
+        font-size: 14px;
+        line-height: 1.72;
+      }
+
+      .facts {
+        margin-top: 34px;
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .fact {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 18px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--rule);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .fact dt {
+        color: var(--ink-3);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .fact dd {
+        color: var(--ink-2);
+        overflow-wrap: anywhere;
+      }
+
+      .fact a,
+      .policy a {
+        border-bottom: 1px solid var(--accent);
+        color: var(--ink);
+        padding-bottom: 1px;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      .fact a:hover,
+      .policy a:hover {
+        border-color: var(--accent-deep);
+        color: var(--accent-deep);
+      }
+
+      .policy {
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .policy-section {
+        padding: 34px 0 36px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .policy h2 {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 14px;
+        margin-bottom: 16px;
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 28px;
+        font-weight: 520;
+        line-height: 1.18;
+      }
+
+      .where {
+        color: var(--ink-3);
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 400;
+        letter-spacing: 0.04em;
+      }
+
+      .policy h3 {
+        margin-bottom: 10px;
+        color: var(--ink-3);
+        font-size: 11px;
+        font-weight: 400;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .policy p,
+      .policy li {
+        color: var(--ink-2);
+        font-size: 14px;
+        line-height: 1.75;
+        text-wrap: pretty;
+      }
+
+      .policy p + p,
+      .policy p + ul,
+      .policy ul + p {
+        margin-top: 15px;
+      }
+
+      .policy ul {
+        display: grid;
+        gap: 9px;
+        padding-left: 18px;
+      }
+
+      .policy strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+
+      .flow > div {
+        border-top: 1px solid var(--rule);
+        padding-top: 14px;
+      }
+
+      .flow .out {
+        border-top-color: var(--accent);
+      }
+
+      .footer {
+        margin-top: 58px;
+        padding-top: 13px;
+        border-top: 1px solid var(--rule);
+        color: var(--ink-3);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 940px) {
+        .page {
+          padding-inline: 44px;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+          gap: 44px;
+        }
+
+        .mast {
+          position: static;
+        }
+
+        h1 {
+          font-size: 48px;
+        }
+
+        .summary {
+          max-width: 680px;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .page {
+          padding: 26px 28px 46px;
+        }
+
+        h1 {
+          font-size: 40px;
+        }
+
+        .flow {
+          grid-template-columns: 1fr;
+          gap: 22px;
+        }
+
+        .fact {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+      }
+
+      @media (max-width: 440px) {
+        .page {
+          padding-inline: 22px;
+        }
+
+        h1 {
+          font-size: 34px;
+        }
+
+        .policy h2 {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#policy">Skip to details</a>
+
+    <div class="page">
+      <header class="topbar">
+        <a href="/">&larr; tinycrafts.ai</a>
+        <button
+          id="themeToggleBtn"
+          class="theme-toggle"
+          type="button"
+          aria-pressed="false"
+          aria-label="Switch to dark theme"
+          title="Switch to dark theme"
+        >
+          <svg
+            class="icon-sun"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm8-5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm10.657-5.657a.75.75 0 0 1 0 1.061l-1.06 1.06a.75.75 0 1 1-1.061-1.06l1.06-1.06a.75.75 0 0 1 1.061 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0Zm9.193 2.121a.75.75 0 0 1-1.06 0l-1.061-1.06a.75.75 0 0 1 1.06-1.061l1.061 1.06a.75.75 0 0 1 0 1.061ZM4.464 4.465a.75.75 0 0 1-1.06 0L2.343 3.404a.75.75 0 0 1 1.06-1.06l1.061 1.06a.75.75 0 0 1 0 1.06Z"
+            />
+          </svg>
+          <svg
+            class="icon-moon"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"
+            />
+          </svg>
+          <span id="themeToggleLabel">dark</span>
+        </button>
+      </header>
+
+      <div class="shell">
+        <aside class="mast" aria-labelledby="page-title">
+          <a class="brand" href="/" aria-label="TinyCrafts home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+              >
+                <path d="M12 4 18.9 8 12 12 5.1 8Z" fill="currentColor" />
+                <path
+                  d="M12 12 18.9 8V16L12 20Z"
+                  fill="currentColor"
+                  fill-opacity=".35"
+                />
+                <path d="M5.1 8V16L12 20" />
+              </svg>
+            </span>
+            <span class="brand-name" translate="no"
+              >tinycrafts<span>.ai</span></span
+            >
+          </a>
+
+          <p class="eyebrow">Privacy</p>
+          <h1 id="page-title">What leaves your browser</h1>
+          <p class="summary">
+            TinyCrafts has no accounts, no database and no server of its own.
+            Files you open in these tools are processed in your browser. The
+            few things that do leave it are listed here, tool by tool.
+          </p>
+
+          <dl class="facts" aria-label="Page facts">
+            <div class="fact">
+              <dt>Updated</dt>
+              <dd>October 29, 2026</dd>
+            </div>
+            <div class="fact">
+              <dt>Contact</dt>
+              <dd>
+                <a href="mailto:support@tinycrafts.ai">support@tinycrafts.ai</a>
+              </dd>
+            </div>
+          </dl>
+        </aside>
+
+        <main id="policy" class="policy">
+          <section class="policy-section" aria-labelledby="analytics">
+            <h2 id="analytics">Analytics</h2>
+            <p>
+              The home page, markV and DataDuck count page views with
+              GoatCounter. No cookies, no personal data.
+            </p>
+          </section>
+
+          <section class="policy-section" aria-labelledby="markv">
+            <h2 id="markv">
+              markV <span class="where">tinycrafts.ai/markv</span>
+            </h2>
+            <div class="flow">
+              <div>
+                <h3>Stays in your browser</h3>
+                <ul>
+                  <li>Your Markdown files and document library.</li>
+                  <li>Your Groq API key, if you add one.</li>
+                </ul>
+              </div>
+              <div class="out">
+                <h3>Leaves your browser</h3>
+                <ul>
+                  <li>
+                    <strong>Q&amp;A with Groq, if you turn it on:</strong> your
+                    question and the relevant excerpts of the document go to
+                    Groq, using your key.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="policy-section" aria-labelledby="dataduck">
+            <h2 id="dataduck">
+              DataDuck <span class="where">tinycrafts.ai/dataduck</span>
+            </h2>
+            <div class="flow">
+              <div>
+                <h3>Stays in your browser</h3>
+                <ul>
+                  <li>
+                    The CSV and Parquet files you open. DuckDB-WASM reads them
+                    in your browser; they are never uploaded.
+                  </li>
+                  <li>Every SQL query and its results.</li>
+                  <li>
+                    Your Claude or Groq API key, if you save it (encrypted in
+                    this browser).
+                  </li>
+                </ul>
+              </div>
+              <div class="out">
+                <h3>Leaves your browser</h3>
+                <ul>
+                  <li>
+                    <strong>Ask DataDuck, if you turn it on:</strong> your
+                    question, the file name, and column names, types and
+                    summary stats go to Anthropic or Groq, using your key.
+                  </li>
+                  <li>
+                    Result rows are sent only when you click
+                    <strong>Send aggregate rows for AI summary</strong>, capped
+                    at 50 rows.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="policy-section" aria-labelledby="seeqlite">
+            <h2 id="seeqlite">
+              SeeQLite <span class="where">tinycrafts.ai/seeqlite</span>
+            </h2>
+            <div class="flow">
+              <div>
+                <h3>Stays in your browser</h3>
+                <ul>
+                  <li>
+                    The SQLite file you open, its schema, every query and its
+                    results.
+                  </li>
+                </ul>
+              </div>
+              <div class="out">
+                <h3>Leaves your browser</h3>
+                <ul>
+                  <li>Nothing. SeeQLite has no analytics.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="policy-section" aria-labelledby="pagecrumb">
+            <h2 id="pagecrumb">
+              Pagecrumb <span class="where">Chrome extension</span>
+            </h2>
+            <p>
+              Pagecrumb turns the page you're on into Markdown locally in Chrome.
+              It has no server and no analytics, and it reads a page only after
+              you click it. Its permissions and details are in
+              <a href="/pagecrumb/privacy/">Pagecrumb's privacy policy</a>.
+            </p>
+          </section>
+
+          <section class="policy-section" aria-labelledby="elsewhere">
+            <h2 id="elsewhere">Products on their own sites</h2>
+            <p>
+              Sentinel, ShotBar and Chronicle live on their own subdomains and
+              are not covered by this page.
+            </p>
+          </section>
+
+          <section class="policy-section" aria-labelledby="never">
+            <h2 id="never">What TinyCrafts doesn't do</h2>
+            <ul>
+              <li>No accounts or sign-ups.</li>
+              <li>No ads and no tracking cookies.</li>
+              <li>No TinyCrafts server ever receives your files.</li>
+              <li>Your data is never sold or shared.</li>
+            </ul>
+          </section>
+
+          <section class="policy-section" aria-labelledby="contact">
+            <h2 id="contact">Contact and changes</h2>
+            <p>
+              Questions, bugs or security reports:
+              <a href="mailto:support@tinycrafts.ai">support@tinycrafts.ai</a>.
+              When this page changes, the date at the top changes too.
+            </p>
+          </section>
+        </main>
+      </div>
+
+      <footer class="footer">tinycrafts.ai</footer>
+    </div>
+
+    <script>
+      (function () {
+        const KEY = "tinycrafts-theme";
+        const root = document.documentElement;
+        const btn = document.getElementById("themeToggleBtn");
+        const label = document.getElementById("themeToggleLabel");
+        const themeColor = document.getElementById("themeColor");
+
+        function sync() {
+          const dark = root.getAttribute("data-theme") === "dark";
+          const target = dark ? "light" : "dark";
+          label.textContent = target;
+          btn.setAttribute("aria-pressed", String(dark));
+          btn.setAttribute("aria-label", "Switch to " + target + " theme");
+          btn.setAttribute("title", "Switch to " + target + " theme");
+          themeColor.setAttribute("content", dark ? "#171816" : "#f7f3ec");
+        }
+
+        btn.addEventListener("click", function () {
+          const next =
+            root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem(KEY, next);
+          } catch (_) {}
+          sync();
+        });
+
+        sync();
+      })();
+    </script>
+  </body>
+</html>

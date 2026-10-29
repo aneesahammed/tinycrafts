@@ -8,7 +8,17 @@ const pagesDir = join(root, '.pages-build');
 const dataduckDir = join(root, 'dataduck');
 const seeqliteDir = join(root, 'SeeQLite');
 
-const rootItems = ['CNAME', '.nojekyll', 'google63c1ffe1585127de.html', 'index.htm', 'assets'];
+const rootItems = [
+  'CNAME',
+  '.nojekyll',
+  'google63c1ffe1585127de.html',
+  'index.htm',
+  '404.html',
+  'robots.txt',
+  'sitemap.xml',
+  'privacy/index.html',
+  'assets',
+];
 
 const staticToolItems = [
   'markv/index.html',

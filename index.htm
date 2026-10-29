@@ -17,6 +17,23 @@
       name="description"
       content="TinyCrafts builds small, focused developer utilities. No sprawling platforms, no subscription dashboards, no six-step setup."
     />
+    <link rel="canonical" href="https://tinycrafts.ai/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TinyCrafts" />
+    <meta property="og:url" content="https://tinycrafts.ai/" />
+    <meta property="og:title" content="TinyCrafts - Small tools, one job each" />
+    <meta
+      property="og:description"
+      content="Small, focused developer utilities. Most run entirely in your browser."
+    />
+    <meta property="og:image" content="https://tinycrafts.ai/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="TinyCrafts logo with the line: Small tools. One job each."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -435,12 +452,6 @@
         text-transform: uppercase;
       }
 
-      .tag.live {
-        border-color: var(--accent-border);
-        background: var(--accent-soft);
-        color: var(--accent-deep);
-      }
-
       .specimen-cta {
         min-width: 134px;
         justify-self: end;
@@ -478,30 +489,6 @@
         line-height: 1.4;
         letter-spacing: 0.02em;
         text-align: right;
-      }
-
-      .bench {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        margin-top: 28px;
-        border: 1px dashed var(--rule);
-        padding: 18px 20px;
-        color: var(--ink-3);
-        font-size: 12px;
-        line-height: 1.45;
-        letter-spacing: 0.04em;
-      }
-
-      .bench-dot {
-        color: var(--accent);
-      }
-
-      .bench-soon {
-        color: var(--ink-2);
-        font-family: var(--sans);
-        white-space: nowrap;
       }
 
       .meta-band {
@@ -698,11 +685,6 @@
           height: 44px;
         }
 
-        .bench {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
         .bottombar {
           font-size: 10px;
         }
@@ -820,7 +802,6 @@
               <div class="tags" aria-label="sentinel tags">
                 <span class="tag">no-sdk</span>
                 <span class="tag">self-host</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -847,13 +828,12 @@
               </div>
               <p class="blurb">
                 Drag-and-drop Markdown viewer with Mermaid diagrams, reading
-                mode, and document insights. Pure browser - your files never
-                leave the page.
+                mode, and document insights. Files render in your browser.
+                Optional Q&amp;A with Groq sends excerpts, using your own key.
               </p>
               <div class="tags" aria-label="markV tags">
                 <span class="tag">browser-only</span>
                 <span class="tag">mermaid</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -880,14 +860,14 @@
               </div>
               <p class="blurb">
                 Open local Parquet and CSV files, inspect schema, run SQL, and
-                export results. DuckDB-WASM does the work in the browser - no
-                upload path.
+                export results. DuckDB-WASM does the work in the browser. The
+                optional AI analyst uses your own Claude or Groq key and sees
+                column stats, not your file.
               </p>
               <div class="tags" aria-label="DataDuck tags">
                 <span class="tag">parquet</span>
                 <span class="tag">csv</span>
                 <span class="tag">duckdb-wasm</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -921,7 +901,6 @@
                 <span class="tag">macos</span>
                 <span class="tag">screenshots</span>
                 <span class="tag">menu-bar</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -930,39 +909,6 @@
                 <span aria-hidden="true">↗</span>
               </span>
               <div class="domain">shotbar.tinycrafts.ai</div>
-            </div>
-          </a>
-
-          <a
-            class="specimen"
-            href="pichub/"
-            aria-label="Open PicHub, image to public URL tool"
-          >
-            <div aria-hidden="true">
-              <div class="glyph">&#9680;</div>
-            </div>
-            <div>
-              <div class="specimen-title">
-                <h2 translate="no">PicHub</h2>
-                <span class="caption">image to public URL via your repo</span>
-              </div>
-              <p class="blurb">
-                Drop an image, get a public URL. Uploads straight to your own
-                GitHub repo with a fine-grained token - browser only, nothing
-                routes through a third-party.
-              </p>
-              <div class="tags" aria-label="PicHub tags">
-                <span class="tag">github</span>
-                <span class="tag">browser-only</span>
-                <span class="tag live">live</span>
-              </div>
-            </div>
-            <div class="specimen-cta">
-              <span class="open-chip">
-                open
-                <span aria-hidden="true">↗</span>
-              </span>
-              <div class="domain">tinycrafts.ai/pichub</div>
             </div>
           </a>
 
@@ -988,7 +934,6 @@
                 <span class="tag">ai</span>
                 <span class="tag">hacker-news</span>
                 <span class="tag">daily</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -1022,7 +967,6 @@
                 <span class="tag">chrome</span>
                 <span class="tag">markdown</span>
                 <span class="tag">copy-only</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -1056,7 +1000,6 @@
                 <span class="tag">sqlite</span>
                 <span class="tag">browser-only</span>
                 <span class="tag">read-only</span>
-                <span class="tag live">live</span>
               </div>
             </div>
             <div class="specimen-cta">
@@ -1067,14 +1010,6 @@
               <div class="domain">tinycrafts.ai/seeqlite</div>
             </div>
           </a>
-
-          <div class="bench">
-            <span>
-              <span class="bench-dot" aria-hidden="true">o</span>
-              on the bench - loose ideas and tiny experiments
-            </span>
-            <span class="bench-soon">drafts</span>
-          </div>
         </main>
       </div>
 
@@ -1092,13 +1027,18 @@
             built by
             <a href="https://anees.xyz" target="_blank" rel="noopener">Anees</a>
           </p>
+          <p>
+            bugs, ideas, security reports -
+            <a href="mailto:support@tinycrafts.ai">support@tinycrafts.ai</a>
+          </p>
           <div class="signoff-links">
             <a
-              href="https://github.com/aneesahammed"
+              href="https://github.com/aneesahammed/tinycrafts/tree/pages"
               target="_blank"
               rel="noopener"
-              >github</a
+              >source</a
             >
+            <a href="privacy/">privacy</a>
             <a href="https://anees.xyz" target="_blank" rel="noopener">blog</a>
           </div>
         </div>
