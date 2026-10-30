@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Nui4NTuYI0o+eA41WC+ERZTk2BsYCeftHdc8C4LhCGI=' 'sha256-a0ITA+PzmdIULAtrHckpWFH//Ktble9THN5Un6WJMx0=' 'sha256-xDwNRqQ0rTy/yU4N1LUXWtGPYRDi0A5UydTj7H01uHY=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-xEV9Hpu3iPQSGWq5pdYR0otMUTUL550P3aZHgH43REA=' 'sha256-oL/YoBP6apq9QyrwGeBMlWGbw53Iul5U+sH7x6IHIx8=' 'sha256-YDTeX32xIvul7Xj5xMvAV61rjGu8tcPl3yq5bklPl0M=' 'sha256-uS3UkBa4U06aMkyHXE/NpaXzuDujHLfSrkMLuDId7aI=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -6627,7 +6627,7 @@
       /* Segmented control */
       .gs-segmented {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 4px;
         padding: 4px;
         background: var(--border-soft);
@@ -6737,6 +6737,16 @@
         outline: none;
         border-color: var(--accent-fg);
         box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.16);
+      }
+      .gs-select {
+        appearance: none;
+        -webkit-appearance: none;
+        padding-right: 36px;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8780' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px;
       }
       .gs-input.has-reveal {
         padding-right: 40px;
@@ -25748,6 +25758,9 @@ Return JSON only.`;
           if (lower.includes("groq api key")) {
             return "Add a Groq API key in AI settings, then try again.";
           }
+          if (lower.includes("openrouter api key")) {
+            return "Add an OpenRouter API key in AI settings, then try again.";
+          }
           if (lower.includes("cors_blocked")) {
             return "Browser access to Ollama is blocked by CORS. Allow this viewer origin in OLLAMA_ORIGINS, then try again.";
           }
@@ -27511,8 +27524,8 @@ Return JSON only.`;
         aria-relevant="additions text"
       >
         <div id="chatHelp" class="chat-msg system">
-          Load a document, then ask questions about it. Powered by Ollama or
-          Groq.
+          Load a document, then ask questions about it. Powered by Ollama,
+          Groq or OpenRouter.
         </div>
       </div>
       <div
@@ -27532,6 +27545,7 @@ Return JSON only.`;
           <select id="llmProvider" aria-label="AI provider">
             <option value="ollama">Ollama</option>
             <option value="groq">Groq</option>
+            <option value="openrouter">OpenRouter</option>
           </select>
         </label>
         <label id="ollamaEndpointField">
@@ -27548,8 +27562,7 @@ Return JSON only.`;
           <input
             id="ollamaModel"
             type="text"
-            value="gemma4:26b"
-            placeholder="gemma4:26b"
+            value=""
           />
         </label>
         <label id="groqApiKeyField" hidden>
@@ -27567,13 +27580,32 @@ Return JSON only.`;
           <input
             id="groqModel"
             type="text"
-            value="qwen/qwen3-32b"
-            placeholder="qwen/qwen3-32b"
+            value="openai/gpt-oss-120b"
+            placeholder="openai/gpt-oss-120b"
+          />
+        </label>
+        <label id="openrouterApiKeyField" hidden>
+          <span>OpenRouter API Key</span>
+          <input
+            id="openrouterApiKey"
+            type="password"
+            placeholder="sk-or-..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+        <label id="openrouterModelField" hidden>
+          <span>OpenRouter Model</span>
+          <input
+            id="openrouterModel"
+            type="text"
+            value="openai/gpt-oss-120b"
+            placeholder="openai/gpt-oss-120b"
           />
         </label>
         <p id="chatSettingsNote" class="chat-settings-note">
-          Groq needs an API key. Ollama stays local and needs a loopback
-          endpoint.
+          Groq and OpenRouter need an API key. Ollama stays local and needs a
+          loopback endpoint.
         </p>
       </div>
       <div class="chat-input-area">
@@ -27811,6 +27843,32 @@ Return JSON only.`;
               </svg>
               Groq
             </button>
+            <button
+              type="button"
+              class="gs-seg-btn"
+              id="gsSegOpenRouter"
+              role="tab"
+              aria-pressed="false"
+              aria-controls="gsCardOpenRouter"
+              data-provider="openrouter"
+            >
+              <svg
+                class="gs-seg-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="19" cy="5" r="2" />
+                <circle cx="19" cy="19" r="2" />
+                <path d="M7 12h4l6-6M11 12l6 6" />
+              </svg>
+              OpenRouter
+            </button>
           </div>
 
           <!-- Ollama card -->
@@ -27859,26 +27917,15 @@ Return JSON only.`;
             <div class="gs-field">
               <label class="gs-field-label" for="gsOllamaModel"> Model </label>
               <div class="gs-input-wrap">
-                <input
-                  id="gsOllamaModel"
-                  class="gs-input"
-                  type="text"
-                  placeholder="gemma4:26b"
-                  autocomplete="off"
-                  spellcheck="false"
-                  list="gsOllamaModelList"
-                />
+                <!-- Options come from Ollama's installed models (/api/tags);
+                     see renderOllamaModelOptions. -->
+                <select id="gsOllamaModel" class="gs-input gs-select">
+                  <option value="" disabled selected>
+                    Test connection to list your models
+                  </option>
+                </select>
               </div>
-              <datalist id="gsOllamaModelList">
-                <option value="gemma4:26b"></option>
-                <option value="llama3.1:8b"></option>
-                <option value="llama3.1:70b"></option>
-                <option value="qwen2.5:14b"></option>
-                <option value="qwen2.5:32b"></option>
-                <option value="mistral:7b"></option>
-                <option value="phi3.5:3.8b"></option>
-              </datalist>
-              <p class="gs-field-hint">
+              <p id="gsOllamaModelHint" class="gs-field-hint">
                 Any model you've pulled with <code>ollama pull</code>.
               </p>
             </div>
@@ -27981,13 +28028,15 @@ Return JSON only.`;
                   id="gsGroqModel"
                   class="gs-input"
                   type="text"
-                  placeholder="qwen/qwen3-32b"
+                  placeholder="openai/gpt-oss-120b"
                   autocomplete="off"
                   spellcheck="false"
                   list="gsGroqModelList"
                 />
               </div>
               <datalist id="gsGroqModelList">
+                <option value="openai/gpt-oss-120b"></option>
+                <option value="openai/gpt-oss-20b"></option>
                 <option value="qwen/qwen3-32b"></option>
                 <option value="llama-3.3-70b-versatile"></option>
                 <option value="llama-3.1-8b-instant"></option>
@@ -28006,6 +28055,125 @@ Return JSON only.`;
                 Test connection
               </button>
               <span id="gsTestGroqResult" class="gs-test-result"></span>
+            </div>
+          </div>
+
+          <!-- OpenRouter card -->
+          <div
+            id="gsCardOpenRouter"
+            class="gs-card"
+            role="tabpanel"
+            aria-labelledby="gsSegOpenRouter"
+            hidden
+            style="margin-top: 14px"
+          >
+            <div class="gs-card-head">
+              <p class="gs-card-sub">
+                One key for many hosted models. Your document is sent to
+                OpenRouter and the model's provider.
+              </p>
+              <span id="gsOpenRouterInUse" class="gs-in-use-badge" hidden
+                >In use</span
+              >
+              <button
+                type="button"
+                id="gsActivateOpenRouter"
+                class="gs-activate-btn"
+              >
+                Use OpenRouter
+              </button>
+            </div>
+            <div class="gs-field">
+              <label class="gs-field-label" for="gsOpenRouterApiKey">
+                API Key
+              </label>
+              <div class="gs-input-wrap">
+                <input
+                  id="gsOpenRouterApiKey"
+                  class="gs-input has-reveal"
+                  type="password"
+                  placeholder="sk-or-..."
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  class="gs-reveal-btn"
+                  aria-label="Show API key"
+                  aria-pressed="false"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    style="display: none"
+                  >
+                    <path
+                      d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.77 19.77 0 0 1 4.22-5.19M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.86 19.86 0 0 1-3.17 4.19M9.53 9.53a3 3 0 1 0 4.24 4.24"
+                    />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                </button>
+              </div>
+              <p class="gs-field-hint">
+                Encrypted at rest with AES-GCM and stored only in this browser.
+                Get a key at
+                <a
+                  href="https://openrouter.ai/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >openrouter.ai/keys</a
+                >.
+              </p>
+            </div>
+
+            <div class="gs-field">
+              <label class="gs-field-label" for="gsOpenRouterModel">
+                Model
+              </label>
+              <div class="gs-input-wrap">
+                <input
+                  id="gsOpenRouterModel"
+                  class="gs-input"
+                  type="text"
+                  placeholder="openai/gpt-oss-120b"
+                  autocomplete="off"
+                  spellcheck="false"
+                  list="gsOpenRouterModelList"
+                />
+              </div>
+              <!-- Filled from OpenRouter's public model list. -->
+              <datalist id="gsOpenRouterModelList"></datalist>
+              <p id="gsOpenRouterModelHint" class="gs-field-hint">
+                Type to search OpenRouter's models by name or id.
+              </p>
+            </div>
+
+            <div class="gs-actions-row">
+              <button type="button" id="gsTestOpenRouter" class="gs-test-btn">
+                Test connection
+              </button>
+              <span id="gsTestOpenRouterResult" class="gs-test-result"></span>
             </div>
           </div>
         </section>
@@ -28041,37 +28209,38 @@ Return JSON only.`;
         const closeBtn = document.getElementById("globalSettingsCloseBtn");
 
 
-        const segOllama = document.getElementById("gsSegOllama");
-        const segGroq = document.getElementById("gsSegGroq");
-        const cardOllama = document.getElementById("gsCardOllama");
-        const cardGroq = document.getElementById("gsCardGroq");
+        // One entry per provider. Element ids follow one pattern:
+        // gsSeg<Name>, gsCard<Name>, gs<Name>InUse, gsActivate<Name>,
+        // gsTest<Name> and gsTest<Name>Result.
+        const PROVIDER_IDS = ["ollama", "groq", "openrouter"];
+        const PROVIDER_NAMES = {
+          ollama: "Ollama",
+          groq: "Groq",
+          openrouter: "OpenRouter",
+        };
+        const ui = {};
+        PROVIDER_IDS.forEach(function (id) {
+          const name = PROVIDER_NAMES[id];
+          ui[id] = {
+            seg: document.getElementById("gsSeg" + name),
+            card: document.getElementById("gsCard" + name),
+            badge: document.getElementById("gs" + name + "InUse"),
+            activate: document.getElementById("gsActivate" + name),
+            testBtn: document.getElementById("gsTest" + name),
+            result: document.getElementById("gsTest" + name + "Result"),
+          };
+        });
 
         const gsOllamaEndpoint = document.getElementById("gsOllamaEndpoint");
         const gsOllamaModel = document.getElementById("gsOllamaModel");
-        const gsGroqApiKey = document.getElementById("gsGroqApiKey");
-        const gsGroqModel = document.getElementById("gsGroqModel");
-
-        const activateOllamaBtn = document.getElementById("gsActivateOllama");
-        const activateGroqBtn = document.getElementById("gsActivateGroq");
-        const inUseOllamaBadge = document.getElementById("gsOllamaInUse");
-        const inUseGroqBadge = document.getElementById("gsGroqInUse");
 
         // The drawer tracks two separate concepts: which provider card
         // is currently being VIEWED (purely a navigation state inside
         // the drawer) and which provider is ACTIVE (the real app
         // config, read from the legacy hidden input). Keeping them
-        // separate lets a user peek at Groq's settings without
-        // inadvertently switching their active AI.
+        // separate lets a user peek at another provider's settings
+        // without inadvertently switching their active AI.
         let viewedProvider = "ollama";
-
-        const revealBtn = document.getElementById("gsGroqRevealBtn");
-        const revealIconShow = document.getElementById("gsRevealIconShow");
-        const revealIconHide = document.getElementById("gsRevealIconHide");
-
-        const testOllamaBtn = document.getElementById("gsTestOllama");
-        const testOllamaResult = document.getElementById("gsTestOllamaResult");
-        const testGroqBtn = document.getElementById("gsTestGroq");
-        const testGroqResult = document.getElementById("gsTestGroqResult");
 
         // Legacy inline panel inputs — the existing chat/mindmap
         // code reads from these. The drawer mirrors values both ways so
@@ -28079,8 +28248,22 @@ Return JSON only.`;
         const legacyProvider = document.getElementById("llmProvider");
         const legacyEndpoint = document.getElementById("ollamaEndpoint");
         const legacyOllamaModel = document.getElementById("ollamaModel");
-        const legacyGroqKey = document.getElementById("groqApiKey");
-        const legacyGroqModel = document.getElementById("groqModel");
+
+        // Hosted providers need an API key and a model id.
+        const HOSTED = {
+          groq: {
+            key: document.getElementById("gsGroqApiKey"),
+            model: document.getElementById("gsGroqModel"),
+            legacyKey: document.getElementById("groqApiKey"),
+            legacyModel: document.getElementById("groqModel"),
+          },
+          openrouter: {
+            key: document.getElementById("gsOpenRouterApiKey"),
+            model: document.getElementById("gsOpenRouterModel"),
+            legacyKey: document.getElementById("openrouterApiKey"),
+            legacyModel: document.getElementById("openrouterModel"),
+          },
+        };
 
         if (!drawer || !openBtn || !legacyProvider) return;
 
@@ -28088,7 +28271,9 @@ Return JSON only.`;
         let returnFocusEl = null;
 
         function currentProvider() {
-          return legacyProvider.value === "groq" ? "groq" : "ollama";
+          return PROVIDER_IDS.indexOf(legacyProvider.value) !== -1
+            ? legacyProvider.value
+            : "ollama";
         }
 
         function fireLegacyInput(el) {
@@ -28101,9 +28286,11 @@ Return JSON only.`;
 
         function pullFromLegacy() {
           gsOllamaEndpoint.value = legacyEndpoint.value || "";
-          gsOllamaModel.value = legacyOllamaModel.value || "";
-          gsGroqApiKey.value = legacyGroqKey.value || "";
-          gsGroqModel.value = legacyGroqModel.value || "";
+          renderOllamaModelOptions();
+          Object.keys(HOSTED).forEach(function (id) {
+            HOSTED[id].key.value = HOSTED[id].legacyKey.value || "";
+            HOSTED[id].model.value = HOSTED[id].legacyModel.value || "";
+          });
           // When the drawer opens, default the viewed card to the
           // provider that's actually active so the user lands on
           // what they're using right now.
@@ -28126,10 +28313,9 @@ Return JSON only.`;
         }
 
         function isProviderReady(provider) {
-          if (provider === "groq") {
-            return Boolean(
-              gsGroqApiKey.value.trim() && gsGroqModel.value.trim(),
-            );
+          const hosted = HOSTED[provider];
+          if (hosted) {
+            return Boolean(hosted.key.value.trim() && hosted.model.value.trim());
           }
           return Boolean(
             gsOllamaEndpoint.value.trim() && gsOllamaModel.value.trim(),
@@ -28137,13 +28323,13 @@ Return JSON only.`;
         }
 
         function updateSegmented() {
-          const isGroq = viewedProvider === "groq";
-          segOllama.setAttribute("aria-pressed", String(!isGroq));
-          segGroq.setAttribute("aria-pressed", String(isGroq));
-          cardOllama.hidden = isGroq;
-          cardGroq.hidden = !isGroq;
+          PROVIDER_IDS.forEach(function (id) {
+            const viewed = id === viewedProvider;
+            ui[id].seg.setAttribute("aria-pressed", String(viewed));
+            ui[id].card.hidden = !viewed;
+          });
           // Restart the card intro animation so the swap feels deliberate.
-          const activeCard = isGroq ? cardGroq : cardOllama;
+          const activeCard = ui[viewedProvider].card;
           activeCard.style.animation = "none";
           // eslint-disable-next-line no-unused-expressions
           activeCard.offsetHeight;
@@ -28151,25 +28337,23 @@ Return JSON only.`;
         }
 
         function updateActivationUI() {
-          // Show the "In use" badge on whichever card is the active
-          // provider, and the "Use X" button on the other. Both
-          // controls live in the same slot so they never coexist.
+          // Show the "In use" badge on the active provider's card and the
+          // "Use X" button on the others. Both controls live in the same
+          // slot so they never coexist.
           const active = currentProvider();
-          const ollamaActive = active === "ollama";
-          inUseOllamaBadge.hidden = !ollamaActive;
-          activateOllamaBtn.hidden = ollamaActive;
-          inUseGroqBadge.hidden = ollamaActive;
-          activateGroqBtn.hidden = !ollamaActive;
-          // Disable activate buttons until the target provider has
-          // the minimum config it needs to actually run.
-          activateOllamaBtn.disabled = !isProviderReady("ollama");
-          activateGroqBtn.disabled = !isProviderReady("groq");
-          activateOllamaBtn.title = activateOllamaBtn.disabled
-            ? "Add endpoint and model first"
-            : "Switch the app to Ollama";
-          activateGroqBtn.title = activateGroqBtn.disabled
-            ? "Add an API key first"
-            : "Switch the app to Groq";
+          PROVIDER_IDS.forEach(function (id) {
+            const item = ui[id];
+            item.badge.hidden = id !== active;
+            item.activate.hidden = id === active;
+            // Disable activate buttons until the target provider has
+            // the minimum config it needs to actually run.
+            item.activate.disabled = !isProviderReady(id);
+            item.activate.title = item.activate.disabled
+              ? HOSTED[id]
+                ? "Add an API key and model first"
+                : "Add endpoint and model first"
+              : "Switch the app to " + PROVIDER_NAMES[id];
+          });
         }
 
         function renderAll() {
@@ -28182,13 +28366,13 @@ Return JSON only.`;
         function viewProvider(provider) {
           viewedProvider = provider;
           renderAll();
+          // Looking at a card loads its model list for the picker.
+          if (provider === "ollama" && !currentHealth("ollama")) {
+            runHealthCheck("ollama");
+          } else if (provider === "openrouter") {
+            loadOpenRouterModels();
+          }
         }
-        segOllama.addEventListener("click", function () {
-          viewProvider("ollama");
-        });
-        segGroq.addEventListener("click", function () {
-          viewProvider("groq");
-        });
 
         // ---- Activation: the only thing that flips the active provider ----
         function activateProvider(provider) {
@@ -28197,11 +28381,14 @@ Return JSON only.`;
           viewedProvider = provider;
           renderAll();
         }
-        activateOllamaBtn.addEventListener("click", function () {
-          activateProvider("ollama");
-        });
-        activateGroqBtn.addEventListener("click", function () {
-          activateProvider("groq");
+
+        PROVIDER_IDS.forEach(function (id) {
+          ui[id].seg.addEventListener("click", function () {
+            viewProvider(id);
+          });
+          ui[id].activate.addEventListener("click", function () {
+            activateProvider(id);
+          });
         });
 
         // ---- Field mirroring ----
@@ -28213,7 +28400,11 @@ Return JSON only.`;
           // If something else in the app edits the legacy input, reflect it
           // back into the drawer on next open.
           legacyEl.addEventListener("input", function () {
-            if (drawerEl.value !== legacyEl.value) {
+            if (drawerEl === gsOllamaModel) {
+              // A select can only show values it has options for.
+              renderOllamaModelOptions();
+              renderAll();
+            } else if (drawerEl.value !== legacyEl.value) {
               drawerEl.value = legacyEl.value;
               renderAll();
             }
@@ -28221,20 +28412,28 @@ Return JSON only.`;
         }
         bindMirror(gsOllamaEndpoint, legacyEndpoint);
         bindMirror(gsOllamaModel, legacyOllamaModel);
-        bindMirror(gsGroqApiKey, legacyGroqKey);
-        bindMirror(gsGroqModel, legacyGroqModel);
+        Object.keys(HOSTED).forEach(function (id) {
+          bindMirror(HOSTED[id].key, HOSTED[id].legacyKey);
+          bindMirror(HOSTED[id].model, HOSTED[id].legacyModel);
+        });
 
-        // ---- Reveal toggle for API key ----
-        revealBtn.addEventListener("click", function () {
-          const showing = gsGroqApiKey.type === "text";
-          gsGroqApiKey.type = showing ? "password" : "text";
-          revealBtn.setAttribute("aria-pressed", String(!showing));
-          revealBtn.setAttribute(
-            "aria-label",
-            showing ? "Show API key" : "Hide API key",
-          );
-          revealIconShow.style.display = showing ? "" : "none";
-          revealIconHide.style.display = showing ? "none" : "";
+        // ---- Reveal toggles for API keys ----
+        // Each button sits next to its input and holds two icons:
+        // "show" first, "hide" second.
+        drawer.querySelectorAll(".gs-reveal-btn").forEach(function (btn) {
+          const input = btn.parentElement.querySelector("input");
+          const icons = btn.querySelectorAll("svg");
+          btn.addEventListener("click", function () {
+            const showing = input.type === "text";
+            input.type = showing ? "password" : "text";
+            btn.setAttribute("aria-pressed", String(!showing));
+            btn.setAttribute(
+              "aria-label",
+              showing ? "Show API key" : "Hide API key",
+            );
+            icons[0].style.display = showing ? "" : "none";
+            icons[1].style.display = showing ? "none" : "";
+          });
         });
 
         // ---- Connection health ----
@@ -28243,15 +28442,18 @@ Return JSON only.`;
         // a failure. Results live in memory for this page session and are
         // tied to a fingerprint of the settings, so any edit resets them.
         // Checks run when Settings opens and on Test connection, never at
-        // launch: no surprise requests to Groq or to localhost.
-        const health = { ollama: null, groq: null };
-        const checking = { ollama: null, groq: null };
-        const resultEls = { ollama: testOllamaResult, groq: testGroqResult };
-        const testBtns = { ollama: testOllamaBtn, groq: testGroqBtn };
+        // launch: no surprise requests to cloud providers or to localhost.
+        const health = {};
+        const checking = {};
+        PROVIDER_IDS.forEach(function (id) {
+          health[id] = null;
+          checking[id] = null;
+        });
 
         function providerFingerprint(provider) {
-          return provider === "groq"
-            ? legacyGroqKey.value.trim() + "|" + legacyGroqModel.value.trim()
+          const hosted = HOSTED[provider];
+          return hosted
+            ? hosted.legacyKey.value.trim() + "|" + hosted.legacyModel.value.trim()
             : legacyEndpoint.value.trim() + "|" + legacyOllamaModel.value.trim();
         }
 
@@ -28272,12 +28474,8 @@ Return JSON only.`;
         }
 
         function syncHealthUi() {
-          [
-            ["ollama", inUseOllamaBadge],
-            ["groq", inUseGroqBadge],
-          ].forEach(function (pair) {
-            const provider = pair[0];
-            const badge = pair[1];
+          PROVIDER_IDS.forEach(function (provider) {
+            const badge = ui[provider].badge;
             const entry = currentHealth(provider);
             badge.classList.toggle("is-ok", Boolean(entry && entry.ok));
             badge.classList.toggle("is-error", Boolean(entry && !entry.ok));
@@ -28288,18 +28486,19 @@ Return JSON only.`;
                 : entry.message
               : "Not checked yet. Use Test connection.";
             // A result for settings that have since changed is stale.
-            const resultEl = resultEls[provider];
+            const resultEl = ui[provider].result;
             if (resultEl.dataset.fp && resultEl.dataset.fp !== providerFingerprint(provider)) {
-              setTestResult(resultEl, null, "");
+              setTestResult(provider, null, "");
             }
           });
         }
 
-        function setTestResult(el, state, text) {
+        function setTestResult(provider, state, text) {
+          const el = ui[provider].result;
           el.classList.remove("is-ok", "is-err");
           if (state) el.classList.add(state);
           el.textContent = text;
-          el.dataset.fp = text ? providerFingerprint(el === testGroqResult ? "groq" : "ollama") : "";
+          el.dataset.fp = text ? providerFingerprint(provider) : "";
         }
 
         async function fetchWithTimeout(url, init, ms) {
@@ -28318,10 +28517,14 @@ Return JSON only.`;
           return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
         }
 
-        async function checkOllama() {
+        const ollamaModelHint = document.getElementById("gsOllamaModelHint");
+        const OLLAMA_SUGGESTED_MODEL = "gemma3";
+
+        // Lists installed models: { models: [{ name, family }] } or
+        // { error } when Ollama can't be reached or refuses.
+        async function fetchOllamaModels() {
           const endpoint = legacyEndpoint.value.trim().replace(/\/+$/, "");
-          const model = legacyOllamaModel.value.trim();
-          if (!endpoint) return { ok: false, message: "Enter an endpoint first" };
+          if (!endpoint) return { error: "Enter an endpoint first" };
           // Same localhost/127.0.0.1 fallback the chat code uses.
           const candidates = [endpoint];
           if (endpoint.includes("localhost")) candidates.push(endpoint.replace("localhost", "127.0.0.1"));
@@ -28337,31 +28540,147 @@ Return JSON only.`;
             // The browser cannot tell "not running" from "blocked by
             // OLLAMA_ORIGINS", so name both on a hosted page.
             return {
-              ok: false,
-              message: isLocalPage()
+              error: isLocalPage()
                 ? "Can't reach Ollama. Start it with: ollama serve"
                 : "Can't reach Ollama. Start it with: ollama serve. Already running? Allow this site: OLLAMA_ORIGINS=" + window.location.origin,
             };
           }
-          if (!res.ok) return { ok: false, message: "Ollama answered HTTP " + res.status };
+          if (!res.ok) return { error: "Ollama answered HTTP " + res.status };
           const data = await res.json().catch(function () {
             return null;
           });
-          const names = [];
-          (data && Array.isArray(data.models) ? data.models : []).forEach(function (item) {
-            if (item && item.name) names.push(item.name);
-            if (item && item.model) names.push(item.model);
+          const models = (data && Array.isArray(data.models) ? data.models : [])
+            .filter(function (item) {
+              return item && (item.name || item.model);
+            })
+            .map(function (item) {
+              return {
+                name: item.name || item.model,
+                family: String((item.details && item.details.family) || ""),
+              };
+            });
+          return { models: models };
+        }
+
+        // Embedding models (nomic-embed-text, bge, …) can't chat.
+        function chatModels(models) {
+          return models.filter(function (item) {
+            return !/embed/i.test(item.name) && !/bert/i.test(item.family);
+          });
+        }
+
+        // Ollama lists models most recently changed first, so the first
+        // chat model is the sensible pick.
+        function pickChatModel(models) {
+          const chat = chatModels(models);
+          return chat.length ? chat[0].name : "";
+        }
+
+        // Last list fetched from Ollama; null until a check has run.
+        let lastOllamaModels = null;
+
+        function showOllamaModels(models) {
+          lastOllamaModels = models;
+          renderOllamaModelOptions();
+        }
+
+        // The dropdown lists installed chat models. The saved model always
+        // stays visible: as-is before Ollama has been reached, or flagged
+        // "(not installed)" when Ollama says it is missing.
+        function renderOllamaModelOptions() {
+          const current = legacyOllamaModel.value.trim();
+          const chat = lastOllamaModels
+            ? chatModels(lastOllamaModels).map(function (item) {
+                return item.name;
+              })
+            : [];
+          const tagged = current && !current.includes(":") ? current + ":latest" : current;
+          const match = chat.indexOf(current) !== -1 ? current : chat.indexOf(tagged) !== -1 ? tagged : "";
+          const options = [];
+          if (!current) {
+            options.push({
+              value: "",
+              label: lastOllamaModels ? "Choose a model…" : "Test connection to list your models",
+              disabled: true,
+            });
+          } else if (!match) {
+            options.push({
+              value: current,
+              label: lastOllamaModels ? current + " (not installed)" : current,
+            });
+          }
+          chat.forEach(function (name) {
+            options.push({ value: name, label: name });
+          });
+          gsOllamaModel.replaceChildren.apply(
+            gsOllamaModel,
+            options.map(function (item) {
+              const option = document.createElement("option");
+              option.value = item.value;
+              option.textContent = item.label;
+              option.disabled = Boolean(item.disabled);
+              return option;
+            }),
+          );
+          gsOllamaModel.value = match || current;
+          ollamaModelHint.innerHTML = !lastOllamaModels
+            ? "Any model you\x27ve pulled with <code>ollama pull</code>."
+            : chat.length
+              ? chat.length + (chat.length === 1 ? " model" : " models") + " installed. Pull more with <code>ollama pull</code>."
+              : "No chat models installed yet. Run <code>ollama pull " + OLLAMA_SUGGESTED_MODEL + "</code>.";
+        }
+
+        // Fills an empty model field with an installed chat model and
+        // saves it. Shared with the chat code via markvResolveOllamaModel.
+        async function resolveOllamaModel() {
+          const current = legacyOllamaModel.value.trim();
+          if (current) return { model: current };
+          const listed = await fetchOllamaModels();
+          if (listed.error) return listed;
+          showOllamaModels(listed.models);
+          const picked = pickChatModel(listed.models);
+          if (!picked) {
+            return {
+              error: "No chat models installed. Run: ollama pull " + OLLAMA_SUGGESTED_MODEL,
+            };
+          }
+          gsOllamaModel.value = picked;
+          pushField(legacyOllamaModel, picked);
+          renderAll();
+          return { model: picked };
+        }
+        window.markvResolveOllamaModel = resolveOllamaModel;
+
+        async function checkOllama() {
+          const listed = await fetchOllamaModels();
+          if (listed.error) return { ok: false, message: listed.error };
+          showOllamaModels(listed.models);
+          let model = legacyOllamaModel.value.trim();
+          if (!model) {
+            model = pickChatModel(listed.models);
+            if (!model) {
+              return {
+                ok: false,
+                message: "No chat models installed. Run: ollama pull " + OLLAMA_SUGGESTED_MODEL,
+              };
+            }
+            gsOllamaModel.value = model;
+            pushField(legacyOllamaModel, model);
+            renderAll();
+          }
+          const names = listed.models.map(function (item) {
+            return item.name;
           });
           const tagged = model.includes(":") ? model : model + ":latest";
-          if (model && names.indexOf(model) === -1 && names.indexOf(tagged) === -1) {
+          if (names.indexOf(model) === -1 && names.indexOf(tagged) === -1) {
             return { ok: false, message: model + " isn't installed. Run: ollama pull " + model };
           }
           return { ok: true, message: "Connected" };
         }
 
         async function checkGroq() {
-          const key = legacyGroqKey.value.trim();
-          const model = legacyGroqModel.value.trim();
+          const key = HOSTED.groq.legacyKey.value.trim();
+          const model = HOSTED.groq.legacyModel.value.trim();
           if (!key) return { ok: false, message: "Enter an API key first" };
           let res;
           try {
@@ -28388,15 +28707,119 @@ Return JSON only.`;
           return { ok: true, message: "Connected" };
         }
 
+        // ---- OpenRouter models ----
+        // The model list is public, so loading it sends no key. It is
+        // fetched once per page session, when the OpenRouter card is
+        // viewed or checked, and powers the searchable model field.
+        const openRouterModelList = document.getElementById("gsOpenRouterModelList");
+        const openRouterModelHint = document.getElementById("gsOpenRouterModelHint");
+        let openRouterModels = null;
+        let openRouterModelsLoading = null;
+
+        function loadOpenRouterModels() {
+          if (openRouterModels) return Promise.resolve(openRouterModels);
+          if (openRouterModelsLoading) return openRouterModelsLoading;
+          openRouterModelsLoading = fetchWithTimeout(
+            "https://openrouter.ai/api/v1/models",
+            { method: "GET" },
+            10000,
+          )
+            .then(function (res) {
+              return res.ok ? res.json() : null;
+            })
+            .then(function (data) {
+              const list = (data && Array.isArray(data.data) ? data.data : [])
+                .filter(function (item) {
+                  return item && item.id;
+                })
+                .map(function (item) {
+                  const pricing = item.pricing || {};
+                  return {
+                    id: item.id,
+                    name: item.name || item.id,
+                    free: Number(pricing.prompt) === 0 && Number(pricing.completion) === 0,
+                  };
+                });
+              if (!list.length) return null;
+              openRouterModels = list;
+              renderOpenRouterModelOptions();
+              return list;
+            })
+            .catch(function () {
+              return null;
+            })
+            .finally(function () {
+              openRouterModelsLoading = null;
+            });
+          return openRouterModelsLoading;
+        }
+
+        function renderOpenRouterModelOptions() {
+          openRouterModelList.replaceChildren.apply(
+            openRouterModelList,
+            openRouterModels.map(function (item) {
+              const option = document.createElement("option");
+              option.value = item.id;
+              option.label = item.name + (item.free ? " · free" : "");
+              return option;
+            }),
+          );
+          const free = openRouterModels.filter(function (item) {
+            return item.free;
+          }).length;
+          openRouterModelHint.textContent =
+            openRouterModels.length +
+            " models. Type to search by name or id" +
+            (free ? "; " + free + " are free." : ".");
+        }
+
+        // Routing suffixes like ":nitro" or ":floor" are not listed as
+        // separate models, so compare on the base id too.
+        function isKnownOpenRouterModel(model) {
+          const base = model.split(":")[0];
+          return openRouterModels.some(function (item) {
+            return item.id === model || item.id === base;
+          });
+        }
+
+        async function checkOpenRouter() {
+          const key = HOSTED.openrouter.legacyKey.value.trim();
+          const model = HOSTED.openrouter.legacyModel.value.trim();
+          if (!key) return { ok: false, message: "Enter an API key first" };
+          let res;
+          try {
+            // /key validates the key and spends no credits.
+            res = await fetchWithTimeout(
+              "https://openrouter.ai/api/v1/key",
+              { method: "GET", headers: { Authorization: "Bearer " + key } },
+              8000,
+            );
+          } catch (_error) {
+            return { ok: false, message: "Can't reach OpenRouter. Check your connection." };
+          }
+          if (res.status === 401) return { ok: false, message: "Invalid API key" };
+          if (!res.ok) return { ok: false, message: "OpenRouter answered HTTP " + res.status };
+          await loadOpenRouterModels();
+          if (model && openRouterModels && !isKnownOpenRouterModel(model)) {
+            return { ok: false, message: model + " isn't available on OpenRouter" };
+          }
+          return { ok: true, message: "Connected" };
+        }
+
+        const CHECKS = {
+          ollama: checkOllama,
+          groq: checkGroq,
+          openrouter: checkOpenRouter,
+        };
+
         function runHealthCheck(provider) {
           if (checking[provider]) return checking[provider];
-          const resultEl = resultEls[provider];
-          const btn = testBtns[provider];
+          const btn = ui[provider].testBtn;
           btn.disabled = true;
-          setTestResult(resultEl, null, "Testing…");
-          checking[provider] = (provider === "groq" ? checkGroq() : checkOllama())
+          setTestResult(provider, null, "Testing…");
+          checking[provider] = CHECKS[provider]()
             .then(function (result) {
-              setTestResult(resultEl, result.ok ? "is-ok" : "is-err", (result.ok ? "✓ " : "✗ ") + result.message);
+              setTestResult(provider, result.ok ? "is-ok" : "is-err", (result.ok ? "✓ " : "✗ ") + result.message);
               recordHealth(provider, result.ok, result.message);
             })
             .finally(function () {
@@ -28408,16 +28831,15 @@ Return JSON only.`;
           return checking[provider];
         }
 
-        testOllamaBtn.addEventListener("click", function () {
-          runHealthCheck("ollama");
-        });
-        testGroqBtn.addEventListener("click", function () {
-          runHealthCheck("groq");
+        PROVIDER_IDS.forEach(function (id) {
+          ui[id].testBtn.addEventListener("click", function () {
+            runHealthCheck(id);
+          });
         });
 
         // Real AI requests (chat, mindmap, summary) report here too.
         window.markvReportLlmHealth = function (provider, ok, message) {
-          if (provider !== "ollama" && provider !== "groq") return;
+          if (!ui[provider]) return;
           recordHealth(
             provider,
             Boolean(ok),
@@ -28460,7 +28882,7 @@ Return JSON only.`;
           runHealthCheck(currentProvider());
           // Focus the first meaningful control (the active segment).
           window.requestAnimationFrame(function () {
-            const first = currentProvider() === "groq" ? segGroq : segOllama;
+            const first = ui[currentProvider()].seg;
             first.focus();
           });
         }
@@ -28539,6 +28961,14 @@ Return JSON only.`;
         const ollamaModelField = document.getElementById("ollamaModelField");
         const groqApiKeyField = document.getElementById("groqApiKeyField");
         const groqModelField = document.getElementById("groqModelField");
+        const openrouterApiKeyInput = document.getElementById("openrouterApiKey");
+        const openrouterModelInput = document.getElementById("openrouterModel");
+        const openrouterApiKeyField = document.getElementById(
+          "openrouterApiKeyField",
+        );
+        const openrouterModelField = document.getElementById(
+          "openrouterModelField",
+        );
         const CHAT_HISTORY_LIMIT = 8;
         const HISTORY_CHAR_LIMIT = 1200;
         const CHAT_MESSAGE_DOM_LIMIT = 40;
@@ -28549,13 +28979,23 @@ Return JSON only.`;
         // ---- AI config ----
         const LLM_SETTINGS_KEY = "md-viewer-llm";
         const LEGACY_OLLAMA_SETTINGS_KEY = "md-viewer-ollama";
-        const LEGACY_GROQ_DEFAULT_MODEL = "llama-3.3-70b-versatile";
+        // Earlier Groq defaults. Settings still on one of them move to the
+        // current default once (see migrateLlmSettings).
+        const LEGACY_GROQ_DEFAULT_MODELS = [
+          "llama-3.3-70b-versatile",
+          "qwen/qwen3-32b",
+        ];
+        const GROQ_DEFAULT_MIGRATION_KEY = "md-viewer-llm-groq-default";
         const DEFAULT_LLM_SETTINGS = {
           provider: "ollama",
           endpoint: "http://localhost:11434",
-          ollamaModel: "gemma4:26b",
+          // No Ollama default: a model only works if it is installed, so
+          // Settings picks one from the user's own models instead.
+          ollamaModel: "",
           groqApiKey: "",
-          groqModel: "qwen/qwen3-32b",
+          groqModel: "openai/gpt-oss-120b",
+          openrouterApiKey: "",
+          openrouterModel: "openai/gpt-oss-120b",
         };
         function readChatPreference(key, fallback) {
           try {
@@ -28571,7 +29011,7 @@ Return JSON only.`;
           } catch (_error) {}
         }
         function normalizeLlmProvider(value) {
-          return value === "groq" ? "groq" : "ollama";
+          return value === "groq" || value === "openrouter" ? value : "ollama";
         }
         function readStoredLlmSettings() {
           let saved = null;
@@ -28602,11 +29042,25 @@ Return JSON only.`;
         }
         function migrateLlmSettings(settings) {
           const next = Object.assign({}, DEFAULT_LLM_SETTINGS, settings || {});
-          if (
-            next.provider === "groq" &&
-            (!next.groqModel || next.groqModel === LEGACY_GROQ_DEFAULT_MODEL)
-          ) {
+          if (!next.groqModel) {
             next.groqModel = DEFAULT_LLM_SETTINGS.groqModel;
+          }
+          if (!next.openrouterModel) {
+            next.openrouterModel = DEFAULT_LLM_SETTINGS.openrouterModel;
+          }
+          // Upgrade an old default exactly once, so someone who later picks
+          // one of those models on purpose keeps it.
+          if (
+            readChatPreference(GROQ_DEFAULT_MIGRATION_KEY, "") !==
+            DEFAULT_LLM_SETTINGS.groqModel
+          ) {
+            if (LEGACY_GROQ_DEFAULT_MODELS.indexOf(next.groqModel) !== -1) {
+              next.groqModel = DEFAULT_LLM_SETTINGS.groqModel;
+            }
+            writeChatPreference(
+              GROQ_DEFAULT_MIGRATION_KEY,
+              DEFAULT_LLM_SETTINGS.groqModel,
+            );
           }
           return next;
         }
@@ -28617,6 +29071,8 @@ Return JSON only.`;
             ollamaModel: ollamaModelInput.value.trim(),
             groqApiKey: groqApiKeyInput.value.trim(),
             groqModel: groqModelInput.value.trim(),
+            openrouterApiKey: openrouterApiKeyInput.value.trim(),
+            openrouterModel: openrouterModelInput.value.trim(),
           };
         }
         function applyLlmSettings(settings) {
@@ -28628,14 +29084,18 @@ Return JSON only.`;
           groqApiKeyInput.value = next.groqApiKey || "";
           groqModelInput.value =
             next.groqModel || DEFAULT_LLM_SETTINGS.groqModel;
+          openrouterApiKeyInput.value = next.openrouterApiKey || "";
+          openrouterModelInput.value =
+            next.openrouterModel || DEFAULT_LLM_SETTINGS.openrouterModel;
         }
         function syncLlmSettingsUi() {
           const provider = normalizeLlmProvider(providerInput.value);
-          const showOllama = provider === "ollama";
-          ollamaEndpointField.hidden = !showOllama;
-          ollamaModelField.hidden = !showOllama;
-          groqApiKeyField.hidden = showOllama;
-          groqModelField.hidden = showOllama;
+          ollamaEndpointField.hidden = provider !== "ollama";
+          ollamaModelField.hidden = provider !== "ollama";
+          groqApiKeyField.hidden = provider !== "groq";
+          groqModelField.hidden = provider !== "groq";
+          openrouterApiKeyField.hidden = provider !== "openrouter";
+          openrouterModelField.hidden = provider !== "openrouter";
         }
         function saveLlmSettings() {
           const settings = getCurrentLlmSettings();
@@ -28654,6 +29114,9 @@ Return JSON only.`;
           if (settings.provider === "groq") {
             return Boolean(settings.groqApiKey && settings.groqModel);
           }
+          if (settings.provider === "openrouter") {
+            return Boolean(settings.openrouterApiKey && settings.openrouterModel);
+          }
           return Boolean(settings.endpoint && settings.ollamaModel);
         }
         applyLlmSettings(migrateLlmSettings(readStoredLlmSettings()));
@@ -28665,6 +29128,8 @@ Return JSON only.`;
           ollamaModelInput,
           groqApiKeyInput,
           groqModelInput,
+          openrouterApiKeyInput,
+          openrouterModelInput,
         ].forEach(function (input) {
           input.addEventListener("change", saveLlmSettings);
           input.addEventListener("input", function () {
@@ -29341,8 +29806,16 @@ Return JSON only.`;
           const opts = options || {};
           const raw = endpointInput.value.trim().replace(/\/+$/, "");
           const endpoint = normalizeOllamaEndpoint(raw);
-          const model =
-            ollamaModelInput.value.trim() || DEFAULT_LLM_SETTINGS.ollamaModel;
+          let model = ollamaModelInput.value.trim();
+          if (!model && typeof window.markvResolveOllamaModel === "function") {
+            // No model chosen yet: use (and remember) an installed one.
+            const resolved = await window.markvResolveOllamaModel();
+            if (resolved.error) throw new Error(resolved.error);
+            model = resolved.model;
+          }
+          if (!model) {
+            throw new Error("Choose an Ollama model in Settings.");
+          }
           const body = {
             model: model,
             messages: messages,
@@ -29415,20 +29888,54 @@ Return JSON only.`;
           return content;
         }
 
-        async function callGroq(messages, options) {
+        // Hosted providers that speak the OpenAI chat-completions API.
+        // They share request, reply parsing and SSE streaming code; only
+        // the URL, key, model and a few extras differ.
+        const HOSTED_LLM = {
+          groq: {
+            label: "Groq",
+            url: "https://api.groq.com/openai/v1/chat/completions",
+            keyInput: groqApiKeyInput,
+            modelInput: groqModelInput,
+            defaultModel: DEFAULT_LLM_SETTINGS.groqModel,
+            headers: {},
+          },
+          openrouter: {
+            label: "OpenRouter",
+            url: "https://openrouter.ai/api/v1/chat/completions",
+            keyInput: openrouterApiKeyInput,
+            modelInput: openrouterModelInput,
+            defaultModel: DEFAULT_LLM_SETTINGS.openrouterModel,
+            // Optional attribution headers OpenRouter documents for apps.
+            headers: {
+              "HTTP-Referer": window.location.origin,
+              "X-Title": "MarkV",
+            },
+          },
+        };
+
+        function getHostedModel(provider) {
+          const hosted = HOSTED_LLM[provider];
+          return hosted.modelInput.value.trim() || hosted.defaultModel;
+        }
+
+        async function callHosted(provider, messages, options) {
+          const hosted = HOSTED_LLM[provider];
           const opts = options || {};
-          const apiKey = groqApiKeyInput.value.trim();
+          const apiKey = hosted.keyInput.value.trim();
           if (!apiKey) {
-            throw new Error("Groq API key is missing. Add it in AI settings.");
+            throw new Error(
+              hosted.label + " API key is missing. Add it in AI settings.",
+            );
           }
-          const model =
-            groqModelInput.value.trim() || DEFAULT_LLM_SETTINGS.groqModel;
+          const model = getHostedModel(provider);
           const body = {
             model: model,
             messages: messages,
             stream: opts.stream !== false,
           };
-          if (/qwen3/i.test(model)) {
+          // Groq's qwen3 thinks out loud unless told not to.
+          if (provider === "groq" && /qwen3/i.test(model)) {
             body.reasoning_effort = "none";
           }
           if (
@@ -29441,14 +29948,14 @@ Return JSON only.`;
             body.response_format = opts.responseFormat;
           }
           return tryFetch(
-            "https://api.groq.com/openai/v1/chat/completions",
+            hosted.url,
             body,
-            { Authorization: "Bearer " + apiKey },
-            "Groq",
+            Object.assign({ Authorization: "Bearer " + apiKey }, hosted.headers),
+            hosted.label,
           );
         }
 
-        async function parseGroqContent(response) {
+        async function parseHostedContent(response) {
           let parsed;
           try {
             parsed = await response.json();
@@ -29497,8 +30004,11 @@ Return JSON only.`;
 
         async function callConfiguredLlmResponse(messages, options) {
           const settings = getCurrentLlmSettings();
-          return settings.provider === "groq"
-            ? reportLlmOutcome("groq", callGroq(messages, options))
+          return HOSTED_LLM[settings.provider]
+            ? reportLlmOutcome(
+                settings.provider,
+                callHosted(settings.provider, messages, options),
+              )
             : reportLlmOutcome("ollama", callOllama(messages, options));
         }
 
@@ -29508,15 +30018,15 @@ Return JSON only.`;
             messages,
             Object.assign({}, options || {}, { stream: false }),
           );
-          return settings.provider === "groq"
-            ? parseGroqContent(response)
+          return HOSTED_LLM[settings.provider]
+            ? parseHostedContent(response)
             : parseOllamaContent(response);
         }
 
         async function callConfiguredLlmJson(messages, options) {
           const settings = getCurrentLlmSettings();
           const opts = options || {};
-          if (settings.provider === "groq") {
+          if (HOSTED_LLM[settings.provider]) {
             return callConfiguredLlmText(
               messages,
               Object.assign({}, opts, {
@@ -29545,11 +30055,14 @@ Return JSON only.`;
               throw new Error("Mindmap extraction request was incomplete");
             }
             const settings = getCurrentLlmSettings();
-            const groqFormat =
-              settings.provider === "groq" &&
+            const hosted = Boolean(HOSTED_LLM[settings.provider]);
+            // Schema-strict output for models that support it (same ids,
+            // e.g. openai/gpt-oss-120b, on Groq and OpenRouter).
+            const structuredFormat =
+              hosted &&
               typeof window.markvGetMindmapGroqResponseFormat === "function"
                 ? window.markvGetMindmapGroqResponseFormat(
-                    settings.groqModel || DEFAULT_LLM_SETTINGS.groqModel,
+                    getHostedModel(settings.provider),
                   )
                 : null;
             try {
@@ -29560,14 +30073,14 @@ Return JSON only.`;
                 ],
                 {
                   maxCompletionTokens: request.maxCompletionTokens,
-                  responseFormat: groqFormat,
+                  responseFormat: structuredFormat,
                 },
               );
             } catch (error) {
               const usedStructuredOutput =
-                groqFormat && groqFormat.type === "json_schema";
+                structuredFormat && structuredFormat.type === "json_schema";
               const shouldFallback =
-                settings.provider === "groq" &&
+                hosted &&
                 usedStructuredOutput &&
                 error &&
                 error.status === 400;
@@ -29648,7 +30161,7 @@ Return JSON only.`;
           return "No reply received.";
         }
 
-        async function streamGroqResponse(response, msgDiv) {
+        async function streamHostedResponse(response, msgDiv) {
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let fullText = "";
@@ -29715,8 +30228,8 @@ Return JSON only.`;
         }
 
         async function streamResponse(response, msgDiv) {
-          return getCurrentLlmSettings().provider === "groq"
-            ? streamGroqResponse(response, msgDiv)
+          return HOSTED_LLM[getCurrentLlmSettings().provider]
+            ? streamHostedResponse(response, msgDiv)
             : streamOllamaResponse(response, msgDiv);
         }
 
@@ -29737,11 +30250,13 @@ Return JSON only.`;
             );
           }
           const settings = getCurrentLlmSettings();
-          if (settings.provider === "groq") {
+          if (HOSTED_LLM[settings.provider]) {
             return escapeChatHtml(
               "Error: " +
                 err.message +
-                "\n\nCheck your Groq API key and model in AI settings.",
+                "\n\nCheck your " +
+                HOSTED_LLM[settings.provider].label +
+                " API key and model in AI settings.",
             ).replace(/\n/g, "<br>");
           }
           return escapeChatHtml(
@@ -29914,16 +30429,16 @@ Return JSON only.`;
 
     <script>
       /* ============================================================
-       Secure Groq API key storage (WebCrypto + IndexedDB)
+       Secure API key storage for Groq and OpenRouter (WebCrypto + IndexedDB)
 
-       Strategy: the Groq key is encrypted with a non-extractable
+       Strategy: each key is encrypted with a non-extractable
        AES-GCM CryptoKey stored inside IndexedDB. IDB can hold a
        CryptoKey handle directly without ever exposing its raw bytes,
        so even with disk access an attacker cannot recover the
-       encryption key. The encrypted Groq key lives in the same DB.
+       encryption key. The encrypted keys live in the same DB.
 
        Plaintext never touches localStorage after first migration.
-       The existing chat module still reads `groqApiKey` from its
+       The existing chat module still reads each key from its
        legacy hidden input — this script injects the decrypted value
        on load and scrubs any plaintext that other code writes.
 
@@ -29932,7 +30447,7 @@ Return JSON only.`;
        Application tab. It does NOT protect against active XSS on
        this origin — any script that can call crypto.subtle.decrypt
        can decrypt the key. For that level of protection, proxy
-       Groq calls through a server-side endpoint.
+       provider calls through a server-side endpoint.
        ============================================================ */
       (function () {
         "use strict";
@@ -29942,7 +30457,6 @@ Return JSON only.`;
         const DB_VERSION = 1;
         const STORE = "secrets";
         const KEY_ID = "aes-key";
-        const SECRET_ID = "groq-api-key";
 
         const supported =
           typeof indexedDB !== "undefined" &&
@@ -29953,7 +30467,7 @@ Return JSON only.`;
         if (!supported) {
           console.warn(
             "[secure-store] WebCrypto/IndexedDB unavailable — " +
-              "Groq key stays in localStorage plaintext.",
+              "API keys stay in localStorage plaintext.",
           );
           return;
         }
@@ -30062,17 +30576,29 @@ Return JSON only.`;
           return new TextDecoder().decode(plain);
         }
 
-        async function saveGroqKey(plaintext) {
+        // One entry per API key: the field in the md-viewer-llm JSON, the
+        // legacy hidden input the chat module reads, and the IDB row id.
+        const SECRETS = [
+          { field: "groqApiKey", inputId: "groqApiKey", id: "groq-api-key", label: "Groq" },
+          {
+            field: "openrouterApiKey",
+            inputId: "openrouterApiKey",
+            id: "openrouter-api-key",
+            label: "OpenRouter",
+          },
+        ];
+
+        async function saveSecret(secret, plaintext) {
           if (!plaintext) {
-            await idbDelete(SECRET_ID);
+            await idbDelete(secret.id);
             return;
           }
           const payload = await encryptString(plaintext);
-          await idbPut({ id: SECRET_ID, iv: payload.iv, ct: payload.ct });
+          await idbPut({ id: secret.id, iv: payload.iv, ct: payload.ct });
         }
 
-        async function loadGroqKey() {
-          const row = await idbGet(SECRET_ID);
+        async function loadSecret(secret) {
+          const row = await idbGet(secret.id);
           if (!row || !row.iv || !row.ct) return null;
           try {
             return await decryptPayload({ iv: row.iv, ct: row.ct });
@@ -30089,20 +30615,25 @@ Return JSON only.`;
             if (!raw) return;
             const obj = JSON.parse(raw);
             if (!obj || typeof obj !== "object") return;
-            if (!obj.groqApiKey) return;
-            obj.groqApiKey = "";
-            localStorage.setItem(LLM_KEY, JSON.stringify(obj));
+            let changed = false;
+            SECRETS.forEach(function (secret) {
+              if (obj[secret.field]) {
+                obj[secret.field] = "";
+                changed = true;
+              }
+            });
+            if (changed) localStorage.setItem(LLM_KEY, JSON.stringify(obj));
           } catch (_err) {
             /* ignore — corrupt JSON is the chat module's problem */
           }
         }
 
-        function extractPlaintextFromLocalStorage() {
+        function extractPlaintextFromLocalStorage(secret) {
           try {
             const raw = localStorage.getItem(LLM_KEY);
             if (!raw) return "";
             const obj = JSON.parse(raw);
-            return obj && obj.groqApiKey ? String(obj.groqApiKey) : "";
+            return obj && obj[secret.field] ? String(obj[secret.field]) : "";
           } catch (_err) {
             return "";
           }
@@ -30113,67 +30644,78 @@ Return JSON only.`;
         // feature ships, the chat IIFE has just re-written a JSON
         // blob containing the plaintext key. Encrypt and scrub.
         function migrateIfNeeded() {
-          const plaintext = extractPlaintextFromLocalStorage();
-          if (!plaintext) return Promise.resolve();
-          return saveGroqKey(plaintext)
-            .then(function () {
-              stripPlaintextFromLocalStorage();
-              console.info(
-                "[secure-store] migrated Groq key to encrypted storage.",
-              );
-            })
-            .catch(function (err) {
-              console.warn("[secure-store] migration failed:", err);
-            });
+          return Promise.all(
+            SECRETS.map(function (secret) {
+              const plaintext = extractPlaintextFromLocalStorage(secret);
+              if (!plaintext) return null;
+              return saveSecret(secret, plaintext)
+                .then(function () {
+                  console.info(
+                    "[secure-store] migrated " +
+                      secret.label +
+                      " key to encrypted storage.",
+                  );
+                })
+                .catch(function (err) {
+                  console.warn("[secure-store] migration failed:", err);
+                });
+            }),
+          ).then(stripPlaintextFromLocalStorage);
         }
 
         // ---- Hydration ----
-        // Load the encrypted key and inject it into the legacy
+        // Load each encrypted key and inject it into its legacy
         // hidden input. Fire input+change so the drawer mirrors it
         // and the chat module refreshes its "configured" state.
-        function hydrateInput() {
-          const input = document.getElementById("groqApiKey");
-          if (!input) return Promise.resolve();
-          return loadGroqKey().then(function (plaintext) {
-            if (!plaintext) return;
-            if (input.value === plaintext) return;
-            input.value = plaintext;
-            input.dispatchEvent(new Event("input", { bubbles: true }));
-            input.dispatchEvent(new Event("change", { bubbles: true }));
-            // The change event will have made chat IIFE write the
-            // plaintext back into localStorage — scrub it again.
-            stripPlaintextFromLocalStorage();
-          });
+        function hydrateInputs() {
+          return Promise.all(
+            SECRETS.map(function (secret) {
+              const input = document.getElementById(secret.inputId);
+              if (!input) return null;
+              return loadSecret(secret).then(function (plaintext) {
+                if (!plaintext) return;
+                if (input.value === plaintext) return;
+                input.value = plaintext;
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+                // The change event will have made chat IIFE write the
+                // plaintext back into localStorage — scrub it again.
+                stripPlaintextFromLocalStorage();
+              });
+            }),
+          );
         }
 
         // ---- Forward-save interception ----
-        // When the user edits the Groq key (via the drawer, which
-        // mirrors into the legacy input), the chat IIFE's change
-        // listener runs first and writes plaintext to localStorage.
-        // Our change listener runs right after and:
+        // When the user edits a key (via the drawer, which mirrors
+        // into the legacy input), the chat IIFE's change listener runs
+        // first and writes plaintext to localStorage. Our change
+        // listener runs right after and:
         //   1. Strips plaintext from localStorage immediately
         //   2. Encrypts the new value into IndexedDB
-        function attachForwardSaveGuard() {
-          const input = document.getElementById("groqApiKey");
-          if (!input) return;
-          input.addEventListener("change", function () {
-            const value = input.value.trim();
-            stripPlaintextFromLocalStorage();
-            saveGroqKey(value).catch(function (err) {
-              console.warn("[secure-store] save failed:", err);
+        function attachForwardSaveGuards() {
+          SECRETS.forEach(function (secret) {
+            const input = document.getElementById(secret.inputId);
+            if (!input) return;
+            input.addEventListener("change", function () {
+              const value = input.value.trim();
+              stripPlaintextFromLocalStorage();
+              saveSecret(secret, value).catch(function (err) {
+                console.warn("[secure-store] save failed:", err);
+              });
             });
           });
         }
 
         // ---- Boot ----
         // Ordering: the chat IIFE has already run (this script
-        // follows it in document order), so `groqApiKey` input is
+        // follows it in document order), so the key inputs are
         // already populated with whatever was in localStorage.
-        // Kick off migration + hydration in parallel, then attach
-        // the save guard for future edits.
-        attachForwardSaveGuard();
+        // Run migration, then hydration, then attach the save guards
+        // for future edits.
+        attachForwardSaveGuards();
         migrateIfNeeded()
-          .then(hydrateInput)
+          .then(hydrateInputs)
           .catch(function (err) {
             console.warn("[secure-store] boot failed:", err);
           });
