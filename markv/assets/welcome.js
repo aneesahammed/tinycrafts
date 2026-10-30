@@ -252,7 +252,8 @@
           '<button type="button" class="welcome-link" data-welcome-action="open-showcase">Explore the Markdown showcase →</button>'),
         ui("p", "welcome-note",
           "This page steps aside once you open a file. Find it again any time in <kbd>" +
-          shortcutLabel() + "</kbd>."),
+          shortcutLabel() + "</kbd>. " +
+          '<a href="changelog/" target="_blank" rel="noopener">See what’s new in MarkV</a>'),
       );
     }
     const endLabel = end && [...end.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());

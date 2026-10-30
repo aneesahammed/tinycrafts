@@ -5,6 +5,8 @@ const fs = require("node:fs");
 const page = fs.readFileSync("changelog/index.html", "utf8");
 const app = fs.readFileSync("index.html", "utf8");
 const build = fs.readFileSync("../scripts/build-pages.mjs", "utf8");
+const home = fs.readFileSync("../index.htm", "utf8");
+const welcome = fs.readFileSync("assets/welcome.js", "utf8");
 
 const releases = [...page.matchAll(
   /<li class="release" id="([^"]+)">[\s\S]*?class="ver[^"]*" href="#([^"]+)">v(\d+)\.(\d+)\.(\d+)<\/a>\s*<time datetime="(\d{4}-\d{2}-\d{2})">[\s\S]*?<h2>[\s\S]*?<\/h2>\s*<p>([\s\S]*?)<\/p>/g,
@@ -32,4 +34,11 @@ test("changelog copy follows the house rules and ships", () => {
   assert.match(app, /id="changelogLink"[\s\S]*?href="changelog\/"/);
   assert.match(app, /data-proxy="changelogLink"/);
   assert.match(build, /'markv\/changelog\/index\.html'/);
+});
+
+test("the changelog is linked where people find MarkV", () => {
+  assert.match(home, /class="specimen-sublink" href="markv\/changelog\/"/, "tinycrafts.ai MarkV card");
+  assert.doesNotMatch(home, /<a[^>]*class="specimen[^"]*"[^>]*>[\s\S]*?specimen-sublink[\s\S]*?<\/a>\s*<\/article>/,
+    "the sub-link is not nested inside another link");
+  assert.match(welcome, /href="changelog\/"/, "welcome page closing note");
 });
