@@ -5,7 +5,7 @@ export function sampleQueries(tableName, virtualFileName, formatId = 'parquet') 
   const file = quoteString(virtualFileName);
   const queries = [
     { label: 'SELECT *', sql: `SELECT *\nFROM ${tableName}\nLIMIT 500;` },
-    { label: 'DESCRIBE', sql: `DESCRIBE SELECT *\nFROM ${tableName};` },
+    { label: 'DESCRIBE', sql: `DESCRIBE ${tableName};` },
     { label: 'SUMMARIZE', sql: `SUMMARIZE ${tableName};` },
   ];
   if (!formatById(formatId)?.hasParquetMetadata) return queries;

@@ -10,7 +10,7 @@ export function buildCommands(state, actions) {
     list.push(
       {
         group: 'AI',
-        icon: '?',
+        icon: '✦',
         title: 'Ask DataDuck',
         sub: `Ask questions about ${state.activeTable}`,
         run: () => actions.openAssistant?.(),
@@ -24,10 +24,10 @@ export function buildCommands(state, actions) {
       },
       {
         group: 'Queries',
-        icon: '?',
+        icon: '≡',
         title: 'DESCRIBE active file',
         sub: `DESCRIBE ${state.activeTable}`,
-        run: () => actions.setSql(`DESCRIBE SELECT *\nFROM ${state.activeTable};`),
+        run: () => actions.setSql(`DESCRIBE ${state.activeTable};`),
       },
       {
         group: 'Queries',

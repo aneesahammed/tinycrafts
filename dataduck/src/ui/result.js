@@ -26,17 +26,29 @@ function nextSortDirection(current) {
 }
 
 function render(wrap, s) {
+  if (s.queryError) {
+    setHtml(wrap, `
+      <div class="result-msg is-error" role="alert">
+        <p class="result-msg-title">DuckDB returned an error</p>
+        <pre class="result-msg-detail">${esc(s.queryError)}</pre>
+      </div>
+    `);
+    return;
+  }
   if (!s.resultColumns.length) {
-    setHtml(wrap, '');
+    setHtml(wrap, s.activeTable && !s.isBusy
+      ? '<div class="result-msg"><p class="result-msg-title">No results yet</p><p>Run the query to see rows here.</p></div>'
+      : '');
     return;
   }
   const sortedRows = sortRows(s.resultRows, s.sortColumn, s.sortDirection, s.resultColumnTypes);
+  const numeric = new Set(s.resultColumns.filter((c) => isNumericColumn(s.resultRows, c, s.resultColumnTypes?.[c])));
   const head = `<tr><th>#</th>${s.resultColumns
     .map((c) => {
       const isActive = s.sortColumn === c;
       const ariaSort = isActive ? (s.sortDirection === 'desc' ? 'descending' : 'ascending') : 'none';
       const indicator = isActive ? (s.sortDirection === 'desc' ? '▼' : '▲') : '↕';
-      return `<th data-sortable="true" data-col="${esc(c)}" aria-sort="${ariaSort}" title="Sort by ${esc(c)}">${esc(c)}<span class="sort-ind" aria-hidden="true">${indicator}</span></th>`;
+      return `<th${numeric.has(c) ? ' class="num"' : ''} data-sortable="true" data-col="${esc(c)}" aria-sort="${ariaSort}" title="Sort by ${esc(c)}">${esc(c)}<span class="sort-ind" aria-hidden="true">${indicator}</span></th>`;
     })
     .join('')}</tr>`;
   const start = s.page * s.pageSize;
@@ -56,7 +68,16 @@ function render(wrap, s) {
       return `<tr><td>${start + i + 1}</td>${cells}</tr>`;
     })
     .join('');
-  setHtml(wrap, `<table><thead>${head}</thead><tbody>${body}</tbody></table>`);
+  const empty = rows.length ? '' : '<div class="result-msg"><p class="result-msg-title">No rows</p><p>The query ran, but nothing matched.</p></div>';
+  setHtml(wrap, `<table><thead>${head}</thead><tbody>${body}</tbody></table>${empty}`);
+}
+
+// Header alignment follows the cells: a column is numeric when its first
+// non-null value renders right-aligned in the body.
+function isNumericColumn(rows, column, type) {
+  if (isTemporalColumnType(type)) return false;
+  const sample = rows.find((r) => r?.[column] != null)?.[column];
+  return typeof sample === 'number' || typeof sample === 'bigint';
 }
 
 function sortRows(rows, column, direction, columnTypes) {

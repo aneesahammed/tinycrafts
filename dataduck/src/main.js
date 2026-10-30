@@ -86,7 +86,6 @@ applyAcceptExtensions(fileInput);
 restoreRailCollapsed();
 
 mountHeader(head, store, {
-  onRun: () => runActiveQuery(),
   onToggleTheme: toggleTheme,
   onOpenPalette: () => store.setPaletteOpen(true),
   onOpenSnapshots: toggleSnapshotsPanel,
@@ -116,7 +115,7 @@ const assistant = createLazyAiAssistant(stage, store, {
 
 mountRail(rail, store, {
   onPickFiles: () => fileInput.click(),
-  onClose: (table) => closeFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
+  onClose: (table) => closeFileWithUndo(table),
   onSwitch: (table) => setActiveFile(store, table).catch((e) => showToast(toErrorMessage(e), 'error')),
   onColClick: (payload) => profiler.open(payload),
   onSummarize: (table) => summarizeOpenFile(table),
@@ -185,7 +184,7 @@ async function warmDuckDb() {
   }
 }
 
-async function openFiles(files, options = {}) {
+async function openFiles(files, options = {}, { keepSql = false } = {}) {
   const selected = Array.from(files || []);
   const supported = selected.filter(isSupportedFile);
   const unsupportedCount = selected.length - supported.length;
@@ -195,11 +194,13 @@ async function openFiles(files, options = {}) {
     return;
   }
 
+  let opened = false;
   for (const file of supported) {
     store.setBusy(true, `Opening ${file.name}`);
     try {
       const { tableName, warnings } = await openFileInto(store, file, options);
-      editor.setSql(`SELECT *\nFROM ${tableName}\nLIMIT 500;`);
+      if (!keepSql) editor.setSql(`SELECT *\nFROM ${tableName}\nLIMIT 500;`);
+      opened = true;
       for (const warning of warnings || []) showToast(warning);
     } catch (error) {
       if (!showCsvRecoveryToast({ error, file, csvMode: options.csvMode, showToast, reopen: reopenCsvAsText })) {
@@ -211,6 +212,23 @@ async function openFiles(files, options = {}) {
   }
 
   if (unsupportedCount) showToast(unsupportedFilesMessage(unsupportedCount), 'error');
+  // Land on rows, not a blank pane: the default query is a cheap LIMIT 500.
+  if (opened && !keepSql) await runActiveQuery();
+}
+
+async function closeFileWithUndo(table) {
+  const record = store.state.files.get(table);
+  try {
+    await closeFile(store, table);
+  } catch (error) {
+    showToast(toErrorMessage(error), 'error');
+    return;
+  }
+  if (!record?.file) return;
+  showToast(`Closed ${table}.`, '', {
+    label: 'Undo',
+    run: () => openFiles([record.file], record.csvMode ? { csvMode: record.csvMode } : {}, { keepSql: true }),
+  });
 }
 
 async function openRecentFile(name) {
@@ -304,6 +322,7 @@ async function runActiveQuery() {
       columnTypes: result.columnTypes,
       rows: result.rows,
       elapsedMs,
+      sql,
     });
     captureQuerySnapshot({ sql, result, elapsedMs });
   } catch (error) {
@@ -319,7 +338,8 @@ async function runActiveQuery() {
         reopen: reopenCsvAsText,
       })
     ) {
-      showToast(toErrorMessage(error), 'error');
+      // Shown in place of the result, next to the query that caused it.
+      store.setQueryError(toErrorMessage(error), sql);
     }
   } finally {
     store.setBusy(false);

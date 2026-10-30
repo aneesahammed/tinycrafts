@@ -37,10 +37,49 @@ describe('editor helper tabs', () => {
     expect(sample.disabled).toBe(false);
 
     schema.click();
-    expect(editor.getSql()).toBe('DESCRIBE SELECT *\nFROM lab;');
+    expect(editor.getSql()).toBe('DESCRIBE lab;');
 
     sample.click();
     expect(editor.getSql()).toBe('SELECT *\nFROM lab\nORDER BY random()\nLIMIT 100;');
+  });
+
+  it('runs read-only tabs on activation so results match the tab', () => {
+    const work = document.createElement('main');
+    const onRun = vi.fn();
+    const store = createStore({ activeTable: 'lab', files: new Map([['lab', {}]]), isBusy: false });
+    mountEditor(work, store, { onRun });
+
+    work.querySelector('[data-editor-tab="schema"]').click();
+    expect(onRun).toHaveBeenCalledTimes(1);
+    work.querySelector('[data-editor-tab="query"]').click();
+    expect(onRun).toHaveBeenCalledTimes(1);
+    expect(work.querySelector('[role="tablist"]')).not.toBeNull();
+    expect(work.querySelector('[data-editor-tab="query"]').getAttribute('role')).toBe('tab');
+  });
+
+  it('puts Run in the editor bar and reports failed and stale runs', () => {
+    const work = document.createElement('main');
+    const onRun = vi.fn();
+    const store = createStore({ activeTable: 'lab', files: new Map([['lab', {}]]), isBusy: false });
+    const editor = mountEditor(work, store, { onRun });
+    const run = work.querySelector('.editor .foot #eRun');
+    const status = work.querySelector('#eStatus');
+
+    expect(run.disabled).toBe(false);
+    run.click();
+    expect(onRun).toHaveBeenCalledTimes(1);
+
+    store.emit({ lastRunSql: editor.getSql().trim(), queryError: 'Parser Error' });
+    expect(status.textContent).toBe('Query failed');
+
+    store.emit({ queryError: null });
+    expect(status.textContent).toBe('Up to date');
+
+    editor.setSql('SELECT 1;');
+    expect(status.textContent).toBe('Results are from an earlier query');
+
+    store.emit({ activeTable: null });
+    expect(run.disabled).toBe(true);
   });
 
   it('disables schema and sample tabs before a file is opened', () => {

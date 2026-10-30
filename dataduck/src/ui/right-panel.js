@@ -21,6 +21,15 @@ export function ensureRightPanel(el, store = null) {
       event.preventDefault();
       closeRightPanel(el, store);
     });
+    // Below 980px the panel overlays the work area on a scrim drawn by the
+    // stage's ::before; clicks on that scrim land on the stage itself.
+    el.addEventListener('click', (event) => {
+      if (event.target !== el) return;
+      if (!window.matchMedia?.('(max-width: 980px)').matches) return;
+      const current = el.querySelector(`.${HOST_CLASS}`);
+      if (!current || current.hidden) return;
+      closeRightPanel(el, store);
+    });
   }
 
   return host;

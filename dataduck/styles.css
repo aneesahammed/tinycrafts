@@ -7,8 +7,10 @@
   --line-strong: #d8d6d2;
   --ink: #111111;
   --ink-2: #555350;
-  --ink-3: #8e8b87;
-  --ink-4: #b8b5b0;
+  /* ink-3 carries readable text (≥4.5:1 on every light surface);
+     ink-4 is the faint tier for line numbers and glyphs (≥3:1). */
+  --ink-3: #6f6c68;
+  --ink-4: #928e88;
   --accent: #1a4d44;
   --accent-soft: #e8efed;
   /* Accent color tuned for use on the inverted-surface (status pill, ink bg).
@@ -33,6 +35,9 @@
 
   --shadow-pill: 0 8px 24px -6px rgba(0, 0, 0, 0.25);
   --shadow-modal: 0 24px 80px -8px rgba(0, 0, 0, 0.18);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --head-h: 44px;
 }
 
 [data-theme="dark"] {
@@ -44,8 +49,8 @@
   --line-strong: #2f3337;
   --ink: #e8e6e3;
   --ink-2: #9ea29f;
-  --ink-3: #6b6e6c;
-  --ink-4: #4a4d4b;
+  --ink-3: #868987;
+  --ink-4: #686b69;
   --accent: #6dc4b4;
   --accent-soft: rgba(109, 196, 180, 0.12);
   /* In dark theme the status pill flips to the cream --ink (#e8e6e3), so the
@@ -63,13 +68,9 @@
 html, body {
   margin: 0;
   height: 100vh;
-  background:
-    linear-gradient(rgba(17, 17, 17, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 17, 17, 0.016) 1px, transparent 1px),
-    var(--bg);
-  background-size: 36px 36px;
+  background: var(--bg);
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--sans);
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   /* Soften the theme swap so dark/light toggles do not flash. */
@@ -77,13 +78,6 @@ html, body {
 }
 @media (prefers-reduced-motion: reduce) {
   html, body { transition: none; }
-}
-[data-theme="dark"] body {
-  background:
-    linear-gradient(rgba(232, 230, 227, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232, 230, 227, 0.016) 1px, transparent 1px),
-    var(--bg);
-  background-size: 36px 36px;
 }
 body { overflow: hidden; }
 
@@ -96,17 +90,23 @@ input:focus-visible, button:focus-visible, textarea:focus-visible {
 
 code, pre { font-family: var(--mono); font-size: 0.9em; }
 
-.app { display: grid; grid-template-rows: 44px 1fr; height: 100vh; }
+.app { display: grid; grid-template-rows: var(--head-h) 1fr; height: 100vh; }
 
 /* Header */
+/* Three columns with equal side tracks keep the search bar at the page's
+   true center no matter how wide the brand/crumb or the icon group get. */
 .head {
-  display: flex; align-items: center; gap: 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center; gap: 14px;
   padding: 0 14px;
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 30;
 }
+.head .head-start,
+.head .head-end { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.head .head-end { justify-content: flex-end; gap: 8px; }
 .head .brand {
   display: inline-flex; align-items: center; gap: 8px;
   height: 30px; padding: 0 2px;
@@ -122,34 +122,37 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   font-family: var(--sans); font-size: 14px; font-weight: 650;
   letter-spacing: 0; line-height: 1;
 }
-.head .crumb { color: var(--ink-3); font-size: 12px; display: flex; align-items: center; gap: 6px; min-width: 0; }
-.head .grow { flex: 1 1 auto; min-width: 0; }
+.head .crumb {
+  color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.head .crumb span { overflow: hidden; text-overflow: ellipsis; }
+/* Search bar (MarkV pattern): one field for files, columns and commands,
+   opening the palette. Scales with the window and keeps its label. */
 .head .cmd-trigger {
-  display: inline-flex; align-items: center; gap: 7px;
-  height: 30px; padding: 0 9px 0 10px;
-  border: 1px solid var(--line-strong); border-radius: 7px;
-  background: var(--surface-2); color: var(--ink-2);
-  font-family: var(--sans); font-size: 11.5px; font-weight: 500;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
-  flex: 0 0 auto;
-  transition: background-color 130ms ease, border-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  display: inline-flex; align-items: center; gap: 8px;
+  width: clamp(200px, 30vw, 360px); height: 30px; padding: 0 6px 0 11px;
+  border: 1px solid var(--line-strong); border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent); color: var(--ink-3);
+  font-size: 12.5px; font-weight: 400; text-align: left;
+  transition: background-color 130ms ease, border-color 130ms ease, color 130ms ease;
 }
 .head .cmd-trigger:hover {
-  background: var(--surface);
+  background: var(--surface-2);
   border-color: color-mix(in srgb, var(--ink) 22%, var(--line-strong));
-  color: var(--ink);
+  color: var(--ink-2);
 }
-.head .cmd-trigger:active { transform: translateY(1px); }
 .head .cmd-trigger-icon {
-  display: grid; place-items: center;
-  width: 14px; height: 14px;
-  color: var(--ink-3);
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 15px; height: 15px;
 }
-.head .cmd-trigger:hover .cmd-trigger-icon { color: var(--accent); }
-.head .cmd-trigger-label { line-height: 1; }
+.head .cmd-trigger-label {
+  flex: 1; min-width: 0; line-height: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .head .cmd-trigger-shortcut {
   display: inline-flex; align-items: center; gap: 2px;
-  margin-left: 1px;
+  margin-left: auto;
 }
 .head .cmd-trigger-shortcut kbd {
   display: inline-grid; place-items: center;
@@ -166,31 +169,20 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   flex: 0 0 auto;
   transition: background-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.head .icon-btn:hover { background: var(--surface); color: var(--ink); }
-.head .icon-btn:active { transform: scale(0.92); }
+.head .icon-btn:hover:not(:disabled) { background: var(--surface); color: var(--ink); }
+.head .icon-btn:active:not(:disabled) { transform: scale(0.96); }
+.head .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .head .icon-btn[aria-pressed="true"] {
   background: var(--surface-2);
   color: var(--ink);
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
-/* AI assistant button — primary affordance for AI features.
- * Two-sparkle composition: a sharper main 4-point + a small satellite spark.
- * Resting state is monochrome (inherits `color` from the icon-btn). On hover
- * and when the assistant panel is active, the satellite picks up the accent
- * for a beat of recognition. Avoids the generic single-sparkle glyph. */
-.head .ask-btn .ai-sparkle-main { transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1); transform-origin: 12px 12px; }
-.head .ask-btn .ai-sparkle-spark {
-  transition: fill 160ms ease, transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  transform-origin: 18.4px 5px;
-}
-.head .ask-btn:hover .ai-sparkle-main { transform: rotate(15deg); }
-.head .ask-btn:hover .ai-sparkle-spark { fill: var(--accent); transform: scale(1.2); }
-.head .ask-btn[aria-pressed="true"] .ai-sparkle-spark { fill: var(--accent); }
-@media (prefers-reduced-motion: reduce) {
-  .head .ask-btn .ai-sparkle-main,
-  .head .ask-btn .ai-sparkle-spark { transition: none; transform: none; }
-}
+/* Theme toggle: MarkV's state-neutral "contrast" glyph. The ring takes the
+ * button's muted color, the filled half the strong ink; both tokens invert
+ * with the theme, so the icon flips with it. */
+.head .theme-icon .ring { fill: none; stroke: currentColor; stroke-width: 1.75; }
+.head .theme-icon .half { fill: var(--ink); }
 .head .rail-toggle {
   margin-left: -6px;
   color: var(--ink-3);
@@ -200,20 +192,8 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   color: var(--accent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, var(--line-strong));
 }
-.head .run {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 30px; padding: 0 13px;
-  border-radius: 6px;
-  background: var(--ink); color: var(--bg);
-  font-size: 12px; font-weight: 500;
-  flex: 0 0 auto;
-}
-.head .run:hover:not(:disabled) { transform: translateY(-1px); }
-.head .run:disabled { opacity: 0.4; cursor: not-allowed; }
-.head .run .k { font-family: var(--mono); opacity: 0.6; font-size: 10.5px; }
-
 /* Stage */
-.stage { display: grid; grid-template-columns: var(--rail-w, 256px) 1px 1fr; min-height: 0; height: calc(100vh - 44px); }
+.stage { display: grid; min-height: 0; height: calc(100vh - var(--head-h)); }
 .stage > .rail { grid-column: 1; }
 .stage > .rail-resizer-track { grid-column: 2; }
 .stage > .work { grid-column: 3; }
@@ -223,7 +203,6 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 /* Rail */
 .rail {
   background: var(--bg);
-  border-right: 1px solid var(--line);
   display: flex; flex-direction: column;
   min-height: 0; overflow: hidden;
 }
@@ -256,16 +235,24 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-.rail .label .count { color: var(--ink-4); letter-spacing: 0; text-transform: none; font-weight: 500; }
+.rail .label .count { color: var(--ink-3); letter-spacing: 0; text-transform: none; font-weight: 500; }
+/* Identifiers keep their real case; uppercase would misreport SQL names. */
+.rail .label .label-name { color: var(--accent); text-transform: none; letter-spacing: 0; }
 
 .rail .files { display: grid; gap: 2px; padding: 0 6px 4px; }
 .rail .file {
-  display: grid; grid-template-columns: 12px 1fr auto auto;
-  gap: 8px; align-items: center;
-  padding: 7px 8px; border-radius: 6px; cursor: pointer;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center; padding-right: 4px; border-radius: 6px;
 }
 .rail .file:hover { background: var(--surface); }
 .rail .file.active { background: var(--accent-soft); }
+.rail .file-main {
+  display: grid; grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 8px; align-items: center; min-width: 0;
+  padding: 7px 4px 7px 8px; border-radius: 6px;
+  text-align: left;
+}
+.rail .file-main:focus-visible { outline-offset: -2px; }
 .rail .file .dot {
   width: 8px; height: 8px; border-radius: 99px;
   border: 1.5px solid var(--ink-4); margin-left: 2px;
@@ -278,21 +265,32 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 .rail .file.active .name { color: var(--accent); font-weight: 600; }
 .rail .file .rows { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
 .rail .file .x {
-  width: 14px; height: 14px;
+  width: 20px; height: 20px;
   display: grid; place-items: center;
-  color: var(--ink-4); border-radius: 3px;
-  opacity: 0; font-size: 12px; line-height: 1;
+  color: var(--ink-3); border-radius: 4px;
+  opacity: 0; font-size: 13px; line-height: 1;
 }
-.rail .file:hover .x { opacity: 1; }
-.rail .file:hover .x:hover { background: var(--line); color: var(--ink); }
+.rail .file:hover .x,
+.rail .file:focus-within .x { opacity: 1; }
+.rail .file .x:hover { background: var(--line); color: var(--ink); }
+/* No hover on touch: keep the close affordance reachable. */
+@media (hover: none) {
+  .rail .file .x { opacity: 1; }
+}
 
-.rail .cols { padding: 0 6px; flex: 1; min-height: 0; overflow: auto; }
+/* Columns size to their content so Metadata follows them directly; with many
+   columns the list shrinks and scrolls instead of pushing Metadata away. */
+.rail .cols { padding: 0 6px; flex: 0 1 auto; min-height: 0; overflow: auto; }
 .rail .col {
-  display: grid; grid-template-columns: 14px 1fr 56px;
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) 56px;
   gap: 8px; align-items: center;
-  padding: 5px 7px; border-radius: 5px; cursor: pointer;
+  width: 100%; text-align: left;
+  padding: 5px 7px; border-radius: 5px;
 }
 .rail .col:hover { background: var(--surface); }
+.rail .col.on { background: var(--surface-2); }
+.rail .col.on .name { font-weight: 600; }
+.rail .col:focus-visible { outline-offset: -2px; }
 .rail .col .ico {
   font-family: var(--mono); font-weight: 700; font-size: 10.5px;
   color: var(--ink-3); display: grid; place-items: center; height: 14px;
@@ -311,7 +309,7 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
 .rail .col .bar { width: 28px; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
 .rail .col .bar > i { display: block; height: 100%; background: var(--ink-3); }
 
-.rail .meta-rows { padding: 4px 12px 14px; }
+.rail .meta-rows { padding: 4px 12px 14px; flex: 0 0 auto; }
 .rail .meta-row {
   display: flex; justify-content: space-between;
   padding: 3px 0; font-size: 10.5px; color: var(--ink-2);
@@ -358,62 +356,11 @@ code, pre { font-family: var(--mono); font-size: 0.9em; }
   border-top: 1px solid var(--line);
 }
 
-.rail-resizer-track {
-  position: relative;
-  align-self: stretch;
-  height: 100%;
-  min-height: 0;
-  background: var(--line-strong);
-  z-index: 4;
-}
-.rail-resizer {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 9px;
-  height: 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  background: var(--surface-2);
-  cursor: col-resize;
-  transform: translate(-50%, -50%);
-  touch-action: none;
-}
-.rail-resizer::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 11px;
-  transform: translate(-50%, -50%);
-  background:
-    radial-gradient(circle at 1px 1px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 5px 1px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 1px 5.5px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 5px 5.5px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 1px 10px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 5px 10px, var(--ink-2) 1px, transparent 1.15px);
-  pointer-events: none;
-}
-.rail-resizer:hover,
-.rail-resizer:focus-visible,
-body.is-resizing-rail .rail-resizer {
-  border-color: var(--line-strong);
-  background-color: var(--line);
-}
-.rail-resizer:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  outline-offset: 1px;
-}
-body.is-resizing-rail {
-  cursor: col-resize;
-  user-select: none;
-}
-
-/* Right-panel resizer — mirrors the rail resizer but lives between the work
-   area and the right drawer (chart / profiler / snapshots). The track is a
-   1px-wide grid cell; the handle is an absolute element centered on it. */
+/* Edge resizers (rail, right panel, editor). No grip: the whole edge is the
+   handle. A 9px invisible hit area straddles the 1px hairline; after a short
+   hover (so passing the cursor over it does not flash) or while dragging, a
+   2px neutral line confirms the edge is live. */
+.rail-resizer-track,
 .right-resizer-track {
   position: relative;
   align-self: stretch;
@@ -422,55 +369,49 @@ body.is-resizing-rail {
   background: var(--line);
   z-index: 4;
 }
+.rail-resizer,
 .right-resizer {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  top: 0; bottom: 0; left: 50%;
   width: 9px;
-  height: 32px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  background: var(--surface-2);
+  transform: translateX(-50%);
   cursor: col-resize;
-  transform: translate(-50%, -50%);
   touch-action: none;
 }
-.right-resizer::before {
+.rail-resizer::before,
+.right-resizer::before,
+.editor-resizer::before {
   content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 11px;
-  transform: translate(-50%, -50%);
-  background:
-    radial-gradient(circle at 1px 1px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 5px 1px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 1px 5.5px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 5px 5.5px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 1px 10px, var(--ink-2) 1px, transparent 1.15px),
-    radial-gradient(circle at 5px 10px, var(--ink-2) 1px, transparent 1.15px);
+  background: color-mix(in srgb, var(--ink) 30%, transparent);
+  opacity: 0;
+  transition: opacity 120ms ease;
   pointer-events: none;
 }
-.right-resizer:hover,
+.rail-resizer::before,
+.right-resizer::before { top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-50%); }
+.rail-resizer:hover::before,
+.right-resizer:hover::before,
+.editor-resizer:hover::before { opacity: 1; transition-delay: 150ms; }
+.rail-resizer:focus-visible::before,
+.right-resizer:focus-visible::before,
+.editor-resizer:focus-visible::before,
+body.is-resizing-rail .rail-resizer::before,
+body.is-resizing-right .right-resizer::before,
+body.is-resizing-editor .editor-resizer::before { opacity: 1; transition-delay: 0ms; }
+.rail-resizer:focus-visible,
 .right-resizer:focus-visible,
-body.is-resizing-right .right-resizer {
-  border-color: var(--line-strong);
-  background-color: var(--line);
-}
-.right-resizer:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  outline-offset: 1px;
-}
+.editor-resizer:focus-visible { outline: none; }
+.rail-resizer:focus-visible::before,
+.right-resizer:focus-visible::before,
+.editor-resizer:focus-visible::before { background: var(--ink); }
+body.is-resizing-rail,
 body.is-resizing-right {
   cursor: col-resize;
   user-select: none;
 }
-body.is-resizing-right .stage { transition: none; }
-/* Hide the track when the right panel is closed or when an assistant panel
-   takes over (assistant has its own size toggle, not drag-resize). */
-.stage:not([data-right-open="true"]) > .right-resizer-track,
-.stage[data-right-open="true"]:has(.assistant-host) > .right-resizer-track {
+/* Hide the track when the right panel is closed. */
+.stage:not([data-right-open="true"]) > .right-resizer-track {
   visibility: hidden;
   pointer-events: none;
 }
@@ -481,6 +422,9 @@ body.is-resizing-right .stage { transition: none; }
   display: grid;
   grid-template-rows: minmax(140px, var(--editor-height)) 7px minmax(0, 1fr);
   min-height: 0; min-width: 0;
+  /* Never paint into the rail or the right panel, even mid-resize. */
+  overflow: hidden;
+  container: work / inline-size;
   background: var(--surface); position: relative;
 }
 
@@ -488,7 +432,7 @@ body.is-resizing-right .stage { transition: none; }
   min-height: 0;
   background: var(--surface);
   display: grid;
-  grid-template-rows: 32px minmax(0, 1fr) 28px;
+  grid-template-rows: 32px minmax(0, 1fr) 40px;
   overflow: hidden;
 }
 .editor .tabs {
@@ -510,8 +454,7 @@ body.is-resizing-right .stage { transition: none; }
   cursor: not-allowed;
 }
 .editor .tab:not(.on):not(:disabled):hover { color: var(--ink-2); }
-.editor .tabs .grow { flex: 1; }
-.editor .tabs .right { color: var(--ink-3); font-family: var(--mono); font-size: 10.5px; }
+.editor .tab:focus-visible { outline-offset: -3px; }
 
 .editor .body {
   display: grid; grid-template-columns: 28px 1fr;
@@ -543,25 +486,49 @@ body.is-resizing-right .stage { transition: none; }
 .editor .hl .num { color: var(--num); }
 .editor .hl .str { color: var(--accent); }
 
+/* Run bar: run state on the left, Run on the right, directly under the query
+   it executes. Run is the only ink-filled control in the work area. */
 .editor .foot {
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 14px; height: 28px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 8px 0 14px; height: 40px;
   border-top: 1px solid var(--line);
   color: var(--ink-3); font-size: 11px;
 }
 .editor .foot .grow { flex: 1; }
-.editor .foot .ok { color: var(--accent); }
+.editor .foot #eStatus { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor .foot .state-dot {
+  display: grid; place-items: center;
+  width: 7px; height: 7px; border-radius: 99px; flex: 0 0 auto;
+  background: var(--ink-4);
+}
+.editor[data-run-state="ok"] .foot .state-dot { background: var(--accent); }
+.editor[data-run-state="error"] .foot .state-dot { background: var(--danger); }
+.editor[data-run-state="error"] .foot #eStatus { color: var(--danger); }
+.editor[data-run-state="busy"] .foot .state-dot { width: 14px; height: 14px; background: none; color: var(--ink-2); }
+.editor[data-run-state="busy"] .foot .state-dot .spin { width: 14px; height: 14px; }
 .editor .foot .pill {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 0 7px; height: 18px; border-radius: 4px;
+  padding: 0 7px; height: 20px; border-radius: 4px;
   background: var(--bg); color: var(--ink-2);
-  font-family: var(--mono); font-size: 10.5px;
+  font-family: var(--sans); font-size: 10.5px;
 }
+.editor .run {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 12px;
+  border-radius: 6px;
+  background: var(--ink); color: var(--bg);
+  font-family: var(--sans); font-size: 12px; font-weight: 600;
+  flex: 0 0 auto;
+  transition: transform 120ms var(--ease-out), opacity 120ms ease;
+}
+.editor .run .k { font-family: var(--mono); font-weight: 400; opacity: 0.6; font-size: 10.5px; }
+.editor .run:active:not(:disabled) { transform: scale(0.97); }
+.editor .run:disabled { opacity: 0.35; cursor: not-allowed; }
+.editor .run:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-/* Locked editor: no file is registered yet. The Run button is already
-   disabled in header.js — this matches that signal on the editor surface.
-   The textarea itself uses the HTML `disabled` attribute (set in editor.js)
-   so it also drops out of the focus order. */
+/* Locked editor: no file is registered yet. The textarea uses the HTML
+   `disabled` attribute (set in editor.js) so it also drops out of the focus
+   order, and Run is disabled alongside it. */
 .editor.is-locked textarea {
   cursor: not-allowed;
   color: var(--ink-3);
@@ -573,9 +540,6 @@ body.is-resizing-right .stage { transition: none; }
 .editor.is-locked .foot .pill {
   opacity: 0.45;
 }
-.editor.is-locked .tabs .right {
-  opacity: 0.55;
-}
 
 .editor-resizer-track {
   position: relative;
@@ -584,51 +548,38 @@ body.is-resizing-right .stage { transition: none; }
 }
 .editor-resizer {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 72px;
-  height: 16px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  left: 0; right: 0; top: 50%;
+  height: 9px;
+  transform: translateY(-50%);
   cursor: row-resize;
-  transform: translate(-50%, -50%);
   touch-action: none;
   z-index: 4;
 }
-.editor-resizer::before {
-  content: none;
-}
-.editor-resizer:hover,
-.editor-resizer:focus-visible,
-body.is-resizing-editor .editor-resizer {
-  background: transparent;
-}
-.editor-resizer:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  outline-offset: 1px;
-}
+.editor-resizer::before { left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%); }
 body.is-resizing-editor {
   cursor: row-resize;
   user-select: none;
 }
 
 /* Result */
-.result { min-height: 0; overflow: auto; background: var(--surface); }
+/* Bottom padding lets the last rows scroll clear of the floating status pill. */
+.result { min-height: 0; overflow: auto; background: var(--surface); padding-bottom: 64px; }
 .result table { width: 100%; border-collapse: separate; border-spacing: 0; }
+/* Headers show column names exactly as SQL sees them (no case transform). */
 .result th {
   position: sticky; top: 0; text-align: left;
   padding: 8px 14px; background: var(--surface-2);
   border-bottom: 1px solid var(--line-strong);
-  font-family: var(--sans); font-weight: 500; font-size: 10.5px;
-  color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em;
+  font-family: var(--mono); font-weight: 500; font-size: 11px;
+  color: var(--ink-2);
   z-index: 1;
   /* Keep the column name and its sort glyph on the same baseline. Long names
-     like BILL_BILLING_PERIOD_END_DATE were wrapping the indicator to a second
+     like bill_billing_period_end_date were wrapping the indicator to a second
      line, which made some headers float above and others below the row. */
   white-space: nowrap;
   vertical-align: middle;
 }
+.result th.num { text-align: right; }
 .result th[data-sortable] {
   cursor: pointer;
   user-select: none;
@@ -659,8 +610,27 @@ body.is-resizing-editor {
 }
 .result td:first-child { color: var(--ink-4); }
 .result td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.result td.null { color: var(--ink-4); }
+.result td.null { color: var(--ink-3); }
 .result tr:hover td { background: var(--surface-2); }
+
+/* Result messages: no rows, not run yet, query failed. */
+.result-msg {
+  max-width: 64ch; margin: 28px 20px; padding: 0;
+  font-family: var(--sans); font-size: 13px; line-height: 1.5; color: var(--ink-2);
+}
+.result-msg p { margin: 0; }
+.result-msg .result-msg-title { color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+.result-msg.is-error .result-msg-title { color: var(--danger); }
+.result-msg-detail {
+  margin: 10px 0 0; padding: 12px 14px;
+  max-width: 100%; overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--line));
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+  font-family: var(--mono); font-size: 12px; line-height: 1.6; color: var(--ink);
+  /* Keep DuckDB's caret (^) aligned under the offending token. */
+  white-space: pre;
+}
 
 /* Right-side docked panel (column profiler / query snapshots).
    Sits as a sibling of .work inside .stage, pushes content rather than
@@ -678,17 +648,30 @@ body.is-resizing-editor {
 /* Five-track grid: rail | rail-resizer | work | right-resizer | right-panel.
    Right-panel column interpolates 0 → panel width on open/close.
    Rail column is driven by the --rail-w custom property (drag-resizable).
-   Right-panel column is driven by --right-w (drag-resizable too) when the
-   non-assistant panels (chart / profiler / snapshots) are open. The assistant
-   panel keeps its hardcoded widths because it has its own size mode toggle. */
-.stage { grid-template-columns: var(--rail-w, 256px) 1px 1fr 0 0; transition: grid-template-columns 220ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-.stage[data-right-open="true"] { grid-template-columns: var(--rail-w, 256px) 1px 1fr 1px var(--right-w, min(420px, 36vw)); }
-.stage[data-right-open="true"]:has(.assistant-host) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) 0 min(480px, 38vw); }
-.stage[data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: var(--rail-w, 256px) 1px minmax(0, 1fr) 0 min(760px, 54vw); }
-.stage[data-rail-collapsed="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
-.stage[data-rail-collapsed="true"][data-right-open="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 1px var(--right-w, min(420px, 36vw)); }
-.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-host) { grid-template-columns: 0 0 minmax(0, 1fr) 0 min(480px, 38vw); }
-.stage[data-rail-collapsed="true"][data-right-open="true"]:has(.assistant-panel[data-panel-size="wide"]) { grid-template-columns: 0 0 minmax(0, 1fr) 0 min(760px, 54vw); }
+   Right-panel column is driven by --right-w for chart / profiler / snapshots
+   and by --assistant-w for the assistant; both are drag-resized from the same
+   edge handle (rail-resizer.js), each remembering its own width. */
+/* Track changes snap: animating grid-template-columns would re-lay out the
+   whole result table on every frame. */
+/* The work area never gives up its minimum: whatever widths are stored or
+   dragged, the open panel yields first (down to --panel-min), then the rail.
+   rail-resizer.js clamps drags against the same numbers (keep in sync). */
+.stage {
+  --work-min: 360px;
+  --panel-min: 0px;
+  --panel-w: 0px;
+  --rail-col: min(var(--rail-w, 256px), calc(100vw - var(--work-min) - 2px - var(--panel-min)));
+  --panel-col: min(var(--panel-w), max(var(--panel-min), calc(100vw - var(--rail-col) - 2px - var(--work-min))));
+  grid-template-columns: var(--rail-col) 1px minmax(0, 1fr) 0 0;
+}
+.stage[data-right-open="true"] {
+  --panel-min: 320px;
+  --panel-w: var(--right-w, 420px);
+  grid-template-columns: var(--rail-col) 1px minmax(0, 1fr) 1px var(--panel-col);
+}
+.stage[data-right-open="true"]:has(.assistant-host) { --panel-w: var(--assistant-w, 480px); }
+.stage[data-rail-collapsed="true"] { --rail-col: 0px; grid-template-columns: 0 0 minmax(0, 1fr) 0 0; }
+.stage[data-rail-collapsed="true"][data-right-open="true"] { grid-template-columns: 0 0 minmax(0, 1fr) 1px var(--panel-col); }
 .stage[data-rail-collapsed="true"] > .rail {
   border-right: 0;
   pointer-events: none;
@@ -704,9 +687,6 @@ body.is-resizing-editor {
   opacity: 0;
   visibility: hidden;
 }
-/* While dragging the rail handle the grid must track the pointer instantly,
-   not chase via the open/close ease curve. */
-body.is-resizing-rail .stage { transition: none; }
 .stage > .profile-drawer { height: 100%; }
 .stage > .profile-drawer > .profile-head,
 .stage > .profile-drawer > .snapshot-head {
@@ -715,27 +695,13 @@ body.is-resizing-rail .stage { transition: none; }
   backdrop-filter: blur(10px);
 }
 
-/* Panel slide-and-fade in when the host becomes visible. */
-@keyframes panel-in {
-  from { opacity: 0; transform: translateX(10px); }
-  to   { opacity: 1; transform: translateX(0); }
+/* Panel fades in from its edge. A transition (not keyframes) so Escape
+   mid-entrance reverses smoothly instead of restarting. */
+.stage > .profile-drawer {
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
 }
-.stage > .profile-drawer:not([hidden]) {
-  animation: panel-in 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-/* Stage section content slips in just behind the panel for cohesion. */
-@keyframes panel-content-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.stage > .profile-drawer:not([hidden]) > .profile-stats,
-.stage > .profile-drawer:not([hidden]) > .profile-chart-wrap,
-.stage > .profile-drawer:not([hidden]) > .profile-actions,
-.stage > .profile-drawer:not([hidden]) > .snapshot-tools,
-.stage > .profile-drawer:not([hidden]) > .snapshot-list {
-  animation: panel-content-in 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: 60ms;
+@starting-style {
+  .stage > .profile-drawer:not([hidden]) { opacity: 0; transform: translateX(8px); }
 }
 
 /* Snapshot rows: gentle background transition and clearer focus ring. */
@@ -963,7 +929,7 @@ body.is-resizing-rail .stage { transition: none; }
   display: block;
   font-size: 10.5px;
   color: var(--ink-3);
-  font-family: var(--mono);
+  font-family: var(--sans);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1252,7 +1218,7 @@ body.is-resizing-rail .stage { transition: none; }
   border: 1px solid var(--line-strong);
   border-radius: var(--r-sm);
   background: var(--bg);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--ink-2);
@@ -1307,14 +1273,14 @@ body.is-resizing-rail .stage { transition: none; }
 .analysis-fail-notes {
   margin: 0;
   padding: 0 0 0 14px;
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11.5px;
   color: var(--ink-2);
 }
 .analysis-fail-notes li { line-height: 1.5; }
 .analysis-fail-hint {
   margin: 4px 0 0;
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   color: var(--ink-3);
   letter-spacing: 0.01em;
@@ -1329,7 +1295,7 @@ body.is-resizing-rail .stage { transition: none; }
   background: color-mix(in srgb, var(--danger) 6%, var(--bg));
 }
 .analysis-card--failed .analysis-artifact-status {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 9.5px;
   margin-right: 5px;
 }
@@ -1445,6 +1411,7 @@ body.is-resizing-rail .stage { transition: none; }
   font-variant-numeric: tabular-nums;
   text-align: left;
 }
+.assistant-table td { font-family: var(--mono); }
 .assistant-table tr:last-child td { border-bottom: 0; }
 .assistant-table th {
   position: sticky;
@@ -1688,13 +1655,11 @@ body.is-resizing-rail .stage { transition: none; }
   .assistant-body { padding: 12px 12px 4px; }
   .analysis-tabpanel { padding: 12px; }
 }
-.snapshot-actions button:active { transform: scale(0.92); }
-.snapshot-actions button[data-snapshot-action="pin"] { transition: background-color 130ms ease, color 130ms ease, transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
-.snapshot-actions button[data-snapshot-action="pin"]:active { transform: scale(1.18) rotate(-4deg); }
+.snapshot-actions button:active { transform: scale(0.96); }
 
 /* Close button: smooth hover/press, never jarring. */
 .profile-close { transition: background-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-.profile-close:active { transform: scale(0.92); }
+.profile-close:active { transform: scale(0.96); }
 
 /* Search input: soft focus ring instead of the default browser blue. */
 .snapshot-search { transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease; }
@@ -1709,9 +1674,7 @@ body.is-resizing-rail .stage { transition: none; }
 
 /* Honor the user's motion preference. */
 @media (prefers-reduced-motion: reduce) {
-  .stage,
-  .stage > .profile-drawer:not([hidden]),
-  .stage > .profile-drawer:not([hidden]) > * ,
+  .stage > .profile-drawer,
   .snapshot-row,
   .snapshot-actions,
   .snapshot-actions button,
@@ -1814,7 +1777,7 @@ body.is-resizing-rail .stage { transition: none; }
   color: var(--ink-2);
 }
 .profile-chart-head b {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 10.5px;
   color: var(--ink-3);
   font-weight: 500;
@@ -1999,7 +1962,7 @@ body.is-resizing-rail .stage { transition: none; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 10.5px;
   color: var(--ink-3);
 }
@@ -2029,7 +1992,7 @@ body.is-resizing-rail .stage { transition: none; }
   border-radius: 5px;
   background: var(--surface);
   color: var(--ink-2);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
 }
 .snapshot-actions button:hover {
@@ -2048,10 +2011,13 @@ body.is-resizing-rail .stage { transition: none; }
   display: inline-flex; align-items: center; gap: 10px;
   padding: 6px 12px; border-radius: var(--r-pill);
   background: var(--ink); color: var(--bg);
-  font-size: 11px; font-family: var(--mono);
+  font-size: 11px; font-family: var(--sans); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  max-width: calc(100% - 28px);
   box-shadow: var(--shadow-pill);
   z-index: 10;
 }
+.status .pager { display: inline-flex; align-items: center; gap: 10px; }
 .status .dot { width: 6px; height: 6px; border-radius: 99px; background: #5cd882; }
 .status .sep { color: rgba(255, 255, 255, 0.35); }
 [data-theme="dark"] .status .sep { color: rgba(13, 14, 15, 0.4); }
@@ -2073,10 +2039,6 @@ body.is-resizing-rail .stage { transition: none; }
   padding: 36px;
   min-height: 0;
   background: var(--surface);
-  background-image: radial-gradient(circle at 50% 50%, rgba(26, 77, 68, 0.06), transparent 60%);
-}
-[data-theme="dark"] .empty {
-  background-image: radial-gradient(circle at 50% 30%, rgba(109, 196, 180, 0.06), transparent 60%);
 }
 .empty .hero { width: 100%; max-width: 460px; display: grid; gap: 18px; text-align: center; }
 .empty .hero h1 {
@@ -2139,7 +2101,7 @@ body.is-resizing-rail .stage { transition: none; }
 .empty .recent .row:hover,
 .empty .recent .row:focus-visible { background: var(--surface-2); }
 .empty .recent .row .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); font-size: 12px; color: var(--ink); }
-.empty .recent .row .meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.empty .recent .row .meta { font-family: var(--sans); font-size: 11px; color: var(--ink-3); }
 .empty .recent .row .when { font-size: 11px; color: var(--ink-3); }
 .empty .sample-row {
   display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -2150,14 +2112,15 @@ body.is-resizing-rail .stage { transition: none; }
   appearance: none; border: 1px solid var(--line-strong);
   background: var(--surface); color: var(--ink-2);
   padding: 6px 12px; border-radius: var(--r-md);
-  font-family: var(--mono); font-size: 11.5px;
+  font-family: var(--sans); font-size: 12px; font-weight: 500;
   cursor: pointer;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 .empty .sample-btn:hover {
-  background: var(--accent-soft); border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface-2); border-color: var(--ink-3);
+  color: var(--ink);
 }
+.empty .sample-btn:active { transform: scale(0.97); }
 .empty .footnote { color: var(--ink-3); font-size: 11.5px; margin: 0; }
 .empty[hidden] { display: none; }
 
@@ -2228,11 +2191,9 @@ body.is-resizing-rail .stage { transition: none; }
   font-size: 12px; color: var(--ink-3); text-align: center; padding: 30px 10px;
 }
 
-/* Status bar "Chart" button reuses .btn styling. Uses --accent-on-ink because
-   the pill background is the inverted surface — the regular --accent is tuned
-   for the page surface and disappears against the pill. */
-.status .chart-btn { color: var(--accent-on-ink); font-weight: 600; }
-.status .chart-btn:hover:not(:disabled) { color: var(--accent-on-ink); opacity: 1; }
+/* Status bar "Chart" button: same ink as its neighbours; pressed state is
+   carried by weight while the chart panel is open. */
+.status .chart-btn[aria-pressed="true"] { font-weight: 600; opacity: 1; }
 
 /* Palette */
 .palette-scrim {
@@ -2263,12 +2224,6 @@ body.is-resizing-rail .stage { transition: none; }
 .palette .p-search input {
   flex: 1; border: 0; background: transparent; outline: none;
   font: 500 14px var(--sans); color: var(--ink);
-}
-.palette .p-search .badge {
-  height: 22px; padding: 0 7px; border-radius: 5px;
-  background: var(--bg); border: 1px solid var(--line);
-  color: var(--ink-3); font-size: 10.5px; font-family: var(--mono);
-  display: inline-flex; align-items: center;
 }
 .palette .p-list {
   flex: 1 1 auto;
@@ -2336,8 +2291,8 @@ body.is-resizing-rail .stage { transition: none; }
 .palette-scrim[hidden] { display: none; }
 
 /* Toast — minimal status surface.
-   Severity is signaled by a left rail + indicator dot, NOT by recoloring
-   the body text. Body always renders in --ink so the message is readable. */
+   Severity is signaled by the indicator dot, NOT by recoloring the body
+   text or a side stripe. Body always renders in --ink so it stays readable. */
 .toast {
   position: fixed; right: 16px; bottom: 60px; z-index: 200;
   max-width: min(28rem, calc(100vw - 32px));
@@ -2347,11 +2302,10 @@ body.is-resizing-rail .stage { transition: none; }
   gap: 10px;
   padding: 10px 8px 10px 13px;
   border: 1px solid var(--line-strong);
-  border-left: 3px solid var(--ink);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-lg);
   background: var(--surface);
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 12.5px;
   line-height: 1.4;
   box-shadow: 0 6px 22px -8px rgba(0, 0, 0, 0.16);
@@ -2374,7 +2328,6 @@ body.is-resizing-rail .stage { transition: none; }
   overflow-wrap: anywhere;
 }
 
-.toast.error { border-left-color: var(--danger); }
 .toast.error .toast-indicator {
   background: var(--danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent);
@@ -2390,7 +2343,7 @@ body.is-resizing-rail .stage { transition: none; }
   transition: background-color 130ms ease, color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .toast-close:hover { background: var(--surface-2); color: var(--ink); }
-.toast-close:active { transform: scale(0.92); }
+.toast-close:active { transform: scale(0.96); }
 
 @media (prefers-reduced-motion: reduce) {
   .toast { transition: none !important; }
@@ -2402,7 +2355,7 @@ body.is-resizing-rail .stage { transition: none; }
   border-radius: var(--r-sm);
   background: var(--ink);
   color: var(--bg);
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
   letter-spacing: 0.02em;
   transition: background-color 130ms ease, transform 120ms cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -2464,7 +2417,11 @@ body.is-resizing-rail .stage { transition: none; }
 /* Responsive */
 @media (max-width: 980px) {
   .stage,
-  .stage[data-right-open="true"] { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; height: calc(100vh - 44px); }
+  .stage[data-right-open="true"] { grid-template-columns: 1fr; grid-template-rows: min(40vh, 320px) 1fr; height: calc(100vh - var(--head-h)); }
+  /* Stacked rail scrolls as one column so Columns always get room instead
+     of being squeezed to zero between Files and Metadata. */
+  .rail { overflow-y: auto; }
+  .rail .cols { flex: 0 0 auto; overflow: visible; }
   .stage > .rail,
   .stage > .rail-resizer-track,
   .stage > .work,
@@ -2485,9 +2442,18 @@ body.is-resizing-rail .stage { transition: none; }
   .right-resizer-track { display: none; }
   /* On narrow viewports the docked panel becomes a right-edge overlay
      so the editor and results below remain at full width. */
+  /* Scrim behind the overlay panel; a click on it lands on .stage and closes
+     the panel (right-panel.js). */
+  .stage[data-right-open="true"]::before {
+    content: "";
+    position: fixed;
+    inset: var(--head-h) 0 0 0;
+    background: rgba(0, 0, 0, 0.32);
+    z-index: 15;
+  }
   .stage > .profile-drawer {
     position: fixed;
-    inset: 44px 0 0 auto;
+    inset: var(--head-h) 0 0 auto;
     width: min(420px, 100vw);
     height: auto;
     border-left: 1px solid var(--line);
@@ -2495,14 +2461,15 @@ body.is-resizing-rail .stage { transition: none; }
     z-index: 16;
   }
   .stage > .profile-drawer.assistant-host { width: min(380px, 100vw); }
-  .stage > .profile-drawer.assistant-host:has(.assistant-panel[data-panel-size="wide"]) { width: min(760px, 100vw); }
 }
 
 @media (max-width: 760px) {
-  .head {
+  .head,
+  .head .head-start,
+  .head .head-end {
     gap: 8px;
-    padding: 0 8px;
   }
+  .head { padding: 0 8px; }
   .head .brand {
     gap: 6px;
     min-width: 0;
@@ -2517,12 +2484,6 @@ body.is-resizing-rail .stage { transition: none; }
   }
   .head .cmd-trigger-label,
   .head .cmd-trigger-shortcut { display: none; }
-  .head .run {
-    min-width: 46px;
-    justify-content: center;
-    padding: 0 10px;
-  }
-  .head .run .k { display: none; }
   .empty {
     align-items: flex-start;
     overflow: auto;
@@ -2544,4 +2505,32 @@ body.is-resizing-rail .stage { transition: none; }
     grid-template-columns: minmax(0, 1fr) auto;
   }
   .empty .recent .row .when { display: none; }
+  .editor .run .k { display: none; }
+}
+
+/* Keyed to the work area's own width (phones, or a wide side panel next to
+   the rail): keep the pill and run bar on one line, dropping extras first. */
+@container work (max-width: 480px) {
+  .status .ms,
+  .status .ms-sep,
+  .editor .foot .hint-comment { display: none; }
+}
+
+/* Touch: grow hit areas toward 44px without changing the desktop density. */
+@media (pointer: coarse) {
+  :root { --head-h: 52px; }
+  .head .icon-btn { width: 40px; height: 40px; }
+  .head .cmd-trigger { height: 40px; min-width: 40px; }
+  .rail .search input { height: 36px; }
+  .rail .label .add { width: 36px; height: 36px; margin: -10px -8px -10px 0; }
+  .rail .file-main,
+  .rail .col { min-height: 40px; }
+  .rail .file .x { width: 36px; height: 36px; }
+  .editor .tab { height: 40px; }
+  .editor { grid-template-rows: 40px minmax(0, 1fr) 48px; }
+  .editor .tabs { height: 40px; }
+  .editor .foot { height: 48px; }
+  .editor .run { height: 36px; padding: 0 16px; }
+  .status { padding: 4px 10px; }
+  .status .btn { padding: 8px 6px; }
 }

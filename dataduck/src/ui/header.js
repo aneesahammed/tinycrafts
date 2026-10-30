@@ -22,6 +22,7 @@ export function mountHeader(el, store, handlers) {
   const [railModKey, railActionKey] = sidebarShortcut();
   const railShortcutText = `${railModKey} ${railActionKey}`;
   setHtml(el, `
+    <div class="head-start">
     <a class="brand" href="./" aria-label="DataDuck home">
       <svg class="brand-duck" height="22" viewBox="0 0 823 675" fill="none" aria-hidden="true">
         <g fill="currentColor">
@@ -32,7 +33,7 @@ export function mountHeader(el, store, handlers) {
       <span class="word">DataDuck</span>
     </a>
     <button class="icon-btn rail-toggle" id="hRailToggle" type="button" aria-label="Collapse sidebar" aria-expanded="true" aria-keyshortcuts="${ariaShortcut(railModKey, railActionKey)}" title="Collapse sidebar (${railShortcutText})">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="4" width="18" height="16" rx="2.5"></rect>
         <path d="M9 4v16"></path>
       </svg>
@@ -40,29 +41,26 @@ export function mountHeader(el, store, handlers) {
     <div class="crumb" hidden aria-label="Active file summary">
       <span id="hCrumbMeta"></span>
     </div>
-    <div class="grow"></div>
-    <button class="cmd-trigger" id="hPalette" type="button" aria-label="Open command menu" title="Open command menu (${shortcutText})">
+    </div>
+    <button class="cmd-trigger" id="hPalette" type="button" aria-label="Open command menu" title="Search or run a command (${shortcutText})">
       <span class="cmd-trigger-icon" aria-hidden="true">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"><path d="m4 7 5 5-5 5"/><path d="M12 17h8"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
       </span>
-      <span class="cmd-trigger-label">Commands</span>
+      <span class="cmd-trigger-label">Search or run a command</span>
       <span class="cmd-trigger-shortcut" aria-hidden="true"><kbd>${modKey}</kbd><kbd>${actionKey}</kbd></span>
     </button>
-    <button class="icon-btn runs-btn" id="hSnapshots" type="button" aria-label="Open query snapshots" title="Runs" hidden>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
+    <div class="head-end">
+    <button class="icon-btn runs-btn" id="hSnapshots" type="button" aria-label="Open query snapshots" title="Runs" disabled>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
     </button>
     <button class="icon-btn ask-btn" id="hAssistant" type="button" aria-label="Ask DataDuck" title="Ask DataDuck">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path class="ai-sparkle-main" d="M12 4 L14.4 9.6 L20 12 L14.4 14.4 L12 20 L9.6 14.4 L4 12 L9.6 9.6 Z"/>
-        <path class="ai-sparkle-spark" d="M18.4 2.6 L19.1 4.3 L20.8 5 L19.1 5.7 L18.4 7.4 L17.7 5.7 L16 5 L17.7 4.3 Z"/>
-      </svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </button>
     <button class="icon-btn" id="hTheme" type="button" aria-label="Toggle theme" title="Toggle theme">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="theme-icon" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><circle class="ring" cx="12" cy="12" r="9"/><path class="half" d="M12 3 A9 9 0 0 1 12 21 Z"/></svg>
     </button>
-    <button class="run" id="hRun" type="button" disabled>Run<span class="k">⌘↩</span></button>
+    </div>
   `);
-  el.querySelector('#hRun').addEventListener('click', handlers.onRun);
   el.querySelector('#hTheme').addEventListener('click', handlers.onToggleTheme);
   el.querySelector('#hPalette').addEventListener('click', handlers.onOpenPalette);
   el.querySelector('#hSnapshots').addEventListener('click', () => handlers.onOpenSnapshots?.());
@@ -85,7 +83,6 @@ export function mountHeader(el, store, handlers) {
       crumb.hidden = true;
       meta.textContent = '';
     }
-    el.querySelector('#hRun').disabled = !s.activeTable || s.isBusy;
     const railCollapsed = Boolean(s.railCollapsed);
     const railToggle = el.querySelector('#hRailToggle');
     const railAction = railCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
@@ -94,7 +91,8 @@ export function mountHeader(el, store, handlers) {
     railToggle.setAttribute('aria-pressed', railCollapsed ? 'true' : 'false');
     railToggle.setAttribute('title', `${railAction} (${railShortcutText})`);
     const snapshotsBtn = el.querySelector('#hSnapshots');
-    snapshotsBtn.hidden = !(s.querySnapshots?.length);
+    // Always rendered so the header never reflows after the first run.
+    snapshotsBtn.disabled = !(s.querySnapshots?.length);
     snapshotsBtn.setAttribute('aria-pressed', s.rightPanel?.type === 'snapshots' ? 'true' : 'false');
     el.querySelector('#hAssistant').setAttribute('aria-pressed', s.rightPanel?.type === 'assistant' ? 'true' : 'false');
   };

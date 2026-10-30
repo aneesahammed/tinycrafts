@@ -54,7 +54,7 @@ describe('AssistantApp panel width', () => {
     localStorage.clear();
   });
 
-  it('toggles between compact and wide panel widths and remembers the choice', async () => {
+  it('has no width toggle: the panel is resized from its edge like the rail', async () => {
     const container = document.createElement('div');
     const root = createRoot(container);
 
@@ -63,32 +63,12 @@ describe('AssistantApp panel width', () => {
     });
 
     const panel = container.querySelector('.assistant-panel');
-    expect(panel.dataset.panelSize).toBe('compact');
-    expect(container.querySelector('[aria-label="Expand panel width"]')).toBeTruthy();
-
-    await act(async () => {
-      container
-        .querySelector('[aria-label="Expand panel width"]')
-        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(panel.dataset.panelSize).toBe('wide');
-    expect(localStorage.getItem('dataduck-ai-panel-wide')).toBe('1');
-    expect(container.querySelector('[aria-label="Use compact panel width"]')).toBeTruthy();
+    expect(panel.dataset.panelSize).toBeUndefined();
+    expect(container.querySelector('[aria-label="Expand panel width"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Use compact panel width"]')).toBeNull();
 
     await act(async () => {
       root.unmount();
-    });
-
-    const nextRoot = createRoot(container);
-    await act(async () => {
-      nextRoot.render(<AssistantApp store={createStore()} queryFn={vi.fn()} />);
-    });
-
-    expect(container.querySelector('.assistant-panel').dataset.panelSize).toBe('wide');
-
-    await act(async () => {
-      nextRoot.unmount();
     });
   });
 });

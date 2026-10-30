@@ -10,14 +10,17 @@ export function mountPalette(scrim, store, actions) {
   let mounted = false;
   let lastCommandKey = '';
 
+  root.setAttribute('role', 'dialog');
+  root.setAttribute('aria-modal', 'true');
+  root.setAttribute('aria-label', 'Command menu');
+
   function buildShell() {
     setHtml(root, `
       <div class="p-search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
-        <input placeholder="Run command, jump to file…" />
-        <span class="badge">⌘K</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+        <input placeholder="Run command, jump to file…" role="combobox" aria-label="Search commands" aria-expanded="true" aria-controls="pList" aria-autocomplete="list" />
       </div>
-      <div class="p-list"></div>
+      <div class="p-list" id="pList" role="listbox" aria-label="Commands"></div>
       <div class="p-foot">
         <span class="hint"><span>↑</span><span>↓</span> navigate</span>
         <span class="hint"><span>↩</span> select</span>
@@ -50,13 +53,13 @@ export function mountPalette(scrim, store, actions) {
     const groupHtml = [...groups.entries()]
       .map(
         ([name, items]) => `
-      <div class="p-group">
-        <div class="p-glabel">${esc(name)}</div>
+      <div class="p-group" role="group" aria-label="${esc(name)}">
+        <div class="p-glabel" aria-hidden="true">${esc(name)}</div>
         ${items
           .map(
             (c) => `
-          <div class="p-row${c.idx === selected ? ' on' : ''}" data-idx="${c.idx}">
-            <div class="p-icon">${esc(c.icon || '·')}</div>
+          <div class="p-row${c.idx === selected ? ' on' : ''}" id="pRow-${c.idx}" role="option" aria-selected="${c.idx === selected}" data-idx="${c.idx}">
+            <div class="p-icon" aria-hidden="true">${esc(c.icon || '·')}</div>
             <div class="p-text">
               <div class="p-title">${esc(c.title)}</div>
               ${c.sub ? `<div class="p-sub">${esc(c.sub)}</div>` : ''}
@@ -78,6 +81,14 @@ export function mountPalette(scrim, store, actions) {
     });
     const count = root.querySelector('.p-count');
     if (count) count.textContent = `${filtered.length} result${filtered.length === 1 ? '' : 's'}`;
+    syncActiveDescendant();
+  }
+
+  function syncActiveDescendant() {
+    const input = root.querySelector('input');
+    if (!input) return;
+    if (filtered.length) input.setAttribute('aria-activedescendant', `pRow-${selected}`);
+    else input.removeAttribute('aria-activedescendant');
   }
 
   function updateSelection(nextIdx, { scroll = false } = {}) {
@@ -85,10 +96,17 @@ export function mountPalette(scrim, store, actions) {
     const clamped = Math.max(0, Math.min(filtered.length - 1, nextIdx));
     if (clamped === selected) return;
     const oldRow = root.querySelector(`.p-row[data-idx="${selected}"]`);
-    if (oldRow) oldRow.classList.remove('on');
+    if (oldRow) {
+      oldRow.classList.remove('on');
+      oldRow.setAttribute('aria-selected', 'false');
+    }
     const newRow = root.querySelector(`.p-row[data-idx="${clamped}"]`);
-    if (newRow) newRow.classList.add('on');
+    if (newRow) {
+      newRow.classList.add('on');
+      newRow.setAttribute('aria-selected', 'true');
+    }
     selected = clamped;
+    syncActiveDescendant();
     if (scroll && newRow) newRow.scrollIntoView({ block: 'nearest' });
   }
 
@@ -150,14 +168,22 @@ export function mountPalette(scrim, store, actions) {
   window.addEventListener('keydown', onKey);
 
   let wasOpen = false;
+  let returnFocus = null;
   store.subscribe((s) => {
     const open = !!s.paletteOpen;
     scrim.hidden = !open;
     if (open && !wasOpen) {
+      returnFocus = document.activeElement;
       rebuild();
     } else if (!open && wasOpen) {
       queryString = '';
       mounted = false;
+      // Hand focus back to whatever opened the palette, unless the command
+      // already moved it somewhere useful (e.g. into the editor).
+      const active = document.activeElement;
+      const focusLost = !active || active === document.body || root.contains(active);
+      if (focusLost && returnFocus?.isConnected && !returnFocus.disabled) returnFocus.focus();
+      returnFocus = null;
     } else if (open) {
       refreshCommandsIfChanged();
     }

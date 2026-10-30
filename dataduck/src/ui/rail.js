@@ -16,13 +16,13 @@ export function mountRail(el, store, handlers) {
     <div class="files" id="rFiles"></div>
     <div class="section" id="rColsSection" hidden>
       <div class="label">
-        <span>Columns of <span style="color:var(--accent);" id="rColsName"></span></span>
+        <span>Columns of <span class="label-name" id="rColsName"></span></span>
         <span class="count" id="rColsCount">0</span>
       </div>
     </div>
     <div class="cols" id="rCols"></div>
     <div class="section" id="rMetaSection" hidden>
-      <div class="label"><span>Metadata of <span style="color:var(--accent);" id="rMetaName"></span></span></div>
+      <div class="label"><span>Metadata of <span class="label-name" id="rMetaName"></span></span></div>
     </div>
     <div class="meta-rows" id="rMeta"></div>
     <div class="rail-foot">
@@ -55,20 +55,20 @@ function render(el, s, handlers, filterText) {
   });
   for (const [name, rec] of fileEntries) {
     const row = document.createElement('div');
-    row.className = `file${name === s.activeTable ? ' active' : ''}`;
+    const isActive = name === s.activeTable;
+    row.className = `file${isActive ? ' active' : ''}`;
     const rows = rowCountFromProfile(rec.profile);
     const rowsAbbrev = rows != null ? abbreviateCount(Number(rows)) : '';
     setHtml(row, `
-      <span class="dot"></span>
-      <span class="name">${esc(name)}</span>
-      <span class="rows">${esc(rowsAbbrev)}</span>
+      <button class="file-main" type="button"${isActive ? ' aria-current="true"' : ''} title="${esc(rec.file?.name || name)}">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="name">${esc(name)}</span>
+        <span class="rows">${esc(rowsAbbrev)}</span>
+      </button>
       <button class="x" type="button" title="Close" aria-label="Close ${esc(name)}">×</button>
     `);
-    row.querySelector('.x').addEventListener('click', (e) => {
-      e.stopPropagation();
-      handlers.onClose(name);
-    });
-    row.addEventListener('click', () => handlers.onSwitch(name));
+    row.querySelector('.x').addEventListener('click', () => handlers.onClose(name));
+    row.querySelector('.file-main').addEventListener('click', () => handlers.onSwitch(name));
     filesEl.appendChild(row);
   }
 
@@ -99,6 +99,10 @@ function render(el, s, handlers, filterText) {
   });
   el.querySelector('#rColsCount').textContent = String(visible.length);
 
+  const openColumn = s.rightPanel?.type === 'profile' && s.rightPanel.payload?.table === s.activeTable
+    ? s.rightPanel.payload.column
+    : null;
+
   setHtml(colsEl, visible.map((row) => {
     const name = row.column_name || row.name;
     const type = row.column_type || row.type || '';
@@ -109,7 +113,9 @@ function render(el, s, handlers, filterText) {
     const distinctText = distinct == null ? '' : distinct >= totalRows * 0.8 ? 'all' : abbreviateCount(distinct);
     const barWidth = distinct == null || !totalRows ? 0 : Math.min(100, Math.round((distinct / totalRows) * 100));
     const bar = barWidth ? `<span class="bar"><i style="width:${barWidth}%"></i></span>` : '';
-    return `<div class="col" data-col="${esc(name)}" title="${esc(type)}"><span class="ico ${cls}">${esc(ico)}</span><span class="name">${esc(name)}</span><span class="stat">${bar}${esc(distinctText)}</span></div>`;
+    const label = `${name}, ${type || 'unknown type'}${distinctText ? `, ${distinctText === 'all' ? 'all values distinct' : `${distinctText} distinct`}` : ''}`;
+    const on = name === openColumn;
+    return `<button class="col${on ? ' on' : ''}" type="button" data-col="${esc(name)}" title="${esc(type)}" aria-label="${esc(label)}" aria-pressed="${on}"><span class="ico ${cls}" aria-hidden="true">${esc(ico)}</span><span class="name">${esc(name)}</span><span class="stat" aria-hidden="true">${bar}${esc(distinctText)}</span></button>`;
   }).join(''));
 
   colsEl.querySelectorAll('.col').forEach((row) => {

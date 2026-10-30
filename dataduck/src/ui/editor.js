@@ -3,29 +3,33 @@ import { setHtml, spinner } from '../util/dom.js';
 
 const DEFAULT_SQL = `SELECT *\nFROM active_file\nLIMIT 500;`;
 
+function modKey() {
+  const platform = globalThis.navigator?.platform || '';
+  return /Mac|iPhone|iPad|iPod/i.test(platform) ? '⌘' : 'Ctrl';
+}
+
 export function mountEditor(el, store, handlers) {
+  const mod = modKey();
   const wrap = document.createElement('div');
   wrap.className = 'editor';
   setHtml(wrap, `
-    <div class="tabs">
-      <button class="tab on" type="button" data-editor-tab="query" aria-selected="true">Query</button>
-      <button class="tab" type="button" data-editor-tab="schema" aria-selected="false" disabled>Schema</button>
-      <button class="tab" type="button" data-editor-tab="sample" aria-selected="false" disabled>Sample</button>
-      <div class="grow"></div>
-      <div class="right" id="eRight">SELECT</div>
+    <div class="tabs" role="tablist" aria-label="Editor views">
+      <button class="tab on" type="button" role="tab" data-editor-tab="query" aria-selected="true" aria-controls="eSql">Query</button>
+      <button class="tab" type="button" role="tab" data-editor-tab="schema" aria-selected="false" aria-controls="eSql" disabled>Schema</button>
+      <button class="tab" type="button" role="tab" data-editor-tab="sample" aria-selected="false" aria-controls="eSql" disabled>Sample</button>
     </div>
     <div class="body">
-      <div class="ln" id="eLn">1</div>
+      <div class="ln" id="eLn" aria-hidden="true">1</div>
       <div class="stack">
         <pre class="hl" id="eHl" aria-hidden="true"></pre>
-        <textarea id="eSql" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off"></textarea>
+        <textarea id="eSql" aria-label="SQL query" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" wrap="off"></textarea>
       </div>
     </div>
     <div class="foot">
-      <span id="eIcon" class="ok">●</span><span id="eStatus">Ready</span>
+      <span id="eIcon" class="state-dot" aria-hidden="true"></span><span id="eStatus" role="status">Ready</span>
       <span class="grow"></span>
-      <span class="pill">⌘↩ run</span>
-      <span class="pill">⌘/ comment</span>
+      <span class="pill hint-comment">${mod}/ comment</span>
+      <button class="run" id="eRun" type="button" disabled aria-keyshortcuts="${mod === '⌘' ? 'Meta' : 'Control'}+Enter">Run<span class="k" aria-hidden="true">${mod}↩</span></button>
     </div>
   `);
   el.appendChild(wrap);
@@ -49,7 +53,7 @@ export function mountEditor(el, store, handlers) {
   const ta = wrap.querySelector('#eSql');
   const hl = wrap.querySelector('#eHl');
   const ln = wrap.querySelector('#eLn');
-  const right = wrap.querySelector('#eRight');
+  const runBtn = wrap.querySelector('#eRun');
   const tabButtons = Array.from(wrap.querySelectorAll('[data-editor-tab]'));
   let activeTab = 'query';
   let queryDraft = DEFAULT_SQL;
@@ -60,7 +64,7 @@ export function mountEditor(el, store, handlers) {
   const tabSql = (tab) => {
     const table = getActiveTable();
     if (!table) return queryDraft;
-    if (tab === 'schema') return `DESCRIBE SELECT *\nFROM ${table};`;
+    if (tab === 'schema') return `DESCRIBE ${table};`;
     if (tab === 'sample') return `SELECT *\nFROM ${table}\nORDER BY random()\nLIMIT 100;`;
     return queryDraft;
   };
@@ -78,31 +82,61 @@ export function mountEditor(el, store, handlers) {
   const selectTab = (tab) => {
     if (tab !== 'query' && !getActiveTable()) return;
     if (activeTab === 'query') queryDraft = ta.value;
+    const changed = activeTab !== tab;
     activeTab = tab;
     ta.value = tabSql(tab);
     updateTabs();
     update();
     ta.focus();
     ta.setSelectionRange(ta.value.length, ta.value.length);
+    // Schema and Sample are read-only views: run them so the result below
+    // always matches the tab you are looking at.
+    if (changed && tab !== 'query') handlers.onRun();
   };
 
   const update = () => {
     setHtml(hl, highlightSql(ta.value) + '\n');
     const lines = ta.value.split('\n').length;
     ln.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
-    const firstWord = ta.value.trim().split(/\s+/)[0]?.toUpperCase();
-    if (firstWord) right.textContent = firstWord;
+    renderStatus(store.state || {});
   };
 
-  // Lock the editor when there's no active table. The Run button is already
-  // gated by store state in header.js — here we mirror that on the textarea
-  // so the surface communicates "you cannot run this yet" honestly.
+  const renderStatus = (s) => {
+    const status = wrap.querySelector('#eStatus');
+    const icon = wrap.querySelector('#eIcon');
+    const hasRun = s.lastRunSql != null;
+    const edited = hasRun && ta.value.trim() !== s.lastRunSql;
+    let state = 'idle';
+    let text = s.activeTable ? `Ready · ${mod}↩ to run` : 'Open a file';
+    if (s.isBusy) {
+      state = 'busy';
+      text = s.busyLabel || 'Working…';
+    } else if (s.queryError && !edited) {
+      state = 'error';
+      text = 'Query failed';
+    } else if (edited) {
+      state = 'edited';
+      text = s.queryError ? `Edited · ${mod}↩ to run again` : 'Results are from an earlier query';
+    } else if (hasRun) {
+      state = 'ok';
+      text = 'Up to date';
+    }
+    wrap.dataset.runState = state;
+    status.textContent = text;
+    setHtml(icon, state === 'busy' ? spinner() : '');
+    runBtn.disabled = !s.activeTable || Boolean(s.isBusy);
+  };
+
+  // Lock the editor when there's no active table, so the surface
+  // communicates "you cannot run this yet" honestly.
   const updateLock = (active) => {
     const locked = !active;
     wrap.classList.toggle('is-locked', locked);
     ta.disabled = locked;
     ta.setAttribute('aria-disabled', String(locked));
   };
+
+  runBtn.addEventListener('click', () => handlers.onRun());
 
   for (const button of tabButtons) {
     button.addEventListener('click', () => selectTab(button.dataset.editorTab));
@@ -138,21 +172,11 @@ export function mountEditor(el, store, handlers) {
   });
 
   store.subscribe((s) => {
-    const status = wrap.querySelector('#eStatus');
-    const icon = wrap.querySelector('#eIcon');
-    if (s.isBusy) {
-      status.textContent = s.busyLabel || 'Working…';
-      setHtml(icon, spinner());
-      icon.style.color = 'var(--accent)';
-    } else {
-      status.textContent = s.activeTable ? 'Ready' : 'Open a file';
-      setHtml(icon, '●');
-      icon.style.color = 'var(--accent)';
-    }
     if (activeTab !== 'query') {
       ta.value = tabSql(activeTab);
       update();
     }
+    renderStatus(s);
     updateTabs();
     updateLock(s.activeTable);
   });

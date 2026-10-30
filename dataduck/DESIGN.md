@@ -41,8 +41,8 @@ The result: a dev-tool that feels first-party Apple, with a rail that earns its 
 | `--line-strong`   | `#d8d6d2` | Stronger separators (input borders, kbd)         |
 | `--ink`           | `#111111` | Primary text, primary button                     |
 | `--ink-2`         | `#555350` | Secondary text                                   |
-| `--ink-3`         | `#8e8b87` | Tertiary text, labels                            |
-| `--ink-4`         | `#b8b5b0` | Quaternary, line numbers                         |
+| `--ink-3`         | `#6f6c68` | Tertiary text, labels (≥4.5:1 on all surfaces)   |
+| `--ink-4`         | `#928e88` | Quaternary, line numbers, glyphs (≥3:1)          |
 | `--accent`        | `#1a4d44` | SQL keywords, active file, column distribution bar |
 | `--accent-soft`   | `#e8efed` | Active row backgrounds, file card                |
 
@@ -57,8 +57,8 @@ The result: a dev-tool that feels first-party Apple, with a rail that earns its 
 | `--line-strong` | `#2f3337` |
 | `--ink`         | `#e8e6e3` |
 | `--ink-2`       | `#9ea29f` |
-| `--ink-3`       | `#6b6e6c` |
-| `--ink-4`       | `#4a4d4b` |
+| `--ink-3`       | `#868987` |
+| `--ink-4`       | `#686b69` |
 | `--accent`      | `#6dc4b4` |
 | `--accent-soft` | `rgba(109, 196, 180, 0.12)` |
 
@@ -93,10 +93,10 @@ This is a hard preference for the user across all tinycrafts UI work. Any contri
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  P  DataDuck   events · 78,231 rows · 12 cols · 1.2 MB           │
-│                                  [Search ⌘K]  [◐]   Run ⌘↩       │  44px
+│                                  [Commands ⌘K]  [↺] [✦] [◐]       │  44px
 ├──────────────┬───────────────────────────────────────────────────┤
 │ search…      │ Query  Schema  Sample                             │
-│              │                                          SELECT   │  32px
+│              │                                                   │  32px
 │ FILES   3 +  ├───────────────────────────────────────────────────┤
 │ ● events 78K │ 1  SELECT event, COUNT(*) AS count                │
 │ ○ orders 412K│ 2  FROM events                                    │
@@ -117,7 +117,7 @@ This is a hard preference for the user across all tinycrafts UI work. Any contri
 └──────────────┴───────────────────────────────────────────────────┘
 ```
 
-- **Header (44px, sticky, blurred bg):** brand wordmark + active-file crumb (left), search hint + theme toggle + Run (right). Run is the only ink-black control on screen.
+- **Header (44px, sticky, blurred bg):** brand wordmark + active-file crumb (left), command trigger + runs + assistant + theme (right). Run is not in the header: it lives in the editor's run bar, directly under the query it executes, and is the only ink-filled control in the work area.
 - **Rail (256px fixed, scrollable):** search → Files → Columns of [active] → Metadata of [active]. Always visible at viewport ≥ 980px; collapses to a top drawer below 980px.
 - **Work area (fluid):** editor (top, ~33% of stage height) + result table (bottom, ~67%). Both grow/shrink together with viewport.
 - **Floating status pill (bottom-right of work area):** rows · ms · CSV. Ink-black on light, ink-white on dark. Only appears after a successful query.
@@ -209,11 +209,12 @@ Switching is instant; no cached schema/summary is recomputed unless invalidated.
 - Background: `color-mix(in srgb, var(--bg) 78%, transparent)` + `backdrop-filter: blur(14px)`.
 - Bottom border: 1px `var(--line)`.
 - Left: brand mark (18px ink square with serif "P" reversed) + serif "DataDuck" wordmark + crumb (active table · row/col/size).
-- Right: ⌘K search-hint kbd (22px tall, 5px radius), theme icon-button (26px square, 6px radius), Run button (26px tall, ink fill, white text, ⌘↩ shown in right-side opacity-60 mono).
+- Right: ⌘K command trigger, runs history (always rendered, disabled until the first run so the header never reflows), assistant, theme icon-buttons.
 
 ### 5.2 Rail
 
 - Width 256px, fixed at desktop. Collapses to a top drawer at < 980px.
+- Resizing: the whole rail edge is the drag handle (9px hit area over a 1px hairline). No grip. A 2px neutral line appears after a 150ms hover or while dragging; double-click resets. The right-panel and editor edges behave the same way. The work area never drops below 360px: drags stop there, and when the window narrows the open right panel shrinks first (to 320px), then the rail.
 - Background `var(--bg)`, right border 1px `var(--line)`.
 - **Search:** 28px input, full-width, search-icon prefix. Searches across columns, file names, sample queries, and ⌘K commands. Typing here also opens the ⌘K palette inline (search input proxies to palette).
 - **Files section:**
@@ -244,7 +245,7 @@ Switching is instant; no cached schema/summary is recomputed unless invalidated.
 - Tabs (32px tall): Query (with optional badge `1` for current tab number when multiple are open in v2), Schema (read-only `DESCRIBE [active]` view), Sample (random 100 rows from active).
 - SQL editor: gutter for line numbers (22px wide, ink-4) + code area (mono 12.5px, line-height 1.65, 18px right padding for caret comfort).
 - Syntax highlighting: DuckDB SQL dialect. Keywords in `--accent`, function calls in purple (`#7a4cb3` light / `#c79bff` dark), numbers in amber, identifiers in `--ink`. Use a small custom highlighter — no full editor framework. (Lightweight, ~3KB regex-based covering DuckDB's keyword set; Monaco/CodeMirror would balloon the bundle and are overkill for read-mostly query authoring.)
-- Footer (28px): status dot + status text on the left, keyboard-shortcut pills on the right (⌘↩ run, ⌘/ comment, ⌥⇧F format).
+- Run bar (40px): run-state dot + text on the left (Ready / running / Up to date / Results are from an earlier query / Query failed), `⌘/ comment` hint and the Run button (28px, ink fill, `⌘↩` at opacity 0.6) on the right. Schema and Sample tabs run on activation so the result always matches the visible tab. Query errors render in place of the result, never only in a toast.
 - Keyboard:
   - `⌘↩` / `Ctrl↩` — run query
   - `⌘/` / `Ctrl/` — toggle line comment
@@ -360,7 +361,7 @@ Unchanged behavior. Service worker continues to cache the shell + DuckDB-WASM as
 
 ## 8.1 Ask DataDuck
 
-Ask DataDuck is the only React island in the app. The rest of DataDuck remains vanilla modules. The assistant mounts into the existing right-panel host, so it shares Escape handling, docked/mobile layout, and panel replacement semantics with column profiles and query snapshots.
+Ask DataDuck is the only React island in the app. The rest of DataDuck remains vanilla modules. The assistant mounts into the existing right-panel host, so it shares Escape handling, docked/mobile layout, and panel replacement semantics with column profiles and query snapshots. It is resized from the same edge handle as the other right panels (no width toggle) and remembers its own width, defaulting to 480px.
 
 Claude and Groq BYOK keys are session-only unless the user explicitly chooses "Remember key on this browser". Remembered keys use WebCrypto and IndexedDB browser storage, but this is not a server-grade secret boundary and does not protect against same-origin script compromise.
 

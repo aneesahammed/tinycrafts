@@ -267,7 +267,7 @@ export function AnalysisMessage({ analysis, settings, onOpenSql, onCopySql, summ
             </button>
           </div>
         ) : null}
-        {summary ? <p className="analysis-summary">Sent at {summary.sentAt} — {summary.text}</p> : null}
+        {summary ? <p className="analysis-summary">Sent at {summary.sentAt} · {summary.text}</p> : null}
         {error ? <p className="analysis-error">{error}</p> : null}
       </footer>
     </article>

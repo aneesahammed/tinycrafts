@@ -6,6 +6,8 @@ export function createStore() {
     resultColumnTypes: {},
     resultRows: [],
     queryElapsedMs: null,
+    queryError: null,
+    lastRunSql: null,
     page: 0,
     pageSize: 100,
     isBusy: false,
@@ -49,11 +51,13 @@ export function createStore() {
       state.activeTable = tableName;
       emit();
     },
-    setResult({ columns, columnTypes = {}, rows, elapsedMs }) {
+    setResult({ columns, columnTypes = {}, rows, elapsedMs, sql = null }) {
       state.resultColumns = columns;
       state.resultColumnTypes = { ...columnTypes };
       state.resultRows = rows;
       state.queryElapsedMs = elapsedMs;
+      state.queryError = null;
+      state.lastRunSql = sql;
       state.page = 0;
       // New result invalidates any prior column sort.
       state.sortColumn = null;
@@ -65,9 +69,18 @@ export function createStore() {
       state.resultColumnTypes = {};
       state.resultRows = [];
       state.queryElapsedMs = null;
+      state.queryError = null;
+      state.lastRunSql = null;
       state.page = 0;
       state.sortColumn = null;
       state.sortDirection = null;
+      emit();
+    },
+    // A failed run keeps the previous result in memory but the UI shows the
+    // error in its place, so nothing on screen claims the old rows are current.
+    setQueryError(message, sql = null) {
+      state.queryError = message;
+      state.lastRunSql = sql;
       emit();
     },
     setSort(column, direction) {

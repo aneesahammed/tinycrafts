@@ -43,7 +43,7 @@ describe('header empty state', () => {
     expect(header.querySelector('.crumb').hidden).toBe(true);
   });
 
-  it('shows the command palette trigger as a command button, not a fake search field', () => {
+  it('shows the command palette trigger as the search bar for files and commands', () => {
     const header = document.createElement('header');
     const store = createStore();
 
@@ -56,9 +56,11 @@ describe('header empty state', () => {
     const trigger = header.querySelector('#hPalette');
     expect(trigger.classList.contains('cmd-trigger')).toBe(true);
     expect(trigger.getAttribute('aria-label')).toBe('Open command menu');
-    expect(trigger.textContent).toContain('Commands');
-    expect(trigger.textContent).not.toContain('Search');
+    expect(trigger.textContent).toContain('Search or run a command');
     expect(trigger.querySelectorAll('kbd')).toHaveLength(2);
+    // Centered between equal side groups so it sits at the page's middle.
+    expect(trigger.previousElementSibling.classList.contains('head-start')).toBe(true);
+    expect(trigger.nextElementSibling.classList.contains('head-end')).toBe(true);
   });
 
   it('toggles the left sidebar from the header and reflects collapsed state', () => {

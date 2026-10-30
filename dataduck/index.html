@@ -19,7 +19,7 @@
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
     <title>DataDuck</title>
-    <link rel="stylesheet" href="./styles.css?v=26" />
+    <link rel="stylesheet" href="./styles.css?v=30" />
   </head>
   <body>
     <div class="app" id="app">
@@ -39,7 +39,7 @@
       <div class="palette" id="palette"></div>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <input id="fileInput" class="sr-only" type="file" accept=".parquet,.parq,.csv" multiple />
+    <input id="fileInput" class="sr-only" type="file" accept=".parquet,.parq,.csv" multiple tabindex="-1" aria-hidden="true" />
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

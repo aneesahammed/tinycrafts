@@ -12,7 +12,6 @@ import { DataDuckRuntimeProvider } from './DataDuckRuntime.jsx';
 import { AnalysisMessage } from './AnalysisMessage.jsx';
 
 const SETTINGS_KEY = 'dataduck-ai-settings';
-const PANEL_WIDE_KEY = 'dataduck-ai-panel-wide';
 const KEY_SAVE_DEBOUNCE_MS = 300;
 
 export const FALLBACK_SUGGESTIONS = [
@@ -29,7 +28,6 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
   const [input, setInput] = useState('');
   const [running, setRunning] = useState(false);
   const [openPopover, setOpenPopover] = useState(null);
-  const [panelWide, setPanelWide] = useState(() => readPanelWide());
   const requestRef = useRef({ id: 0, controller: null });
   const messagesRef = useRef(null);
   const textareaRef = useRef(null);
@@ -65,10 +63,6 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
   useEffect(() => {
     writeSettings(settings);
   }, [settings]);
-
-  useEffect(() => {
-    writePanelWide(panelWide);
-  }, [panelWide]);
 
   useEffect(() => {
     const el = messagesRef.current;
@@ -199,7 +193,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
 
   return (
     <DataDuckRuntimeProvider store={store} settings={runtimeSettings} queryFn={queryFn}>
-      <section className="assistant-panel" data-panel-size={panelWide ? 'wide' : 'compact'} aria-label="Ask DataDuck">
+      <section className="assistant-panel" aria-label="Ask DataDuck">
         <header className="assistant-head">
           <div className="assistant-head-title">
             <div className="assistant-head-text">
@@ -208,16 +202,6 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
             </div>
           </div>
           <div className="assistant-head-actions">
-            <button
-              type="button"
-              className="assistant-icon-btn"
-              aria-label={panelWide ? 'Use compact panel width' : 'Expand panel width'}
-              aria-pressed={panelWide}
-              onClick={() => setPanelWide((wide) => !wide)}
-              title={panelWide ? 'Use compact panel width' : 'Expand panel width'}
-            >
-              <Icon name={panelWide ? 'panelCompact' : 'panelWide'} />
-            </button>
             <button
               type="button"
               className={`assistant-icon-btn${openPopover === 'history' ? ' is-active' : ''}`}
@@ -332,7 +316,7 @@ export function AssistantApp({ store, queryFn, setSql, showToast, onClose, summa
             />
             <div className="assistant-composer-actions">
               <span className="assistant-composer-hint">
-                <kbd>⌘</kbd><kbd>↵</kbd> send · stays local in DuckDB-WASM
+                <kbd>⌘</kbd><kbd>↵</kbd> send · question and schema go to your AI provider
               </span>
               <button type="submit" className="assistant-send" disabled={!state.activeTable || running || !input.trim()} aria-label="Send">
                 {running ? <span className="assistant-spinner" /> : <Icon name="send" />}
@@ -555,8 +539,6 @@ function Icon({ name }) {
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
     close: <path d="M18 6 6 18M6 6l12 12" />,
     plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
-    panelCompact: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M15 5v14" /><path d="m9 9 3 3-3 3" /></>,
-    panelWide: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M13 5v14" /><path d="m17 9-3 3 3 3" /></>,
     send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
   };
   return (
@@ -664,21 +646,6 @@ function looksLikeApiKey(value) {
   return /^(sk-ant-[A-Za-z0-9_-]{8,}|gsk_[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9_-]{16,})/i.test(String(value || '').trim());
 }
 
-function readPanelWide() {
-  try {
-    return localStorage.getItem(PANEL_WIDE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writePanelWide(wide) {
-  try {
-    localStorage.setItem(PANEL_WIDE_KEY, wide ? '1' : '0');
-  } catch {
-    // ignore private mode quota errors
-  }
-}
 
 async function maybeLoadRememberedKeys(settings) {
   const normalized = normalizeSettingsShape(settings);
