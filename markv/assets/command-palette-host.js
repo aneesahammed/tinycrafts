@@ -412,14 +412,6 @@
         run: function () { clickElement("themeToggleBtn"); },
       }),
       createCommand(env, {
-        id: "command:insights",
-        title: "Document insights",
-        subtitle: "Open the local document insights panel",
-        keywords: ["document", "insights", "terms", "analysis"],
-        defaultRank: 110,
-        run: function () { clickElement("ontologyToggleBtn"); },
-      }),
-      createCommand(env, {
         id: "command:mindmap",
         title: "Concept mindmap",
         subtitle: "Map the current document",

@@ -2,12 +2,12 @@
  * toolbar-mobile.js — Responsive overflow for the MarkV toolbar.
  *
  * Why this exists:
- *   At ≤640px the toolbar shrinks to a primary row of brand +
- *   Library + Edit/Preview + a "⋯ More" button. The remaining
- *   controls — File ops (Open, Save), View prefs (Reading, Theme,
- *   Insights), Refresh (Reload, Auto), Mindmap/Share/Settings, Clear
- *   — are physically TELEPORTED into a bottom sheet that slides up
- *   from the More button.
+ *   At ≤640px the toolbar shrinks to a primary row of Files +
+ *   brand + Read/Edit + a "⋯ More" button. The remaining controls —
+ *   File ops (New, Search, Save, Export), View prefs from the reader
+ *   dock (Reading, Theme), Refresh (Reload, Auto), Mindmap/Share,
+ *   Settings and Clear — are physically TELEPORTED into a bottom
+ *   sheet that slides up from the More button.
  *
  *   We move the actual DOM nodes (rather than rendering proxy
  *   buttons) so there is exactly ONE source of truth: existing
@@ -68,9 +68,17 @@
     }
 
     var mq = window.matchMedia(NARROW_QUERY);
+    // The reader dock is a second home for overflowable controls; it is
+    // hidden at ≤640px, so its tools join the same sheet.
+    var dock = document.getElementById("readerDock");
     var movables = Array.prototype.slice.call(
       toolbar.querySelectorAll("[" + SECTION_ATTR + "]")
     );
+    if (dock) {
+      movables = movables.concat(
+        Array.prototype.slice.call(dock.querySelectorAll("[" + SECTION_ATTR + "]"))
+      );
+    }
 
     // Snapshot each movable's origin in document order so restore
     // is deterministic regardless of how/when teleport ran.
@@ -131,9 +139,9 @@
       var firstMovable = movables[0];
       if (!firstMovable) return;
       if (mq.matches) {
-        // Idempotent: only teleport if the first movable is still
-        // sitting in the toolbar.
-        if (toolbar.contains(firstMovable)) teleport();
+        // Idempotent: only teleport if the first movable is not
+        // already in the sheet.
+        if (!sheetBody.contains(firstMovable)) teleport();
       } else {
         if (sheetBody.contains(firstMovable)) restore();
         if (sheet.classList.contains("is-open"))
@@ -241,7 +249,7 @@
     backdrop.addEventListener("click", function () { closeSheet(); });
 
     // Most actions inside the sheet imply "I'm done with the menu"
-    // (Save, Reload, Mindmap, Share, Settings, Clear, Theme, Insights).
+    // (Save, Reload, Mindmap, Share, Settings, Clear, Theme).
     // Auto-refresh is a checkbox label, and Reading owns a nested panel,
     // so both stay in place for continued interaction.
     sheetBody.addEventListener("click", function (e) {
@@ -252,7 +260,7 @@
       var btn = target.closest(".btn");
       if (!btn) return;
       // Defer one tick so the button's own handler fires first
-      // (e.g. ontologyToggleBtn opens its panel before we close).
+      // (e.g. Settings opens its drawer before we close).
       setTimeout(function () { closeSheet(); }, 0);
     });
 

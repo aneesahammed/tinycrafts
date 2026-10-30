@@ -49,7 +49,7 @@ test("narrow reading panel scrolls internally instead of clipping", () => {
   const narrowBlock = extractBlock(css, "@media (max-width: 820px)");
   const sharedPanelRule = extractBlock(
     narrowBlock,
-    ".reading-settings .reading-panel,\n        .ont-settings .ont-panel",
+    ".reading-settings .reading-panel {",
   );
   const readingRules = extractRuleBodies(
     narrowBlock,

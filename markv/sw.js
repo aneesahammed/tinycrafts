@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v50";
+const CACHE_VERSION = "v51";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -13,8 +13,8 @@ const SHELL_ASSETS = [
   "./assets/shortcut-registry.js?v=2",
   "./assets/editor-markdown-actions.js?v=2",
   "./assets/command-palette-core.js?v=2",
-  "./assets/command-palette-host.js?v=4",
-  "./assets/command-palette.js?v=5",
+  "./assets/command-palette-host.js?v=5",
+  "./assets/command-palette.js?v=6",
   "./assets/command-palette.css?v=2",
   "./assets/reader-palettes.js?v=4",
   "./assets/export-core.js?v=2",
@@ -23,8 +23,9 @@ const SHELL_ASSETS = [
   "./assets/visual-block-menu.js?v=16",
   "./assets/pwa.js",
   "./assets/sample-developer.md",
-  "./assets/toolbar-sync.js",
-  "./assets/toolbar-mobile.js?v=2",
+  "./assets/toolbar-sync.js?v=2",
+  "./assets/toolbar-mobile.js?v=3",
+  "./assets/toolbar-chrome.js?v=1",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
   "./assets/icons/icon-maskable-512.png",

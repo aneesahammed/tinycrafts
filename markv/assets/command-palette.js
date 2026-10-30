@@ -78,7 +78,10 @@
               shortcuts.isApplePlatform && shortcuts.isApplePlatform() ? "" : " ",
           })
         : "Ctrl K";
-    hint.textContent = label;
+    // The toolbar search field keeps its icon + label and shows the
+    // shortcut in a child <kbd>; a bare hint button gets the label.
+    const kbd = hint.querySelector("[data-shortcut-kbd]");
+    (kbd || hint).textContent = label;
     hint.setAttribute(
       "aria-label",
       "Open command palette (" +
