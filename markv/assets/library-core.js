@@ -1286,6 +1286,14 @@
     }
 
     files.forEach(addDoc);
+    // A folder index supplies compact metadata rather than retaining and
+    // reparsing every file's full markdown whenever the active file changes.
+    (Array.isArray(source.documents) ? source.documents : []).forEach(function (doc) {
+      const path = normalizeLibraryPath(doc && doc.path);
+      if (!path || seenPaths.has(path) || !isSupportedLibraryFile(path)) return;
+      seenPaths.add(path);
+      parsedDocs.push(doc);
+    });
     if (currentPath) {
       const existingIndex = parsedDocs.findIndex(function (doc) {
         return doc.path === currentPath;

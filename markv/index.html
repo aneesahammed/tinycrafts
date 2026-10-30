@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-0y9BaIdiH8PbkjxX1r1t5T0e74dbMBAdHVH1v0Jnfk4=' 'sha256-oL/YoBP6apq9QyrwGeBMlWGbw53Iul5U+sH7x6IHIx8=' 'sha256-CZk47CBCpyyTjeD+yOObrOzK7TAXb2pX4sZ27H2Z9Rc=' 'sha256-uS3UkBa4U06aMkyHXE/NpaXzuDujHLfSrkMLuDId7aI=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-6wyJ/uebDHNw8vx2FBzB4YKWYwOpkzgPib2mVehOtRw=' 'sha256-oL/YoBP6apq9QyrwGeBMlWGbw53Iul5U+sH7x6IHIx8=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -36,7 +36,7 @@
     <link rel="stylesheet" href="assets/command-palette.css?v=2" />
 
     <script src="assets/analytics.js"></script>
-    <script src="assets/library-core.js?v=17"></script>
+    <script src="assets/library-core.js?v=18"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=2"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
@@ -15727,6 +15727,8 @@ Return JSON only.`;
           return rawName || "document.md";
         }
 
+        const libraryContextIndexes = new WeakMap();
+
         function getOrderedLibraryMindmapPaths(folder, currentPath) {
           if (
             !folder ||
@@ -15765,10 +15767,10 @@ Return JSON only.`;
           if (!handle || typeof handle.getFile !== "function") return null;
           try {
             const file = await handle.getFile();
-            return {
+            return libraryCore.parseLibraryMarkdownContext({
               path: path,
               text: await file.text(),
-            };
+            });
           } catch (error) {
             console.warn("[mindmap] skipped unreadable library context file", {
               path: path,
@@ -15776,6 +15778,46 @@ Return JSON only.`;
             });
             return null;
           }
+        }
+
+        function updateLibraryContextDocument(folder, path, markdown) {
+          const index = folder && libraryContextIndexes.get(folder);
+          if (!index || index.handles !== folder.fileHandlesByPath) return;
+          index.documents.set(path, libraryCore.parseLibraryMarkdownContext({
+            path: path, text: markdown,
+          }));
+        }
+
+        async function getLibraryContextDocuments(folder, currentPath, markdown) {
+          let index = libraryContextIndexes.get(folder);
+          if (!index || index.handles !== folder.fileHandlesByPath) {
+            index = { handles: folder.fileHandlesByPath, documents: new Map(), promise: null };
+            libraryContextIndexes.set(folder, index);
+          }
+          updateLibraryContextDocument(folder, currentPath, markdown);
+          if (!index.promise) {
+            index.promise = (async function () {
+              const paths = getOrderedLibraryMindmapPaths(folder, currentPath);
+              let processed = 0;
+              for (const path of paths) {
+                if (index.handles !== folder.fileHandlesByPath ||
+                    getLibraryFolderById(folder.id) !== folder) return;
+                if (!index.documents.has(path)) {
+                  const doc = await readLibraryMindmapFile(folder, path);
+                  // An opened/saved file may have supplied fresher metadata
+                  // while this background read was pending.
+                  if (doc && !index.documents.has(path)) index.documents.set(path, doc);
+                }
+                if (++processed % 20 === 0) await yieldToUi();
+              }
+            })().catch(function (error) {
+              if (libraryContextIndexes.get(folder) === index) libraryContextIndexes.delete(folder);
+              throw error;
+            });
+          }
+          await index.promise;
+          if (index.handles !== folder.fileHandlesByPath) return [];
+          return Array.from(index.documents.values());
         }
 
         async function buildActiveLibraryMindmapContext(markdown) {
@@ -15787,25 +15829,20 @@ Return JSON only.`;
             state.sourceMode === "library" && state.libraryActiveFilePath
               ? state.libraryActiveFilePath
               : getMindmapFallbackPath();
-          const files = [];
+          let documents = [];
           const folder =
             state.sourceMode === "library" && state.libraryActiveFolderId
               ? getLibraryFolderById(state.libraryActiveFolderId)
               : null;
 
           if (folder && folder.status === "ready") {
-            const paths = getOrderedLibraryMindmapPaths(folder, currentPath);
-            for (const path of paths) {
-              const item = await readLibraryMindmapFile(folder, path);
-              if (item) files.push(item);
-              if (files.length % 20 === 0) await yieldToUi();
-            }
+            documents = await getLibraryContextDocuments(folder, currentPath, markdown);
           }
 
           return libraryCore.buildLibraryMindmapContext({
             currentPath: currentPath,
             currentMarkdown: markdown,
-            files: files,
+            documents: documents,
           });
         }
 
@@ -16347,6 +16384,9 @@ Return JSON only.`;
           currentName: "",
           baseHref: window.location.href,
           contentVersion: 0,
+          documentEpoch: 0,
+          documentReadGeneration: 0,
+          handleWriteQueues: new WeakMap(),
           lastRenderedContentVersion: -1,
           lastRenderedDocumentToken: "",
           renderTimer: null,
@@ -17117,6 +17157,9 @@ Return JSON only.`;
         }
 
         function setEditorMarkdown(markdown) {
+          state.documentEpoch += 1;
+          window.clearTimeout(state.renderTimer);
+          state.renderTimer = null;
           const next = String(markdown || "");
           if (els.editor.value !== next) {
             els.editor.value = next;
@@ -17129,6 +17172,54 @@ Return JSON only.`;
         function invalidateLastRenderedDocument() {
           state.lastRenderedContentVersion = -1;
           state.lastRenderedDocumentToken = "";
+        }
+
+        function captureDocumentSnapshot() {
+          return {
+            epoch: state.documentEpoch,
+            version: state.contentVersion,
+            markdown: els.editor.value,
+            fileHandle: state.fileHandle,
+            libraryHandle: state.libraryCurrentFileHandle,
+            folderId: state.libraryActiveFolderId,
+            path: state.libraryActiveFilePath,
+            draftId: state.untitledDraftId,
+          };
+        }
+
+        function isSameDocument(snapshot) {
+          return (
+            snapshot.epoch === state.documentEpoch &&
+            snapshot.fileHandle === state.fileHandle &&
+            snapshot.libraryHandle === state.libraryCurrentFileHandle &&
+            snapshot.folderId === state.libraryActiveFolderId &&
+            snapshot.path === state.libraryActiveFilePath &&
+            snapshot.draftId === state.untitledDraftId
+          );
+        }
+
+        function isDocumentSnapshotCurrent(snapshot) {
+          return (
+            isSameDocument(snapshot) &&
+            snapshot.version === state.contentVersion &&
+            snapshot.markdown === els.editor.value
+          );
+        }
+
+        function beginDocumentLoad() {
+          return {
+            generation: ++state.documentReadGeneration,
+            epoch: state.documentEpoch,
+            version: state.contentVersion,
+          };
+        }
+
+        function isDocumentLoadCurrent(request) {
+          return (
+            request.generation === state.documentReadGeneration &&
+            request.epoch === state.documentEpoch &&
+            request.version === state.contentVersion
+          );
         }
 
         function readStorage(storage, key, fallback) {
@@ -17195,6 +17286,7 @@ Return JSON only.`;
 
         var __pendingUntitledDraftWrites = new Map();
         var __pendingUntitledDraftFlush = null;
+        var __untitledDraftFlushPromise = null;
 
         function canUseUntitledDraftStorage() {
           return typeof indexedDB !== "undefined";
@@ -17293,13 +17385,16 @@ Return JSON only.`;
         }
 
         function writeUntitledDraftBackup() {
+          const pending = Array.from(__pendingUntitledDraftWrites.values());
+          if (!pending.length) {
+            removeStorage(window.localStorage, UNTITLED_DRAFT_BACKUP_KEY);
+            return;
+          }
           writeStorage(
             window.localStorage,
             UNTITLED_DRAFT_BACKUP_KEY,
             JSON.stringify({
-              drafts: state.untitledDrafts.map(function (draft) {
-                return normalizeUntitledDraftRecord(draft);
-              }),
+              drafts: pending,
               updatedAt: Date.now(),
             }),
           );
@@ -17456,7 +17551,17 @@ Return JSON only.`;
             state.untitledDraftId = getUntitledDraftById(preferredId)
               ? preferredId
               : state.untitledDrafts[0].id;
-            writeUntitledDraftBackup();
+            // Migrate the old full-collection backup (or a close-time journal)
+            // before removing it. IndexedDB is the primary draft store.
+            backupDrafts.forEach(function (record) {
+              const latest = getUntitledDraftById(record.id);
+              if (latest) scheduleUntitledDraftWrite(latest);
+            });
+            if (backupDrafts.length) {
+              await flushUntitledDraftWrites().catch(function (error) {
+                console.warn("[drafts] backup migration deferred", error);
+              });
+            }
           } else {
             state.untitledDraftId = "";
           }
@@ -17468,7 +17573,6 @@ Return JSON only.`;
         function scheduleUntitledDraftWrite(record) {
           const normalized = normalizeUntitledDraftRecord(record);
           __pendingUntitledDraftWrites.set(normalized.id, normalized);
-          writeUntitledDraftBackup();
           if (__pendingUntitledDraftFlush != null) {
             window.clearTimeout(__pendingUntitledDraftFlush);
           }
@@ -17484,30 +17588,55 @@ Return JSON only.`;
             window.clearTimeout(__pendingUntitledDraftFlush);
             __pendingUntitledDraftFlush = null;
           }
+          if (__untitledDraftFlushPromise) {
+            return __untitledDraftFlushPromise.then(flushUntitledDraftWrites);
+          }
           if (!__pendingUntitledDraftWrites.size) {
             return Promise.resolve(false);
           }
 
           const records = Array.from(__pendingUntitledDraftWrites.values());
-          __pendingUntitledDraftWrites.clear();
-          writeUntitledDraftBackup();
           if (!canUseUntitledDraftStorage()) {
+            writeUntitledDraftBackup();
             return Promise.resolve(false);
           }
 
-          return Promise.all(
+          __untitledDraftFlushPromise = Promise.allSettled(
             records.map(function (record) {
-              return untitledDraftPutInDb(record);
+              return untitledDraftPutInDb(record).then(function () {
+                if (__pendingUntitledDraftWrites.get(record.id) === record) {
+                  __pendingUntitledDraftWrites.delete(record.id);
+                }
+              });
             }),
-          ).then(function () {
+          ).then(function (results) {
+            const failed = results.find(function (result) {
+              return result.status === "rejected";
+            });
+            if (failed) throw failed.reason;
+            if (!__pendingUntitledDraftWrites.size) {
+              removeStorage(window.localStorage, UNTITLED_DRAFT_BACKUP_KEY);
+            }
             return true;
+          }).catch(function (error) {
+            writeUntitledDraftBackup();
+            throw error;
+          }).finally(function () {
+            __untitledDraftFlushPromise = null;
           });
+          return __untitledDraftFlushPromise;
         }
 
         function captureActiveUntitledDraft(options) {
           options = options || {};
           const draft = getActiveUntitledDraft();
           if (!draft) return null;
+
+          const dirty = options.dirty == null ? Boolean(state.dirty) : Boolean(options.dirty);
+          if (draft.content === els.editor.value && draft.dirty === dirty &&
+              options.touchLastActive !== true) {
+            return draft;
+          }
 
           const now = Date.now();
           const next = upsertUntitledDraftInState(
@@ -17516,14 +17645,11 @@ Return JSON only.`;
               updatedAt: now,
               lastActive:
                 options.touchLastActive === false ? draft.lastActive : now,
-              dirty:
-                options.dirty == null
-                  ? Boolean(state.dirty)
-                  : Boolean(options.dirty),
+              dirty: dirty,
             }),
           );
           scheduleUntitledDraftWrite(next);
-          renderLibraryDrawer();
+          if (state.libraryIsOpen) renderLibraryDrawer();
           return next;
         }
 
@@ -17536,6 +17662,9 @@ Return JSON only.`;
           if (isUntitledDraftMode()) {
             captureActiveUntitledDraft({ touchLastActive: true });
           }
+          // IDB work may be interrupted when the tab closes. Journal only
+          // uncommitted records; never serialize every saved draft on typing.
+          writeUntitledDraftBackup();
           flushUntitledDraftWrites().catch(function () {});
         });
 
@@ -17931,9 +18060,27 @@ Return JSON only.`;
         }
 
         async function writeMarkdownToHandle(handle, markdown) {
-          const writable = await handle.createWritable();
-          await writable.write(markdown);
-          await writable.close();
+          const previous = state.handleWriteQueues.get(handle) || Promise.resolve();
+          const pending = previous.catch(function () {}).then(async function () {
+            const writable = await handle.createWritable();
+            try {
+              await writable.write(markdown);
+              await writable.close();
+            } catch (error) {
+              if (typeof writable.abort === "function") {
+                await writable.abort().catch(function () {});
+              }
+              throw error;
+            }
+          });
+          state.handleWriteQueues.set(handle, pending);
+          try {
+            await pending;
+          } finally {
+            if (state.handleWriteQueues.get(handle) === pending) {
+              state.handleWriteQueues.delete(handle);
+            }
+          }
         }
 
         function downloadMarkdown(markdown, fileName) {
@@ -18002,20 +18149,31 @@ Return JSON only.`;
           if (!target || (!state.dirty && !state.hasSessionDraft)) {
             return false;
           }
-
+          const snapshot = captureDocumentSnapshot();
           const permission = await queryWritableHandlePermission(target.handle);
-          if (permission !== "granted") {
+          if (permission !== "granted" || !isSameDocument(snapshot)) {
             return false;
           }
 
-          await writeMarkdownToHandle(target.handle, els.editor.value || "");
+          await writeMarkdownToHandle(target.handle, snapshot.markdown);
+          if (!isSameDocument(snapshot)) return false;
+          if (target.sourceMode === "library") {
+            updateLibraryContextDocument(getLibraryFolderById(snapshot.folderId), snapshot.path, snapshot.markdown);
+          }
           state.currentName = target.handle.name || state.currentName;
-          markDocumentSaved(target.sourceMode, { rerender: false });
-          return true;
+          return markDocumentSaved(target.sourceMode, { rerender: false, snapshot: snapshot });
         }
 
         function markDocumentSaved(nextSourceMode, options) {
           options = options || {};
+          if (options.snapshot && !isDocumentSnapshotCurrent(options.snapshot)) {
+            if (isSameDocument(options.snapshot)) {
+              state.dirty = true;
+              state.hasSessionDraft = state.sourceMode !== "untitled";
+              updateUiState();
+            }
+            return false;
+          }
           if (nextSourceMode) {
             state.sourceMode = nextSourceMode;
           }
@@ -18025,7 +18183,7 @@ Return JSON only.`;
 
           if (options.rerender === false) {
             writeSessionMeta();
-            return;
+            return true;
           }
 
           if (nextSourceMode === "handle" || nextSourceMode === "library") {
@@ -18034,6 +18192,7 @@ Return JSON only.`;
           } else {
             writeSessionMeta();
           }
+          return true;
         }
 
         function requestLibraryFolderImport(options) {
@@ -21012,10 +21171,12 @@ Return JSON only.`;
         async function applySharedSnapshotPayload(payload) {
           const next = payload && typeof payload === "object" ? payload : null;
           if (!next || typeof next.text !== "string") return false;
+          const request = beginDocumentLoad();
 
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
+          if (!isDocumentLoadCurrent(request)) return false;
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
 
@@ -21032,10 +21193,10 @@ Return JSON only.`;
             view: next.view === "edit" ? "edit" : "preview",
           };
 
-          await clearActiveLibrarySelection({
+          clearActiveLibrarySelection({
             persist: true,
             renderDrawer: true,
-          });
+          }).catch(function (error) { console.warn("[library] selection cleanup failed", error); });
 
           setEditorMarkdown(next.text);
           updateUiState();
@@ -21075,10 +21236,12 @@ Return JSON only.`;
 
           const markdown = sections.join("\n\n").trim();
           if (!markdown) return false;
+          const request = beginDocumentLoad();
 
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
+          if (!isDocumentLoadCurrent(request)) return false;
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
@@ -21091,9 +21254,11 @@ Return JSON only.`;
           state.dirty = false;
           state.hasSessionDraft = true;
 
-          await clearActiveLibrarySelection({
+          clearActiveLibrarySelection({
             persist: true,
             renderDrawer: true,
+          }).catch(function (error) {
+            console.warn("[library] selection cleanup failed", error);
           });
 
           setEditorMarkdown(markdown);
@@ -21959,10 +22124,12 @@ Return JSON only.`;
           options = options || {};
           const folder = getLibraryFolderById(folderId);
           if (!folder) return false;
+          const request = beginDocumentLoad();
 
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
+          if (!isDocumentLoadCurrent(request)) return false;
 
           if (folder.status === "needs-permission" && folder.handle) {
             if (!options.userInitiated) return false;
@@ -21993,6 +22160,7 @@ Return JSON only.`;
 
           const file = await node.handle.getFile();
           const markdown = await file.text();
+          if (!isDocumentLoadCurrent(request) || getLibraryFolderById(folderId) !== folder) return false;
 
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
@@ -22011,6 +22179,8 @@ Return JSON only.`;
           state.hasSessionDraft = false;
 
           setEditorMarkdown(markdown);
+          updateLibraryContextDocument(folder, path, markdown);
+          const committedEpoch = state.documentEpoch;
           updateUiState();
           render("library");
           renderLibraryDrawer();
@@ -22022,6 +22192,7 @@ Return JSON only.`;
           }
 
           if (!options.quiet) {
+            if (committedEpoch !== state.documentEpoch) return true;
             setStatus("Loaded • " + nowString(), {
               announce: true,
             });
@@ -22073,21 +22244,16 @@ Return JSON only.`;
           return state.untitledDrafts.length !== previousLength;
         }
 
-        async function detachUntitledDraftAfterSave() {
-          if (!isUntitledDraftMode()) return;
-          const draftId = state.untitledDraftId;
-          if (!draftId) return;
-          await deleteUntitledDraftRecord(draftId, { renderDrawer: true });
-        }
-
         async function loadUntitledDraft(draftId, options) {
           options = options || {};
           let draft = getUntitledDraftById(draftId);
           if (!draft) return false;
+          const request = beginDocumentLoad();
 
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
+          if (!isDocumentLoadCurrent(request)) return false;
           draft = getUntitledDraftById(draftId);
           if (!draft) return false;
 
@@ -22095,10 +22261,11 @@ Return JSON only.`;
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
           setPrimaryFileHandle(null);
-          await clearActiveLibrarySelection({
+          clearActiveLibrarySelection({
             persist: true,
             renderDrawer: false,
-          });
+          }).catch(function (error) { console.warn("[library] selection cleanup failed", error); });
+          if (!isDocumentLoadCurrent(request)) return false;
 
           const now = Date.now();
           const next = upsertUntitledDraftInState(
@@ -22132,18 +22299,21 @@ Return JSON only.`;
         }
 
         async function createUntitledDocument() {
+          const request = beginDocumentLoad();
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
+          if (!isDocumentLoadCurrent(request)) return;
 
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
           detachSharedSnapshotContext();
           setPrimaryFileHandle(null);
-          await clearActiveLibrarySelection({
+          clearActiveLibrarySelection({
             persist: true,
             renderDrawer: false,
-          });
+          }).catch(function (error) { console.warn("[library] selection cleanup failed", error); });
+          if (!isDocumentLoadCurrent(request)) return;
 
           const now = Date.now();
           const draft = upsertUntitledDraftInState({
@@ -24467,6 +24637,19 @@ Return JSON only.`;
 
         function render(source) {
           const markdown = els.editor.value;
+          // Edit and Read are separate surfaces. Keep persistence current while
+          // editing, and build the preview once when it becomes visible.
+          if (source !== "force" && isEditModeActive()) {
+            state.frontmatterTitle = getFrontmatterTitle(
+              typeof libraryCore.parseFrontmatter === "function"
+                ? libraryCore.parseFrontmatter(markdown) : null,
+            );
+            persistEditorContent(markdown);
+            updateUiState();
+            updateWordCount();
+            setStatus((state.currentName ? state.currentName + " • " : "") + "edited");
+            return;
+          }
           const documentKey =
             state.sourceMode === "untitled"
               ? state.untitledDraftId || state.currentName
@@ -24475,19 +24658,6 @@ Return JSON only.`;
             (documentKey || "__draft__") + "::" + state.sourceMode;
           const generation = state.previewRenderGeneration + 1;
           const editModeActive = isEditModeActive();
-          const preserveEditorFocus =
-            source === "editor" &&
-            editModeActive &&
-            document.activeElement === els.editor;
-          const editorSelectionStart = preserveEditorFocus
-            ? els.editor.selectionStart
-            : null;
-          const editorSelectionEnd = preserveEditorFocus
-            ? els.editor.selectionEnd
-            : null;
-          const editorScrollTop = preserveEditorFocus
-            ? els.editor.scrollTop
-            : 0;
 
           if (
             state.contentVersion === state.lastRenderedContentVersion &&
@@ -24598,14 +24768,7 @@ Return JSON only.`;
 
           state.lastRenderedContentVersion = state.contentVersion;
           state.lastRenderedDocumentToken = documentToken;
-          if (state.sourceMode === "untitled") {
-            state.hasSessionDraft = false;
-            removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
-            captureActiveUntitledDraft({ touchLastActive: false });
-          } else {
-            scheduleSessionContentWrite(markdown);
-          }
-          writeSessionMeta();
+          persistEditorContent(markdown);
           updateUiState();
 
           const label = state.currentName ? state.currentName + " • " : "";
@@ -24630,22 +24793,6 @@ Return JSON only.`;
           const detail = source === "editor" ? "" : " • " + nowString();
           setStatus(label + action + detail);
           updateWordCount();
-          if (preserveEditorFocus && document.activeElement !== els.editor) {
-            requestAnimationFrame(function () {
-              try {
-                els.editor.focus({ preventScroll: true });
-              } catch (_error) {
-                els.editor.focus();
-              }
-              try {
-                els.editor.setSelectionRange(
-                  editorSelectionStart,
-                  editorSelectionEnd,
-                );
-              } catch (_error) {}
-              els.editor.scrollTop = editorScrollTop;
-            });
-          }
           document.dispatchEvent(
             new CustomEvent("markv:render-complete", {
               detail: {
@@ -24657,43 +24804,60 @@ Return JSON only.`;
           );
         }
 
+        function persistEditorContent(markdown) {
+          if (state.sourceMode === "untitled") {
+            __latestSessionContent = null;
+            if (__pendingSessionWrite != null) {
+              if (window.cancelIdleCallback) window.cancelIdleCallback(__pendingSessionWrite);
+              else window.clearTimeout(__pendingSessionWrite);
+              __pendingSessionWrite = null;
+            }
+            state.hasSessionDraft = false;
+            removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
+            captureActiveUntitledDraft({ touchLastActive: false });
+          } else {
+            scheduleSessionContentWrite(markdown);
+          }
+          writeSessionMeta();
+        }
+
         function scheduleRender() {
           window.clearTimeout(state.renderTimer);
-          state.renderTimer = window.setTimeout(function () {
-            if (isUntitledDraftMode()) {
-              state.dirty = true;
-              state.hasSessionDraft = false;
-              captureActiveUntitledDraft({ dirty: true });
-              render("editor");
-              return;
-            }
-
-            if (
-              state.fileHandle ||
-              state.sourceMode === "file" ||
-              state.sourceMode === "library"
-            ) {
-              state.dirty = true;
-              if (els.autoRefreshToggle.checked) {
-                els.autoRefreshToggle.checked = false;
-                stopAutoRefresh();
-              }
-            }
+          state.dirty = true;
+          if (els.autoRefreshToggle.checked) {
+            els.autoRefreshToggle.checked = false;
+            stopAutoRefresh();
+          }
+          if (isUntitledDraftMode()) {
+            state.hasSessionDraft = false;
+          } else {
             state.hasSessionDraft = true;
             state.sourceMode = "editor";
             state.currentName = state.currentName || "";
+            // Buffer immediately for pagehide, but schedule storage only after
+            // the debounce. Typing must not write a full document per key.
+            __latestSessionContent = els.editor.value;
+          }
+          state.renderTimer = window.setTimeout(function () {
+            state.renderTimer = null;
             render("editor");
           }, 90);
         }
 
         async function loadFromHandle(quiet) {
           if (!state.fileHandle) return;
-
+          const handle = state.fileHandle;
+          const request = beginDocumentLoad();
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
-          const file = await state.fileHandle.getFile();
+          if (!isDocumentLoadCurrent(request)) return false;
+          const file = await handle.getFile();
           const markdown = await file.text();
+          if (!isDocumentLoadCurrent(request)) return false;
+          clearActiveLibrarySelection({ persist: true, renderDrawer: true }).catch(function (error) {
+            console.warn("[library] selection cleanup failed", error);
+          });
           detachSharedSnapshotContext();
 
           state.untitledDraftId = "";
@@ -24702,11 +24866,6 @@ Return JSON only.`;
           state.baseHref = window.location.href;
           state.dirty = false;
           state.hasSessionDraft = false;
-          await clearActiveLibrarySelection({
-            persist: true,
-            renderDrawer: true,
-          });
-
           setEditorMarkdown(markdown);
           updateUiState();
 
@@ -24721,11 +24880,15 @@ Return JSON only.`;
 
         async function loadFromFile(file) {
           if (!file) return;
-
+          const request = beginDocumentLoad();
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
           });
           const markdown = await file.text();
+          if (!isDocumentLoadCurrent(request)) return false;
+          clearActiveLibrarySelection({ persist: true, renderDrawer: true }).catch(function (error) {
+            console.warn("[library] selection cleanup failed", error);
+          });
 
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
@@ -24738,11 +24901,6 @@ Return JSON only.`;
           state.baseHref = window.location.href;
           state.dirty = false;
           state.hasSessionDraft = false;
-          await clearActiveLibrarySelection({
-            persist: true,
-            renderDrawer: true,
-          });
-
           setEditorMarkdown(markdown);
           updateUiState();
 
@@ -24933,45 +25091,37 @@ Return JSON only.`;
           const saveState = getReaderSaveState();
           if (!saveState.canSave) return;
 
-          const markdown = els.editor.value;
+          const snapshot = captureDocumentSnapshot();
+          const markdown = snapshot.markdown;
           const suggestedName = getSuggestedSaveName();
+          // A reload already in flight must not undo the snapshot being saved.
+          state.documentReadGeneration += 1;
+          stopAutoRefresh();
+          els.autoRefreshToggle.checked = false;
 
           try {
-            if (saveState.saveAction === "overwrite-handle") {
-              const canWrite = await ensureWritableHandle(state.fileHandle);
+            if (saveState.saveAction === "overwrite-handle" ||
+                saveState.saveAction === "overwrite-library-handle") {
+              const libraryTarget = saveState.saveAction === "overwrite-library-handle";
+              const handle = libraryTarget ? snapshot.libraryHandle : snapshot.fileHandle;
+              const canWrite = await ensureWritableHandle(handle);
+              if (!isSameDocument(snapshot)) return;
               if (!canWrite) {
                 setStatus("Save cancelled • write access was not granted.", {
                   announce: true,
                 });
                 return;
               }
-              await writeMarkdownToHandle(state.fileHandle, markdown);
-              state.currentName = state.fileHandle.name || suggestedName;
-              markDocumentSaved("handle");
-              setStatus("Saved • " + nowString(), {
-                announce: true,
+              await writeMarkdownToHandle(handle, markdown);
+              if (!isSameDocument(snapshot)) return;
+              if (libraryTarget) {
+                updateLibraryContextDocument(getLibraryFolderById(snapshot.folderId), snapshot.path, markdown);
+              }
+              state.currentName = handle.name || suggestedName;
+              const saved = markDocumentSaved(libraryTarget ? "library" : "handle", {
+                snapshot: snapshot,
               });
-              return;
-            }
-
-            if (saveState.saveAction === "overwrite-library-handle") {
-              const canWrite = await ensureWritableHandle(
-                state.libraryCurrentFileHandle,
-              );
-              if (!canWrite) {
-                setStatus("Save cancelled • write access was not granted.", {
-                  announce: true,
-                });
-                return;
-              }
-              await writeMarkdownToHandle(
-                state.libraryCurrentFileHandle,
-                markdown,
-              );
-              state.currentName =
-                state.libraryCurrentFileHandle.name || suggestedName;
-              markDocumentSaved("library");
-              setStatus("Saved • " + nowString(), {
+              setStatus(saved ? "Saved • " + nowString() : "Saved earlier version • newer edits remain unsaved", {
                 announce: true,
               });
               return;
@@ -24984,6 +25134,7 @@ Return JSON only.`;
                   types: createMarkdownFileTypes(),
                 });
                 const canWrite = await ensureWritableHandle(handle);
+                if (!isSameDocument(snapshot)) return;
                 if (!canWrite) {
                   setStatus("Save cancelled • write access was not granted.", {
                     announce: true,
@@ -24991,13 +25142,22 @@ Return JSON only.`;
                   return;
                 }
                 await writeMarkdownToHandle(handle, markdown);
+                if (!isDocumentSnapshotCurrent(snapshot)) {
+                  if (isSameDocument(snapshot)) {
+                    setStatus("Saved earlier version • newer edits remain unsaved", { announce: true });
+                  }
+                  return;
+                }
                 stopAutoRefresh();
                 els.autoRefreshToggle.checked = false;
+                const savedDraftId = snapshot.draftId;
                 setPrimaryFileHandle(handle);
-                await detachUntitledDraftAfterSave();
+                state.untitledDraftId = "";
                 state.currentName = handle.name || suggestedName;
                 state.baseHref = window.location.href;
-                await clearActiveLibrarySelection({
+                // These functions commit their in-memory state synchronously;
+                // database cleanup must not later mark a newer edit as saved.
+                clearActiveLibrarySelection({
                   persist: true,
                   renderDrawer: true,
                 });
@@ -25005,20 +25165,28 @@ Return JSON only.`;
                 setStatus("Saved • " + nowString(), {
                   announce: true,
                 });
+                if (savedDraftId) {
+                  await deleteUntitledDraftRecord(savedDraftId, { renderDrawer: true });
+                }
                 return;
               }
 
               downloadMarkdown(markdown, suggestedName);
-              await detachUntitledDraftAfterSave();
+              const savedDraftId = snapshot.draftId;
+              state.untitledDraftId = "";
               state.sourceMode = "editor";
               state.currentName = suggestedName;
               markDocumentSaved(null);
               setStatus(suggestedName + " • downloaded • " + nowString(), {
                 announce: true,
               });
+              if (savedDraftId) {
+                await deleteUntitledDraftRecord(savedDraftId, { renderDrawer: true });
+              }
             }
           } catch (error) {
             if (error && error.name === "AbortError") return;
+            if (!isSameDocument(snapshot)) return;
             setStatus(
               "Save failed • " +
                 (error && error.message ? error.message : String(error)),
@@ -25038,6 +25206,7 @@ Return JSON only.`;
             );
             if (!confirmed) return;
           }
+          const request = beginDocumentLoad();
 
           stopAutoRefresh();
           els.autoRefreshToggle.checked = false;
@@ -25065,6 +25234,7 @@ Return JSON only.`;
             persist: true,
             renderDrawer: true,
           });
+          if (!isDocumentLoadCurrent(request)) return;
 
           setEditorMarkdown("");
           resetMindmapState({ closeViewer: true });
@@ -25083,8 +25253,8 @@ Return JSON only.`;
         els.editor.addEventListener("input", function () {
           markEditorContentChanged();
           syncEditorSelectionState();
-          updateUiState();
           scheduleRender();
+          updateUiState();
         });
 
         function applyEditorMarkdownEdit(edit) {
@@ -25677,6 +25847,9 @@ Return JSON only.`;
         }
 
         async function runMindmapPipeline(options) {
+          if (isEditModeActive() && state.contentVersion !== state.lastRenderedContentVersion) {
+            render("force");
+          }
           const force = !!(options && options.force);
           const { loading, errorPane } = getMindmapEls();
           const editor = document.getElementById("editor");
@@ -26753,6 +26926,9 @@ Return JSON only.`;
             mainEl.classList.remove("edit-mode");
             document.body.classList.add("preview-mode");
             document.body.classList.remove("edit-mode-active");
+            window.clearTimeout(state.renderTimer);
+            state.renderTimer = null;
+            if (wasEdit) render("preview");
             modeBtn.setAttribute("aria-pressed", "false");
             modeBtn.title = withShortcutLabel("Edit markdown", "global.mode");
             requestAnimationFrame(function () {
@@ -29141,7 +29317,13 @@ Return JSON only.`;
         }
         function saveLlmSettings() {
           const settings = getCurrentLlmSettings();
-          writeChatPreference(LLM_SETTINGS_KEY, JSON.stringify(settings));
+          // Credentials live only in the inputs and the encrypted secret store.
+          // Saving a provider/model must never copy them into preferences.
+          const preferences = Object.assign({}, settings, {
+            groqApiKey: "",
+            openrouterApiKey: "",
+          });
+          writeChatPreference(LLM_SETTINGS_KEY, JSON.stringify(preferences));
           writeChatPreference(
             LEGACY_OLLAMA_SETTINGS_KEY,
             JSON.stringify({
@@ -29575,6 +29757,10 @@ Return JSON only.`;
         }
 
         function getDocumentText() {
+          const editor = document.getElementById("editor");
+          if (editor && document.body.classList.contains("edit-mode-active")) {
+            return editor.value;
+          }
           const preview = document.getElementById("preview");
           return (preview && preview.innerText) || "";
         }
@@ -30488,10 +30674,10 @@ Return JSON only.`;
        Secure API key storage for Groq and OpenRouter (WebCrypto + IndexedDB)
 
        Strategy: each key is encrypted with a non-extractable
-       AES-GCM CryptoKey stored inside IndexedDB. IDB can hold a
-       CryptoKey handle directly without ever exposing its raw bytes,
-       so even with disk access an attacker cannot recover the
-       encryption key. The encrypted keys live in the same DB.
+       AES-GCM CryptoKey stored inside IndexedDB. IDB holds the
+       CryptoKey handle without exporting its bytes through WebCrypto.
+       This is not a boundary against access to the browser profile.
+       The encrypted keys live in the same DB.
 
        Plaintext never touches localStorage after first migration.
        The existing chat module still reads each key from its
@@ -30523,7 +30709,7 @@ Return JSON only.`;
         if (!supported) {
           console.warn(
             "[secure-store] WebCrypto/IndexedDB unavailable — " +
-              "API keys stay in localStorage plaintext.",
+              "API keys are available for this session only.",
           );
           return;
         }
@@ -30595,19 +30781,45 @@ Return JSON only.`;
           });
         }
 
+        function idbAdd(value) {
+          return openDb().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              const tx = db.transaction(STORE, "readwrite");
+              tx.objectStore(STORE).add(value);
+              tx.oncomplete = function () { resolve(); };
+              tx.onerror = function () { reject(tx.error); };
+            });
+          });
+        }
+
         // ---- AES-GCM key management ----
+        let aesKeyPromise = null;
         async function getOrCreateAesKey() {
-          const existing = await idbGet(KEY_ID);
-          if (existing && existing.key) return existing.key;
-          const key = await crypto.subtle.generateKey(
-            { name: "AES-GCM", length: 256 },
-            // extractable=false — the raw bytes cannot be read back,
-            // even by our own code. Only encrypt/decrypt ops work.
-            false,
-            ["encrypt", "decrypt"],
-          );
-          await idbPut({ id: KEY_ID, key: key });
-          return key;
+          if (!aesKeyPromise) {
+            aesKeyPromise = (async function () {
+              const existing = await idbGet(KEY_ID);
+              if (existing && existing.key) return existing.key;
+              const key = await crypto.subtle.generateKey(
+                { name: "AES-GCM", length: 256 },
+                false,
+                ["encrypt", "decrypt"],
+              );
+              try {
+                // add(), rather than put(), lets only one tab create the key.
+                // A concurrent tab must reuse the winner instead of replacing it.
+                await idbAdd({ id: KEY_ID, key: key });
+              } catch (error) {
+                const winner = await idbGet(KEY_ID);
+                if (winner && winner.key) return winner.key;
+                throw error;
+              }
+              return key;
+            })().catch(function (error) {
+              aesKeyPromise = null;
+              throw error;
+            });
+          }
+          return aesKeyPromise;
         }
 
         async function encryptString(plaintext) {
@@ -30644,13 +30856,18 @@ Return JSON only.`;
           },
         ];
 
-        async function saveSecret(secret, plaintext) {
-          if (!plaintext) {
-            await idbDelete(secret.id);
-            return;
-          }
-          const payload = await encryptString(plaintext);
-          await idbPut({ id: secret.id, iv: payload.iv, ct: payload.ct });
+        let secretWriteQueue = Promise.resolve();
+        function saveSecret(secret, plaintext) {
+          const pending = secretWriteQueue.then(async function () {
+            if (!plaintext) {
+              await idbDelete(secret.id);
+              return;
+            }
+            const payload = await encryptString(plaintext);
+            await idbPut({ id: secret.id, iv: payload.iv, ct: payload.ct });
+          });
+          secretWriteQueue = pending.catch(function () {});
+          return pending;
         }
 
         async function loadSecret(secret) {
@@ -30696,13 +30913,15 @@ Return JSON only.`;
         }
 
         // ---- Migration ----
-        // If this is the first page load after the secure-store
-        // feature ships, the chat IIFE has just re-written a JSON
-        // blob containing the plaintext key. Encrypt and scrub.
+        // The chat module hydrates legacy inputs before redacting preferences.
+        // Migrate those values into the encrypted store on the first load.
         function migrateIfNeeded() {
           return Promise.all(
             SECRETS.map(function (secret) {
-              const plaintext = extractPlaintextFromLocalStorage(secret);
+              // The chat module has already redacted preferences, but its
+              // inputs still contain any legacy keys that need migration.
+              const input = document.getElementById(secret.inputId);
+              const plaintext = (input && input.value.trim()) || extractPlaintextFromLocalStorage(secret);
               if (!plaintext) return null;
               return saveSecret(secret, plaintext)
                 .then(function () {
@@ -30728,14 +30947,15 @@ Return JSON only.`;
             SECRETS.map(function (secret) {
               const input = document.getElementById(secret.inputId);
               if (!input) return null;
+              const initialValue = input.value;
               return loadSecret(secret).then(function (plaintext) {
                 if (!plaintext) return;
+                if (input.value !== initialValue) return;
                 if (input.value === plaintext) return;
                 input.value = plaintext;
                 input.dispatchEvent(new Event("input", { bubbles: true }));
                 input.dispatchEvent(new Event("change", { bubbles: true }));
-                // The change event will have made chat IIFE write the
-                // plaintext back into localStorage — scrub it again.
+                // Also clean up any legacy plaintext left by an older tab.
                 stripPlaintextFromLocalStorage();
               });
             }),
@@ -30743,12 +30963,8 @@ Return JSON only.`;
         }
 
         // ---- Forward-save interception ----
-        // When the user edits a key (via the drawer, which mirrors
-        // into the legacy input), the chat IIFE's change listener runs
-        // first and writes plaintext to localStorage. Our change
-        // listener runs right after and:
-        //   1. Strips plaintext from localStorage immediately
-        //   2. Encrypts the new value into IndexedDB
+        // Key edits persist independently from provider/model preferences.
+        // Queue encryption so a slow older edit cannot replace a newer key.
         function attachForwardSaveGuards() {
           SECRETS.forEach(function (secret) {
             const input = document.getElementById(secret.inputId);
@@ -30767,8 +30983,7 @@ Return JSON only.`;
         // Ordering: the chat IIFE has already run (this script
         // follows it in document order), so the key inputs are
         // already populated with whatever was in localStorage.
-        // Run migration, then hydration, then attach the save guards
-        // for future edits.
+        // Attach save guards immediately, then migrate and hydrate.
         attachForwardSaveGuards();
         migrateIfNeeded()
           .then(hydrateInputs)
