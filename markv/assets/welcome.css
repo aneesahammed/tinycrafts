@@ -23,56 +23,56 @@
   color: var(--reader-accent, var(--accent-fg));
 }
 
+/* A quiet editorial callout, in the same family as code and diagram
+   blocks: hairline border, document type, left reading axis. It only
+   turns into a dashed drop target while a file is being dragged. */
 .markdown-body .welcome-drop {
-  margin: 1.2em 0 0.4em;
-  padding: 28px 24px 26px;
-  border: 1.5px dashed var(--reader-border-strong, var(--border-strong));
-  border-radius: 16px;
+  margin: 1.4em 0 0.6em;
+  padding: 1.1em 1.3em 1.2em;
+  border: 1px solid var(--reader-border-default, var(--border-default));
+  border-radius: 8px;
   background: var(--reader-bg-subtle, var(--bg-subtle));
-  text-align: center;
-  font-family: var(--font-sans);
   transition:
     border-color 160ms ease,
     background-color 160ms ease;
 }
 body.dragging .markdown-body .welcome-drop {
+  border-style: dashed;
   border-color: var(--reader-accent, var(--accent-fg));
   background: color-mix(
     in srgb,
-    var(--reader-accent, var(--accent-fg)) 9%,
+    var(--reader-accent, var(--accent-fg)) 7%,
     var(--reader-bg-subtle, var(--bg-subtle))
   );
 }
-.markdown-body .welcome-drop > svg {
-  color: var(--reader-fg-subtle, var(--fg-subtle));
-}
 .markdown-body .welcome-drop__title {
-  margin: 10px 0 4px;
-  font: 600 16px/1.35 var(--font-sans);
-  color: var(--reader-fg-default, var(--fg-default));
+  margin: 0 0 0.2em;
+  font-family: var(--font-serif);
+  font-size: 1.05em;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--reader-fg-heading, var(--reader-fg-default, var(--fg-default)));
 }
 .markdown-body .welcome-drop__sub {
-  margin: 0 0 16px;
-  font: 400 14px/1.4 var(--font-sans);
+  margin: 0 0 1em;
+  font: 400 13.5px/1.5 var(--font-sans);
   color: var(--reader-fg-muted, var(--fg-muted));
 }
 .markdown-body .welcome-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: 8px 14px;
 }
 .markdown-body .welcome-actions--end {
-  justify-content: flex-start;
   margin: 1.3em 0 1.1em;
 }
-/* MarkV's own .btn / .btn-primary, a size up for a page-level action. */
+/* MarkV's own .btn / .btn-primary, one step up from toolbar size. */
 .markdown-body .welcome-actions .btn {
-  height: 38px;
-  padding: 0 16px;
-  border-radius: 10px;
-  font-size: 14px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
   font-weight: 600;
   transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }

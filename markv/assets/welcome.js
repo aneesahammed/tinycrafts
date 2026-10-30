@@ -44,10 +44,6 @@
     "<li>" + icon('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>') + "No account</li>" +
     "<li>" + icon('<path d="M20 15.5A4.5 4.5 0 0 0 17.5 7a6 6 0 0 0-11.3 2A4 4 0 0 0 7 17h10"/><path d="m8 13 3 3 5-5"/>') +
     "Works offline</li>";
-  const FILE_ICON = icon(
-    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/>',
-    30,
-  );
 
   // Each guide's arrow tip sits at a known point in its own box; place()
   // moves the box so the tip lands on the control. Halos (canvas-coloured,
@@ -232,7 +228,6 @@
       const folderBtn = doc.getElementById("libraryAddBtn");
       openText.after(
         ui("div", "welcome-drop",
-          FILE_ICON +
           '<p class="welcome-drop__title">Drop a markdown file to start reading</p>' +
           '<p class="welcome-drop__sub">.md, .markdown or .txt. Read locally in your browser.</p>' +
           '<div class="welcome-actions">' +
