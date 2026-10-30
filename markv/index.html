@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-6wyJ/uebDHNw8vx2FBzB4YKWYwOpkzgPib2mVehOtRw=' 'sha256-oL/YoBP6apq9QyrwGeBMlWGbw53Iul5U+sH7x6IHIx8=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-0YhPZTC/N1pgysOAQtKVBWEBUqNXk0zUfIjUeGiUEvg=' 'sha256-am3aTuKSjhPhQdr6nyrRhbB7Ba9gKrV39yIwceWuecg=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -43,7 +43,7 @@
     <script src="assets/command-palette-core.js?v=2"></script>
     <script src="assets/command-palette-host.js?v=5"></script>
     <script src="assets/command-palette.js?v=6"></script>
-    <script src="assets/reader-palettes.js?v=4"></script>
+    <script src="assets/reader-palettes.js?v=5"></script>
     <script src="assets/export-core.js?v=2"></script>
     <script src="assets/export-host.js?v=4"></script>
     <script src="assets/csv-sheet.js?v=1"></script>
@@ -67,6 +67,19 @@
           const offset = Math.round((value - min) / step) * step + min;
           return Number(offset.toFixed(2));
         }
+
+        // Theme before first paint, mirroring applyTheme()'s startup
+        // choice, so dark-mode readers never see a light flash.
+        try {
+          const savedTheme = window.localStorage.getItem("md-viewer-theme");
+          const systemDark =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute(
+            "data-theme",
+            savedTheme || (systemDark ? "dark" : "light"),
+          );
+        } catch (_error) {}
 
         try {
           const raw = window.localStorage.getItem(READING_KEY);
@@ -119,8 +132,8 @@
 
         /* Soft near-black — warm enough to feel human, neutral enough for calm. */
         --fg-default: #222221;
-        --fg-muted: #71706e;
-        --fg-subtle: #a3a09c;
+        --fg-muted: #5e5e5c;
+        --fg-subtle: #706e6b;
 
         /* Borders dissolve into the background. */
         --border-soft: rgba(0, 0, 0, 0.04);
@@ -231,7 +244,7 @@
 
         --fg-default: #e4e3e0;
         --fg-muted: #9a9895;
-        --fg-subtle: #636261;
+        --fg-subtle: #888786;
 
         --border-soft: rgba(255, 255, 255, 0.05);
         --border-default: rgba(255, 255, 255, 0.08);
@@ -389,8 +402,8 @@
         --bg-raised: var(--reader-bg-raised, #ffffff);
         --fg-default: var(--reader-fg-default, #222221);
         --fg-heading: var(--reader-fg-heading, #222221);
-        --fg-muted: var(--reader-fg-muted, #71706e);
-        --fg-subtle: var(--reader-fg-subtle, #a3a09c);
+        --fg-muted: var(--reader-fg-muted, #5e5e5c);
+        --fg-subtle: var(--reader-fg-subtle, #706e6b);
         --border-soft: var(--reader-border-soft, rgba(0, 0, 0, 0.04));
         --border-default: var(--reader-border-default, rgba(0, 0, 0, 0.07));
         --border-strong: var(--reader-border-strong, rgba(0, 0, 0, 0.11));
@@ -592,7 +605,7 @@
       }
       .tb-segment .tb-seg-btn:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--selection);
+        box-shadow: 0 0 0 2px var(--accent-fg);
       }
       .tb-segment .tb-seg-btn:disabled {
         opacity: 0.4;
@@ -901,8 +914,9 @@
           display: inline-flex;
           margin-left: auto;
         }
-        /* While sheet is open, freeze background scroll. */
-        body.mv-more-open {
+        /* While sheet is open, freeze background scroll (on the root,
+           see html:has(> body.mindmap-open) for why). */
+        html:has(> body.mv-more-open) {
           overflow: hidden;
         }
       }
@@ -1221,7 +1235,7 @@
       .highlight-remove-chip:focus-visible,
       .highlight-undo-btn:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--selection);
+        box-shadow: 0 0 0 2px var(--accent-fg);
       }
 
       /* Unsaved-state cue. Moved to ::before so the ::after pseudo
@@ -1756,12 +1770,12 @@
       }
       .reading-range:focus-visible::-webkit-slider-thumb {
         box-shadow:
-          0 0 0 3px var(--selection),
+          0 0 0 2px var(--accent-fg),
           var(--shadow-md);
       }
       .reading-range:focus-visible::-moz-range-thumb {
         box-shadow:
-          0 0 0 3px var(--selection),
+          0 0 0 2px var(--accent-fg),
           var(--shadow-md);
       }
       .reading-actions {
@@ -3005,6 +3019,13 @@
           transform: none;
         }
       }
+      /* Touch has no hover, so the anchor would only ever be invisible
+         space at the end of the heading. */
+      @media (hover: none) {
+        .heading-anchor {
+          display: none;
+        }
+      }
 
       /* ── Code block chrome (language label + copy) ───────────
          A floating pill in the top-right of each <pre> that shows
@@ -3203,22 +3224,11 @@
         margin-bottom: 4px;
       }
 
-      /* Scroll-reveal for headings — only applies when JS wires up
-         the IntersectionObserver (body class `js-scroll-reveal` is
-         set from script). If JS fails for any reason, content stays
-         visible by default. Gate on `.preview-pane` so the editor
-         view and mindmap aren't affected.  */
-      html.js-scroll-reveal
-        .preview-pane
-        .markdown-body
-        :is(h1, h2, h3, h4):not([data-revealed]) {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      html.js-scroll-reveal .preview-pane .markdown-body :is(h1, h2, h3, h4) {
-        transition:
-          opacity var(--motion-page) var(--ease-out),
-          transform var(--motion-page) var(--ease-out);
+      /* No scroll-reveal on headings: scrolling is the most frequent
+         action here, and a heading must be readable the moment you
+         land on it (outline jumps, Cmd+F, restored position). */
+      .markdown-body :is(h1, h2, h3, h4, h5, h6) {
+        scroll-margin-top: calc(var(--toolbar-h, 53px) + 48px);
       }
 
       .markdown-body h1 {
@@ -3946,6 +3956,11 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      /* display:flex above would otherwise override [hidden] and leave
+         the closed viewer's controls in the Tab order. */
+      .mindmap-viewer[hidden] {
+        display: none;
       }
 
       .mindmap-viewer[aria-hidden="false"] {
@@ -5513,7 +5528,10 @@
           transform: translateX(0);
         }
       }
-      body.mindmap-open {
+      /* Lock scroll on the root, not body: html has overflow-x: clip,
+         so body's overflow would not propagate to the viewport. The
+         page would collapse to one screen and lose the reader's place. */
+      html:has(> body.mindmap-open) {
         overflow: hidden;
       }
       @media (max-width: 600px) {
@@ -6011,7 +6029,7 @@
       }
       .lib-file-action:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--selection);
+        box-shadow: 0 0 0 2px var(--accent-fg);
       }
       .lib-file-action:disabled {
         opacity: 0.5;
@@ -6448,7 +6466,7 @@
       .lib-folder-toggle:focus-visible,
       .lib-action-btn:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--selection);
+        box-shadow: 0 0 0 2px var(--accent-fg);
       }
       .lib-tree-row[data-kind="directory"] {
         color: var(--fg-muted);
@@ -7525,7 +7543,7 @@
       }
       .toolbar .brand-name.is-renamable:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--selection);
+        box-shadow: 0 0 0 2px var(--accent-fg);
       }
       .brand-name-input {
         font: 500 15px/1.25 var(--font-serif);
@@ -7646,7 +7664,7 @@
       }
       .tb-search:focus-visible {
         outline: none;
-        box-shadow: 0 0 0 3px var(--selection);
+        box-shadow: 0 0 0 2px var(--accent-fg);
       }
       .tb-search svg {
         flex-shrink: 0;
@@ -8605,7 +8623,7 @@
                       class="reading-palette__swatch"
                       aria-hidden="true"
                     ></span>
-                    <span class="reading-palette__label">Manilla</span>
+                    <span class="reading-palette__label">Manila</span>
                   </button>
                   <button
                     type="button"
@@ -21404,6 +21422,7 @@ Return JSON only.`;
           drawer.classList.remove("is-open");
           overlay.classList.remove("is-open");
           drawer.setAttribute("aria-hidden", "true");
+          drawer.inert = true;
           overlay.setAttribute("aria-hidden", "true");
           openBtn.setAttribute("aria-expanded", "false");
         }
@@ -21720,6 +21739,7 @@ Return JSON only.`;
           els.libraryDrawer.classList.add("is-open");
           els.libraryOverlay.classList.add("is-open");
           els.libraryDrawer.setAttribute("aria-hidden", "false");
+          els.libraryDrawer.inert = false;
           els.libraryOverlay.setAttribute("aria-hidden", "false");
           els.libraryToggleBtn.setAttribute("aria-expanded", "true");
           document.body.classList.add("library-open");
@@ -21766,6 +21786,7 @@ Return JSON only.`;
           els.libraryDrawer.classList.remove("is-open");
           els.libraryOverlay.classList.remove("is-open");
           els.libraryDrawer.setAttribute("aria-hidden", "true");
+          els.libraryDrawer.inert = true;
           els.libraryOverlay.setAttribute("aria-hidden", "true");
           els.libraryToggleBtn.setAttribute("aria-expanded", "false");
           document.body.classList.remove("library-open");
@@ -22775,19 +22796,40 @@ Return JSON only.`;
           );
         }
 
+        // First ATX H1 outside fenced code, as plain text.
+        function getFirstHeadingTitle(markdown) {
+          const pattern = /^(?:(`{3,}|~{3,}).*|#[ \t]+(.+?)[ \t#]*)$/gm;
+          let inFence = false;
+          let match;
+          while ((match = pattern.exec(String(markdown || "")))) {
+            if (match[1]) inFence = !inFence;
+            else if (!inFence) {
+              return match[2].replace(/[*`]/g, "").trim();
+            }
+          }
+          return "";
+        }
+
         function updateBrandDisplay() {
           if (!els.brandName) return;
           const rawName = String(state.currentName || "").trim();
+          // Placeholder names ("", "Untitled 3") give way to the
+          // document's own title: frontmatter title, else its first H1.
+          const isPlaceholderName = /^(untitled(\s+\d+)?)?$/i.test(rawName);
+          const derivedTitle = isPlaceholderName
+            ? state.frontmatterTitle || getFirstHeadingTitle(els.editor.value)
+            : "";
           // A frontmatter title reads better than a slug-like filename;
           // the filename stays available on hover.
           const stripped =
             state.frontmatterTitle ||
+            derivedTitle ||
             rawName.replace(/\.(md|markdown|mdown|mkdn|txt)$/i, "");
           const isUntitled = state.sourceMode === "untitled";
           const hasFile = Boolean(stripped);
           const hasContent = Boolean((els.editor.value || "").trim());
 
-          if (isUntitled) {
+          if (isUntitled && !derivedTitle) {
             els.brandName.textContent = rawName || "Untitled";
             // A draft the user has named reads as a real title; only the
             // default "Untitled N" keeps the placeholder tone.
@@ -24198,7 +24240,7 @@ Return JSON only.`;
                   '" value="' +
                   (i + 1) +
                   '">' +
-                  definitions[id].text +
+                  renderFootnoteText(definitions[id].text) +
                   ' <a href="#fnref-' +
                   id +
                   '" class="footnote-backref" aria-label="Back to reference">↩</a></li>\n',
@@ -24215,6 +24257,18 @@ Return JSON only.`;
           }
 
           return finishMappedDocument(builder);
+        }
+
+        // Footnote bodies sit inside a raw HTML block, where markdown is
+        // not parsed, so render their inline markdown (links, code) here.
+        // markedOptions carries the app renderer, so links and raw HTML
+        // get the same URL resolution and filtering as the body.
+        function renderFootnoteText(text) {
+          try {
+            return marked.parseInline(text, markedOptions);
+          } catch (_error) {
+            return escapeHtml(text);
+          }
         }
 
         function preprocessMarkdownWithSourceMap(markdown) {
@@ -27097,51 +27151,6 @@ Return JSON only.`;
         // Start in preview mode.
         setMode("preview");
 
-        // ── Scroll-reveal typography ────────────────────────────
-        // Gentle fade+rise on h1–h4 when they enter the viewport.
-        // Honors prefers-reduced-motion via the global reset above.
-        // Safe-by-default: the CSS rules are gated on
-        // `html.js-scroll-reveal` which only applies when THIS
-        // script wires things up — if JS or IO fails, headings
-        // stay fully visible.
-        (function setupScrollReveal() {
-          if (!("IntersectionObserver" in window)) return;
-          if (!("MutationObserver" in window)) return;
-          const previewRoot = document.querySelector(".preview-pane");
-          if (!previewRoot) return;
-
-          const io = new IntersectionObserver(
-            function (entries) {
-              entries.forEach(function (e) {
-                if (e.isIntersecting) {
-                  e.target.setAttribute("data-revealed", "");
-                  io.unobserve(e.target);
-                }
-              });
-            },
-            { rootMargin: "0px 0px -8% 0px", threshold: 0.01 },
-          );
-
-          function observeNew() {
-            const headings = previewRoot.querySelectorAll(
-              ".markdown-body h1:not([data-observing])," +
-                " .markdown-body h2:not([data-observing])," +
-                " .markdown-body h3:not([data-observing])," +
-                " .markdown-body h4:not([data-observing])",
-            );
-            headings.forEach(function (h) {
-              h.setAttribute("data-observing", "");
-              io.observe(h);
-            });
-          }
-
-          observeNew();
-          const mo = new MutationObserver(observeNew);
-          mo.observe(previewRoot, { childList: true, subtree: true });
-
-          document.documentElement.classList.add("js-scroll-reveal");
-        })();
-
         // ── Comprehension micro-features ─────────────────────────
         // Groups #1 progress gutter, #2 heading anchors,
         // #3 code-block chrome, #4 link previews, #5 breadcrumb.
@@ -27343,7 +27352,7 @@ Return JSON only.`;
               }
               const c = document.createElement("span");
               c.className = "crumb";
-              const text = h.textContent.replace(/^#\s*/, "").trim();
+              const text = getReaderHeadingText(h);
               c.textContent = text.length > 50 ? text.slice(0, 48) + "…" : text;
               breadcrumb.appendChild(c);
             });
@@ -27409,7 +27418,10 @@ Return JSON only.`;
               a.href = "#" + h.id;
               a.setAttribute("aria-label", "Link to " + h.textContent.trim());
               a.textContent = "#";
-              h.insertBefore(a, h.firstChild);
+              // Appended, not prepended: desktop positions it absolutely
+              // in the left margin either way, and on narrow screens the
+              // inline fallback must sit after the text, not indent it.
+              h.appendChild(a);
             });
           }
           addHeadingAnchors();
@@ -27539,7 +27551,7 @@ Return JSON only.`;
           function showInternalPreview(link, targetId) {
             const target = document.getElementById(targetId);
             if (!target) return showExternalPreview(link);
-            const titleText = target.textContent.replace(/^#\s*/, "").trim();
+            const titleText = getReaderHeadingText(target);
             let excerptText = "";
             let next = target.nextElementSibling;
             while (next && /^H[1-6]$/.test(next.tagName)) {
@@ -27872,6 +27884,7 @@ Return JSON only.`;
       aria-modal="true"
       aria-labelledby="libraryDrawerTitle"
       aria-hidden="true"
+      inert
       tabindex="-1"
     >
       <header class="lib-header">
@@ -27977,6 +27990,7 @@ Return JSON only.`;
       aria-modal="true"
       aria-labelledby="globalSettingsTitle"
       aria-hidden="true"
+      inert
       tabindex="-1"
     >
       <header class="gs-header">
@@ -29093,6 +29107,7 @@ Return JSON only.`;
           drawer.classList.add("is-open");
           overlay.classList.add("is-open");
           drawer.setAttribute("aria-hidden", "false");
+          drawer.inert = false;
           overlay.setAttribute("aria-hidden", "false");
           openBtn.setAttribute("aria-expanded", "true");
           // Check the provider in use; keep any result that still
@@ -29109,6 +29124,7 @@ Return JSON only.`;
           drawer.classList.remove("is-open");
           overlay.classList.remove("is-open");
           drawer.setAttribute("aria-hidden", "true");
+          drawer.inert = true;
           overlay.setAttribute("aria-hidden", "true");
           openBtn.setAttribute("aria-expanded", "false");
           const target = returnFocusEl || lastFocused || openBtn;
