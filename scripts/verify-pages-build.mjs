@@ -22,6 +22,7 @@ const requiredFiles = [
   'markv/index.html',
   'markv/manifest.webmanifest',
   'markv/sw.js',
+  'markv/changelog/index.html',
   'pichub/index.html',
   'pichub/manifest.webmanifest',
   'pichub/sw.js',

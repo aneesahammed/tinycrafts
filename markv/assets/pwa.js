@@ -16,6 +16,7 @@
   var appReady = false;
   var restoreInFlight = false;
   var controllerRefreshPending = false;
+  var controllerRefreshRequested = false;
   var updateToastHideTimer = 0;
 
   function readSessionValue(key) {
@@ -187,7 +188,7 @@
 
     try {
       if (typeof hooks.flushPendingWrites === "function") {
-        Promise.resolve(hooks.flushPendingWrites({ reason: reason })).catch(
+        return Promise.resolve(hooks.flushPendingWrites({ reason: reason })).catch(
           function (error) {
             console.warn("[pwa] pending write flush failed", error);
           },
@@ -266,7 +267,14 @@
       if (!registration.waiting) return;
       action.disabled = true;
       action.textContent = "Refreshing...";
-      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      Promise.resolve(requestLifecycleFlush("update")).then(function () {
+        if (!registration.waiting) {
+          hideUpdateToast(true);
+          return;
+        }
+        controllerRefreshRequested = true;
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      });
     };
     dismiss.onclick = function () {
       hideUpdateToast(false);
@@ -310,7 +318,9 @@
 
     if (wireServiceWorkerLifecycle.didBindController) return;
     navigator.serviceWorker.addEventListener("controllerchange", function () {
-      if (controllerRefreshPending) return;
+      // clients.claim() also fires on the very first install. Adopting that
+      // worker needs no navigation; only this tab's Refresh action reloads it.
+      if (!controllerRefreshRequested || controllerRefreshPending) return;
       controllerRefreshPending = true;
       window.location.reload();
     });

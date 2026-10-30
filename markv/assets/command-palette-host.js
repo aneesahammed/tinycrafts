@@ -270,6 +270,38 @@
         defaultRank: 40,
         run: env.showLibraryDrawer,
       }),
+      // Search-only: found by typing, kept out of the default list.
+      createCommand(env, {
+        id: "command:welcome",
+        title: "Open welcome page",
+        subtitle: "A short guide to MarkV",
+        keywords: ["welcome", "help", "start", "intro", "guide", "tour"],
+        defaultRank: 42,
+        defaultVisible: false,
+        run: env.openWelcomeDocument,
+      }),
+      createCommand(env, {
+        id: "command:showcase",
+        title: "Open Markdown showcase",
+        subtitle: "Every element MarkV renders",
+        keywords: ["showcase", "sample", "example", "demo", "syntax", "markdown"],
+        defaultRank: 44,
+        defaultVisible: false,
+        run: env.openShowcaseDocument,
+      }),
+      createCommand(env, {
+        id: "command:changelog",
+        title: "What's new",
+        subtitle: "Every MarkV release, in plain words",
+        keywords: ["changelog", "release", "notes", "updates", "version", "new"],
+        defaultRank: 46,
+        defaultVisible: false,
+        run: function () {
+          // The same link the ⋯ menu proxies to, so it opens one way.
+          const link = document.getElementById("changelogLink");
+          if (link) link.click();
+        },
+      }),
       createCommand(env, {
         id: "command:save",
         title: "Save",

@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-0YhPZTC/N1pgysOAQtKVBWEBUqNXk0zUfIjUeGiUEvg=' 'sha256-am3aTuKSjhPhQdr6nyrRhbB7Ba9gKrV39yIwceWuecg=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-YqCPEzIyqG3oI9FiBg7Ue3dbllH1MHO9k5PzrOqOoYw=' 'sha256-am3aTuKSjhPhQdr6nyrRhbB7Ba9gKrV39yIwceWuecg=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -34,6 +34,7 @@
     />
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
     <link rel="stylesheet" href="assets/command-palette.css?v=2" />
+    <link rel="stylesheet" href="assets/welcome.css?v=3" />
 
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=18"></script>
@@ -41,13 +42,14 @@
     <script src="assets/shortcut-registry.js?v=2"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
     <script src="assets/command-palette-core.js?v=2"></script>
-    <script src="assets/command-palette-host.js?v=5"></script>
+    <script src="assets/command-palette-host.js?v=6"></script>
     <script src="assets/command-palette.js?v=6"></script>
     <script src="assets/reader-palettes.js?v=5"></script>
     <script src="assets/export-core.js?v=2"></script>
-    <script src="assets/export-host.js?v=4"></script>
+    <script src="assets/export-host.js?v=5"></script>
     <script src="assets/csv-sheet.js?v=1"></script>
-    <script src="assets/pwa.js"></script>
+    <script src="assets/pwa.js?v=2"></script>
+    <script src="assets/welcome.js?v=4"></script>
     <script>
       (function () {
         "use strict";
@@ -8225,6 +8227,10 @@
                 <span class="tb-menu__label">Export as Markdown</span>
               </button>
               <div class="tb-menu__sep" role="separator"></div>
+              <button type="button" class="tb-menu__item" role="menuitem" tabindex="-1" data-proxy="changelogLink">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>
+                <span class="tb-menu__label">What's new</span>
+              </button>
               <button type="button" class="tb-menu__item" role="menuitem" tabindex="-1" data-proxy="globalSettingsBtn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                 <span class="tb-menu__label">Settings</span>
@@ -8394,6 +8400,13 @@
               aria-label="Settings and document actions"
               data-mv-overflow-section="Manage"
             >
+              <a
+                id="changelogLink"
+                class="btn"
+                href="changelog/"
+                target="_blank"
+                rel="noopener"
+              >What's new</a>
               <button
                 id="globalSettingsBtn"
                 type="button"
@@ -13403,35 +13416,25 @@ Drop a .md file anywhere on the page, or open one from Files."
           lineHeight: 1.72,
           measure: 680,
         };
-        const DEFAULT_SAMPLE_FALLBACK = `# Fast Markdown Viewer
+        // Shown only when assets/welcome.md cannot be fetched.
+        const DEFAULT_SAMPLE_FALLBACK = `# Welcome to MarkV
 
-Paste markdown on the left, open a local file, or drag one into the page.
+A quiet place to read markdown. Drop a \`.md\` file anywhere on this page, or use **Files** at the top left to open one.`;
 
-## Why this helps
-
-- Reload button to bypass stale previews
-- Auto refresh for opened file handles
-- Untitled drafts restore after reopen
-- Readable typography for long documents
-
-## Table
-
-| Feature | What it does |
-| --- | --- |
-| Open .md | Loads a local file directly |
-| Live preview | Renders while you type |
-| Privacy mode | Keeps local drafts private and blocks remote images |
-
-> This page is intentionally simple and privacy-first.`;
-
-        async function loadDefaultSample() {
+        async function loadBundledMarkdown(path, fallback) {
           try {
-            const res = await fetch("assets/sample-developer.md");
+            const res = await fetch(path);
             if (!res.ok) throw new Error(res.statusText);
             return await res.text();
           } catch (_) {
-            return DEFAULT_SAMPLE_FALLBACK;
+            return fallback;
           }
+        }
+
+        // First run opens the welcome page (assets/welcome.js decorates it);
+        // the old sample lives on as the Markdown showcase in Cmd+K.
+        function loadDefaultSample() {
+          return loadBundledMarkdown("assets/welcome.md?v=3", DEFAULT_SAMPLE_FALLBACK);
         }
 
         /* ============================================================
@@ -22319,7 +22322,13 @@ Return JSON only.`;
           return true;
         }
 
-        async function createUntitledDocument() {
+        // options.content/options.mode open a bundled page (welcome,
+        // showcase) as a new draft in Read mode. A click event passes
+        // neither, so the New button still gets a blank draft in Edit.
+        async function createUntitledDocument(options) {
+          const content =
+            options && typeof options.content === "string" ? options.content : "";
+          const mode = options && options.mode === "preview" ? "preview" : "edit";
           const request = beginDocumentLoad();
           await flushActiveUntitledDraft().catch(function (error) {
             console.warn("[drafts] active draft flush failed", error);
@@ -22340,7 +22349,7 @@ Return JSON only.`;
           const draft = upsertUntitledDraftInState({
             id: createUntitledDraftId(),
             title: getNextUntitledDraftTitle(),
-            content: "",
+            content: content,
             createdAt: now,
             updatedAt: now,
             lastActive: now,
@@ -22356,7 +22365,7 @@ Return JSON only.`;
           removeStorage(window.sessionStorage, SESSION_CONTENT_KEY);
           removeStorage(window.sessionStorage, SESSION_META_KEY);
 
-          setEditorMarkdown("");
+          setEditorMarkdown(content);
           updateUiState();
           render("untitled");
           renderLibraryDrawer();
@@ -22365,9 +22374,33 @@ Return JSON only.`;
             console.warn("[drafts] initial persist failed", error);
           });
 
-          setMode("edit");
+          setMode(mode);
           setStatus(draft.title + " • created", { announce: true });
         }
+
+        async function openBundledDocument(path) {
+          const request = beginDocumentLoad();
+          const markdown = await loadBundledMarkdown(path, "");
+          if (!isDocumentLoadCurrent(request)) return false;
+          if (!markdown) {
+            setStatus("Could not open this page. Please try again.", {
+              announce: true,
+              kind: "error",
+            });
+            return false;
+          }
+          await createUntitledDocument({ content: markdown, mode: "preview" });
+        }
+
+        // Buttons inside the welcome page (assets/welcome.js).
+        document.addEventListener("markv:welcome-action", function (event) {
+          const action = event.detail && event.detail.action;
+          if (action === "open-file") openFile();
+          else if (action === "open-folder") addLibraryFolder();
+          else if (action === "open-showcase") {
+            openBundledDocument("assets/sample-developer.md");
+          }
+        });
 
         async function discardUntitledDraft(draftId) {
           const draft = getUntitledDraftById(draftId);
@@ -26337,7 +26370,6 @@ Return JSON only.`;
             });
           } else {
             setEditorMarkdown("");
-            render("force");
             await restoreLibraryFromStorage({
               hasSessionDraft: hasStoredUntitledDrafts,
             });
@@ -26363,7 +26395,12 @@ Return JSON only.`;
             !els.editor.value.trim() &&
             !hasPendingPrimaryHandle
           ) {
-            setEditorMarkdown(await loadDefaultSample());
+            const request = beginDocumentLoad();
+            const markdown = await loadDefaultSample();
+            if (!isDocumentLoadCurrent(request)) return;
+            setEditorMarkdown(markdown);
+            render("force");
+          } else if (state.lastRenderedContentVersion < 0) {
             render("force");
           }
         }
@@ -27117,6 +27154,12 @@ Return JSON only.`;
               startAutoRefresh,
               showReadingPanel,
               createUntitledDocument,
+              openWelcomeDocument: function () {
+                return openBundledDocument("assets/welcome.md?v=3");
+              },
+              openShowcaseDocument: function () {
+                return openBundledDocument("assets/sample-developer.md");
+              },
               loadFromLibrarySelection,
               loadUntitledDraft,
               shareCurrentSnapshot,

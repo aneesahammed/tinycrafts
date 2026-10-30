@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)" />
+    <title>MarkV Changelog - TinyCrafts</title>
+    <meta
+      name="description"
+      content="Every release of MarkV, the calm, local-first Markdown reader from TinyCrafts, in plain words."
+    />
+    <link rel="canonical" href="https://tinycrafts.ai/markv/changelog/" />
+    <link rel="icon" href="../assets/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="../assets/icons/icon-192.png" />
+    <script>
+      // Same theme key and startup rule as MarkV, before first paint.
+      try {
+        var t = localStorage.getItem("md-viewer-theme");
+        document.documentElement.dataset.theme =
+          t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      } catch (e) {
+        document.documentElement.dataset.theme = "light";
+      }
+    </script>
+    <!-- MarkV's palette module, so the page wears the reader's palette. -->
+    <script src="../assets/reader-palettes.js?v=5"></script>
+    <script>
+      (function () {
+        var P = window.MarkVReaderPalettes;
+        if (!P) return;
+        var theme = P.getGlobalTheme(window);
+        var saved = P.readSavedPalette(localStorage);
+        P.applyToRoot(document.documentElement, P.coercePaletteForTheme(saved, theme, saved), {
+          globalTheme: theme,
+        });
+      })();
+    </script>
+    <style>
+      :root {
+        --canvas: var(--reader-bg-canvas, #fafaf9);
+        --surface: var(--reader-bg-surface, #ffffff);
+        --fg: var(--reader-fg-default, #222221);
+        --heading: var(--reader-fg-heading, var(--fg));
+        --fg-muted: var(--reader-fg-muted, #5e5e5c);
+        --fg-subtle: var(--reader-fg-subtle, #706e6b);
+        --muted-bg: color-mix(in srgb, var(--fg) 7%, var(--canvas));
+        --border: var(--reader-border-default, rgba(0, 0, 0, 0.08));
+        --border-strong: var(--reader-border-strong, rgba(0, 0, 0, 0.15));
+        --accent: var(--reader-accent, #5f8f80);
+        --link: var(--reader-link, #517a6d);
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        color-scheme: light;
+      }
+      :root[data-reader-scheme="dark"] {
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--fg);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--link);
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 18px 32px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--fg);
+        font: 600 17px/1 var(--serif);
+        text-decoration: none;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .open-btn {
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 10px;
+        background: var(--fg);
+        color: var(--canvas);
+        font: 600 14px/1 var(--sans);
+        text-decoration: none;
+        transition: background-color 150ms ease, transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      .icon-btn {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 9px;
+        background: none;
+        color: var(--fg-muted);
+        cursor: pointer;
+        transition: background-color 150ms ease, transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      .open-btn:active,
+      .icon-btn:active {
+        transform: scale(0.97);
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .open-btn:hover {
+          background: var(--fg-muted);
+        }
+        .icon-btn:hover {
+          background: var(--muted-bg);
+          color: var(--fg);
+        }
+      }
+
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 72px 32px 120px;
+      }
+      .intro {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        column-gap: 48px;
+        align-items: start;
+        margin-bottom: 88px;
+      }
+      h1 {
+        margin: 0;
+        color: var(--heading);
+        font: 700 64px/1 var(--serif);
+        letter-spacing: -0.03em;
+      }
+      .intro p {
+        max-width: 46ch;
+        margin: 6px 0 0;
+        color: var(--fg-muted);
+        font: 400 19px/1.6 var(--serif);
+        text-wrap: pretty;
+      }
+
+      .releases {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .release {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        column-gap: 48px;
+        padding: 52px 0;
+        border-top: 1px dotted var(--border-strong);
+        scroll-margin-top: 24px;
+      }
+      .release:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding-top: 2px;
+      }
+      .ver {
+        display: inline-block;
+        padding: 5px 11px;
+        border-radius: 999px;
+        background: var(--muted-bg);
+        color: var(--fg-muted);
+        font: 500 13px/1 var(--mono);
+        text-decoration: none;
+      }
+      .ver.is-latest {
+        background: var(--fg);
+        color: var(--canvas);
+      }
+      time {
+        color: var(--fg-subtle);
+        font: 400 14px/1.3 var(--sans);
+      }
+      .release h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 0 0 14px;
+        color: var(--heading);
+        font: 650 24px/1.25 var(--serif);
+        letter-spacing: -0.01em;
+      }
+      .emoji {
+        font-size: 0.85em;
+      }
+      .release p {
+        max-width: 62ch;
+        margin: 0;
+        font: 400 18.5px/1.72 var(--serif);
+        text-wrap: pretty;
+      }
+
+      footer {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 28px 32px 56px;
+        border-top: 1px solid var(--border);
+        color: var(--fg-subtle);
+        font: 400 14px/1.6 var(--sans);
+      }
+      footer a {
+        color: var(--fg-muted);
+      }
+
+      @media (max-width: 760px) {
+        .top {
+          padding: 14px 20px;
+        }
+        main {
+          padding: 40px 20px 88px;
+        }
+        .intro {
+          grid-template-columns: 1fr;
+          row-gap: 18px;
+          margin-bottom: 56px;
+        }
+        h1 {
+          font-size: 46px;
+        }
+        .release {
+          grid-template-columns: 1fr;
+          row-gap: 14px;
+          padding: 40px 0;
+        }
+        .meta {
+          flex-direction: row;
+          align-items: center;
+          gap: 12px;
+        }
+        .release p {
+          font-size: 17.5px;
+        }
+        footer {
+          padding: 24px 20px 48px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../">
+        <svg width="22" height="22" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+          <path d="M46 0L46 46L0 46Q6 6 46 0Z" /><path d="M54 0L54 46L100 46Q94 6 54 0Z" />
+          <path d="M46 100L46 54L0 54Q6 94 46 100Z" /><path d="M54 100L54 54L100 54Q94 94 54 100Z" />
+        </svg>
+        MarkV
+      </a>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="Toggle theme">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
+          </svg>
+        </button>
+        <a class="open-btn" href="../">Open MarkV</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="title">
+        <h1 id="title">Changelog</h1>
+        <p>
+          Every release of MarkV, from the first page that rendered a Markdown file to the calm
+          reader it is today. Newest first.
+        </p>
+      </section>
+
+      <!-- Newest first. Versions were assigned from the commit history;
+           tests/changelog.test.cjs keeps them unique and in order. -->
+      <ol class="releases">
+        <li class="release" id="v0-14-0">
+          <div class="meta">
+            <a class="ver is-latest" href="#v0-14-0">v0.14.0</a>
+            <time datetime="2026-10-30">30 Oct 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">👋</span>A proper welcome</h2>
+            <p>
+              New visitors now land on a short welcome page instead of a test document. It shows how
+              to open your own files, where the reading settings live and how to find your way
+              around, with hand-drawn arrows that point at each control while you read about it.
+              The old sample lives on as the Markdown showcase in Cmd+K. Updates no longer reload a
+              page you're in the middle of, refreshing to update keeps any unsaved edit, and this
+              changelog now lives under What's new.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-13-0">
+          <div class="meta">
+            <a class="ver" href="#v0-13-0">v0.13.0</a>
+            <time datetime="2026-10-30">30 Oct 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🛡️</span>Steadier under your fingers</h2>
+            <p>
+              Care you mostly won't notice, which is the point. Reloading or saving can no longer
+              overwrite something newer you just typed, and the preview now waits until you switch
+              back to Read instead of rebuilding with every keystroke, so long documents stay smooth
+              to edit. Dark mode no longer flashes white on launch, headings appear the moment you
+              land on them, the keyboard focus ring is easy to spot, and faint text is easier to
+              read in both themes. Untitled notes now borrow their name from the first heading.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-12-0">
+          <div class="meta">
+            <a class="ver" href="#v0-12-0">v0.12.0</a>
+            <time datetime="2026-10-30">30 Oct 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🤖</span>More ways to ask</h2>
+            <p>
+              OpenRouter joins Groq and Ollama, so you can bring your own key for almost any model.
+              Settings now checks your provider when it opens and shows whether it's ready, without
+              sending a single prompt. Mindmaps built with Groq cope better with long documents, and
+              your API keys are no longer stored alongside everyday preferences.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-11-0">
+          <div class="meta">
+            <a class="ver" href="#v0-11-0">v0.11.0</a>
+            <time datetime="2026-10-30">30 Oct 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">📖</span>A quieter toolbar</h2>
+            <p>
+              The toolbar was rebuilt around a single choice: Read or Edit. Reading tools moved into
+              a small dock at the bottom that steps aside while you scroll, and everything else now
+              lives in one tidy menu. The top bar shows how long a document takes to read, untitled
+              notes can be renamed right where their name appears, and frontmatter at the top of a
+              file becomes a clean document header instead of a block of YAML.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-10-0">
+          <div class="meta">
+            <a class="ver" href="#v0-10-0">v0.10.0</a>
+            <time datetime="2026-06-30">30 Jun 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🍞</span>Straight from Pagecrumb</h2>
+            <p>
+              Pagecrumb, the TinyCrafts extension that turns any web page into clean Markdown, can
+              now hand that page straight to MarkV. It opens ready to read, and if anything goes
+              wrong along the way, MarkV says so plainly instead of leaving you guessing.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-9-0">
+          <div class="meta">
+            <a class="ver" href="#v0-9-0">v0.9.0</a>
+            <time datetime="2026-05-28">28 May 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">📤</span>Take it with you</h2>
+            <p>
+              Documents can now leave MarkV as a clean PDF or a Markdown file, and the export button
+              remembers which one you prefer. CSV files open as tidy sheets with a header row that
+              stays put, and selecting text offers a one-click Copy. Diagrams moved to a new renderer
+              that draws flowcharts, sequences and data models more crisply, and command palette
+              results are grouped. Visit counting moved to GoatCounter, which works without cookies.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-8-0">
+          <div class="meta">
+            <a class="ver" href="#v0-8-0">v0.8.0</a>
+            <time datetime="2026-05-20">20 May 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">⌨️</span>A keystroke away</h2>
+            <p>
+              Press Cmd+K (Ctrl+K on Windows) to search your files and drafts or run any command,
+              with each shortcut shown beside it. The editor learned the usual formatting shortcuts
+              too. Six reading palettes arrived, Original, Ivory, Manila, Cloud, Slate and Garden,
+              each tuned for comfortable contrast, and the outline beside the text now scrolls along
+              with you.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-7-0">
+          <div class="meta">
+            <a class="ver" href="#v0-7-0">v0.7.0</a>
+            <time datetime="2026-05-18">18 May 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🧭</span>Find your way around</h2>
+            <p>
+              A new rail beside the text shows the document's outline and follows you as you read,
+              along with a small map of how the note links to others in your folder. Mindmaps gained
+              search and an inspector for each idea. In Edit, an insert menu adds ready-made
+              diagrams, tables, callouts and checklists. Notes started from scratch are now kept as
+              drafts that survive a restart, and MarkV got a fresh icon.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-6-0">
+          <div class="meta">
+            <a class="ver" href="#v0-6-0">v0.6.0</a>
+            <time datetime="2026-05-11">11 May 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">📱</span>Better on small screens</h2>
+            <p>
+              On phones, the toolbar now folds its extra actions into a tidy More sheet. Folders in
+              Files can be collapsed and expanded, all at once if you like, long documents get a
+              quick way back to the top, and long file names are shortened more gracefully.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-5-0">
+          <div class="meta">
+            <a class="ver" href="#v0-5-0">v0.5.0</a>
+            <time datetime="2026-04-21">21 Apr 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">📶</span>Install it, take it offline</h2>
+            <p>
+              MarkV can now be installed like an app and keeps working without a connection. Share
+              links became much shorter, and diagrams follow your light or dark theme properly.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-4-0">
+          <div class="meta">
+            <a class="ver" href="#v0-4-0">v0.4.0</a>
+            <time datetime="2026-04-20">20 Apr 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">📂</span>Bring your folders</h2>
+            <p>
+              Open a folder and every Markdown file in it appears in Files, ready to read. Browsers
+              that can't open folders directly can import a copy instead. Edits can be saved back to
+              the file, any document can be shared as a link that carries the whole note inside it
+              with no server in between, and Read and Edit sit in one simple toggle. Motion across
+              the app became calmer and more consistent, and it respects your reduced-motion setting.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-3-0">
+          <div class="meta">
+            <a class="ver" href="#v0-3-0">v0.3.0</a>
+            <time datetime="2026-04-12">12 Apr 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🗺️</span>Mindmaps, if you want them</h2>
+            <p>
+              Turn any document into a concept mindmap: its main ideas laid out on a map you can pan,
+              zoom and click to jump back to the matching section. It runs on Ollama on your own
+              computer or with a Groq key, set up from a new AI settings drawer, and maps are cached
+              so reopening one is instant. MarkV also added a word count and tightened its security
+              so the page only runs code it trusts.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-2-0">
+          <div class="meta">
+            <a class="ver" href="#v0-2-0">v0.2.0</a>
+            <time datetime="2026-04-11">11 Apr 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">✏️</span>Reading and writing in step</h2>
+            <p>
+              GitHub-style alerts and task lists render properly. MarkV now maps every line of your
+              source to the page you see, so moving between Edit and Read keeps your place. A small
+              floating toolbar helps with formatting while you write, and the mode switch got
+              clearer icons and better keyboard focus.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-1-0">
+          <div class="meta">
+            <a class="ver" href="#v0-1-0">v0.1.0</a>
+            <time datetime="2026-04-10">10 Apr 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🌱</span>Hello, MarkV</h2>
+            <p>
+              MarkV started as a single page with one job: open a Markdown file and make it pleasant
+              to read. It arrived with calm serif typography, light and dark themes, diagrams and
+              maths, and nothing to sign up for.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </main>
+
+    <footer>
+      MarkV is made by <a href="/">TinyCrafts</a>. Your documents stay on your device.
+      <a href="/privacy/">Privacy</a> · <a href="../">Open MarkV</a>
+    </footer>
+
+    <script>
+      (function () {
+        "use strict";
+        // Friendly relative dates ("5 months ago"); the full date stays in
+        // the markup for no-JS readers and in the tooltip.
+        var day = 864e5;
+        var rtf = window.Intl && Intl.RelativeTimeFormat
+          ? new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+          : null;
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        document.querySelectorAll("time[datetime]").forEach(function (el) {
+          var parts = el.getAttribute("datetime").split("-").map(Number);
+          var date = new Date(parts[0], parts[1] - 1, parts[2]);
+          el.title = date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+          if (!rtf) return;
+          var days = Math.round((date - today) / day);
+          var months = Math.round(days / 30.44);
+          el.textContent =
+            Math.abs(days) < 30 ? rtf.format(days, "day")
+            : Math.abs(months) < 12 ? rtf.format(months, "month")
+            : rtf.format(Math.round(days / 365.25), "year");
+          el.textContent = el.textContent.charAt(0).toUpperCase() + el.textContent.slice(1);
+        });
+
+        // Theme toggle, sharing MarkV's own key and palette rules.
+        var P = window.MarkVReaderPalettes;
+        document.getElementById("themeBtn").addEventListener("click", function () {
+          var root = document.documentElement;
+          var next = root.dataset.theme === "dark" ? "light" : "dark";
+          root.dataset.theme = next;
+          try {
+            localStorage.setItem("md-viewer-theme", next);
+          } catch (_) {}
+          if (!P) return;
+          var saved = P.readSavedPalette(localStorage);
+          P.applyToRoot(root, P.coercePaletteForTheme(saved, next, saved), { globalTheme: next });
+        });
+      })();
+    </script>
+  </body>
+</html>

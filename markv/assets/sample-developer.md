@@ -1,6 +1,6 @@
-# Project Architecture Overview
+# Markdown Showcase
 
-A comprehensive developer reference covering every common markdown element — useful as both a syntax cheat-sheet and a rendering test fixture.
+Every markdown element MarkV renders, in one place: text, code, tables, alerts, diagrams, maths and footnotes.
 
 ---
 

@@ -259,8 +259,8 @@
       if (element.closest("svg")) return;
       element.removeAttribute("id");
     });
-    article.querySelectorAll(".mermaid-inline-action").forEach(function (button) {
-      button.remove();
+    article.querySelectorAll(".mermaid-inline-action, [data-welcome-ui], .welcome-underline").forEach(function (element) {
+      element.remove();
     });
     root.appendChild(article);
 

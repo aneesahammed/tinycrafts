@@ -1,0 +1,306 @@
+/* Welcome page (assets/welcome.js). Everything here only appears while the
+   bundled welcome document is open; colours come from the reader palette,
+   so it follows Original, Ivory, Manila, Cloud, Slate and Garden. */
+
+/* ── In-document UI ───────────────────────────────────────── */
+.markdown-body .welcome-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: -0.2em 0 0;
+  padding: 0;
+  list-style: none;
+  font: 400 14px/1.4 var(--font-sans);
+  color: var(--reader-fg-muted, var(--fg-muted));
+}
+.markdown-body .welcome-facts li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+.markdown-body .welcome-facts svg {
+  color: var(--reader-accent, var(--accent-fg));
+}
+
+.markdown-body .welcome-drop {
+  margin: 1.2em 0 0.4em;
+  padding: 28px 24px 26px;
+  border: 1.5px dashed var(--reader-border-strong, var(--border-strong));
+  border-radius: 16px;
+  background: var(--reader-bg-subtle, var(--bg-subtle));
+  text-align: center;
+  font-family: var(--font-sans);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+body.dragging .markdown-body .welcome-drop {
+  border-color: var(--reader-accent, var(--accent-fg));
+  background: color-mix(
+    in srgb,
+    var(--reader-accent, var(--accent-fg)) 9%,
+    var(--reader-bg-subtle, var(--bg-subtle))
+  );
+}
+.markdown-body .welcome-drop > svg {
+  color: var(--reader-fg-subtle, var(--fg-subtle));
+}
+.markdown-body .welcome-drop__title {
+  margin: 10px 0 4px;
+  font: 600 16px/1.35 var(--font-sans);
+  color: var(--reader-fg-default, var(--fg-default));
+}
+.markdown-body .welcome-drop__sub {
+  margin: 0 0 16px;
+  font: 400 14px/1.4 var(--font-sans);
+  color: var(--reader-fg-muted, var(--fg-muted));
+}
+.markdown-body .welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+}
+.markdown-body .welcome-actions--end {
+  justify-content: flex-start;
+  margin: 1.3em 0 1.1em;
+}
+/* MarkV's own .btn / .btn-primary, a size up for a page-level action. */
+.markdown-body .welcome-actions .btn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.markdown-body .welcome-actions .btn:active {
+  transform: scale(0.97);
+}
+.markdown-body .welcome-link {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font: 500 15px/1 var(--font-sans);
+  color: var(--reader-link, var(--accent-fg));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.markdown-body .welcome-note {
+  font: 400 14px/1.5 var(--font-sans);
+  color: var(--reader-fg-muted, var(--fg-muted));
+}
+.markdown-body .welcome-underline-host {
+  position: relative;
+  display: inline-block;
+}
+
+/* ── Hand-drawn guides ────────────────────────────────────────
+   One section's guides at a time, drawn once each; later appearances
+   are instant. Decorative only: the text names every control. */
+.welcome-guides,
+.welcome-guide-toggle {
+  display: none;
+}
+html.is-welcome
+  body.preview-mode:not(
+    :is(.edit-mode-active, .library-open, .chat-open, .mindmap-open, .mv-more-open, .export-pdf-active)
+  )
+  .welcome-guides {
+  display: block;
+}
+html.is-welcome
+  body.preview-mode:not(
+    :is(.edit-mode-active, .library-open, .chat-open, .mindmap-open, .mv-more-open, .export-pdf-active)
+  )
+  .welcome-guide-toggle {
+  display: flex;
+}
+body:has(#readingPanel:not([hidden])) .welcome-guides,
+html.welcome-guides-off .welcome-guides,
+html.welcome-guides-off .welcome-underline {
+  visibility: hidden;
+}
+/* Compact drawings leave a clear band under the toolbar on smaller screens.
+   Touch users get the same guides; JS follows controls moved into More. */
+@media (max-width: 1200px) {
+  html.is-welcome .preview-pane:not(.is-empty-state) {
+    padding-top: 116px;
+  }
+  .welcome-guide .wg-label {
+    font-size: 17px;
+  }
+  html.is-welcome .welcome-guide[data-guide="files"] .wg-label {
+    left: calc(96px * var(--wg-scale, 1));
+    top: calc(32px * var(--wg-scale, 1));
+  }
+}
+
+.welcome-guides {
+  --wg-halo: var(--reader-bg-canvas, var(--bg-canvas));
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  pointer-events: none;
+}
+.welcome-guides,
+.welcome-underline {
+  color: var(--reader-link, var(--accent-fg));
+}
+.welcome-guide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: max-content;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.welcome-guide.is-on {
+  opacity: 1;
+  transition-duration: 120ms;
+}
+.welcome-guide svg {
+  display: block;
+  overflow: visible;
+}
+.wg-ink,
+.wg-halo {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wg-ink {
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+.wg-halo {
+  stroke: var(--wg-halo);
+  stroke-width: 9;
+  opacity: 0.9;
+}
+.wg-draw {
+  stroke-dasharray: 1 1.2;
+  stroke-dashoffset: 1.05;
+}
+:is(.welcome-guide, .welcome-underline).is-on .wg-draw {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 760ms cubic-bezier(0.23, 1, 0.32, 1) 60ms;
+}
+:is(.welcome-guide, .welcome-underline).is-on .wg-head {
+  transition: stroke-dashoffset 220ms cubic-bezier(0.23, 1, 0.32, 1) 620ms;
+}
+/* Leaving: keep the stroke while the guide fades, then reset. */
+:is(.welcome-guide, .welcome-underline):not(.is-on) .wg-draw {
+  transition: stroke-dashoffset 0s linear 180ms;
+}
+:is(.welcome-guide, .welcome-underline).seen.is-on .wg-draw {
+  transition: none;
+}
+.wg-label {
+  position: absolute;
+  /* Upright hand fonts only (no italics). */
+  font: 400 19px/1.1 "Patrick Hand", "Chalkboard SE", "Segoe Print", "Comic Sans MS", cursive;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px var(--wg-halo),
+    0 0 8px var(--wg-halo),
+    0 0 14px var(--wg-halo);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.welcome-guide.is-on .wg-label {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 260ms ease 420ms,
+    transform 320ms cubic-bezier(0.23, 1, 0.32, 1) 420ms;
+}
+.welcome-guide.seen.is-on .wg-label {
+  transition-delay: 0s;
+}
+.welcome-guide[data-guide="files"] .wg-label {
+  left: calc(18px * var(--wg-scale, 1));
+  top: calc(134px * var(--wg-scale, 1));
+}
+.welcome-guide[data-guide="aa"] .wg-label {
+  right: calc(124px * var(--wg-scale, 1));
+  top: calc(40px * var(--wg-scale, 1));
+}
+.welcome-guide[data-guide="outline"] .wg-label {
+  left: calc(40px * var(--wg-scale, 1));
+  top: calc(92px * var(--wg-scale, 1));
+}
+/* Beside the pill, not under it: the section breadcrumb lives below. */
+.welcome-guide[data-guide="search"] .wg-label {
+  left: calc(100% + 4px);
+  top: 50%;
+  margin-top: -11px;
+}
+.welcome-guide[data-guide="search"][data-label-side="below"] .wg-label {
+  left: 0;
+  top: calc(100% + 4px);
+  margin-top: 0;
+}
+.welcome-guide[data-guide="chat"] .wg-label {
+  right: calc(134px * var(--wg-scale, 1));
+  top: calc(6px * var(--wg-scale, 1));
+}
+.welcome-underline {
+  position: absolute;
+  left: -4px;
+  bottom: -12px;
+  width: calc(100% + 8px);
+  height: 14px;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.welcome-underline.is-on {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wg-draw {
+    stroke-dashoffset: 0 !important;
+    transition: none !important;
+  }
+  .wg-label {
+    transform: none !important;
+    transition: opacity 150ms ease !important;
+  }
+}
+
+.welcome-guide-toggle {
+  position: fixed;
+  left: 16px;
+  bottom: 22px;
+  z-index: 1100;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--reader-border-default, var(--border-default));
+  border-radius: 999px;
+  background: var(--reader-bg-surface, var(--bg-raised));
+  color: var(--reader-fg-muted, var(--fg-muted));
+  font: 500 13px/1 var(--font-sans);
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.welcome-guide-toggle svg {
+  color: var(--reader-link, var(--accent-fg));
+}
+.welcome-guide-toggle:active {
+  transform: scale(0.97);
+}
+.welcome-guide-toggle:focus-visible {
+  outline: 2px solid var(--reader-accent, var(--accent-fg));
+  outline-offset: 2px;
+}

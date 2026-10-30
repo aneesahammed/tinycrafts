@@ -26,6 +26,7 @@ const staticToolItems = [
   'markv/sw.js',
   'markv/assets',
   'markv/vendor',
+  'markv/changelog/index.html',
   'pichub/index.html',
   'pichub/manifest.webmanifest',
   'pichub/sw.js',
