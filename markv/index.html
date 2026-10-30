@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-xEV9Hpu3iPQSGWq5pdYR0otMUTUL550P3aZHgH43REA=' 'sha256-oL/YoBP6apq9QyrwGeBMlWGbw53Iul5U+sH7x6IHIx8=' 'sha256-YDTeX32xIvul7Xj5xMvAV61rjGu8tcPl3yq5bklPl0M=' 'sha256-uS3UkBa4U06aMkyHXE/NpaXzuDujHLfSrkMLuDId7aI=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-0y9BaIdiH8PbkjxX1r1t5T0e74dbMBAdHVH1v0Jnfk4=' 'sha256-oL/YoBP6apq9QyrwGeBMlWGbw53Iul5U+sH7x6IHIx8=' 'sha256-CZk47CBCpyyTjeD+yOObrOzK7TAXb2pX4sZ27H2Z9Rc=' 'sha256-uS3UkBa4U06aMkyHXE/NpaXzuDujHLfSrkMLuDId7aI=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -15418,9 +15418,16 @@ Return JSON only.`;
         const MINDMAP_SOURCE_SECTION_LIMIT = 18;
         const MINDMAP_SOURCE_SECTION_SNIPPET_CHARS = 320;
         const MINDMAP_SOURCE_OVERVIEW_CHARS = 900;
+        // Groq models whose free tier allows <= 8,000 tokens per minute.
+        // A full-document mindmap request (~5,000 tokens with the reply
+        // budget) leaves no room for a second request in the same minute.
         const MINDMAP_GROQ_LOW_TPM_MODEL_RE =
-          /^(?:qwen\/qwen3-32b|llama-3\.1-8b-instant|allam-2-7b)$/i;
-        const MINDMAP_MAX_COMPLETION_TOKENS = 1400;
+          /^(?:qwen\/qwen3-32b|llama-3\.1-8b-instant|allam-2-7b|openai\/gpt-oss-(?:120b|20b|safeguard-20b))$/i;
+        // Measured on Groq gpt-oss-120b: a strict-schema graph took ~1,370
+        // completion tokens, so 1,400 truncated it about half the time and
+        // the retry burned the per-minute budget. 2,400 leaves headroom and
+        // still keeps one request (~4,500 tokens) under an 8,000 TPM limit.
+        const MINDMAP_MAX_COMPLETION_TOKENS = 2400;
 
         const MINDMAP_EDGE_KIND_ALIASES = {
           part_of: "part_of",
@@ -25634,13 +25641,39 @@ Return JSON only.`;
           );
         }
 
+        // Returns 0 when the wait is unknown. Browsers usually cannot read
+        // Groq's retry headers (not CORS-exposed), but its message says
+        // "Please try again in 13.47s", so read that too.
         function getMindmapRetryDelayMs(err) {
           if (!err) return 0;
           const fromRetryAfter = parseMindmapRetryDelayMs(err.retryAfter);
           if (fromRetryAfter > 0) return fromRetryAfter;
           const fromReset = parseMindmapRetryDelayMs(err.rateLimitResetTokens);
           if (fromReset > 0) return fromReset;
-          return 15000;
+          const inMessage = /try again in ((?:\d+(?:\.\d+)?(?:ms|h|m|s))+)/i.exec(
+            String(err.message || ""),
+          );
+          return inMessage ? parseMindmapRetryDelayMs(inMessage[1]) : 0;
+        }
+
+        // Groq reports token limits as "Limit 8000, Used 4813, Requested 4983".
+        function parseMindmapTokenLimit(err) {
+          const match = /limit (\d+), used (\d+), requested (\d+)/i.exec(
+            String((err && err.message) || ""),
+          );
+          return match
+            ? { limit: +match[1], used: +match[2], requested: +match[3] }
+            : null;
+        }
+
+        // A request bigger than the whole per-minute budget never fits, so
+        // waiting will not help.
+        function isMindmapRequestTooLarge(err) {
+          if (!err) return false;
+          if (err.status === 413) return true;
+          if (/request too large/i.test(String(err.message || ""))) return true;
+          const usage = parseMindmapTokenLimit(err);
+          return Boolean(usage && usage.requested > usage.limit);
         }
 
         async function runMindmapPipeline(options) {
@@ -25734,9 +25767,9 @@ Return JSON only.`;
             renderMindmap(mindmapState.laid);
             requestAnimationFrame(() => fitMindmapToView(false));
           } catch (err) {
-            if (isMindmapRateLimitError(err)) {
+            if (isMindmapRateLimitError(err) && !isMindmapRequestTooLarge(err)) {
               mindmapState.rateLimitUntil =
-                Date.now() + getMindmapRetryDelayMs(err);
+                Date.now() + (getMindmapRetryDelayMs(err) || 15000);
               const fallback = cached || mindmapState.currentGraph;
               if (fallback) {
                 mindmapState.currentGraph = fallback;
@@ -25771,12 +25804,21 @@ Return JSON only.`;
           ) {
             return "Couldn't reach the LLM. Check your connection and try again.";
           }
+          const provider = (err && err.provider) || "The AI provider";
+          const usage = parseMindmapTokenLimit(err);
+          if (isMindmapRequestTooLarge(err)) {
+            return usage
+              ? `This document is too large for ${provider}'s per-minute token limit (it needs ${usage.requested.toLocaleString()} tokens; the limit is ${usage.limit.toLocaleString()}). Try a shorter document or a model with a higher limit.`
+              : `This document is too large for ${provider}'s current limits. Try a shorter document or a model with a higher limit.`;
+          }
           if (isMindmapRateLimitError(err) || lower.includes("429")) {
             const retryMs = getMindmapRetryDelayMs(err);
-            if (retryMs > 0) {
-              return `Rate limited by the LLM. Try again in about ${formatMindmapRetryDelay(retryMs)}.`;
-            }
-            return "Rate limited by the LLM. Wait a moment and retry.";
+            const detail = usage
+              ? `${provider}'s per-minute token limit is used up (${usage.used.toLocaleString()} of ${usage.limit.toLocaleString()} used; this map needs ${usage.requested.toLocaleString()}).`
+              : `${provider} is rate limiting requests.`;
+            return retryMs > 0
+              ? `${detail} Try again in about ${formatMindmapRetryDelay(retryMs)}.`
+              : `${detail} Wait a moment and retry.`;
           }
           if (
             lower.includes("401") ||
@@ -29938,6 +29980,16 @@ Return JSON only.`;
           if (provider === "groq" && /qwen3/i.test(model)) {
             body.reasoning_effort = "none";
           }
+          // gpt-oss reasons before answering, and that reasoning counts
+          // against max_completion_tokens. Callers with a tight budget
+          // (the mindmap) ask for less of it.
+          if (opts.reasoningEffort && /gpt-oss/i.test(model)) {
+            if (provider === "openrouter") {
+              body.reasoning = { effort: opts.reasoningEffort };
+            } else {
+              body.reasoning_effort = opts.reasoningEffort;
+            }
+          }
           if (
             Number.isFinite(opts.maxCompletionTokens) &&
             opts.maxCompletionTokens > 0
@@ -30074,6 +30126,9 @@ Return JSON only.`;
                 {
                   maxCompletionTokens: request.maxCompletionTokens,
                   responseFormat: structuredFormat,
+                  // Measured: at the default effort gpt-oss spent the whole
+                  // 1,400-token budget reasoning and returned no JSON.
+                  reasoningEffort: "low",
                 },
               );
             } catch (error) {
@@ -30093,6 +30148,7 @@ Return JSON only.`;
                 {
                   maxCompletionTokens: request.maxCompletionTokens,
                   responseFormat: { type: "json_object" },
+                  reasoningEffort: "low",
                 },
               );
             }
