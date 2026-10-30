@@ -803,6 +803,214 @@
     };
   }
 
+  // ponytail: YAML subset for frontmatter display (maps, lists, lists of
+  // maps, quoted/plain/block scalars, JSON-style flow values). Anything
+  // outside it throws, and the caller shows the raw block instead. Swap
+  // in js-yaml if documents need anchors, tags or multi-line flow.
+  function parseFrontmatterYaml(source) {
+    const lines = String(source || "").replace(/\t/g, "  ").split(/\r?\n/);
+    const LIST_ITEM = /^\s*-(\s|$)/;
+    const MAP_KEY = /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s"'#\-[{][^:]*?|-[^\s:][^:]*?)\s*:(\s+.*|)$/;
+    let i = 0;
+
+    function indentOf(line) {
+      return line.length - line.replace(/^ +/, "").length;
+    }
+    function skipBlank() {
+      while (i < lines.length && (!lines[i].trim() || /^\s*#/.test(lines[i]))) i += 1;
+    }
+    function fail(message) {
+      throw new Error(message + " (frontmatter line " + (i + 1) + ")");
+    }
+
+    function parseQuoted(text) {
+      if (text[0] === '"') {
+        const match = text.match(/^"((?:[^"\\]|\\.)*)"/);
+        return match ? { value: JSON.parse('"' + match[1] + '"'), rest: text.slice(match[0].length) } : null;
+      }
+      const match = text.match(/^'((?:[^']|'')*)'/);
+      return match ? { value: match[1].replace(/''/g, "'"), rest: text.slice(match[0].length) } : null;
+    }
+
+    function parseFlow(text) {
+      let p = 0;
+      function ws() {
+        while (p < text.length && /\s/.test(text[p])) p += 1;
+      }
+      function scalar(stop) {
+        ws();
+        if (text[p] === '"' || text[p] === "'") {
+          const quoted = parseQuoted(text.slice(p));
+          if (!quoted) fail("Unterminated string");
+          p = text.length - quoted.rest.length;
+          return quoted.value;
+        }
+        const start = p;
+        while (p < text.length && !stop.test(text[p])) p += 1;
+        const raw = text.slice(start, p).trim();
+        return raw === "null" || raw === "~" ? null : raw;
+      }
+      function value() {
+        ws();
+        const open = text[p];
+        if (open !== "[" && open !== "{") return scalar(/[,\]}]/);
+        const close = open === "[" ? "]" : "}";
+        const out = open === "[" ? [] : {};
+        p += 1;
+        ws();
+        if (text[p] === close) {
+          p += 1;
+          return out;
+        }
+        while (p < text.length) {
+          if (open === "[") {
+            out.push(value());
+          } else {
+            const key = scalar(/[:,}]/);
+            ws();
+            if (text[p] !== ":") fail("Expected ':' in flow map");
+            p += 1;
+            out[key] = value();
+          }
+          ws();
+          if (text[p] === ",") {
+            p += 1;
+            continue;
+          }
+          if (text[p] === close) {
+            p += 1;
+            return out;
+          }
+          break;
+        }
+        return fail("Unterminated flow value");
+      }
+      const result = value();
+      ws();
+      if (p !== text.length) fail("Unexpected text after flow value");
+      return result;
+    }
+
+    function parseScalar(text) {
+      if (text[0] === '"' || text[0] === "'") {
+        const quoted = parseQuoted(text);
+        if (quoted && /^\s*(#.*)?$/.test(quoted.rest)) return quoted.value;
+        fail("Unsupported quoted value");
+      }
+      if (text[0] === "[" || text[0] === "{") return parseFlow(text);
+      const plain = text.replace(/\s+#.*$/, "").trim();
+      return plain === "null" || plain === "~" ? null : plain;
+    }
+
+    function parseBlockScalar(style, parentIndent) {
+      const out = [];
+      let blockIndent = null;
+      while (i < lines.length) {
+        const line = lines[i];
+        if (line.trim()) {
+          const indent = indentOf(line);
+          if (indent <= parentIndent) break;
+          if (blockIndent === null) blockIndent = indent;
+          out.push(line.slice(Math.min(indent, blockIndent)));
+        } else {
+          out.push("");
+        }
+        i += 1;
+      }
+      while (out.length && !out[out.length - 1]) out.pop();
+      return style === "|" ? out.join("\n") : out.join(" ").replace(/ {2,}/g, " ").trim();
+    }
+
+    function parseValue(rest, parentIndent) {
+      if (!rest || rest[0] === "#") {
+        skipBlank();
+        if (i >= lines.length) return null;
+        const indent = indentOf(lines[i]);
+        // YAML allows a list at the same indent as its key.
+        if (LIST_ITEM.test(lines[i]) && indent >= parentIndent) return parseList(indent);
+        if (indent > parentIndent) return parseMap(indent);
+        return null;
+      }
+      if (/^[|>][+-]?$/.test(rest)) return parseBlockScalar(rest[0], parentIndent);
+      return parseScalar(rest);
+    }
+
+    function parseList(indent) {
+      const items = [];
+      for (;;) {
+        skipBlank();
+        if (i >= lines.length) break;
+        const line = lines[i];
+        if (indentOf(line) !== indent || !LIST_ITEM.test(line)) break;
+        const after = line.slice(indent + 1);
+        const content = after.trim();
+        const contentIndent = indent + 1 + (after.length - after.replace(/^ +/, "").length);
+        if (!content) {
+          i += 1;
+          items.push(parseValue("", indent));
+        } else if (MAP_KEY.test(content)) {
+          // "- key: value" opens a map whose keys align with "key".
+          lines[i] = " ".repeat(contentIndent) + content;
+          items.push(parseMap(contentIndent));
+        } else {
+          i += 1;
+          items.push(parseScalar(content));
+        }
+      }
+      return items;
+    }
+
+    function parseMap(indent) {
+      const out = {};
+      for (;;) {
+        skipBlank();
+        if (i >= lines.length) break;
+        const line = lines[i];
+        const lineIndent = indentOf(line);
+        if (lineIndent < indent || (lineIndent === indent && LIST_ITEM.test(line))) break;
+        if (lineIndent > indent) fail("Unexpected indentation");
+        const match = line.slice(indent).match(MAP_KEY);
+        if (!match) fail("Expected 'key: value'");
+        const rawKey = match[1];
+        const key = rawKey[0] === '"' || rawKey[0] === "'" ? parseQuoted(rawKey).value : rawKey.trim();
+        i += 1;
+        out[key] = parseValue(match[2].trim(), indent);
+      }
+      return out;
+    }
+
+    skipBlank();
+    if (i >= lines.length) return {};
+    if (indentOf(lines[i]) !== 0 || LIST_ITEM.test(lines[i])) fail("Frontmatter must be a map");
+    const data = parseMap(0);
+    skipBlank();
+    if (i < lines.length) fail("Unexpected content");
+    return data;
+  }
+
+  // Returns the frontmatter block (with its character length, so callers
+  // can blank it out without shifting source offsets) and its parsed data.
+  function parseFrontmatter(markdown) {
+    const text = String(markdown || "");
+    const split = splitFrontmatter(text);
+    if (split.body.length === text.length) {
+      return { present: false, length: 0, raw: "", data: null, error: "" };
+    }
+    const result = {
+      present: true,
+      length: text.length - split.body.length,
+      raw: split.frontmatter,
+      data: null,
+      error: "",
+    };
+    try {
+      result.data = parseFrontmatterYaml(split.frontmatter);
+    } catch (error) {
+      result.error = error && error.message ? error.message : String(error);
+    }
+    return result;
+  }
+
   function normalizeCategoryValue(value) {
     return String(value || "")
       .trim()
@@ -1894,6 +2102,8 @@
     normalizeMindmapGraphReferences,
     normalizePathKey,
     orderLibraryFolders,
+    parseFrontmatter,
+    splitFrontmatter,
     parseLibraryMarkdownContext,
     parseShareSnapshotFragment,
     prepareImportedLibraryEntries,

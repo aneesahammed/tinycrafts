@@ -8,7 +8,7 @@ const SHELL_ASSETS = [
   "./index.html",
   "./manifest.webmanifest",
   "./assets/analytics.js",
-  "./assets/library-core.js?v=16",
+  "./assets/library-core.js?v=17",
   "./assets/visual-blocks.js?v=16",
   "./assets/shortcut-registry.js?v=2",
   "./assets/editor-markdown-actions.js?v=2",

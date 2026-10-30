@@ -1147,3 +1147,48 @@ test("grounds generated graph anchors to headings from library context", () => {
     ["summary", null],
   );
 });
+
+test("parseFrontmatter reads the YAML subset documents use and keeps the block length", () => {
+  const markdown = [
+    "---",
+    'type: "Summary"',
+    "title: Plain title # trailing comment",
+    'tags: ["ocr", "benchmarking"]',
+    "sources:",
+    '  - resource: "https://example.com/watch?v=1"',
+    '    captured_by: {"app_id": "app_1", "app_name": "edge"}',
+    "    status: draft",
+    "notes: |",
+    "  line one",
+    "  line two",
+    "---",
+    "## Body",
+  ].join("\n");
+
+  const result = core.parseFrontmatter(markdown);
+
+  assert.equal(result.present, true);
+  assert.equal(result.error, "");
+  assert.equal(markdown.slice(result.length), "## Body");
+  assert.deepEqual(result.data, {
+    type: "Summary",
+    title: "Plain title",
+    tags: ["ocr", "benchmarking"],
+    sources: [
+      {
+        resource: "https://example.com/watch?v=1",
+        captured_by: { app_id: "app_1", app_name: "edge" },
+        status: "draft",
+      },
+    ],
+    notes: "line one\nline two",
+  });
+});
+
+test("parseFrontmatter reports unsupported YAML instead of guessing", () => {
+  const result = core.parseFrontmatter("---\ntitle: ok\n  bad: indent\n---\nbody");
+  assert.equal(result.present, true);
+  assert.equal(result.data, null);
+  assert.match(result.error, /indentation/);
+  assert.equal(core.parseFrontmatter("# No frontmatter").present, false);
+});

@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-lYzqbRlo6kPz+nAABcjjdb9wnIqoA4BjGx7jJzb+V0E=' 'sha256-zyfAC2kSgbNPUBnAaMxam9gOnZQCx0ZaWZY351cL65M=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Nui4NTuYI0o+eA41WC+ERZTk2BsYCeftHdc8C4LhCGI=' 'sha256-zyfAC2kSgbNPUBnAaMxam9gOnZQCx0ZaWZY351cL65M=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -36,7 +36,7 @@
     <link rel="stylesheet" href="assets/command-palette.css?v=2" />
 
     <script src="assets/analytics.js"></script>
-    <script src="assets/library-core.js?v=16"></script>
+    <script src="assets/library-core.js?v=17"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=2"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
@@ -597,17 +597,6 @@
       .tb-segment .tb-seg-btn:disabled {
         opacity: 0.4;
         cursor: not-allowed;
-      }
-      /* Preserve the "unsaved changes" dot on the Edit segment. */
-      .tb-segment .mode-toggle-btn.has-unsaved::after {
-        content: "";
-        width: 6px;
-        height: 6px;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--accent-fg) 74%, white 26%);
-        box-shadow: 0 0 0 3px
-          color-mix(in srgb, var(--accent-fg) 12%, transparent);
-        flex: 0 0 auto;
       }
 
       /* ── Legacy theme icons (sun + moon) ───────────────────────
@@ -7220,6 +7209,201 @@
       }
 
       /* ============================================================
+         Frontmatter header (renderFrontmatterHeader)
+         Reads like the top of an article: eyebrow, title, lede, tags,
+         byline. The raw properties wait in a collapsed disclosure so
+         metadata never competes with the text.
+         ============================================================ */
+      .markdown-body .fm-header {
+        margin: 0 0 2em;
+        padding-bottom: 1.6em;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .markdown-body .fm-header + * {
+        margin-top: 0;
+      }
+      .fm-header .fm-eyebrow {
+        margin: 0 0 1em;
+        font: 600 11px/1.2 var(--font-sans);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent-fg);
+      }
+      .markdown-body .fm-header .fm-title {
+        margin: 0 0 0.35em;
+      }
+      .fm-header .fm-lede {
+        max-width: 62ch;
+        margin: 0 0 1.3em;
+        font-size: 1.12em;
+        line-height: 1.55;
+        color: var(--fg-muted);
+      }
+      .markdown-body .fm-header .fm-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 0 0 1.1em;
+        padding: 0;
+        list-style: none;
+      }
+      .markdown-body .fm-header .fm-tags li,
+      .fm-header .fm-chip {
+        margin: 0;
+        padding: 4px 10px;
+        font: 500 12px/1.4 var(--font-sans);
+        color: var(--fg-muted);
+        background: var(--bg-subtle);
+        border: 1px solid var(--border-soft);
+        border-radius: 999px;
+      }
+      .fm-header .fm-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        margin: 0 0 1em;
+        font: 13px/1.5 var(--font-sans);
+        color: var(--fg-muted);
+      }
+      .fm-header .fm-meta > span + span::before {
+        content: "·";
+        margin: 0 8px;
+        color: var(--fg-subtle);
+      }
+
+      .markdown-body .fm-header .fm-details {
+        margin: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+      }
+      .markdown-body .fm-header .fm-details summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 4px 0;
+        font: 500 12.5px/1.2 var(--font-sans);
+        color: var(--fg-subtle);
+        list-style: none;
+        transition: color var(--motion-micro) var(--ease-calm);
+      }
+      .fm-header .fm-details summary::-webkit-details-marker {
+        display: none;
+      }
+      .fm-header .fm-details summary::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        margin: 0 1px 2px 2px;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform var(--motion-small) var(--ease-out);
+      }
+      .fm-header .fm-details[open] summary::before {
+        transform: rotate(45deg);
+        margin-bottom: 4px;
+      }
+      .markdown-body .fm-header .fm-details summary:hover {
+        color: var(--fg-muted);
+      }
+      .markdown-body .fm-header .fm-details[open] summary {
+        margin-bottom: 12px;
+      }
+      .fm-header .fm-count {
+        padding: 2px 7px;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        color: var(--fg-subtle);
+        background: var(--bg-subtle);
+        border-radius: 999px;
+      }
+
+      .fm-header .fm-props {
+        display: grid;
+        grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+        gap: 8px 20px;
+        margin: 0;
+        font: 13px/1.5 var(--font-sans);
+        color: var(--fg-default);
+      }
+      .fm-header .fm-props dt {
+        margin: 0;
+        font: 400 12px/1.65 var(--font-mono);
+        color: var(--fg-subtle);
+      }
+      .fm-header .fm-props dd {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px;
+        min-width: 0;
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .fm-header .fm-props dd > :is(.fm-props, .fm-list) {
+        flex-basis: 100%;
+      }
+      .fm-header .fm-props dd > .fm-props {
+        padding-left: 12px;
+        border-left: 1px solid var(--border-soft);
+      }
+      .markdown-body .fm-header .fm-list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .markdown-body .fm-header .fm-list > li {
+        margin: 0;
+        padding: 12px 14px;
+        background: var(--bg-subtle);
+        border-radius: 10px;
+      }
+      .fm-header .fm-hash {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+        font: 12px/1.65 var(--font-mono);
+        color: var(--fg-muted);
+      }
+      .fm-header .fm-props a {
+        display: inline-block;
+        vertical-align: bottom;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+      .fm-header .fm-empty {
+        color: var(--fg-subtle);
+      }
+      .fm-header .fm-raw {
+        margin: 0;
+        padding: 12px 14px;
+        font: 12.5px/1.6 var(--font-mono);
+        white-space: pre-wrap;
+        color: var(--fg-muted);
+        background: var(--code-block-bg);
+        border-radius: 8px;
+      }
+      @media (max-width: 560px) {
+        .fm-header .fm-props {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 2px;
+        }
+        .fm-header .fm-props dd {
+          margin-bottom: 8px;
+        }
+      }
+
+      /* ============================================================
          Quiet bar + Reader dock
          One 52px row: document identity on the left, one search field
          in the middle, Read/Edit · Share · ⋯ on the right. Occasional
@@ -13182,7 +13366,7 @@ Drop a .md file anywhere on the page, or open one from Files."
             "sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6",
         });
         const HIGHLIGHT_EXCLUDED_SELECTOR =
-          "pre, code, .raw-html, .blocked-resource, .mermaid-block";
+          "pre, code, .raw-html, .blocked-resource, .mermaid-block, .fm-header";
         const READING_PRESETS = {
           compact: { fontSize: 18, lineHeight: 1.58, measure: 620 },
           balanced: { fontSize: 19, lineHeight: 1.72, measure: 680 },
@@ -22370,7 +22554,11 @@ Return JSON only.`;
         }
 
         function updateWordCount() {
-          var text = els.editor.value.trim();
+          var text = (
+            typeof libraryCore.splitFrontmatter === "function"
+              ? libraryCore.splitFrontmatter(els.editor.value).body
+              : els.editor.value
+          ).trim();
           if (!text) {
             els.wordCount.hidden = true;
             return;
@@ -22406,10 +22594,11 @@ Return JSON only.`;
         function updateBrandDisplay() {
           if (!els.brandName) return;
           const rawName = String(state.currentName || "").trim();
-          const stripped = rawName.replace(
-            /\.(md|markdown|mdown|mkdn|txt)$/i,
-            "",
-          );
+          // A frontmatter title reads better than a slug-like filename;
+          // the filename stays available on hover.
+          const stripped =
+            state.frontmatterTitle ||
+            rawName.replace(/\.(md|markdown|mdown|mkdn|txt)$/i, "");
           const isUntitled = state.sourceMode === "untitled";
           const hasFile = Boolean(stripped);
           const hasContent = Boolean((els.editor.value || "").trim());
@@ -23942,6 +24131,326 @@ Return JSON only.`;
           }
         }
 
+        // ---------- Frontmatter header ----------
+        // Known keys become a quiet document header (eyebrow, title, lede,
+        // tags, byline); everything else waits in a collapsed Properties
+        // disclosure. Lookups are case-insensitive.
+        const FRONTMATTER_ROLES = {
+          title: ["title", "name"],
+          lede: ["description", "summary", "subtitle", "excerpt", "abstract"],
+          tags: ["tags", "tag", "keywords", "categories", "category", "topics"],
+          kind: ["type", "kind"],
+          status: ["status"],
+          author: ["author", "authors", "by"],
+          date: [
+            "date",
+            "published",
+            "published_at",
+            "created",
+            "created_at",
+            "updated",
+            "updated_at",
+            "modified",
+            "lastmod",
+          ],
+          source: [
+            "source",
+            "sources",
+            "url",
+            "link",
+            "canonical",
+            "canonical_url",
+            "original_url",
+          ],
+        };
+
+        function findFrontmatterKey(data, role) {
+          const names = FRONTMATTER_ROLES[role];
+          return (
+            Object.keys(data).find(function (key) {
+              const value = data[key];
+              return (
+                names.indexOf(key.toLowerCase()) !== -1 &&
+                value !== null &&
+                value !== ""
+              );
+            }) || ""
+          );
+        }
+
+        function isFrontmatterUrl(value) {
+          return typeof value === "string" && /^https?:\/\/\S+$/i.test(value);
+        }
+
+        function formatFrontmatterDate(value) {
+          const match = /^(\d{4}-\d{2}-\d{2})(T[\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/.exec(
+            String(value || "").trim(),
+          );
+          if (!match) return "";
+          const date = new Date(match[2] ? value : match[1] + "T00:00:00Z");
+          if (Number.isNaN(date.getTime())) return "";
+          // Date-only values are calendar days: format them in UTC so they
+          // never slip a day in western time zones.
+          return new Intl.DateTimeFormat(
+            undefined,
+            match[2]
+              ? { dateStyle: "medium", timeStyle: "short" }
+              : { dateStyle: "medium", timeZone: "UTC" },
+          ).format(date);
+        }
+
+        function firstFrontmatterUrl(value) {
+          if (isFrontmatterUrl(value)) return value;
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              const url = firstFrontmatterUrl(item);
+              if (url) return url;
+            }
+          } else if (value && typeof value === "object") {
+            for (const key of ["resource", "url", "link", "href", "source"]) {
+              if (isFrontmatterUrl(value[key])) return value[key];
+            }
+          }
+          return "";
+        }
+
+        function frontmatterLink(url, hostOnly) {
+          let label = url;
+          try {
+            const parsed = new URL(url);
+            label =
+              parsed.hostname.replace(/^www\./, "") +
+              (!hostOnly && parsed.pathname.length > 1 ? parsed.pathname : "");
+          } catch (_error) {}
+          return (
+            '<a href="' +
+            escapeHtml(url) +
+            '" title="' +
+            escapeHtml(url) +
+            '">' +
+            escapeHtml(label) +
+            "</a>"
+          );
+        }
+
+        function renderFrontmatterValue(value) {
+          if (value === null || value === "") {
+            return '<span class="fm-empty">—</span>';
+          }
+          if (Array.isArray(value)) {
+            if (!value.length) return '<span class="fm-empty">—</span>';
+            if (
+              value.every(function (item) {
+                return item === null || typeof item !== "object";
+              })
+            ) {
+              return value
+                .map(function (item) {
+                  return '<span class="fm-chip">' + escapeHtml(item) + "</span>";
+                })
+                .join("");
+            }
+            return (
+              '<ol class="fm-list">' +
+              value
+                .map(function (item) {
+                  return "<li>" + renderFrontmatterValue(item) + "</li>";
+                })
+                .join("") +
+              "</ol>"
+            );
+          }
+          if (typeof value === "object") {
+            return renderFrontmatterProps(value, Object.keys(value));
+          }
+          const text = String(value);
+          if (isFrontmatterUrl(text)) return frontmatterLink(text);
+          const formatted = formatFrontmatterDate(text);
+          if (formatted) {
+            return (
+              '<time datetime="' +
+              escapeHtml(text) +
+              '" title="' +
+              escapeHtml(text) +
+              '">' +
+              escapeHtml(formatted) +
+              "</time>"
+            );
+          }
+          if (/^[0-9a-f]{24,}$/i.test(text)) {
+            return (
+              '<span class="fm-hash" title="' +
+              escapeHtml(text) +
+              '">' +
+              escapeHtml(text) +
+              "</span>"
+            );
+          }
+          return escapeHtml(text);
+        }
+
+        function renderFrontmatterProps(data, keys) {
+          return (
+            '<dl class="fm-props">' +
+            keys
+              .map(function (key) {
+                return (
+                  "<dt>" +
+                  escapeHtml(key) +
+                  "</dt><dd>" +
+                  renderFrontmatterValue(data[key]) +
+                  "</dd>"
+                );
+              })
+              .join("") +
+            "</dl>"
+          );
+        }
+
+        function renderFrontmatterDetails(inner, count) {
+          return (
+            '<details class="fm-details"><summary>Properties' +
+            (count ? '<span class="fm-count">' + count + "</span>" : "") +
+            "</summary>" +
+            inner +
+            "</details>"
+          );
+        }
+
+        function getFrontmatterTitle(frontmatter) {
+          const data = frontmatter && frontmatter.data;
+          if (!data || typeof data !== "object") return "";
+          const key = findFrontmatterKey(data, "title");
+          return key && typeof data[key] === "string" ? data[key].trim() : "";
+        }
+
+        function renderFrontmatterHeader(frontmatter, bodyHasTitle) {
+          if (!frontmatter || !frontmatter.present) return "";
+          const data = frontmatter.data;
+          if (!data || typeof data !== "object") {
+            // Outside the supported YAML subset: show it raw, still tucked away.
+            return (
+              '<header class="fm-header" title="' +
+              escapeHtml(frontmatter.error || "") +
+              '">' +
+              renderFrontmatterDetails(
+                '<pre class="fm-raw">' + escapeHtml(frontmatter.raw) + "</pre>",
+                0,
+              ) +
+              "</header>"
+            );
+          }
+
+          const used = Object.create(null);
+          function take(role, accept) {
+            const key = findFrontmatterKey(data, role);
+            if (!key || (accept && !accept(data[key]))) return null;
+            used[key] = true;
+            return data[key];
+          }
+          const isText = function (value) {
+            return typeof value === "string";
+          };
+
+          const kind = take("kind", isText);
+          const status = take("status", isText);
+          const isDraft =
+            "draft" in data && /^(true|yes)$/i.test(String(data.draft));
+          if ("draft" in data) used.draft = true;
+          const title = bodyHasTitle ? "" : getFrontmatterTitle(frontmatter);
+          if (title) used[findFrontmatterKey(data, "title")] = true;
+          const lede = take("lede", isText);
+          const tagsValue = take("tags", function (value) {
+            return (
+              isText(value) ||
+              (Array.isArray(value) &&
+                value.every(function (item) {
+                  return item === null || typeof item !== "object";
+                }))
+            );
+          });
+          const tags = (
+            Array.isArray(tagsValue)
+              ? tagsValue
+              : String(tagsValue || "").split(",")
+          )
+            .map(function (tag) {
+              return String(tag == null ? "" : tag).trim();
+            })
+            .filter(Boolean);
+          const author = take("author", function (value) {
+            return (
+              isText(value) ||
+              Array.isArray(value) ||
+              (value && typeof value.name === "string")
+            );
+          });
+          const date = take("date", function (value) {
+            return Boolean(formatFrontmatterDate(value));
+          });
+          // A bare URL is fully shown in the byline; richer source records
+          // also stay in Properties.
+          const sourceKey = findFrontmatterKey(data, "source");
+          const sourceUrl = sourceKey ? firstFrontmatterUrl(data[sourceKey]) : "";
+          if (sourceUrl && isFrontmatterUrl(data[sourceKey])) used[sourceKey] = true;
+
+          const eyebrow = [kind, status, isDraft ? "Draft" : ""].filter(Boolean);
+          const authorText = Array.isArray(author)
+            ? author
+                .map(function (item) {
+                  return item && typeof item === "object" ? item.name : item;
+                })
+                .filter(Boolean)
+                .join(", ")
+            : author && typeof author === "object"
+              ? author.name
+              : author;
+          const meta = [];
+          if (authorText) meta.push(escapeHtml(authorText));
+          if (date) meta.push(renderFrontmatterValue(date));
+          if (sourceUrl) meta.push(frontmatterLink(sourceUrl, true));
+          const rest = Object.keys(data).filter(function (key) {
+            return !used[key];
+          });
+
+          let html = '<header class="fm-header">';
+          if (eyebrow.length) {
+            html +=
+              '<p class="fm-eyebrow">' +
+              eyebrow.map(escapeHtml).join('<span aria-hidden="true"> · </span>') +
+              "</p>";
+          }
+          if (title) html += '<h1 class="fm-title">' + escapeHtml(title) + "</h1>";
+          if (lede) html += '<p class="fm-lede">' + escapeHtml(lede) + "</p>";
+          if (tags.length) {
+            html +=
+              '<ul class="fm-tags" aria-label="Tags">' +
+              tags
+                .map(function (tag) {
+                  return "<li>" + escapeHtml(tag) + "</li>";
+                })
+                .join("") +
+              "</ul>";
+          }
+          if (meta.length) {
+            html +=
+              '<p class="fm-meta">' +
+              meta
+                .map(function (item) {
+                  return "<span>" + item + "</span>";
+                })
+                .join("") +
+              "</p>";
+          }
+          if (rest.length) {
+            html += renderFrontmatterDetails(
+              renderFrontmatterProps(data, rest),
+              rest.length,
+            );
+          }
+          return html + "</header>";
+        }
+
         function render(source) {
           const markdown = els.editor.value;
           const documentKey =
@@ -23979,9 +24488,24 @@ Return JSON only.`;
           }
 
           let html = "";
+          const frontmatter =
+            typeof libraryCore.parseFrontmatter === "function"
+              ? libraryCore.parseFrontmatter(markdown)
+              : null;
+          state.frontmatterTitle = getFrontmatterTitle(frontmatter);
           if (markdown.trim()) {
             try {
-              var preprocessed = preprocessMarkdownWithSourceMap(markdown);
+              // Blank the frontmatter with same-length whitespace instead of
+              // cutting it, so every later token keeps its source offset
+              // (edit/preview scroll sync and highlights rely on them).
+              var previewMarkdown =
+                frontmatter && frontmatter.present
+                  ? markdown
+                      .slice(0, frontmatter.length)
+                      .replace(/[^\r\n]/g, " ") +
+                    markdown.slice(frontmatter.length)
+                  : markdown;
+              var preprocessed = preprocessMarkdownWithSourceMap(previewMarkdown);
               var parseOptions = Object.assign(
                 {},
                 marked.defaults,
@@ -23991,7 +24515,13 @@ Return JSON only.`;
                 marked.lexer(preprocessed.text, parseOptions),
                 preprocessed,
               );
-              html = marked.parser(tokens, parseOptions);
+              html =
+                renderFrontmatterHeader(
+                  frontmatter,
+                  tokens.some(function (token) {
+                    return token.type === "heading" && token.depth === 1;
+                  }),
+                ) + marked.parser(tokens, parseOptions);
             } catch (error) {
               html =
                 "<pre><code>" +
