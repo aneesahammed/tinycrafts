@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Nui4NTuYI0o+eA41WC+ERZTk2BsYCeftHdc8C4LhCGI=' 'sha256-zyfAC2kSgbNPUBnAaMxam9gOnZQCx0ZaWZY351cL65M=' 'sha256-KtgzXSeWJyWuGF0lImPlTc48a51d2W4ThOb4qFgwZxI=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-gMK4pykGz/gVoh9PKGKrH+Bj1eMsDBrwjVwuvOt+Zys=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-Nui4NTuYI0o+eA41WC+ERZTk2BsYCeftHdc8C4LhCGI=' 'sha256-a0ITA+PzmdIULAtrHckpWFH//Ktble9THN5Un6WJMx0=' 'sha256-xDwNRqQ0rTy/yU4N1LUXWtGPYRDi0A5UydTj7H01uHY=' 'sha256-vEbSE+62dSRCWcJvhgYD//x/1wbTAhQuFUscaMfLr6s=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -6624,50 +6624,6 @@
         margin: 0 0 10px;
       }
 
-      /* Status chip */
-      .gs-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: var(--border-soft);
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--fg-muted);
-        align-self: flex-start;
-        transition:
-          background-color 160ms ease,
-          color 160ms ease;
-      }
-      .gs-status-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--fg-subtle);
-        box-shadow: 0 0 0 0 rgba(86, 171, 100, 0);
-        transition:
-          background-color 160ms ease,
-          box-shadow 160ms ease;
-      }
-      .gs-status.is-ready {
-        background: rgba(86, 171, 100, 0.14);
-        color: rgb(46, 120, 60);
-      }
-      .gs-status.is-ready .gs-status-dot {
-        background: rgb(86, 171, 100);
-        box-shadow: 0 0 0 3px rgba(86, 171, 100, 0.18);
-      }
-      :root[data-theme="dark"] .gs-status.is-ready {
-        color: rgb(140, 210, 150);
-      }
-      .gs-status-text-mono {
-        font-family: var(--font-mono);
-        font-size: 11px;
-        color: inherit;
-        opacity: 0.85;
-      }
-
       /* Segmented control */
       .gs-segmented {
         display: grid;
@@ -6938,22 +6894,63 @@
         gap: 6px;
         padding: 6px 12px;
         border-radius: 999px;
-        background: rgba(86, 171, 100, 0.14);
-        color: rgb(46, 120, 60);
+        /* Grey until a check or a real request proves the provider
+           works (see "Connection health" in the settings script). */
+        background: var(--border-soft);
+        color: var(--fg-muted);
         font-size: 11.5px;
         font-weight: 500;
         letter-spacing: 0.01em;
+        transition:
+          background-color 160ms ease,
+          color 160ms ease;
       }
       .gs-in-use-badge::before {
         content: "";
         width: 6px;
         height: 6px;
         border-radius: 50%;
+        background: var(--fg-subtle);
+        box-shadow: 0 0 0 3px
+          color-mix(in srgb, var(--fg-subtle) 18%, transparent);
+      }
+      .gs-in-use-badge.is-ok {
+        background: rgba(86, 171, 100, 0.14);
+        color: rgb(46, 120, 60);
+      }
+      .gs-in-use-badge.is-ok::before {
         background: rgb(86, 171, 100);
         box-shadow: 0 0 0 3px rgba(86, 171, 100, 0.18);
       }
-      :root[data-theme="dark"] .gs-in-use-badge {
+      :root[data-theme="dark"] .gs-in-use-badge.is-ok {
         color: rgb(140, 210, 150);
+      }
+      .gs-in-use-badge.is-error {
+        background: rgba(196, 72, 60, 0.12);
+        color: rgb(166, 52, 42);
+      }
+      .gs-in-use-badge.is-error::before {
+        background: rgb(206, 78, 64);
+        box-shadow: 0 0 0 3px rgba(206, 78, 64, 0.18);
+      }
+      :root[data-theme="dark"] .gs-in-use-badge.is-error {
+        color: rgb(240, 150, 138);
+      }
+      .gs-in-use-badge.is-checking::before {
+        animation: gs-check-pulse 0.9s ease-in-out infinite alternate;
+      }
+      @keyframes gs-check-pulse {
+        from {
+          opacity: 0.3;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .gs-in-use-badge.is-checking::before {
+          animation: none;
+        }
       }
       [hidden].gs-in-use-badge,
       [hidden].gs-activate-btn {
@@ -27762,20 +27759,9 @@ Return JSON only.`;
           <p id="gsAiProviderLabel" class="gs-section-label">AI Provider</p>
 
           <div
-            id="gsStatusChip"
-            class="gs-status"
-            role="status"
-            aria-live="polite"
-          >
-            <span class="gs-status-dot" aria-hidden="true"></span>
-            <span id="gsStatusText">Not configured</span>
-          </div>
-
-          <div
             class="gs-segmented"
             role="tablist"
             aria-label="AI provider"
-            style="margin-top: 12px"
           >
             <button
               type="button"
@@ -28054,8 +28040,6 @@ Return JSON only.`;
         const openBtn = document.getElementById("globalSettingsBtn");
         const closeBtn = document.getElementById("globalSettingsCloseBtn");
 
-        const statusChip = document.getElementById("gsStatusChip");
-        const statusText = document.getElementById("gsStatusText");
 
         const segOllama = document.getElementById("gsSegOllama");
         const segGroq = document.getElementById("gsSegGroq");
@@ -28188,29 +28172,10 @@ Return JSON only.`;
             : "Switch the app to Groq";
         }
 
-        function updateStatus() {
-          // The chip ALWAYS describes the active provider, regardless
-          // of which card is currently being viewed. That's the whole
-          // point of separating viewed from active: the chip is the
-          // single source of truth for "what is this app using?".
-          const active = currentProvider();
-          const ready = isProviderReady(active);
-          let label;
-          if (active === "groq") {
-            label = ready ? "Groq is ready" : "Groq needs an API key";
-          } else {
-            label = ready
-              ? "Ollama is ready"
-              : "Ollama needs endpoint and model";
-          }
-          statusChip.classList.toggle("is-ready", ready);
-          statusText.textContent = label;
-        }
-
         function renderAll() {
           updateSegmented();
           updateActivationUI();
-          updateStatus();
+          syncHealthUi();
         }
 
         // ---- Segmented control: navigation only, no commit ----
@@ -28272,90 +28237,197 @@ Return JSON only.`;
           revealIconHide.style.display = showing ? "none" : "";
         });
 
-        // ---- Test connection ----
+        // ---- Connection health ----
+        // The "In use" badge is grey until something proves the provider
+        // works: green after a successful check or AI request, red after
+        // a failure. Results live in memory for this page session and are
+        // tied to a fingerprint of the settings, so any edit resets them.
+        // Checks run when Settings opens and on Test connection, never at
+        // launch: no surprise requests to Groq or to localhost.
+        const health = { ollama: null, groq: null };
+        const checking = { ollama: null, groq: null };
+        const resultEls = { ollama: testOllamaResult, groq: testGroqResult };
+        const testBtns = { ollama: testOllamaBtn, groq: testGroqBtn };
+
+        function providerFingerprint(provider) {
+          return provider === "groq"
+            ? legacyGroqKey.value.trim() + "|" + legacyGroqModel.value.trim()
+            : legacyEndpoint.value.trim() + "|" + legacyOllamaModel.value.trim();
+        }
+
+        function currentHealth(provider) {
+          const entry = health[provider];
+          return entry && entry.fp === providerFingerprint(provider)
+            ? entry
+            : null;
+        }
+
+        function recordHealth(provider, ok, message) {
+          health[provider] = {
+            fp: providerFingerprint(provider),
+            ok: ok,
+            message: message,
+          };
+          syncHealthUi();
+        }
+
+        function syncHealthUi() {
+          [
+            ["ollama", inUseOllamaBadge],
+            ["groq", inUseGroqBadge],
+          ].forEach(function (pair) {
+            const provider = pair[0];
+            const badge = pair[1];
+            const entry = currentHealth(provider);
+            badge.classList.toggle("is-ok", Boolean(entry && entry.ok));
+            badge.classList.toggle("is-error", Boolean(entry && !entry.ok));
+            badge.classList.toggle("is-checking", Boolean(checking[provider]));
+            badge.title = entry
+              ? entry.ok
+                ? "Connected"
+                : entry.message
+              : "Not checked yet. Use Test connection.";
+            // A result for settings that have since changed is stale.
+            const resultEl = resultEls[provider];
+            if (resultEl.dataset.fp && resultEl.dataset.fp !== providerFingerprint(provider)) {
+              setTestResult(resultEl, null, "");
+            }
+          });
+        }
+
         function setTestResult(el, state, text) {
           el.classList.remove("is-ok", "is-err");
           if (state) el.classList.add(state);
           el.textContent = text;
+          el.dataset.fp = text ? providerFingerprint(el === testGroqResult ? "groq" : "ollama") : "";
         }
 
-        testOllamaBtn.addEventListener("click", async function () {
-          const endpoint = gsOllamaEndpoint.value.trim();
-          if (!endpoint) {
-            setTestResult(
-              testOllamaResult,
-              "is-err",
-              "Enter an endpoint first",
-            );
-            return;
-          }
-          testOllamaBtn.disabled = true;
-          setTestResult(testOllamaResult, null, "Testing…");
+        async function fetchWithTimeout(url, init, ms) {
+          const controller = new AbortController();
+          const timer = setTimeout(function () {
+            controller.abort();
+          }, ms);
           try {
-            const base = endpoint.replace(/\/+$/, "");
-            const res = await fetch(base + "/api/tags", { method: "GET" });
-            if (!res.ok) throw new Error("HTTP " + res.status);
-            setTestResult(testOllamaResult, "is-ok", "✓ Reachable");
-          } catch (err) {
-            setTestResult(
-              testOllamaResult,
-              "is-err",
-              "✗ " + (err && err.message ? err.message : "Unreachable"),
-            );
+            return await fetch(url, Object.assign({}, init, { signal: controller.signal }));
           } finally {
-            testOllamaBtn.disabled = false;
+            clearTimeout(timer);
           }
+        }
+
+        function isLocalPage() {
+          return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+        }
+
+        async function checkOllama() {
+          const endpoint = legacyEndpoint.value.trim().replace(/\/+$/, "");
+          const model = legacyOllamaModel.value.trim();
+          if (!endpoint) return { ok: false, message: "Enter an endpoint first" };
+          // Same localhost/127.0.0.1 fallback the chat code uses.
+          const candidates = [endpoint];
+          if (endpoint.includes("localhost")) candidates.push(endpoint.replace("localhost", "127.0.0.1"));
+          else if (endpoint.includes("127.0.0.1")) candidates.push(endpoint.replace("127.0.0.1", "localhost"));
+          let res = null;
+          for (const candidate of candidates) {
+            try {
+              res = await fetchWithTimeout(candidate + "/api/tags", { method: "GET" }, 4000);
+              break;
+            } catch (_error) {}
+          }
+          if (!res) {
+            // The browser cannot tell "not running" from "blocked by
+            // OLLAMA_ORIGINS", so name both on a hosted page.
+            return {
+              ok: false,
+              message: isLocalPage()
+                ? "Can't reach Ollama. Start it with: ollama serve"
+                : "Can't reach Ollama. Start it with: ollama serve. Already running? Allow this site: OLLAMA_ORIGINS=" + window.location.origin,
+            };
+          }
+          if (!res.ok) return { ok: false, message: "Ollama answered HTTP " + res.status };
+          const data = await res.json().catch(function () {
+            return null;
+          });
+          const names = [];
+          (data && Array.isArray(data.models) ? data.models : []).forEach(function (item) {
+            if (item && item.name) names.push(item.name);
+            if (item && item.model) names.push(item.model);
+          });
+          const tagged = model.includes(":") ? model : model + ":latest";
+          if (model && names.indexOf(model) === -1 && names.indexOf(tagged) === -1) {
+            return { ok: false, message: model + " isn't installed. Run: ollama pull " + model };
+          }
+          return { ok: true, message: "Connected" };
+        }
+
+        async function checkGroq() {
+          const key = legacyGroqKey.value.trim();
+          const model = legacyGroqModel.value.trim();
+          if (!key) return { ok: false, message: "Enter an API key first" };
+          let res;
+          try {
+            // The models list validates the key without spending tokens.
+            res = await fetchWithTimeout(
+              "https://api.groq.com/openai/v1/models",
+              { method: "GET", headers: { Authorization: "Bearer " + key } },
+              8000,
+            );
+          } catch (_error) {
+            return { ok: false, message: "Can't reach Groq. Check your connection." };
+          }
+          if (res.status === 401) return { ok: false, message: "Invalid API key" };
+          if (!res.ok) return { ok: false, message: "Groq answered HTTP " + res.status };
+          const data = await res.json().catch(function () {
+            return null;
+          });
+          const ids = (data && Array.isArray(data.data) ? data.data : []).map(function (item) {
+            return item && item.id;
+          });
+          if (model && ids.length && ids.indexOf(model) === -1) {
+            return { ok: false, message: model + " isn't available on Groq" };
+          }
+          return { ok: true, message: "Connected" };
+        }
+
+        function runHealthCheck(provider) {
+          if (checking[provider]) return checking[provider];
+          const resultEl = resultEls[provider];
+          const btn = testBtns[provider];
+          btn.disabled = true;
+          setTestResult(resultEl, null, "Testing…");
+          checking[provider] = (provider === "groq" ? checkGroq() : checkOllama())
+            .then(function (result) {
+              setTestResult(resultEl, result.ok ? "is-ok" : "is-err", (result.ok ? "✓ " : "✗ ") + result.message);
+              recordHealth(provider, result.ok, result.message);
+            })
+            .finally(function () {
+              checking[provider] = null;
+              btn.disabled = false;
+              syncHealthUi();
+            });
+          syncHealthUi();
+          return checking[provider];
+        }
+
+        testOllamaBtn.addEventListener("click", function () {
+          runHealthCheck("ollama");
+        });
+        testGroqBtn.addEventListener("click", function () {
+          runHealthCheck("groq");
         });
 
-        testGroqBtn.addEventListener("click", async function () {
-          const key = gsGroqApiKey.value.trim();
-          const model = gsGroqModel.value.trim() || "llama-3.1-8b-instant";
-          if (!key) {
-            setTestResult(testGroqResult, "is-err", "Enter an API key first");
-            return;
-          }
-          testGroqBtn.disabled = true;
-          setTestResult(testGroqResult, null, "Testing…");
-          try {
-            const res = await fetch(
-              "https://api.groq.com/openai/v1/chat/completions",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: "Bearer " + key,
-                },
-                body: JSON.stringify({
-                  model: model,
-                  messages: [{ role: "user", content: "ping" }],
-                  max_tokens: 1,
-                }),
-              },
-            );
-            if (res.status === 401) {
-              setTestResult(testGroqResult, "is-err", "✗ Invalid API key");
-            } else if (!res.ok) {
-              const body = await res.text().catch(function () {
-                return "";
-              });
-              setTestResult(
-                testGroqResult,
-                "is-err",
-                "✗ HTTP " + res.status + (body ? " — check model id" : ""),
-              );
-            } else {
-              setTestResult(testGroqResult, "is-ok", "✓ Key + model valid");
-            }
-          } catch (err) {
-            setTestResult(
-              testGroqResult,
-              "is-err",
-              "✗ " + (err && err.message ? err.message : "Network error"),
-            );
-          } finally {
-            testGroqBtn.disabled = false;
-          }
-        });
+        // Real AI requests (chat, mindmap, summary) report here too.
+        window.markvReportLlmHealth = function (provider, ok, message) {
+          if (provider !== "ollama" && provider !== "groq") return;
+          recordHealth(
+            provider,
+            Boolean(ok),
+            ok
+              ? "Connected"
+              : message === "CORS_BLOCKED"
+                ? "Can't reach Ollama"
+                : message || "Request failed",
+          );
+        };
 
         // ---- Open / close ----
         function getFocusableInside(root) {
@@ -28383,9 +28455,9 @@ Return JSON only.`;
           drawer.setAttribute("aria-hidden", "false");
           overlay.setAttribute("aria-hidden", "false");
           openBtn.setAttribute("aria-expanded", "true");
-          // Clear any stale test results from the last session.
-          setTestResult(testOllamaResult, null, "");
-          setTestResult(testGroqResult, null, "");
+          // Check the provider in use; keep any result that still
+          // matches the current settings.
+          runHealthCheck(currentProvider());
           // Focus the first meaningful control (the active segment).
           window.requestAnimationFrame(function () {
             const first = currentProvider() === "groq" ? segGroq : segOllama;
@@ -28433,8 +28505,8 @@ Return JSON only.`;
         // Expose for the chat panel's legacy settings button.
         window.__openGlobalSettings = openDrawer;
 
-        // Initial hydration so status chip reflects saved state even
-        // before the drawer has ever been opened.
+        // Initial hydration so the drawer reflects saved state even
+        // before it has ever been opened.
         pullFromLegacy();
       })();
     </script>
@@ -29397,11 +29469,37 @@ Return JSON only.`;
           return content;
         }
 
+        // Real requests are the best health signal for the Settings
+        // "In use" badge. A cancelled request says nothing either way.
+        function reportLlmOutcome(provider, request) {
+          return request.then(
+            function (response) {
+              if (window.markvReportLlmHealth) {
+                window.markvReportLlmHealth(provider, true);
+              }
+              return response;
+            },
+            function (error) {
+              if (
+                window.markvReportLlmHealth &&
+                !(error && error.name === "AbortError")
+              ) {
+                window.markvReportLlmHealth(
+                  provider,
+                  false,
+                  error && error.message,
+                );
+              }
+              throw error;
+            },
+          );
+        }
+
         async function callConfiguredLlmResponse(messages, options) {
           const settings = getCurrentLlmSettings();
           return settings.provider === "groq"
-            ? callGroq(messages, options)
-            : callOllama(messages, options);
+            ? reportLlmOutcome("groq", callGroq(messages, options))
+            : reportLlmOutcome("ollama", callOllama(messages, options));
         }
 
         async function callConfiguredLlmText(messages, options) {
@@ -29426,10 +29524,13 @@ Return JSON only.`;
               }),
             );
           }
-          const response = await callOllama(messages, {
-            stream: false,
-            format: "json",
-          });
+          const response = await reportLlmOutcome(
+            "ollama",
+            callOllama(messages, {
+              stream: false,
+              format: "json",
+            }),
+          );
           return parseOllamaContent(response);
         }
 
