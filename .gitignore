@@ -153,3 +153,18 @@ markv/.DS_Store
 markv/_variants.html
 markv/.playwright-mcp/page-2026-05-17T23-55-11-080Z.yml
 /markv/.playwright-mcp
+
+# Planning / spec / agent tooling files (local only, not for the public repo)
+/docs/plans
+/docs/superpowers
+/.cursor
+/SeeQLite/.claude
+/SeeQLite/.vscode
+/SeeQLite/test-results
+/SeeQLite/docs/redesign
+# SeeQLite planning: keep only the files the release gate/tests read
+/SeeQLite/.planning/*
+!/SeeQLite/.planning/REQUIREMENTS.md
+!/SeeQLite/.planning/research/
+/SeeQLite/.planning/research/*
+!/SeeQLite/.planning/research/PITFALLS.md
