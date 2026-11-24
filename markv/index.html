@@ -33,8 +33,8 @@
       href="./assets/icons/icon-512.png"
     />
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
-    <link rel="stylesheet" href="assets/command-palette.css?v=2" />
-    <link rel="stylesheet" href="assets/welcome.css?v=4" />
+    <link rel="stylesheet" href="assets/command-palette.css?v=3" />
+    <link rel="stylesheet" href="assets/welcome.css?v=5" />
 
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=18"></script>
@@ -483,7 +483,7 @@
         align-items: center;
         gap: 6px;
         font-family: var(--font-serif);
-        font-weight: 600;
+        font-weight: 700;
         font-size: 14px;
         font-style: normal;
         letter-spacing: -0.01em;
@@ -602,7 +602,7 @@
         height: 26px;
         padding: 0 11px;
         font-family: var(--font-sans);
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 500;
         color: var(--fg-muted);
         background: transparent;
@@ -848,9 +848,9 @@
       }
       .mv-more-sheet__title {
         margin: 0;
-        font-family: var(--font-serif);
+        font-family: var(--font-sans);
         font-weight: 600;
-        font-size: 1.05rem;
+        font-size: 16px;
         letter-spacing: -0.01em;
         color: var(--fg-default);
       }
@@ -873,7 +873,7 @@
         font-family: var(--font-sans);
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--fg-subtle);
         padding: 0 2px;
@@ -948,7 +948,7 @@
         height: 32px;
         padding: 0 11px;
         font-family: var(--font-sans);
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 500;
         color: var(--fg-muted);
         background: transparent;
@@ -1093,7 +1093,7 @@
         border-radius: 6px 0 0 6px;
         color: inherit;
         font: inherit;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 500;
         line-height: 1.4;
         cursor: pointer;
@@ -1170,10 +1170,10 @@
       }
       .export-menu__head {
         padding: 6px 10px 4px;
-        font-size: 9.5px;
-        font-weight: 700;
+        font-size: 11px;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.14em;
+        letter-spacing: 0.06em;
         color: var(--fg-subtle);
       }
       .export-option {
@@ -1187,7 +1187,7 @@
         background: transparent;
         color: var(--fg-default);
         font: inherit;
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 500;
         text-align: left;
         cursor: pointer;
@@ -1207,7 +1207,7 @@
       }
       .export-option__ext {
         font-family: var(--font-mono, ui-monospace, monospace);
-        font-size: 10.5px;
+        font-size: 11px;
         font-weight: 500;
         letter-spacing: 0.02em;
         color: var(--fg-subtle);
@@ -1404,25 +1404,25 @@
       .pwa-update-toast__eyebrow {
         margin: 0 0 4px;
         color: var(--fg-muted);
-        font-family: var(--font-serif);
+        font-family: var(--font-sans);
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
       .pwa-update-toast__title {
         margin: 0;
         color: var(--fg-default);
-        font-family: var(--font-serif);
-        font-size: 15px;
+        font-family: var(--font-sans);
+        font-size: 14px;
         font-weight: 600;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.01em;
         line-height: 1.22;
       }
       .pwa-update-toast__copy {
         margin: 5px 0 0;
         color: var(--fg-muted);
-        font-size: 12.5px;
+        font-size: 13px;
         line-height: 1.45;
       }
       .pwa-update-toast__actions {
@@ -1554,10 +1554,10 @@
       }
       .reading-panel-title {
         margin: 0;
-        font-family: var(--font-serif);
-        font-size: 1.05rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
+        font-family: var(--font-sans);
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
         line-height: 1.15;
       }
       .reading-panel-help {
@@ -1581,9 +1581,8 @@
         margin-bottom: 8px;
         font-size: 12px;
         font-weight: 600;
-        letter-spacing: 0.01em;
+        letter-spacing: 0;
         color: var(--fg-muted);
-        text-transform: uppercase;
       }
       .reading-preset-group {
         display: grid;
@@ -1672,8 +1671,8 @@
         min-width: 0;
         overflow: hidden;
         font-family: var(--font-sans);
-        font-size: 11.5px;
-        font-weight: 650;
+        font-size: 12px;
+        font-weight: 600;
         line-height: 1.15;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1876,7 +1875,7 @@
       .empty-state-title {
         font-family: var(--font-serif);
         font-size: 1.35rem;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: -0.02em;
         color: var(--fg-muted);
         margin: 0 0 10px;
@@ -2077,7 +2076,7 @@
         margin: 0 2px;
       }
       .editor-toolbar .et-glyph {
-        font-family: Georgia, "Source Serif 4", "Times New Roman", serif;
+        font-family: var(--font-serif);
         font-feature-settings: "kern" 1;
         line-height: 1;
       }
@@ -2086,9 +2085,8 @@
         font-size: 19px;
       }
       .editor-toolbar .et-glyph-i {
-        font-style: italic;
-        font-weight: 500;
-        font-size: 20px;
+        font-weight: 700;
+        font-size: 19px;
       }
       .editor-toolbar .et-glyph-t1 {
         font-weight: 700;
@@ -2288,7 +2286,7 @@
         color: var(--fg-default);
         overflow: hidden;
         font-size: 17px;
-        font-weight: 430;
+        font-weight: 400;
         line-height: 1.2;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -2611,9 +2609,9 @@
         margin: 0;
         color: var(--fg-muted);
         font-family: var(--font-sans);
-        font-size: 10.5px;
-        font-weight: 650;
-        letter-spacing: 0.13em;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
         line-height: 1.2;
         text-transform: uppercase;
       }
@@ -2682,7 +2680,7 @@
         padding: 4.5px 0 4.5px 10px;
         border-left: 2px solid transparent;
         color: var(--fg-muted);
-        font-size: 12.5px;
+        font-size: 13px;
         line-height: 1.25;
         text-decoration: none;
         transition:
@@ -2704,7 +2702,7 @@
       .reader-outline__link[data-level="4"] {
         padding-left: 26px;
         color: var(--fg-subtle);
-        font-size: 11.5px;
+        font-size: 12px;
       }
       .reader-outline__link:hover,
       .reader-outline__link:focus-visible,
@@ -2789,8 +2787,9 @@
       .reader-connections__root-label {
         fill: var(--fg-muted);
         font-family: var(--font-sans);
-        font-size: 9.5px;
-        font-weight: 540;
+        /* viewBox units: the 220-wide graph draws about 1.13x, so 11px. */
+        font-size: 10px;
+        font-weight: 500;
         letter-spacing: 0.005em;
         paint-order: stroke;
         stroke: var(--bg-subtle);
@@ -2823,7 +2822,7 @@
       }
       .reader-connections__stat span {
         color: var(--fg-subtle);
-        font-size: 10px;
+        font-size: 11px;
         line-height: 1.2;
       }
       .reader-connections__stat[data-empty="true"] {
@@ -2882,8 +2881,8 @@
         display: block;
         overflow: hidden;
         color: var(--fg-default);
-        font-size: 12.5px;
-        font-weight: 540;
+        font-size: 13px;
+        font-weight: 500;
         line-height: 1.28;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -2990,9 +2989,9 @@
         .reader-outline-toggle__kicker {
           display: block;
           color: var(--fg-muted);
-          font-size: 10.5px;
-          font-weight: 650;
-          letter-spacing: 0.13em;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
           line-height: 1.2;
           text-transform: uppercase;
         }
@@ -3037,7 +3036,7 @@
           font-size: 13px;
         }
         .reader-outline__link[data-level="3"] {
-          font-size: 12.5px;
+          font-size: 13px;
         }
         .reader-outline__link[data-level="4"] {
           font-size: 12px;
@@ -3063,10 +3062,6 @@
         margin: 0 auto;
         font-family: var(--font-serif);
         font-size: var(--reading-font-size);
-        /* Optical size axis — Source Serif 4 has variable optical sizing,
-         this tells it to render as a reading-weight design. */
-        font-optical-sizing: auto;
-        font-variation-settings: "opsz" 20;
         line-height: var(--reading-line-height);
         color: var(--fg-default);
         word-wrap: break-word;
@@ -3085,6 +3080,9 @@
       .markdown-body p {
         margin: 0 0 1.15em;
       }
+      .markdown-body :is(p, li) {
+        text-wrap: pretty;
+      }
 
       /* Drop-cap-adjacent first-paragraph lift, just a touch */
       .markdown-body > p:first-of-type {
@@ -3092,7 +3090,7 @@
         color: var(--fg-default);
       }
 
-      /* Headings — Source Serif with tighter leading, negative tracking */
+      /* Headings — the reading serif with tighter leading, negative tracking */
       .markdown-body h1,
       .markdown-body h2,
       .markdown-body h3,
@@ -3100,12 +3098,13 @@
       .markdown-body h5,
       .markdown-body h6 {
         font-family: var(--font-serif);
-        font-weight: 600;
+        /* Iowan and Palatino have no 600; 700 is what they draw. */
+        font-weight: 700;
         line-height: 1.2;
         letter-spacing: -0.018em;
         color: var(--fg-heading, var(--fg-default));
         margin: 1.5em 0 0.45em;
-        font-variation-settings: "opsz" 36;
+        text-wrap: balance;
       }
 
       /* ── Heading anchor links ────────────────────────────────
@@ -3206,7 +3205,7 @@
         height: 22px;
         padding: 0 8px;
         font-family: var(--font-sans);
-        font-size: 10.5px;
+        font-size: 11px;
         font-weight: 500;
         color: var(--fg-muted);
         background: color-mix(in srgb, var(--bg-raised) 90%, transparent);
@@ -3268,7 +3267,7 @@
         max-width: min(720px, calc(100vw - 48px));
         padding: 6px 12px;
         font-family: var(--font-sans);
-        font-size: 11.5px;
+        font-size: 12px;
         color: var(--fg-muted);
         background: color-mix(in srgb, var(--bg-raised) 88%, transparent);
         border: 1px solid var(--border-soft);
@@ -3316,7 +3315,7 @@
         max-width: 340px;
         padding: 12px 14px;
         font-family: var(--font-sans);
-        font-size: 12.5px;
+        font-size: 13px;
         line-height: 1.45;
         color: var(--fg-default);
         background: var(--bg-raised);
@@ -3344,7 +3343,7 @@
       }
       .link-preview .lp-excerpt {
         color: var(--fg-muted);
-        font-size: 11.5px;
+        font-size: 12px;
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
@@ -3353,7 +3352,7 @@
       .link-preview .lp-url {
         margin-top: 6px;
         font-family: var(--font-mono, ui-monospace, monospace);
-        font-size: 10.5px;
+        font-size: 11px;
         color: var(--fg-subtle);
         overflow: hidden;
         text-overflow: ellipsis;
@@ -3361,9 +3360,9 @@
       }
       .link-preview .lp-kind {
         display: inline-block;
-        font-size: 9.5px;
+        font-size: 11px;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         color: var(--fg-subtle);
         margin-bottom: 4px;
       }
@@ -3396,13 +3395,10 @@
         font-size: 1.12em;
       }
       .markdown-body h5 {
-        font-size: 1em;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--fg-muted);
+        font-size: 0.9em;
       }
       .markdown-body h6 {
-        font-size: 0.9em;
+        font-size: 0.84em;
         color: var(--fg-muted);
       }
 
@@ -3476,7 +3472,6 @@
         margin: 1.5em 0;
         padding: 0.4em 1.2em;
         color: var(--fg-muted);
-        font-style: italic;
         border-left: 3px solid var(--blockquote-border);
         background: var(--blockquote-bg);
         border-radius: 0 4px 4px 0;
@@ -3681,7 +3676,7 @@
       .markdown-body .mermaid-error-detail {
         margin: 12px 0 0;
         padding: 12px 16px;
-        font-size: 12.5px;
+        font-size: 13px;
         line-height: 1.5;
       }
       .markdown-body .mermaid-block.is-error pre {
@@ -3751,7 +3746,6 @@
       }
       .preview-pane .markdown-body :is(.hljs-comment, .hljs-quote) {
         color: var(--reader-syntax-comment, var(--fg-muted));
-        font-style: italic;
       }
       .preview-pane
         .markdown-body
@@ -4136,9 +4130,9 @@
 
       .mindmap-viewer-title {
         margin: 0;
-        font-family: var(--font-serif);
-        font-size: 22px;
-        font-weight: 500;
+        font-family: var(--font-sans);
+        font-size: 16px;
+        font-weight: 600;
         letter-spacing: -0.01em;
         color: var(--fg-default);
       }
@@ -4432,8 +4426,8 @@
 
       .mm-tooltip-type {
         display: block;
-        font: 500 10px/1 var(--font-sans);
-        letter-spacing: 0.12em;
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--fg-muted);
         margin-bottom: 6px;
@@ -4441,14 +4435,14 @@
 
       .mm-tooltip-label {
         display: block;
-        font: 500 15px/1.3 var(--font-serif);
+        font: 600 14px/1.3 var(--font-sans);
         color: var(--fg-default);
         margin-bottom: 6px;
       }
 
       .mm-tooltip-summary {
         display: block;
-        font: 400 13px/1.55 var(--font-serif);
+        font: 400 13px/1.55 var(--font-sans);
         color: var(--fg-muted);
       }
 
@@ -4543,15 +4537,15 @@
 
       .mindmap-search-result-label {
         display: block;
-        font: 500 13px/1.25 var(--font-serif);
+        font: 600 13px/1.25 var(--font-sans);
       }
 
       .mindmap-search-result-type {
         display: block;
         margin-top: 3px;
         color: var(--fg-muted);
-        font: 600 9px/1 var(--font-sans);
-        letter-spacing: 0.12em;
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
@@ -4596,8 +4590,8 @@
         align-items: center;
         gap: 7px;
         color: var(--fg-muted);
-        font: 600 10px/1 var(--font-sans);
-        letter-spacing: 0.12em;
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
@@ -4610,7 +4604,7 @@
       .mindmap-inspector-title {
         margin: 10px 0 0;
         color: var(--fg-default);
-        font: 500 19px/1.25 var(--font-serif);
+        font: 600 16px/1.25 var(--font-sans);
       }
 
       .mindmap-inspector-close {
@@ -4636,7 +4630,7 @@
       .mindmap-inspector-summary {
         margin: 12px 0 0;
         color: var(--fg-muted);
-        font: 400 13px/1.55 var(--font-serif);
+        font: 400 13px/1.55 var(--font-sans);
       }
 
       .mindmap-inspector-actions {
@@ -4675,8 +4669,8 @@
       .mindmap-inspector-section-title {
         margin: 0 0 8px;
         color: var(--fg-muted);
-        font: 600 10px/1 var(--font-sans);
-        letter-spacing: 0.12em;
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
@@ -4717,15 +4711,15 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font: 500 13px/1.25 var(--font-serif);
+        font: 600 13px/1.25 var(--font-sans);
       }
 
       .mindmap-connection-meta {
         display: block;
         margin-top: 3px;
         color: var(--fg-muted);
-        font: 600 9px/1 var(--font-sans);
-        letter-spacing: 0.1em;
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
@@ -4860,8 +4854,8 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        font: 500 10px/1 var(--font-sans);
-        letter-spacing: 0.12em;
+        font: 600 11px/1 var(--font-sans);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--fg-muted);
       }
@@ -4953,8 +4947,9 @@
         overflow: auto;
         border-spacing: 0;
         border-collapse: collapse;
-        font-size: 0.92em;
+        font-size: max(14px, 0.8em);
         font-family: var(--font-sans);
+        font-variant-numeric: tabular-nums;
       }
       .markdown-body table th,
       .markdown-body table td {
@@ -4966,7 +4961,7 @@
         font-weight: 600;
         color: var(--fg-muted);
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.06em;
         font-size: 0.82em;
         border-bottom: 1px solid var(--border-strong);
       }
@@ -5372,7 +5367,6 @@
         }
         .export-print-document.markdown-body :is(.hljs-comment, .hljs-quote) {
           color: var(--reader-syntax-comment) !important;
-          font-style: italic;
         }
         .export-print-document.markdown-body
           :is(.hljs-keyword, .hljs-selector-tag, .hljs-subst, .hljs-doctag) {
@@ -5686,7 +5680,7 @@
       }
       .chat-msg.system {
         align-self: center;
-        font-size: 11.5px;
+        font-size: 12px;
         color: var(--fg-subtle);
         background: none;
         padding: 4px 0;
@@ -5883,7 +5877,7 @@
         border-radius: 14px 14px 0 0;
         padding: 12px 14px 6px;
         font-family: var(--font-sans);
-        font-size: 13.5px;
+        font-size: 14px;
         color: var(--fg-default);
         background: transparent;
         outline: none;
@@ -5954,9 +5948,8 @@
       }
       .chat-settings label span {
         font-weight: 600;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        font-size: 12px;
+        letter-spacing: 0;
         color: var(--fg-subtle);
       }
       .chat-settings input,
@@ -6150,10 +6143,10 @@
       }
       .lib-header-title {
         margin: 0;
-        font-family: var(--font-serif);
-        font-size: 1.05rem;
+        font-family: var(--font-sans);
+        font-size: 16px;
         font-weight: 600;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.01em;
         color: var(--fg-default);
       }
       .lib-close {
@@ -6194,7 +6187,7 @@
         border-radius: 10px;
         color: var(--fg-muted);
         font-family: var(--font-sans);
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 500;
         white-space: nowrap;
         cursor: pointer;
@@ -6268,7 +6261,7 @@
       .lib-supported-note {
         margin: 2px 18px 10px;
         padding: 9px 11px;
-        font-size: 11.5px;
+        font-size: 12px;
         line-height: 1.55;
         color: var(--fg-subtle);
         background: var(--bg-subtle);
@@ -6287,9 +6280,9 @@
       }
       .lib-empty-title {
         margin: 0 0 6px;
-        font-family: var(--font-serif);
+        font-family: var(--font-sans);
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
         letter-spacing: -0.01em;
         color: var(--fg-muted);
       }
@@ -6308,7 +6301,7 @@
         padding: 6px 10px 6px;
         font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--fg-subtle);
       }
@@ -6547,7 +6540,7 @@
         border-radius: 0;
         padding: 0;
         font: inherit;
-        font-size: 11.5px;
+        font-size: 12px;
         cursor: pointer;
         transition: color 140ms ease;
       }
@@ -6575,7 +6568,7 @@
         border-radius: 8px;
         color: var(--fg-default);
         font: inherit;
-        font-size: 13.5px;
+        font-size: 13px;
         line-height: 20px;
         text-align: left;
         cursor: pointer;
@@ -6640,7 +6633,7 @@
       }
       .lib-status {
         display: none;
-        font-size: 10.5px;
+        font-size: 11px;
         font-weight: 600;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -6664,7 +6657,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font: 400 11.5px/16px var(--font-mono);
+        font: 400 11px/16px var(--font-mono);
         color: var(--fg-subtle);
       }
       .lib-tree-row.is-active .lib-file-name {
@@ -6901,10 +6894,9 @@
       }
 
       .gs-section-label {
-        font-size: 10.5px;
+        font-size: 12px;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0;
         color: var(--fg-subtle);
         margin: 0 0 10px;
       }
@@ -6926,7 +6918,7 @@
         border-radius: 6px;
         padding: 6px 12px;
         font: inherit;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 500;
         color: var(--fg-muted);
         cursor: pointer;
@@ -6994,10 +6986,9 @@
         gap: 6px;
       }
       .gs-field-label {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0;
         color: var(--fg-subtle);
       }
       .gs-input-wrap {
@@ -7112,7 +7103,7 @@
         cursor: not-allowed;
       }
       .gs-test-result {
-        font-size: 11.5px;
+        font-size: 12px;
         color: var(--fg-muted);
         display: inline-flex;
         align-items: center;
@@ -7142,7 +7133,7 @@
       .gs-card-sub {
         flex: 1 1 auto;
         min-width: 0;
-        font-size: 11.5px;
+        font-size: 12px;
         color: var(--fg-subtle);
         margin: 0;
         line-height: 1.4;
@@ -7158,7 +7149,7 @@
         border-radius: 999px;
         padding: 6px 12px;
         font: inherit;
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 500;
         color: var(--fg-muted);
         cursor: pointer;
@@ -7193,7 +7184,7 @@
            works (see "Connection health" in the settings script). */
         background: var(--border-soft);
         color: var(--fg-muted);
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 500;
         letter-spacing: 0.01em;
         transition:
@@ -7522,7 +7513,7 @@
       .fm-header .fm-eyebrow {
         margin: 0 0 1em;
         font: 600 11px/1.2 var(--font-sans);
-        letter-spacing: 0.1em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--accent-fg);
       }
@@ -7581,7 +7572,7 @@
         gap: 8px;
         margin: 0;
         padding: 4px 0;
-        font: 500 12.5px/1.2 var(--font-sans);
+        font: 500 13px/1.2 var(--font-sans);
         color: var(--fg-subtle);
         list-style: none;
         transition: color var(--motion-micro) var(--ease-calm);
@@ -7684,7 +7675,7 @@
       .fm-header .fm-raw {
         margin: 0;
         padding: 12px 14px;
-        font: 12.5px/1.6 var(--font-mono);
+        font: 13px/1.6 var(--font-mono);
         white-space: pre-wrap;
         color: var(--fg-muted);
         background: var(--code-block-bg);
@@ -7796,7 +7787,7 @@
       }
       .toolbar .brand-name.is-file,
       .toolbar .brand-name.is-untitled {
-        font: 500 15px/1.25 var(--font-serif);
+        font: 400 15px/1.25 var(--font-serif);
         letter-spacing: -0.01em;
         max-width: min(34vw, 420px);
         padding: 4px 6px;
@@ -7815,7 +7806,7 @@
         box-shadow: 0 0 0 2px var(--accent-fg);
       }
       .brand-name-input {
-        font: 500 15px/1.25 var(--font-serif);
+        font: 400 15px/1.25 var(--font-serif);
         letter-spacing: -0.01em;
         color: var(--fg-default);
         max-width: min(40vw, 440px);
@@ -7846,7 +7837,7 @@
         align-items: center;
         min-width: 0;
         margin-left: -4px;
-        font: 400 11.5px/15px var(--font-sans);
+        font: 400 12px/15px var(--font-sans);
         color: var(--fg-muted);
         white-space: nowrap;
       }
@@ -7947,7 +7938,7 @@
         height: 22px;
         margin-left: 8px;
         padding: 0 9px;
-        font: 500 11.5px/1 var(--font-sans);
+        font: 500 12px/1 var(--font-sans);
         color: var(--fg-muted);
         background: transparent;
         border: 1px solid var(--border-default);
@@ -8116,7 +8107,7 @@
         width: 100%;
         height: 34px;
         padding: 0 10px;
-        font: 400 13.5px/1 var(--font-sans);
+        font: 400 13px/1 var(--font-sans);
         color: var(--fg-default);
         text-align: left;
         background: transparent;
@@ -9473,7 +9464,7 @@ Drop a .md file anywhere on the page, or open one from Files."
             title="Italic"
             aria-label="Italic"
           >
-            <span class="et-glyph et-glyph-i">i</span>
+            <span class="et-glyph et-glyph-i">I</span>
           </button>
           <button
             type="button"
@@ -29879,7 +29870,7 @@ Return JSON only.`;
           />
         </label>
         <label id="groqApiKeyField" hidden>
-          <span>Groq API Key</span>
+          <span>Groq API key</span>
           <input
             id="groqApiKey"
             type="password"
@@ -29898,7 +29889,7 @@ Return JSON only.`;
           />
         </label>
         <label id="openrouterApiKeyField" hidden>
-          <span>OpenRouter API Key</span>
+          <span>OpenRouter API key</span>
           <input
             id="openrouterApiKey"
             type="password"
@@ -29997,7 +29988,7 @@ Return JSON only.`;
 
       <div class="gs-body">
         <section aria-labelledby="gsAiProviderLabel">
-          <p id="gsAiProviderLabel" class="gs-section-label">AI Provider</p>
+          <p id="gsAiProviderLabel" class="gs-section-label">AI provider</p>
 
           <div
             class="gs-segmented"
@@ -30166,7 +30157,7 @@ Return JSON only.`;
               </button>
             </div>
             <div class="gs-field">
-              <label class="gs-field-label" for="gsGroqApiKey"> API Key </label>
+              <label class="gs-field-label" for="gsGroqApiKey"> API key </label>
               <div class="gs-input-wrap">
                 <input
                   id="gsGroqApiKey"
@@ -30294,7 +30285,7 @@ Return JSON only.`;
             </div>
             <div class="gs-field">
               <label class="gs-field-label" for="gsOpenRouterApiKey">
-                API Key
+                API key
               </label>
               <div class="gs-input-wrap">
                 <input

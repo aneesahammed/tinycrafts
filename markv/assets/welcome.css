@@ -49,13 +49,13 @@ body.dragging .markdown-body .welcome-drop {
   margin: 0 0 0.2em;
   font-family: var(--font-serif);
   font-size: 1.05em;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.35;
   color: var(--reader-fg-heading, var(--reader-fg-default, var(--fg-default)));
 }
 .markdown-body .welcome-drop__sub {
   margin: 0 0 1em;
-  font: 400 13.5px/1.5 var(--font-sans);
+  font: 400 14px/1.5 var(--font-sans);
   color: var(--reader-fg-muted, var(--fg-muted));
 }
 .markdown-body .welcome-actions {
@@ -72,7 +72,7 @@ body.dragging .markdown-body .welcome-drop {
   height: 34px;
   padding: 0 14px;
   border-radius: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }

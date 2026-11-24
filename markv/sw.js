@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v64";
+const CACHE_VERSION = "v65";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -15,7 +15,7 @@ const SHELL_ASSETS = [
   "./assets/command-palette-core.js?v=2",
   "./assets/command-palette-host.js?v=7",
   "./assets/command-palette.js?v=6",
-  "./assets/command-palette.css?v=2",
+  "./assets/command-palette.css?v=3",
   "./assets/reader-palettes.js?v=6",
   "./assets/export-core.js?v=2",
   "./assets/export-host.js?v=7",
@@ -23,7 +23,7 @@ const SHELL_ASSETS = [
   "./assets/visual-block-menu.js?v=16",
   "./assets/pwa.js?v=2",
   "./assets/welcome.js?v=6",
-  "./assets/welcome.css?v=4",
+  "./assets/welcome.css?v=5",
   "./assets/welcome.md?v=3",
   "./assets/sample-developer.md",
   "./assets/toolbar-sync.js?v=3",
