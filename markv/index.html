@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-3HB3TqnKYT0qiy2xQnFV7+8998k7o3OBOaHntTyeEVw=' 'sha256-am3aTuKSjhPhQdr6nyrRhbB7Ba9gKrV39yIwceWuecg=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-ZMLuLy6pIEF7JwO48vEK145RVU4a74pLpskkZuwzUTU=' 'sha256-am3aTuKSjhPhQdr6nyrRhbB7Ba9gKrV39yIwceWuecg=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -6234,40 +6234,36 @@
         height: 14px;
         flex-shrink: 0;
       }
-      .lib-toggle-all {
-        appearance: none;
-        display: inline-flex;
+      /* Sits on the row of the list it controls. */
+      .lib-section-head {
+        display: flex;
         align-items: center;
-        gap: 5px;
-        padding: 5px 6px;
-        border: 0;
-        border-radius: 6px;
-        background: transparent;
-        color: var(--fg-subtle);
-        font: inherit;
-        font-size: 11.5px;
-        line-height: 1;
-        cursor: pointer;
-        transition:
-          color 140ms ease,
-          background-color 140ms ease;
+        justify-content: space-between;
+        padding-right: 4px;
       }
       .lib-toggle-all[hidden] {
         display: none;
       }
-      .lib-toggle-all:hover,
-      .lib-toggle-all:focus-visible {
-        color: var(--fg-default);
-        background: var(--lib-hover);
-      }
       .lib-toggle-all svg {
-        width: 9px;
-        height: 9px;
-        flex-shrink: 0;
+        opacity: 0.75;
+        transition: opacity 140ms ease;
+      }
+      .lib-toggle-all:is(:hover, :focus-visible) svg {
+        opacity: 1;
+      }
+      @media (hover: none) {
+        .lib-toggle-all svg {
+          opacity: 1;
+        }
+      }
+      /* Chevrons point apart to expand, together to collapse. */
+      .lib-toggle-all path {
+        transform-box: fill-box;
+        transform-origin: center;
         transition: transform var(--motion-bounce) var(--ease-bounce);
       }
-      .lib-toggle-all[data-mode="expand"] svg {
-        transform: rotate(180deg);
+      .lib-toggle-all[data-mode="collapse"] path {
+        transform: scaleY(-1);
       }
       .lib-supported-note {
         margin: 2px 18px 10px;
@@ -6700,7 +6696,6 @@
           .lib-draft-row,
           .lib-draft-discard,
           .lib-close,
-          .lib-toggle-all,
           .lib-folder-toggle,
           .lib-folder-btn,
           .lib-show-more,
@@ -9335,28 +9330,6 @@
           <div class="lib-header-copy">
             <h2 id="libraryDrawerTitle" class="lib-header-title">Files</h2>
           </div>
-          <button
-            id="libraryToggleAllBtn"
-            type="button"
-            class="lib-toggle-all"
-            data-mode="collapse"
-            title="Collapse all"
-            aria-label="Collapse all"
-            hidden
-          >
-            <svg
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.4"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M3 7.5 6 4.5l3 3" />
-            </svg>
-            <span class="lib-toggle-all-label">Collapse all</span>
-          </button>
           <button
             id="libraryCloseBtn"
             type="button"
@@ -16868,7 +16841,6 @@ Return JSON only.`;
           libraryOverlay: document.getElementById("libraryOverlay"),
           libraryDrawer: document.getElementById("libraryDrawer"),
           libraryAddBtn: document.getElementById("libraryAddBtn"),
-          libraryToggleAllBtn: document.getElementById("libraryToggleAllBtn"),
           libraryCloseBtn: document.getElementById("libraryCloseBtn"),
           libraryBody: document.getElementById("libraryBody"),
           libraryFolderMenu: document.getElementById("libraryFolderMenu"),
@@ -16895,9 +16867,6 @@ Return JSON only.`;
             els.openFileBtn || document.getElementById("openFileBtn");
           els.libraryAddBtn =
             els.libraryAddBtn || document.getElementById("libraryAddBtn");
-          els.libraryToggleAllBtn =
-            els.libraryToggleAllBtn ||
-            document.getElementById("libraryToggleAllBtn");
           els.libraryCloseBtn =
             els.libraryCloseBtn || document.getElementById("libraryCloseBtn");
           els.libraryBody =
@@ -16913,7 +16882,6 @@ Return JSON only.`;
             els.libraryDrawer &&
             els.openFileBtn &&
             els.libraryAddBtn &&
-            els.libraryToggleAllBtn &&
             els.libraryCloseBtn &&
             els.libraryBody &&
             els.libraryEmpty &&
@@ -21983,41 +21951,58 @@ Return JSON only.`;
             });
         }
 
+        // "All" means every subfolder, and root folders once there is more
+        // than one: a lone root would only hide the whole library, and its
+        // own arrow does that already.
         function getLibraryCollapseSummary() {
-          const summary = {
-            hasFolders: false,
-            hasCollapsed: false,
-            hasUncollapsed: false,
-          };
-
+          const manyRoots = state.libraryFolders.length > 1;
+          const summary = { available: manyRoots, anyOpen: false };
           state.libraryFolders.forEach(function (folder) {
-            if (!folder || !folder.id) return;
-            summary.hasFolders = true;
-            if (isLibraryFolderCollapsed(folder.id)) {
-              summary.hasCollapsed = true;
-            } else {
-              summary.hasUncollapsed = true;
+            const directories = getLibraryDirectoryPaths(folder.tree || []);
+            if (directories.length) summary.available = true;
+            if (isLibraryFolderCollapsed(folder.id)) return;
+            const expanded = getLibraryExpandedPaths(folder.id);
+            if (
+              manyRoots ||
+              directories.some(function (path) {
+                return expanded.includes(path);
+              })
+            ) {
+              summary.anyOpen = true;
             }
           });
-
           return summary;
         }
 
-        function updateLibraryToggleAllBtn(summary) {
-          const btn = els.libraryToggleAllBtn;
+        function renderLibraryToggleAll() {
+          const summary = getLibraryCollapseSummary();
+          const label = summary.anyOpen
+            ? "Collapse all folders"
+            : "Expand all folders";
+          return (
+            '<button type="button" class="lib-folder-btn lib-toggle-all" data-action="toggle-all" data-mode="' +
+            (summary.anyOpen ? "collapse" : "expand") +
+            '" aria-label="' +
+            label +
+            '" title="' +
+            label +
+            '"' +
+            (summary.available ? "" : " hidden") +
+            '><svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M6 7 9 4l3 3"/><path d="M6 11l3 3 3-3"/></svg></button>'
+          );
+        }
+
+        function updateLibraryToggleAllBtn() {
+          const btn = els.libraryBody.querySelector(".lib-toggle-all");
           if (!btn) return;
-          if (!summary.hasFolders) {
-            btn.hidden = true;
-            return;
-          }
-          btn.hidden = false;
-          const allCollapsed = summary.hasCollapsed && !summary.hasUncollapsed;
-          const label = allCollapsed ? "Expand all" : "Collapse all";
-          btn.dataset.mode = allCollapsed ? "expand" : "collapse";
+          const summary = getLibraryCollapseSummary();
+          const label = summary.anyOpen
+            ? "Collapse all folders"
+            : "Expand all folders";
+          btn.hidden = !summary.available;
+          btn.dataset.mode = summary.anyOpen ? "collapse" : "expand";
           btn.setAttribute("aria-label", label);
-          btn.setAttribute("title", label);
-          const labelEl = btn.querySelector(".lib-toggle-all-label");
-          if (labelEl) labelEl.textContent = label;
+          btn.title = label;
         }
 
         function libraryIcon(name, className) {
@@ -22563,7 +22548,10 @@ Return JSON only.`;
             renderLibraryRecentSection() +
               renderLibraryDraftsSection() +
               (folders
-                ? '<span class="lib-section-label">Library</span>' + folders
+                ? '<div class="lib-section-head"><span class="lib-section-label">Library</span>' +
+                  renderLibraryToggleAll() +
+                  "</div>" +
+                  folders
                 : "") || els.libraryEmpty.outerHTML
           );
         }
@@ -22693,6 +22681,13 @@ Return JSON only.`;
           const node = findLibraryNode(folder.tree, path, "directory");
           if (!row || !node) return;
           const open = Boolean(node.expanded);
+          // Already so, or out of sight inside a closed folder.
+          if (
+            row.getAttribute("aria-expanded") === String(open) ||
+            row.closest(".lib-branch[inert]")
+          ) {
+            return;
+          }
           row.setAttribute("aria-expanded", String(open));
           setLibraryBranchOpen(
             row.nextElementSibling,
@@ -22710,7 +22705,7 @@ Return JSON only.`;
 
         function commitLibraryPatch() {
           libraryBodyHtml = buildLibraryBodyHtml();
-          updateLibraryToggleAllBtn(getLibraryCollapseSummary());
+          updateLibraryToggleAllBtn();
           syncLibraryActiveRow();
           loadLibraryTitles();
         }
@@ -22757,8 +22752,6 @@ Return JSON only.`;
           els.libraryAddBtn.disabled =
             !supported ||
             state.libraryFolders.length >= LIBRARY_LIMITS.maxFolders;
-          const collapseSummary = getLibraryCollapseSummary();
-          updateLibraryToggleAllBtn(collapseSummary);
 
           if (!supported) {
             els.librarySupportedNote.hidden = false;
@@ -22876,12 +22869,6 @@ Return JSON only.`;
           els.libraryAddBtn.addEventListener("click", async function () {
             await addLibraryFolder();
           });
-          els.libraryToggleAllBtn.addEventListener("click", function () {
-            const summary = getLibraryCollapseSummary();
-            const allCollapsed =
-              summary.hasCollapsed && !summary.hasUncollapsed;
-            setAllLibraryFoldersCollapsed(!allCollapsed);
-          });
           els.libraryBody.addEventListener("click", async function (event) {
             const trigger = event.target.closest("[data-action]");
             if (!trigger || !els.libraryBody.contains(trigger)) return;
@@ -22901,6 +22888,10 @@ Return JSON only.`;
             }
             if (action === "discard-draft") {
               await discardUntitledDraft(draftId);
+              return;
+            }
+            if (action === "toggle-all") {
+              setAllLibraryFoldersOpen(trigger.dataset.mode === "expand");
               return;
             }
             if (action === "toggle-folder") {
@@ -23124,18 +23115,25 @@ Return JSON only.`;
           );
         }
 
-        function setAllLibraryFoldersCollapsed(collapsed) {
-          let changed = false;
-
+        function setAllLibraryFoldersOpen(open) {
+          const manyRoots = state.libraryFolders.length > 1;
           state.libraryFolders.forEach(function (folder) {
-            if (!folder || !folder.id) return;
-            if (setLibraryFolderCollapsed(folder.id, collapsed)) {
-              changed = true;
-            }
+            if (open || manyRoots) setLibraryFolderCollapsed(folder.id, !open);
+            // Nothing scanned yet: keep what was open before.
+            const directories = getLibraryDirectoryPaths(folder.tree || []);
+            if (!directories.length) return;
+            const expanded = open ? directories : [];
+            state.libraryExpandedPathsByFolder[folder.id] = expanded;
+            folder.tree = rebuildLibraryFolderTree(folder, expanded);
           });
 
-          if (!changed) return;
-          state.libraryFolders.forEach(patchLibraryFolderBranch);
+          state.libraryFolders.forEach(function (folder) {
+            patchLibraryFolderBranch(folder);
+            // Parents first: opening one renders its children already open.
+            getLibraryDirectoryPaths(folder.tree || []).forEach(function (path) {
+              patchLibraryDirectoryBranch(folder, path);
+            });
+          });
           commitLibraryPatch();
 
           if (canUseLibraryStorage()) {
@@ -23147,9 +23145,7 @@ Return JSON only.`;
             });
           }
           setStatus(
-            collapsed
-              ? "Library folders collapsed"
-              : "Library folders expanded",
+            open ? "Library folders expanded" : "Library folders collapsed",
             { announce: true },
           );
         }

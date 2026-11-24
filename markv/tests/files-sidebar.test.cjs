@@ -70,3 +70,38 @@ test("reading stats are generated content, not toolbar chrome", () => {
   assert.doesNotMatch(toolbar, /wordCount/);
   assert.match(html, /content: var\(--reading-stats, none\)/);
 });
+
+test("expand/collapse all covers subfolders, and roots only when there are several", () => {
+  const core = require("../assets/library-core.js");
+  const run = (folders, expanded, collapsed) => {
+    const ctx = runtime(
+      {
+        state: { libraryFolders: folders, libraryExpandedPathsByFolder: expanded },
+        getLibraryDirectoryPaths: core.getLibraryDirectoryPaths,
+        getLibraryExpandedPaths: (id) => expanded[id] || [],
+        isLibraryFolderCollapsed: (id) => collapsed.includes(id),
+      },
+      [functionSource("getLibraryCollapseSummary"), functionSource("renderLibraryToggleAll")],
+    );
+    return { ...ctx.getLibraryCollapseSummary(), html: ctx.renderLibraryToggleAll() };
+  };
+  const kb = { id: "kb", tree: tree(false) };
+  const flat = { id: "flat", tree: [file("a.md")] };
+
+  assert.equal(run([flat], {}, []).available, false, "a lone flat folder has its own arrow");
+  assert.match(run([flat], {}, []).html, / hidden>/);
+  assert.equal(run([flat, kb], {}, []).available, true);
+
+  const closed = run([kb], {}, []);
+  assert.deepEqual([closed.available, closed.anyOpen], [true, false], "an open root alone is not 'open'");
+  assert.match(closed.html, /data-mode="expand" aria-label="Expand all folders"/);
+  assert.equal(run([kb], { kb: ["guides"] }, []).anyOpen, true);
+  assert.equal(run([kb], { kb: ["guides"] }, ["kb"]).anyOpen, false, "hidden inside a closed root");
+  assert.equal(run([kb, flat], {}, ["kb"]).anyOpen, true);
+  assert.equal(run([kb, flat], {}, ["kb", "flat"]).anyOpen, false);
+});
+
+test("the toggle lives on the Library row, not in the panel header", () => {
+  assert.doesNotMatch(between('<header class="lib-header"', "</header>"), /toggle-all/);
+  assert.match(functionSource("buildLibraryBodyHtml"), /lib-section-head/);
+});

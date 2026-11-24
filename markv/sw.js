@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v63";
+const CACHE_VERSION = "v64";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
