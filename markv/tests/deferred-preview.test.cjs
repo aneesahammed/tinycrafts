@@ -11,7 +11,7 @@ test("editing persists the latest markdown without replacing the hidden preview"
   const state = { contentVersion: 2, lastRenderedContentVersion: 1, previewRenderGeneration: 1,
     sourceMode: "editor", currentName: "note.md", dirty: true };
   const ctx = runtime({
-    state, els, libraryCore: core, isEditModeActive: () => true,
+    state, els, libraryCore: core, isEditModeActive: () => true, isSplitModeActive: () => false,
     document: { activeElement: els.editor, documentElement: { classList }, body: { classList }, dispatchEvent() {} },
     window: { sessionStorage: {} }, CustomEvent: class {},
     marked: { defaults: {}, lexer: () => [], parser: () => "A replacement preview" }, markedOptions: {},

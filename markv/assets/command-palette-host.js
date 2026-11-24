@@ -224,6 +224,8 @@
     const autoRefreshToggle = env.els && env.els.autoRefreshToggle;
     const editMode =
       typeof env.isEditModeActive === "function" && env.isEditModeActive();
+    const splitMode =
+      typeof env.getMode === "function" && env.getMode() === "split";
     const shareBusy = Boolean(env.state && env.state.shareInFlight);
     const exportHost = env.exportHost || window.MarkVExportHost || null;
     const canExportPdf =
@@ -332,6 +334,17 @@
         defaultRank: 70,
         run: function () {
           env.setMode(editMode ? "preview" : "edit");
+        },
+      }),
+      createCommand(env, {
+        id: "command:split",
+        title: splitMode ? "Close split view" : "Split view",
+        subtitle: "Edit and preview side by side",
+        keywords: ["split", "side", "preview", "edit", "live"],
+        shortcutId: "global.split",
+        defaultRank: 72,
+        run: function () {
+          env.setMode(splitMode ? "preview" : "split");
         },
       }),
       createCommand(env, {

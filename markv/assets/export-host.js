@@ -120,6 +120,7 @@
     return {
       wasEditMode:
         typeof env.isEditModeActive === "function" && env.isEditModeActive(),
+      mode: typeof env.getMode === "function" ? env.getMode() : "edit",
       focused,
       scrollX: window.scrollX || 0,
       scrollY: window.scrollY || 0,
@@ -139,7 +140,7 @@
       typeof env.setMode === "function" &&
       !(typeof env.isEditModeActive === "function" && env.isEditModeActive())
     ) {
-      env.setMode("edit");
+      env.setMode(snapshot.mode);
       await waitForNextPaint();
     }
 
@@ -156,7 +157,12 @@
 
     const previewPane = env.els && env.els.previewPane;
     if (previewPane) {
-      previewPane.scrollTop = snapshot.previewScrollTop;
+      // Not a scroll by the reader, so Split must not let it lead.
+      if (snapshot.mode === "split" && typeof env.placeSplitPane === "function") {
+        env.placeSplitPane("preview", snapshot.previewScrollTop);
+      } else {
+        previewPane.scrollTop = snapshot.previewScrollTop;
+      }
       previewPane.scrollLeft = snapshot.previewScrollLeft;
     }
     window.scrollTo(snapshot.scrollX, snapshot.scrollY);

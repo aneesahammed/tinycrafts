@@ -1,15 +1,14 @@
 /*
- * toolbar-sync.js — Keeps the Read/Edit segment and Mindmap button in sync
+ * toolbar-sync.js — Keeps the Read/Split/Edit segment and Mindmap button in sync
  * with app state.
  *
  * Why this exists:
- *   The toolbar shows a two-segment control [ Read · Edit ]. Edit is the
- *   long-standing #modeToggleBtn (it still toggles, which the ⌘E shortcut
- *   and the command palette rely on); Read is #readModeBtn, which only
- *   returns to reading when you are editing.
+ *   The toolbar shows a segmented control [ Read · Split · Edit ]. The
+ *   clicks live with the mode code in index.html; Split is edit mode with
+ *   the preview kept visible (body.split-mode-active).
  *
  *   Responsibilities of this file:
- *     1. Drive `aria-pressed` on Read and Edit from body classes, so the
+ *     1. Drive `aria-pressed` on all three from body classes, so the
  *        segment reflects edit mode unless Mindmap is overriding the main
  *        view.
  *     2. Drive `aria-pressed` on the Mindmap button from
@@ -23,6 +22,7 @@
   function init() {
     var modeBtn = document.getElementById("modeToggleBtn");
     var readBtn = document.getElementById("readModeBtn");
+    var splitBtn = document.getElementById("splitModeBtn");
     var mindBtn = document.getElementById("mindmapBtn");
     if (!modeBtn || !mindBtn) return;
 
@@ -40,17 +40,11 @@
       // Edit segment highlights only when the app is in edit mode AND
       // mindmap is not visually taking over the main view.
       var editOn = cls.contains("edit-mode-active") && !mindOn;
-      setPressed(modeBtn, editOn);
+      var splitOn = editOn && cls.contains("split-mode-active");
+      setPressed(modeBtn, editOn && !splitOn);
+      setPressed(splitBtn, splitOn);
       setPressed(readBtn, !editOn && !mindOn);
       setPressed(mindBtn, mindOn);
-    }
-
-    if (readBtn) {
-      readBtn.addEventListener("click", function () {
-        if (document.body.classList.contains("edit-mode-active")) {
-          modeBtn.click();
-        }
-      });
     }
 
     // Initial assertion + observe body class changes. The legacy

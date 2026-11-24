@@ -24,6 +24,12 @@
       key: "e",
       mod: true,
     },
+    "global.split": {
+      label: "Toggle split view",
+      key: "e",
+      mod: true,
+      shift: true,
+    },
     "editor.bold": {
       label: "Bold",
       key: "b",
