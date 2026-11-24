@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-ZMLuLy6pIEF7JwO48vEK145RVU4a74pLpskkZuwzUTU=' 'sha256-am3aTuKSjhPhQdr6nyrRhbB7Ba9gKrV39yIwceWuecg=' 'sha256-cF0Yt3Lw2lzQkPsYONvXDG/kGpxYY8vopvaf9I7ksLU=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-TCMf+UBhkLPEc0IDnWbAAmOJQ0+8Vga/LcmY41DT288=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -48,6 +48,7 @@
     <script src="assets/export-core.js?v=2"></script>
     <script src="assets/export-host.js?v=7"></script>
     <script src="assets/csv-sheet.js?v=1"></script>
+    <script src="assets/ai-help.js?v=1"></script>
     <script src="assets/pwa.js?v=2"></script>
     <script src="assets/welcome.js?v=6"></script>
     <script>
@@ -5686,6 +5687,210 @@
         padding: 4px 0;
         text-align: center;
       }
+      /* First thing in an empty chat. */
+      .chat-help {
+        padding: 4px 2px;
+      }
+      .chat-help[hidden] {
+        display: none;
+      }
+      .chat-help__title,
+      .ai-help__title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.4;
+        color: var(--fg-default);
+        text-wrap: balance;
+      }
+      .chat-help__body,
+      .ai-help__body {
+        margin: 2px 0 0;
+        color: var(--fg-muted);
+        text-wrap: pretty;
+      }
+      .chat-help__ask {
+        display: flex;
+        flex-direction: column;
+        margin: 14px 0 0;
+      }
+      .chat-help__ask button {
+        appearance: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 40px;
+        margin: 0 -8px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 8px;
+        background: none;
+        font: 500 13px/1.3 var(--font-sans);
+        color: var(--fg-default);
+        text-align: left;
+        cursor: pointer;
+      }
+      .chat-help__ask svg {
+        flex: none;
+        color: var(--fg-subtle);
+        transition: transform var(--motion-micro) var(--ease-out);
+      }
+      .chat-help__ask button:active {
+        background: var(--bg-subtle);
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .chat-help__ask button:hover {
+          background: var(--bg-subtle);
+        }
+        .chat-help__ask button:hover svg {
+          transform: translateX(2px);
+        }
+      }
+
+      /* What went wrong with the AI, and what to do. Shared by chat,
+         Mindmap and Settings; see assets/ai-help.js. */
+      .ai-help {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--fg-default);
+        text-align: left;
+      }
+      .ai-help p {
+        margin: 0;
+      }
+      .ai-help__title + .ai-help__body {
+        margin-top: -10px;
+      }
+      .ai-help__steps {
+        margin: 0;
+        padding: 0;
+      }
+      ol.ai-help__steps {
+        padding-left: 1.4em;
+      }
+      .ai-help__step + .ai-help__step {
+        margin-top: 10px;
+      }
+      .ai-help__command {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 6px;
+        padding: 8px 6px 8px 10px;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: var(--bg-canvas);
+      }
+      ol.ai-help__steps .ai-help__command {
+        margin-left: -1.4em;
+      }
+      .ai-help__command code {
+        flex: 1;
+        min-width: 0;
+        padding: 4px 0;
+        font: 400 12px/1.5 var(--font-mono);
+        color: var(--fg-default);
+        overflow-wrap: anywhere;
+        user-select: all;
+      }
+      .ai-help__copy,
+      .ai-help__btn {
+        appearance: none;
+        flex: none;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        background: none;
+        font: 500 13px/1 var(--font-sans);
+        color: var(--fg-default);
+        cursor: pointer;
+        transition:
+          background-color var(--motion-micro) var(--ease-out),
+          transform var(--motion-micro) var(--ease-out);
+      }
+      .ai-help__copy {
+        min-width: 62px;
+        height: 26px;
+        padding: 0 8px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+      .ai-help__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .ai-help__btn {
+        height: 34px;
+        padding: 0 14px;
+      }
+      .ai-help__btn.is-primary {
+        border-color: transparent;
+        background: var(--fg-default);
+        color: var(--bg-canvas);
+      }
+      .ai-help :is(.ai-help__copy, .ai-help__btn):active {
+        transform: scale(0.97);
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .ai-help__copy:hover,
+        .ai-help__btn:not(.is-primary):hover {
+          background: var(--bg-subtle);
+        }
+        .ai-help__btn.is-primary:hover {
+          background: color-mix(in srgb, var(--fg-default) 88%, var(--bg-canvas));
+        }
+      }
+      @media (pointer: coarse) {
+        .ai-help__btn {
+          height: 44px;
+        }
+        .ai-help__copy {
+          height: 36px;
+        }
+        .chat-help__ask button {
+          min-height: 44px;
+        }
+      }
+      :is(.ai-help, .chat-help) button:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 2px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .chat-help__ask svg,
+        .ai-help__copy,
+        .ai-help__btn {
+          transition: none;
+        }
+      }
+      .ai-help__note {
+        font-size: 12px;
+        color: var(--fg-muted);
+        overflow-wrap: anywhere;
+      }
+      .chat-msg.chat-problem {
+        align-self: stretch;
+        max-width: none;
+        padding: 8px 2px 4px;
+        white-space: normal;
+      }
+      .chat-messages:focus {
+        outline: none;
+      }
+      .gs-help:not(:empty) {
+        margin-top: 12px;
+      }
+      .mm-state-wrap > [hidden] {
+        display: none;
+      }
+      .mm-state-wrap > .ai-help {
+        width: min(420px, calc(100% - 48px));
+      }
+
       .chat-msg.markdown-rendered {
         white-space: normal;
         line-height: 1.6;
@@ -16434,6 +16639,7 @@ Return JSON only.`;
         }
 
         window.markvGetMindmapGroqResponseFormat = getMindmapGroqResponseFormat;
+        window.markvGetLlmRetryMs = getMindmapRetryDelayMs;
 
         /**
          * Invokes the shared LLM client (wired by chat feature) and returns a
@@ -27648,7 +27854,7 @@ Return JSON only.`;
           if (!rawMarkdown.trim()) {
             resetMindmapState({ closeViewer: false });
             showMindmapError(
-              "Load a markdown document first, then open the mindmap.",
+              "Open a document first, then make a mindmap.",
               "empty_document",
             );
             return;
@@ -27735,7 +27941,11 @@ Return JSON only.`;
                 requestAnimationFrame(() => fitMindmapToView(false));
               }
             }
-            showMindmapError(humanizeMindmapError(err), "extract_failed");
+            showMindmapError(
+              humanizeMindmapError(err),
+              "extract_failed",
+              getMindmapAiProblem(err),
+            );
           } finally {
             mindmapState.isLoading = false;
             if (loading) loading.classList.add("is-hidden");
@@ -27745,22 +27955,6 @@ Return JSON only.`;
         function humanizeMindmapError(err) {
           const msg = (err && err.message) || "";
           const lower = msg.toLowerCase();
-          if (lower.includes("groq api key")) {
-            return "Add a Groq API key in AI settings, then try again.";
-          }
-          if (lower.includes("openrouter api key")) {
-            return "Add an OpenRouter API key in AI settings, then try again.";
-          }
-          if (lower.includes("cors_blocked")) {
-            return "Browser access to Ollama is blocked by CORS. Allow this viewer origin in OLLAMA_ORIGINS, then try again.";
-          }
-          if (
-            lower.includes("fetch") ||
-            lower.includes("network") ||
-            lower.includes("failed to fetch")
-          ) {
-            return "Couldn't reach the LLM. Check your connection and try again.";
-          }
           const provider = (err && err.provider) || "The AI provider";
           const usage = parseMindmapTokenLimit(err);
           if (isMindmapRequestTooLarge(err)) {
@@ -27777,13 +27971,6 @@ Return JSON only.`;
               ? `${detail} Try again in about ${formatMindmapRetryDelay(retryMs)}.`
               : `${detail} Wait a moment and retry.`;
           }
-          if (
-            lower.includes("401") ||
-            lower.includes("unauthorized") ||
-            lower.includes("api key")
-          ) {
-            return "The LLM rejected the request. Check your API key in the chat settings.";
-          }
           if (lower.includes("timeout") || lower.includes("timed out")) {
             return "The LLM took too long to respond. Try again, or regenerate with a smaller document.";
           }
@@ -27791,10 +27978,47 @@ Return JSON only.`;
           return "Could not extract concepts. Try regenerating.";
         }
 
-        function showMindmapError(msg, kind) {
+        // Connection, key and model problems read the same as in chat.
+        // Limits and sizes keep the mindmap's own, more exact wording.
+        function getMindmapAiProblem(err) {
+          if (
+            !(err && (err.code || err.status)) ||
+            isMindmapRequestTooLarge(err) ||
+            isMindmapRateLimitError(err) ||
+            typeof window.markvDescribeAiError !== "function"
+          ) {
+            return null;
+          }
+          return window.markvDescribeAiError(err);
+        }
+
+        function showMindmapError(msg, kind, problem) {
           const { errorPane, errorMsg } = getMindmapEls();
           if (!errorPane || !errorMsg) return;
-          errorMsg.textContent = msg;
+          const retryBtn = document.getElementById("mindmapRetryBtn");
+          const openSettings = function (button) {
+            window.__openGlobalSettings({ returnFocusTo: button });
+          };
+          errorPane.querySelector(".ai-help")?.remove();
+          if (problem) {
+            errorPane.appendChild(
+              window.MarkVAiHelp.render(document, problem, {
+                retry: function () {
+                  retryBtn.click();
+                },
+                provider: openSettings,
+                settings: openSettings,
+                announce: function (text) {
+                  setStatus(text, { announce: true });
+                },
+              }),
+            );
+          }
+          errorMsg.hidden = Boolean(problem);
+          retryBtn.hidden = Boolean(problem);
+          errorMsg.textContent = problem
+            ? window.MarkVAiHelp.summarize(problem)
+            : msg;
           errorPane.dataset.kind = kind || "generic";
           errorPane.classList.remove("is-hidden");
         }
@@ -29754,7 +29978,7 @@ Return JSON only.`;
       role="dialog"
       aria-modal="true"
       aria-labelledby="chatTitle"
-      aria-describedby="chatHelp"
+      aria-describedby="chatHelpTitle"
       aria-hidden="true"
       hidden
     >
@@ -29826,10 +30050,16 @@ Return JSON only.`;
         aria-label="Document Q&A conversation"
         aria-live="off"
         aria-relevant="additions text"
+        tabindex="-1"
       >
-        <div id="chatHelp" class="chat-msg system">
-          Load a document, then ask questions about it. Powered by Ollama,
-          Groq or OpenRouter.
+        <div id="chatHelp" class="chat-help">
+          <p id="chatHelpTitle" class="chat-help__title">
+            Ask about this document
+          </p>
+          <p id="chatHelpBody" class="chat-help__body">
+            Answers come from what you have open.
+          </p>
+          <div id="chatHelpAsk" class="chat-help__ask"></div>
         </div>
       </div>
       <div
@@ -30096,7 +30326,7 @@ Return JSON only.`;
             </div>
             <div class="gs-field">
               <label class="gs-field-label" for="gsOllamaEndpoint">
-                Endpoint
+                Ollama address
               </label>
               <div class="gs-input-wrap">
                 <input
@@ -30109,8 +30339,7 @@ Return JSON only.`;
                 />
               </div>
               <p class="gs-field-hint">
-                Must be a loopback address. Ollama runs on your machine — your
-                document never leaves it.
+                Must be on this computer.
               </p>
             </div>
 
@@ -30136,6 +30365,7 @@ Return JSON only.`;
               </button>
               <span id="gsTestOllamaResult" class="gs-test-result"></span>
             </div>
+            <div id="gsOllamaHelp" class="gs-help" aria-live="polite"></div>
           </div>
 
           <!-- Groq card -->
@@ -30693,8 +30923,15 @@ Return JSON only.`;
           });
         }
 
-        function setTestResult(provider, state, text) {
+        function setTestResult(provider, state, text, problem) {
           const el = ui[provider].result;
+          if (provider === "ollama") {
+            ollamaHelp.replaceChildren.apply(
+              ollamaHelp,
+              problem ? [aiHelp.render(document, problem)] : [],
+            );
+            if (problem) text = "✗ Not connected";
+          }
           el.classList.remove("is-ok", "is-err");
           if (state) el.classList.add(state);
           el.textContent = text;
@@ -30713,39 +30950,74 @@ Return JSON only.`;
           }
         }
 
-        function isLocalPage() {
-          return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+        const aiHelp = window.MarkVAiHelp;
+
+        function describeProblem(provider, code, model) {
+          return aiHelp.describe(code, {
+            provider: provider,
+            origin: window.location.origin,
+            platform: aiHelp.detectPlatform(navigator),
+            model: model,
+          });
+        }
+
+        function failedCheck(provider, code, model) {
+          const problem = describeProblem(provider, code, model);
+          return { ok: false, message: problem.title, problem: problem };
+        }
+
+        function failedHostedCheck(provider, error, model) {
+          return failedCheck(
+            provider,
+            aiHelp.classify(error, provider, navigator.onLine),
+            model,
+          );
         }
 
         const ollamaModelHint = document.getElementById("gsOllamaModelHint");
-        const OLLAMA_SUGGESTED_MODEL = "gemma3";
+        const ollamaHelp = document.getElementById("gsOllamaHelp");
+        const OLLAMA_SUGGESTED_MODEL = aiHelp.SUGGESTED_MODEL;
+
+        function ollamaFailure(code) {
+          return { error: describeProblem("ollama", code).title, code: code };
+        }
 
         // Lists installed models: { models: [{ name, family }] } or
-        // { error } when Ollama can't be reached or refuses.
+        // { error, code } when Ollama can't be reached or refuses.
         async function fetchOllamaModels() {
           const endpoint = legacyEndpoint.value.trim().replace(/\/+$/, "");
-          if (!endpoint) return { error: "Enter an endpoint first" };
-          // Same localhost/127.0.0.1 fallback the chat code uses.
-          const candidates = [endpoint];
-          if (endpoint.includes("localhost")) candidates.push(endpoint.replace("localhost", "127.0.0.1"));
-          else if (endpoint.includes("127.0.0.1")) candidates.push(endpoint.replace("127.0.0.1", "localhost"));
+          if (!endpoint) return ollamaFailure("ollama-address");
+          // While the browser asks whether this site may reach your
+          // computer, the request waits for your answer. Don't time out.
+          const asking =
+            (await aiHelp.localAccessState(navigator.permissions)) === "prompt";
           let res = null;
-          for (const candidate of candidates) {
+          for (const candidate of aiHelp.ollamaEndpoints(endpoint)) {
             try {
-              res = await fetchWithTimeout(candidate + "/api/tags", { method: "GET" }, 4000);
+              res = await fetchWithTimeout(
+                candidate + "/api/tags",
+                { method: "GET" },
+                asking ? 60000 : 4000,
+              );
               break;
             } catch (_error) {}
           }
           if (!res) {
-            // The browser cannot tell "not running" from "blocked by
-            // OLLAMA_ORIGINS", so name both on a hosted page.
-            return {
-              error: isLocalPage()
-                ? "Can't reach Ollama. Start it with: ollama serve"
-                : "Can't reach Ollama. Start it with: ollama serve. Already running? Allow this site: OLLAMA_ORIGINS=" + window.location.origin,
-            };
+            return ollamaFailure(
+              await aiHelp.diagnoseOllama({
+                endpoint: endpoint,
+                origin: window.location.origin,
+                platform: aiHelp.detectPlatform(navigator),
+                permissions: navigator.permissions,
+                fetch: window.fetch.bind(window),
+              }),
+            );
           }
-          if (!res.ok) return { error: "Ollama answered HTTP " + res.status };
+          if (!res.ok) {
+            return ollamaFailure(
+              aiHelp.classify({ status: res.status }, "ollama"),
+            );
+          }
           const data = await res.json().catch(function () {
             return null;
           });
@@ -30840,9 +31112,7 @@ Return JSON only.`;
           showOllamaModels(listed.models);
           const picked = pickChatModel(listed.models);
           if (!picked) {
-            return {
-              error: "No chat models installed. Run: ollama pull " + OLLAMA_SUGGESTED_MODEL,
-            };
+            return ollamaFailure("ollama-no-models");
           }
           gsOllamaModel.value = picked;
           pushField(legacyOllamaModel, picked);
@@ -30853,16 +31123,13 @@ Return JSON only.`;
 
         async function checkOllama() {
           const listed = await fetchOllamaModels();
-          if (listed.error) return { ok: false, message: listed.error };
+          if (listed.error) return failedCheck("ollama", listed.code);
           showOllamaModels(listed.models);
           let model = legacyOllamaModel.value.trim();
           if (!model) {
             model = pickChatModel(listed.models);
             if (!model) {
-              return {
-                ok: false,
-                message: "No chat models installed. Run: ollama pull " + OLLAMA_SUGGESTED_MODEL,
-              };
+              return failedCheck("ollama", "ollama-no-models");
             }
             gsOllamaModel.value = model;
             pushField(legacyOllamaModel, model);
@@ -30873,7 +31140,7 @@ Return JSON only.`;
           });
           const tagged = model.includes(":") ? model : model + ":latest";
           if (names.indexOf(model) === -1 && names.indexOf(tagged) === -1) {
-            return { ok: false, message: model + " isn't installed. Run: ollama pull " + model };
+            return failedCheck("ollama", "ollama-model-missing", model);
           }
           return { ok: true, message: "Connected" };
         }
@@ -30881,7 +31148,7 @@ Return JSON only.`;
         async function checkGroq() {
           const key = HOSTED.groq.legacyKey.value.trim();
           const model = HOSTED.groq.legacyModel.value.trim();
-          if (!key) return { ok: false, message: "Enter an API key first" };
+          if (!key) return failedCheck("groq", "key-missing");
           let res;
           try {
             // The models list validates the key without spending tokens.
@@ -30891,10 +31158,9 @@ Return JSON only.`;
               8000,
             );
           } catch (_error) {
-            return { ok: false, message: "Can't reach Groq. Check your connection." };
+            return failedHostedCheck("groq", { code: "network" });
           }
-          if (res.status === 401) return { ok: false, message: "Invalid API key" };
-          if (!res.ok) return { ok: false, message: "Groq answered HTTP " + res.status };
+          if (!res.ok) return failedHostedCheck("groq", { status: res.status });
           const data = await res.json().catch(function () {
             return null;
           });
@@ -30902,7 +31168,7 @@ Return JSON only.`;
             return item && item.id;
           });
           if (model && ids.length && ids.indexOf(model) === -1) {
-            return { ok: false, message: model + " isn't available on Groq" };
+            return failedCheck("groq", "model-unavailable", model);
           }
           return { ok: true, message: "Connected" };
         }
@@ -30985,7 +31251,7 @@ Return JSON only.`;
         async function checkOpenRouter() {
           const key = HOSTED.openrouter.legacyKey.value.trim();
           const model = HOSTED.openrouter.legacyModel.value.trim();
-          if (!key) return { ok: false, message: "Enter an API key first" };
+          if (!key) return failedCheck("openrouter", "key-missing");
           let res;
           try {
             // /key validates the key and spends no credits.
@@ -30995,13 +31261,12 @@ Return JSON only.`;
               8000,
             );
           } catch (_error) {
-            return { ok: false, message: "Can't reach OpenRouter. Check your connection." };
+            return failedHostedCheck("openrouter", { code: "network" });
           }
-          if (res.status === 401) return { ok: false, message: "Invalid API key" };
-          if (!res.ok) return { ok: false, message: "OpenRouter answered HTTP " + res.status };
+          if (!res.ok) return failedHostedCheck("openrouter", { status: res.status });
           await loadOpenRouterModels();
           if (model && openRouterModels && !isKnownOpenRouterModel(model)) {
-            return { ok: false, message: model + " isn't available on OpenRouter" };
+            return failedCheck("openrouter", "model-unavailable", model);
           }
           return { ok: true, message: "Connected" };
         }
@@ -31019,7 +31284,12 @@ Return JSON only.`;
           setTestResult(provider, null, "Testing…");
           checking[provider] = CHECKS[provider]()
             .then(function (result) {
-              setTestResult(provider, result.ok ? "is-ok" : "is-err", (result.ok ? "✓ " : "✗ ") + result.message);
+              setTestResult(
+                provider,
+                result.ok ? "is-ok" : "is-err",
+                (result.ok ? "✓ " : "✗ ") + result.message,
+                result.problem,
+              );
               recordHealth(provider, result.ok, result.message);
             })
             .finally(function () {
@@ -31043,11 +31313,7 @@ Return JSON only.`;
           recordHealth(
             provider,
             Boolean(ok),
-            ok
-              ? "Connected"
-              : message === "CORS_BLOCKED"
-                ? "Can't reach Ollama"
-                : message || "Request failed",
+            ok ? "Connected" : message || "Request failed",
           );
         };
 
@@ -31150,6 +31416,7 @@ Return JSON only.`;
         const settingsDiv = document.getElementById("chatSettings");
         const messagesDiv = document.getElementById("chatMessages");
         const chatLiveRegion = document.getElementById("chatLiveRegion");
+        const chatHelp = document.getElementById("chatHelp");
         const chatInput = document.getElementById("chatInput");
         const sendBtn = document.getElementById("chatSendBtn");
         const providerInput = document.getElementById("llmProvider");
@@ -31362,18 +31629,15 @@ Return JSON only.`;
           try {
             parsed = new URL(String(rawValue || "").trim());
           } catch (_error) {
-            throw new Error(
-              "Enter a valid local Ollama endpoint, such as http://localhost:11434",
-            );
+            throw window.MarkVAiHelp.problemError("ollama-address");
           }
 
           if (
             !/^https?:$/.test(parsed.protocol) ||
             !isLoopbackHostname(parsed.hostname)
           ) {
-            throw new Error(
-              "Privacy mode only allows local Ollama endpoints on localhost, 127.0.0.1, or ::1",
-            );
+            // Privacy: Ollama is only ever this computer's own.
+            throw window.MarkVAiHelp.problemError("ollama-address");
           }
 
           return parsed.toString().replace(/\/+$/, "");
@@ -31607,6 +31871,7 @@ Return JSON only.`;
           fab.classList.add("hidden");
           fab.setAttribute("aria-hidden", "true");
           document.body.classList.add("chat-open");
+          renderChatHelp();
           if (shouldFocusInput) {
             chatInput.focus();
           }
@@ -31629,6 +31894,64 @@ Return JSON only.`;
             fab.focus();
           }
         }
+
+        // ---- Empty chat ----
+        const STARTER_QUESTIONS = [
+          ["Summarize it", "Summarize this document."],
+          ["List the key points", "What are the key points of this document?"],
+          ["Outline it", "Give me an outline of this document."],
+        ];
+        const ARROW_ICON =
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>';
+
+        function helpButton(label, onClick) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          button.insertAdjacentHTML("beforeend", ARROW_ICON);
+          button.addEventListener("click", onClick);
+          return button;
+        }
+
+        function renderChatHelp() {
+          if (chatHelp.hidden) return;
+          const hasDocument = documentIsOpen();
+          if (chatHelp.dataset.hasDocument === String(hasDocument)) return;
+          chatHelp.dataset.hasDocument = String(hasDocument);
+          document.getElementById("chatHelpTitle").textContent = hasDocument
+            ? "Ask about this document"
+            : "Open a document to ask about it";
+          const body = document.getElementById("chatHelpBody");
+          body.textContent = "Answers come from what you have open.";
+          body.hidden = !hasDocument;
+          document.getElementById("chatHelpAsk").replaceChildren(
+            ...(hasDocument
+              ? STARTER_QUESTIONS.map(function (starter) {
+                  return helpButton(starter[0], function () {
+                    // The list is about to go; keep focus in the chat.
+                    messagesDiv.focus({ preventScroll: true });
+                    sendQuestion(starter[1]);
+                  });
+                })
+              : [
+                  helpButton("Open file", function () {
+                    document.getElementById("openFileBtn").click();
+                  }),
+                ]),
+          );
+        }
+
+        function documentIsOpen() {
+          const editing = document.body.classList.contains("edit-mode-active");
+          const source = document.getElementById(editing ? "editor" : "preview");
+          return Boolean(
+            source && (editing ? source.value : source.textContent).trim(),
+          );
+        }
+
+        document.addEventListener("markv:render-complete", function () {
+          if (!panel.hidden) renderChatHelp();
+        });
 
         // ---- Chat panel toggle ----
         fab.addEventListener("click", function () {
@@ -31805,23 +32128,23 @@ Return JSON only.`;
         }
 
         function getLocalAssistantReply(question, hasDocument) {
-          if (isGreetingMessage(question)) {
-            return hasDocument
-              ? "Hi. I can answer questions about the loaded document, summarize sections, explain passages, and pull out key points."
-              : "Hi. Load a document and I can answer questions about it, summarize sections, explain passages, and help find key details.";
+          // With a document open a greeting goes to the provider like any
+          // question. A canned reply would look connected when it isn't.
+          if (!hasDocument && isGreetingMessage(question)) {
+            return "Hi. Open a document and I can answer questions about it, summarize sections, explain passages, and help find key details.";
           }
           if (isThanksMessage(question)) {
             return hasDocument
               ? "You’re welcome. Ask about the document whenever you’re ready."
-              : "You’re welcome. Load a document whenever you want to start.";
+              : "You’re welcome. Open a document whenever you want to start.";
           }
           if (isCapabilitiesMessage(question)) {
             return hasDocument
               ? "I can answer questions about this document, summarize it, explain specific sections, compare passages, and help locate important details."
-              : "I can answer questions about a loaded document, summarize it, explain specific sections, compare passages, and help locate important details.";
+              : "I can answer questions about an open document, summarize it, explain specific sections, compare passages, and help locate important details.";
           }
           if (!hasDocument && looksLikeDocumentTask(question)) {
-            return "No document is loaded yet. Load one first, then ask a question, request a summary, or select a passage to discuss.";
+            return "No document is open yet. Open one first, then ask a question, request a summary, or select a passage to discuss.";
           }
           return "";
         }
@@ -32000,14 +32323,20 @@ Return JSON only.`;
 
         // Try a single endpoint; returns the fetch Response on success.
         async function tryFetch(url, body, headers, providerLabel) {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: Object.assign(
-              { "Content-Type": "application/json" },
-              headers || {},
-            ),
-            body: JSON.stringify(body),
-          });
+          let response;
+          try {
+            response = await fetch(url, {
+              method: "POST",
+              headers: Object.assign(
+                { "Content-Type": "application/json" },
+                headers || {},
+              ),
+              body: JSON.stringify(body),
+            });
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+            throw window.MarkVAiHelp.problemError("network", error.message);
+          }
           if (!response.ok) {
             throw await buildProviderError(response, providerLabel || "LLM");
           }
@@ -32022,11 +32351,16 @@ Return JSON only.`;
           if (!model && typeof window.markvResolveOllamaModel === "function") {
             // No model chosen yet: use (and remember) an installed one.
             const resolved = await window.markvResolveOllamaModel();
-            if (resolved.error) throw new Error(resolved.error);
+            if (resolved.error) {
+              throw window.MarkVAiHelp.problemError(
+                resolved.code,
+                resolved.error,
+              );
+            }
             model = resolved.model;
           }
           if (!model) {
-            throw new Error("Choose an Ollama model in Settings.");
+            throw window.MarkVAiHelp.problemError("ollama-no-models");
           }
           const body = {
             model: model,
@@ -32037,18 +32371,7 @@ Return JSON only.`;
             body.format = opts.format;
           }
 
-          // Build a list of endpoints to try.
-          // Browsers treat "localhost" and "127.0.0.1" as different origins;
-          // Ollama may accept one but not the other depending on OLLAMA_ORIGINS.
-          const endpoints = [endpoint];
-          if (endpoint.includes("localhost")) {
-            endpoints.push(endpoint.replace("localhost", "127.0.0.1"));
-          } else if (endpoint.includes("127.0.0.1")) {
-            endpoints.push(endpoint.replace("127.0.0.1", "localhost"));
-          }
-
-          let lastErr = null;
-          for (const ep of endpoints) {
+          for (const ep of window.MarkVAiHelp.ollamaEndpoints(endpoint)) {
             try {
               const resp = await tryFetch(
                 ep + "/api/chat",
@@ -32063,22 +32386,20 @@ Return JSON only.`;
               }
               return resp;
             } catch (err) {
-              lastErr = err;
+              // Only a request that got no answer is worth another address.
+              if (err.code !== "network") throw err;
             }
           }
 
-          // If we get here, all endpoints failed — it's almost certainly CORS.
-          const isCors =
-            lastErr &&
-            (lastErr.message === "Failed to fetch" ||
-              lastErr.message === "Load failed" ||
-              lastErr.message.includes("NetworkError") ||
-              lastErr.message.includes("network"));
-
-          if (isCors) {
-            throw new Error("CORS_BLOCKED");
-          }
-          throw lastErr;
+          throw window.MarkVAiHelp.problemError(
+            await window.MarkVAiHelp.diagnoseOllama({
+              endpoint: endpoint,
+              origin: window.location.origin,
+              platform: window.MarkVAiHelp.detectPlatform(navigator),
+              permissions: navigator.permissions,
+              fetch: window.fetch.bind(window),
+            }),
+          );
         }
 
         async function parseOllamaContent(response) {
@@ -32136,9 +32457,7 @@ Return JSON only.`;
           const opts = options || {};
           const apiKey = hosted.keyInput.value.trim();
           if (!apiKey) {
-            throw new Error(
-              hosted.label + " API key is missing. Add it in AI settings.",
-            );
+            throw window.MarkVAiHelp.problemError("key-missing");
           }
           const model = getHostedModel(provider);
           const body = {
@@ -32216,7 +32535,7 @@ Return JSON only.`;
                 window.markvReportLlmHealth(
                   provider,
                   false,
-                  error && error.message,
+                  describeAiError(error, provider).title,
                 );
               }
               throw error;
@@ -32459,38 +32778,54 @@ Return JSON only.`;
             : streamOllamaResponse(response, msgDiv);
         }
 
-        function renderChatError(err) {
-          if (err.message === "CORS_BLOCKED") {
-            return (
-              "<b>Connection blocked (CORS)</b><br><br>" +
-              "Ollama is running but the browser is blocking the request. " +
-              "You need to restart Ollama with CORS allowed:<br><br>" +
-              '<code style="background:var(--code-bg);padding:3px 6px;border-radius:4px;font-size:12px;">' +
-              "OLLAMA_ORIGINS=* ollama serve" +
-              "</code><br><br>" +
-              "Or on macOS with the Ollama app:<br>" +
-              '<code style="background:var(--code-bg);padding:3px 6px;border-radius:4px;font-size:12px;">' +
-              'launchctl setenv OLLAMA_ORIGINS "*"' +
-              "</code><br>" +
-              "then restart the Ollama app."
-            );
+        function describeAiError(error, provider) {
+          const id = provider || getCurrentLlmSettings().provider;
+          return window.MarkVAiHelp.describe(
+            window.MarkVAiHelp.classify(error, id, navigator.onLine),
+            {
+              provider: id,
+              origin: window.location.origin,
+              platform: window.MarkVAiHelp.detectPlatform(navigator),
+              model: HOSTED_LLM[id]
+                ? getHostedModel(id)
+                : ollamaModelInput.value.trim(),
+              retryMs:
+                typeof window.markvGetLlmRetryMs === "function"
+                  ? window.markvGetLlmRetryMs(error)
+                  : 0,
+              detail: error && error.message,
+            },
+          );
+        }
+        window.markvDescribeAiError = describeAiError;
+
+        function openAiSettings(returnFocusTo) {
+          if (typeof window.__openGlobalSettings === "function") {
+            window.__openGlobalSettings({ returnFocusTo: returnFocusTo });
           }
-          const settings = getCurrentLlmSettings();
-          if (HOSTED_LLM[settings.provider]) {
-            return escapeChatHtml(
-              "Error: " +
-                err.message +
-                "\n\nCheck your " +
-                HOSTED_LLM[settings.provider].label +
-                " API key and model in AI settings.",
-            ).replace(/\n/g, "<br>");
-          }
-          return escapeChatHtml(
-            "Error: " +
-              err.message +
-              "\n\nMake sure Ollama is running at " +
-              endpointInput.value.trim(),
-          ).replace(/\n/g, "<br>");
+        }
+
+        // A failed question keeps its place in the chat, with a way on.
+        function showChatProblem(error, question) {
+          const problem = describeAiError(error);
+          const wrap = document.createElement("div");
+          wrap.className = "chat-msg chat-problem";
+          wrap.appendChild(
+            window.MarkVAiHelp.render(document, problem, {
+              retry: function () {
+                if (isSending) return;
+                wrap.remove();
+                // The button is gone; keep keyboard focus in the chat.
+                messagesDiv.focus({ preventScroll: true });
+                sendQuestion(question, { retry: true });
+              },
+              provider: openAiSettings,
+              settings: openAiSettings,
+              announce: announceChatUpdate,
+            }),
+          );
+          appendChatMessage(wrap);
+          announceChatUpdate(window.MarkVAiHelp.summarize(problem));
         }
 
         function buildSystemPrompt(question, retrieval) {
@@ -32536,13 +32871,20 @@ Return JSON only.`;
         // ---- Send question ----
         let isSending = false;
 
-        async function sendQuestion(question) {
+        async function sendQuestion(question, options) {
           if (isSending || !question.trim()) return;
           isSending = true;
           sendBtn.disabled = true;
           syncHistoryWithCurrentDocument();
 
-          addMessage(question, "user");
+          // Only the newest problem can be retried.
+          messagesDiv
+            .querySelectorAll(".chat-problem .ai-help__actions")
+            .forEach(function (row) {
+              row.remove();
+            });
+          if (!(options && options.retry)) addMessage(question, "user");
+          chatHelp.hidden = true;
 
           const retrieval = getRelevantContext(question, 5);
           const localReply = getLocalAssistantReply(
@@ -32575,9 +32917,8 @@ Return JSON only.`;
               answer || typingDiv.textContent || "Assistant replied.",
             );
           } catch (err) {
-            typingDiv.className = "chat-msg system";
-            typingDiv.innerHTML = renderChatError(err);
-            announceChatUpdate(typingDiv.textContent || "Chat error");
+            typingDiv.remove();
+            showChatProblem(err, question);
           }
 
           isSending = false;
