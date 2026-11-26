@@ -72,3 +72,20 @@ test("image markdown is toolbar and palette only, with no browser-conflicting ke
     false,
   );
 });
+
+test("find and replace uses Mod+F", () => {
+  const registry = require("../assets/shortcut-registry.js");
+  assert.equal(registry.matches({ key: "f", metaKey: true }, "editor.find"), true);
+  assert.equal(registry.matches({ key: "f", metaKey: true, shiftKey: true }, "editor.find"), false);
+});
+
+test("no two shortcuts share the same key combination", () => {
+  const registry = require("../assets/shortcut-registry.js");
+  const seen = new Map();
+  for (const s of registry.all()) {
+    if (!s.key) continue;
+    const combo = [s.mod, s.shift, s.alt, String(s.key).toLowerCase()].join("|");
+    assert.ok(!seen.has(combo), `${s.id} clashes with ${seen.get(combo)}`);
+    seen.set(combo, s.id);
+  }
+});

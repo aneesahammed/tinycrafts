@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-faGLAgKMzNU9yc9IhcyEf7BVXZRpyztqYOTW0sFU0Qw=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-KqgHhgfVMOhJ4MQkIuKMFVZ73inDYb+3klpBeeSvOOA=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -39,10 +39,11 @@
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=20"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
-    <script src="assets/shortcut-registry.js?v=3"></script>
+    <script src="assets/shortcut-registry.js?v=4"></script>
     <script src="assets/editor-markdown-actions.js?v=3"></script>
+    <script src="assets/editor-find.js?v=1"></script>
     <script src="assets/command-palette-core.js?v=2"></script>
-    <script src="assets/command-palette-host.js?v=8"></script>
+    <script src="assets/command-palette-host.js?v=9"></script>
     <script src="assets/command-palette.js?v=6"></script>
     <script src="assets/reader-palettes.js?v=6"></script>
     <script src="assets/export-core.js?v=3"></script>
@@ -8195,6 +8196,96 @@
       }
 
       /* Writing wants a live count: it takes the reader dock's slot. */
+      /* Find bar: on demand in Edit and Split only, gone otherwise. */
+      .editor-pane {
+        position: relative;
+      }
+      .find-bar {
+        position: absolute;
+        top: 12px;
+        right: max(16px, calc((100% - 820px) / 2));
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        max-width: calc(100% - 32px);
+        padding: 6px;
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        background: var(--bg-raised);
+        box-shadow: var(--shadow-md);
+        font: 400 13px/1.3 var(--font-sans);
+        color: var(--fg-default);
+      }
+      .find-bar[hidden] {
+        display: none;
+      }
+      .find-bar__input {
+        width: 150px;
+        height: 28px;
+        padding: 0 8px;
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        background: var(--bg-canvas);
+        color: var(--fg-default);
+        font: inherit;
+      }
+      .find-bar__input:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 0;
+      }
+      .find-bar__toggle,
+      .find-bar__btn {
+        height: 28px;
+        min-width: 28px;
+        padding: 0 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--fg-muted);
+        font: 500 12px/1 var(--font-sans);
+        cursor: pointer;
+      }
+      .find-bar__toggle {
+        font-family: var(--font-mono);
+      }
+      .find-bar__toggle:hover,
+      .find-bar__btn:hover {
+        background: var(--bg-subtle);
+        color: var(--fg-default);
+      }
+      .find-bar__toggle[aria-pressed="true"] {
+        border-color: var(--border-strong);
+        background: var(--bg-subtle);
+        color: var(--accent-fg);
+      }
+      .find-bar__toggle:focus-visible,
+      .find-bar__btn:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 1px;
+      }
+      .find-bar__count {
+        min-width: 64px;
+        color: var(--fg-muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .find-bar__count.is-error {
+        color: var(--fg-default);
+      }
+      @media (max-width: 640px) {
+        .find-bar {
+          left: 16px;
+          right: 16px;
+        }
+        .find-bar__input {
+          flex: 1 1 120px;
+          width: auto;
+        }
+      }
+
       .editor-pane .word-count {
         position: fixed;
         left: calc(50% + var(--lib-inset, 0px) / 2);
@@ -9685,6 +9776,18 @@
 
       <main class="main" id="main">
         <section class="editor-pane" aria-labelledby="editorLabel">
+          <div id="findBar" class="find-bar" role="search" aria-label="Find and replace" hidden>
+            <input id="findInput" class="find-bar__input" type="text" aria-label="Find" placeholder="Find" spellcheck="false" autocomplete="off" />
+            <input id="replaceInput" class="find-bar__input" type="text" aria-label="Replace" placeholder="Replace" spellcheck="false" autocomplete="off" />
+            <button id="findCaseBtn" class="find-bar__toggle" type="button" aria-pressed="false" title="Match case">Aa</button>
+            <button id="findRegexBtn" class="find-bar__toggle" type="button" aria-pressed="false" title="Regular expression">.*</button>
+            <span id="findCount" class="find-bar__count" aria-live="polite"></span>
+            <button id="findPrevBtn" class="find-bar__btn" type="button" aria-label="Previous match" title="Previous (Shift+Enter)">&#8593;</button>
+            <button id="findNextBtn" class="find-bar__btn" type="button" aria-label="Next match" title="Next (Enter)">&#8595;</button>
+            <button id="replaceOneBtn" class="find-bar__btn" type="button">Replace</button>
+            <button id="replaceAllBtn" class="find-bar__btn" type="button">All</button>
+            <button id="findCloseBtn" class="find-bar__btn" type="button" aria-label="Close find" title="Close (Esc)">&#215;</button>
+          </div>
           <label id="editorLabel" class="visually-hidden" for="editor"
             >Markdown editor</label
           >
@@ -27646,6 +27749,201 @@ Return JSON only.`;
           insertImageFromFile(file);
         });
 
+        // Find and replace: an on-demand bar over the editor (Edit, Split).
+        const findState = { matches: [], index: -1, error: null, note: "" };
+
+        function findBarEl(id) {
+          return document.getElementById(id);
+        }
+
+        function getFindOptions() {
+          return {
+            caseSensitive: findBarEl("findCaseBtn").getAttribute("aria-pressed") === "true",
+            regex: findBarEl("findRegexBtn").getAttribute("aria-pressed") === "true",
+          };
+        }
+
+        function renderFindCount() {
+          const count = findBarEl("findCount");
+          const query = findBarEl("findInput").value;
+          const total = findState.matches.length;
+          const finder = window.MarkVEditorFind;
+          let text = "";
+          if (findState.note) text = findState.note;
+          else if (findState.error) text = "Invalid pattern";
+          else if (!query) text = "";
+          else if (!total) text = "No results";
+          else {
+            const shown = total >= finder.MAX_MATCHES ? total + "+" : String(total);
+            text = findState.index >= 0 ? findState.index + 1 + " of " + shown : shown + " found";
+          }
+          count.textContent = text;
+          count.title = findState.error || "";
+          count.classList.toggle("is-error", Boolean(findState.error));
+        }
+
+        function refreshFindMatches() {
+          const finder = window.MarkVEditorFind;
+          if (!finder) return;
+          const result = finder.findMatches(
+            els.editor.value,
+            findBarEl("findInput").value,
+            getFindOptions(),
+          );
+          findState.matches = result.matches;
+          findState.error = result.error;
+          const start = els.editor.selectionStart;
+          const end = els.editor.selectionEnd;
+          findState.index = findState.matches.findIndex(function (match) {
+            return match.start === start && match.end === end;
+          });
+          renderFindCount();
+        }
+
+        function selectFindMatch(index) {
+          const match = findState.matches[index];
+          if (!match) return;
+          findState.index = index;
+          findState.note = "";
+          scrollEditorToSourceOffset(match.start, true);
+          els.editor.setSelectionRange(match.start, match.end);
+          syncEditorSelectionState();
+          renderFindCount();
+        }
+
+        function stepFind(direction) {
+          refreshFindMatches();
+          const finder = window.MarkVEditorFind;
+          const caret = direction < 0 ? els.editor.selectionStart : els.editor.selectionEnd;
+          selectFindMatch(finder.nextMatchIndex(findState.matches, caret, direction));
+        }
+
+        function openFindBar() {
+          const bar = findBarEl("findBar");
+          if (!bar || !window.MarkVEditorFind) return;
+          if (getMode() === "preview") setMode("edit");
+          const input = findBarEl("findInput");
+          const selected = els.editor.value.slice(
+            els.editor.selectionStart,
+            els.editor.selectionEnd,
+          );
+          if (selected && selected.indexOf("\n") === -1) input.value = selected;
+          bar.hidden = false;
+          findState.note = "";
+          input.focus();
+          input.select();
+          refreshFindMatches();
+        }
+
+        function closeFindBar(restoreFocus) {
+          const bar = findBarEl("findBar");
+          if (!bar || bar.hidden) return;
+          bar.hidden = true;
+          if (restoreFocus) els.editor.focus();
+        }
+        window.__openFindBar = openFindBar;
+
+        function replaceCurrentMatch() {
+          const finder = window.MarkVEditorFind;
+          refreshFindMatches();
+          const match = findState.matches[findState.index];
+          if (!match) {
+            stepFind(1);
+            return;
+          }
+          const text = finder.replacementFor(
+            els.editor.value,
+            match,
+            findBarEl("findInput").value,
+            findBarEl("replaceInput").value,
+            getFindOptions(),
+          );
+          applyEditorMarkdownEdit({
+            start: match.start,
+            end: match.end,
+            text: text,
+            selectionStart: match.start + text.length,
+          });
+          stepFind(1);
+          findBarEl("replaceInput").focus();
+        }
+
+        function replaceAllFindMatches() {
+          const finder = window.MarkVEditorFind;
+          const result = finder.replaceAllMatches(
+            els.editor.value,
+            findBarEl("findInput").value,
+            findBarEl("replaceInput").value,
+            getFindOptions(),
+          );
+          if (result.count) {
+            // One edit, so a single undo restores everything.
+            applyEditorMarkdownEdit({
+              start: result.start,
+              end: result.end,
+              text: result.text,
+              selectionStart: result.start,
+              selectionEnd: result.start + result.text.length,
+            });
+          }
+          refreshFindMatches();
+          findState.note = result.error ? "" : "Replaced " + result.count;
+          renderFindCount();
+          findBarEl("replaceInput").focus();
+        }
+
+        (function wireFindBar() {
+          const bar = findBarEl("findBar");
+          if (!bar) return;
+          findBarEl("findInput").addEventListener("input", function () {
+            findState.note = "";
+            refreshFindMatches();
+          });
+          ["findCaseBtn", "findRegexBtn"].forEach(function (id) {
+            findBarEl(id).addEventListener("click", function () {
+              const button = findBarEl(id);
+              button.setAttribute(
+                "aria-pressed",
+                button.getAttribute("aria-pressed") === "true" ? "false" : "true",
+              );
+              findState.note = "";
+              refreshFindMatches();
+            });
+          });
+          findBarEl("findPrevBtn").addEventListener("click", function () {
+            stepFind(-1);
+          });
+          findBarEl("findNextBtn").addEventListener("click", function () {
+            stepFind(1);
+          });
+          findBarEl("replaceOneBtn").addEventListener("click", replaceCurrentMatch);
+          findBarEl("replaceAllBtn").addEventListener("click", replaceAllFindMatches);
+          findBarEl("findCloseBtn").addEventListener("click", function () {
+            closeFindBar(true);
+          });
+          bar.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              closeFindBar(true);
+              return;
+            }
+            if (event.key !== "Enter" || isEditorCompositionEvent(event)) return;
+            if (event.target === findBarEl("findInput")) {
+              event.preventDefault();
+              stepFind(event.shiftKey ? -1 : 1);
+              findBarEl("findInput").focus();
+            } else if (event.target === findBarEl("replaceInput")) {
+              event.preventDefault();
+              if (event.metaKey || event.ctrlKey) replaceAllFindMatches();
+              else replaceCurrentMatch();
+            }
+          });
+          els.editor.addEventListener("input", function () {
+            if (!bar.hidden) refreshFindMatches();
+          });
+        })();
+
         ["click", "keyup", "select"].forEach(function (eventName) {
           els.editor.addEventListener(eventName, syncEditorSelectionState);
         });
@@ -29283,6 +29581,7 @@ Return JSON only.`;
         }
 
         function setMode(mode) {
+          if (mode === "preview") closeFindBar(false);
           const previous = getMode();
           const wasEdit = previous !== "preview";
           if (mode === "split" && !splitQuery.matches) mode = "edit";
@@ -29696,6 +29995,12 @@ Return JSON only.`;
               e.preventDefault();
               addHighlightFromSelection();
             }
+            return;
+          }
+
+          if (shortcutMatches(e, "editor.find") && getMode() !== "preview") {
+            e.preventDefault();
+            openFindBar();
             return;
           }
 

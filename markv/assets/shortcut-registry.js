@@ -69,6 +69,11 @@
     "editor.image": {
       label: "Image markdown",
     },
+    "editor.find": {
+      label: "Find and replace",
+      key: "f",
+      mod: true,
+    },
   };
 
   function platformText() {

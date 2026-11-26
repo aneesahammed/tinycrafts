@@ -529,6 +529,20 @@
         },
       }),
       createCommand(env, {
+        id: "command:find",
+        title: "Find and replace",
+        subtitle: "Search the source in Edit mode",
+        keywords: ["find", "replace", "search", "regex"],
+        defaultRank: 136,
+        disabled: !hasContent(env) || typeof window.__openFindBar !== "function",
+        disabledReason: !hasContent(env)
+          ? "There is no markdown to search yet."
+          : "Find is unavailable in this build.",
+        run: function () {
+          window.__openFindBar();
+        },
+      }),
+      createCommand(env, {
         id: "command:ai-settings",
         title: "AI settings",
         subtitle: "Configure Ollama or Groq",
