@@ -444,6 +444,37 @@
     });
   }
 
+  // Folders made by tools, not people: installed packages, caches and
+  // build output. Their markdown is vendored docs, never your notes. Other
+  // hidden folders (.planning, .claude, …) are read like any folder.
+  const IGNORED_LIBRARY_FOLDERS = new Set([
+    // Version control
+    ".git", ".hg", ".svn",
+    // JavaScript
+    "node_modules", "bower_components", "jspm_packages", ".yarn", ".pnpm-store",
+    ".npm", ".next", ".nuxt", ".svelte-kit", ".astro", ".angular", ".turbo",
+    ".parcel-cache", ".vercel", ".netlify", ".expo", ".output", ".wrangler",
+    ".serverless", "dist", "build", "coverage",
+    // Python
+    ".venv", "venv", "site-packages", "dist-packages", "__pycache__",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox", ".nox", ".eggs",
+    ".ipynb_checkpoints",
+    // Apple
+    "Pods", "Carthage", "DerivedData", ".build", ".swiftpm",
+    // Rust, JVM, Go, Dart and others
+    "target", ".gradle", ".cxx", "vendor", ".gocache", ".dart_tool", ".pub-cache",
+    ".terraform", "elm-stuff", ".stack-work", "zig-cache", "zig-out",
+    // Caches and trash
+    ".cache", ".Trash",
+  ]);
+
+  function isIgnoredLibraryFolder(name) {
+    return IGNORED_LIBRARY_FOLDERS.has(String(name || ""));
+  }
+
+  // A Python environment has this file at its top, whatever its name.
+  const PYTHON_ENVIRONMENT_MARKER = "pyvenv.cfg";
+
   function compareLibraryNames(a, b) {
     return String(a || "").localeCompare(String(b || ""), undefined, {
       numeric: true,
@@ -677,6 +708,21 @@
     const list = Array.isArray(files) ? files : [];
     let rootName = "";
     const entries = [];
+    const relativePartsOf = function (file) {
+      const rawPath =
+        typeof file.webkitRelativePath === "string" && file.webkitRelativePath
+          ? file.webkitRelativePath
+          : String(file.name || "");
+      return rawPath.split("/").filter(Boolean).slice(1);
+    };
+    const environments = new Set();
+    list.forEach(function (file) {
+      if (!file) return;
+      const parts = relativePartsOf(file);
+      if (parts.length > 1 && parts[parts.length - 1] === PYTHON_ENVIRONMENT_MARKER) {
+        environments.add(parts.slice(0, -1).join("/"));
+      }
+    });
 
     list.forEach(function (file) {
       if (!file) return;
@@ -694,6 +740,11 @@
       const relativePath =
         parts.length > 1 ? parts.slice(1).join("/") : parts[0];
       if (!relativePath || !isSupportedLibraryFile(relativePath)) return;
+      const folders = parts.slice(1, -1);
+      if (folders.some(isIgnoredLibraryFolder)) return;
+      for (let depth = 1; depth <= folders.length; depth += 1) {
+        if (environments.has(folders.slice(0, depth).join("/"))) return;
+      }
 
       entries.push({
         path: relativePath,
@@ -2103,6 +2154,8 @@
     getReaderSaveState,
     groundMindmapGraphWithLibraryContext,
     isSupportedLibraryFile,
+    isIgnoredLibraryFolder,
+    PYTHON_ENVIRONMENT_MARKER,
     layoutReaderConnectionGraph,
     formatLibraryMindmapContextForPrompt,
     normalizeLibraryFolderIdSet,

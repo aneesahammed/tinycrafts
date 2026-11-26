@@ -1192,3 +1192,29 @@ test("parseFrontmatter reports unsupported YAML instead of guessing", () => {
   assert.match(result.error, /indentation/);
   assert.equal(core.parseFrontmatter("# No frontmatter").present, false);
 });
+
+test("tool folders are skipped, people's hidden folders are kept", () => {
+  const core = require("../assets/library-core.js");
+  for (const name of ["node_modules", ".venv", "venv", "site-packages", "__pycache__", "Pods", "DerivedData", "target", ".git"]) {
+    assert.equal(core.isIgnoredLibraryFolder(name), true, name);
+  }
+  for (const name of [".planning", ".claude", ".github", "skills", "docs", "Target notes"]) {
+    assert.equal(core.isIgnoredLibraryFolder(name), false, name);
+  }
+
+  const file = (path) => ({ webkitRelativePath: "dev/" + path, name: path.split("/").pop() });
+  const { entries } = core.prepareImportedLibraryEntries([
+    file("skills/ui-skills/README.md"),
+    file(".planning/PLAN.md"),
+    file("app/node_modules/pkg/README.md"),
+    file("app/.venv/lib/python3.12/site-packages/x/README.md"),
+    // A Python environment with an unusual name is found by its marker.
+    file("tools/py312/pyvenv.cfg"),
+    file("tools/py312/lib/README.md"),
+    file("tools/notes.md"),
+  ]);
+  assert.deepEqual(
+    entries.map((entry) => entry.path),
+    ["skills/ui-skills/README.md", ".planning/PLAN.md", "tools/notes.md"],
+  );
+});

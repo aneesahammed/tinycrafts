@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-TCMf+UBhkLPEc0IDnWbAAmOJQ0+8Vga/LcmY41DT288=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-QjgbxhdK9LcyzaEvxhMNui6B7ch5Zr83jkx/PZ6pmuM=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -37,7 +37,7 @@
     <link rel="stylesheet" href="assets/welcome.css?v=5" />
 
     <script src="assets/analytics.js"></script>
-    <script src="assets/library-core.js?v=18"></script>
+    <script src="assets/library-core.js?v=19"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=3"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
@@ -6462,6 +6462,13 @@
       }
       .lib-toggle-all[data-mode="collapse"] path {
         transform: scaleY(-1);
+      }
+      .lib-folder-note {
+        margin: 2px 12px 8px 30px;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--fg-muted);
+        text-wrap: pretty;
       }
       .lib-supported-note {
         margin: 2px 18px 10px;
@@ -14039,22 +14046,21 @@ Drop a .md file anywhere on the page, or open one from Files."
         const UNTITLED_DRAFT_STORE = "drafts";
         const UNTITLED_DRAFT_BACKUP_KEY = "md-viewer-untitled-drafts-backup";
         const LIBRARY_LIMITS = Object.freeze({
-          maxDepth: 12,
-          maxFiles: 2000,
+          maxDepth: 20,
+          // A folder opened with direct access is read on demand, so it can
+          // be large. Past this, the Files list and the first Connections
+          // or Mindmap index (which read every file once) get slow.
+          maxFiles: 10000,
+          // Safari and Firefox store a copy of every file, so keep those
+          // snapshots smaller.
+          maxSnapshotFiles: 2000,
           maxFolders: 12,
           yieldEvery: 40,
+          // Folders read at once during a scan.
+          scanConcurrency: 8,
         });
         const MAX_SHARE_URL_LENGTH = 32768;
         const LONG_SHARE_URL_WARNING_LENGTH = 12000;
-        const LIBRARY_IGNORED_NAMES = new Set([
-          ".git",
-          "node_modules",
-          ".next",
-          "dist",
-          "build",
-          ".turbo",
-          ".DS_Store",
-        ]);
         const MAX_HIGHLIGHTS_PER_DOCUMENT = 200;
         const MIN_HIGHLIGHT_SELECTION_LENGTH = 3;
         const HIGHLIGHT_CONTEXT_WINDOW = 32;
@@ -19385,6 +19391,9 @@ Return JSON only.`;
         }
 
         function yieldToUi() {
+          if (window.scheduler && typeof window.scheduler.yield === "function") {
+            return window.scheduler.yield();
+          }
           return new Promise(function (resolve) {
             window.setTimeout(resolve, 0);
           });
@@ -19519,49 +19528,94 @@ Return JSON only.`;
             truncated: false,
           };
 
-          async function walk(handle, parentPath, depth) {
-            if (folder.scanRevision !== revision) {
-              throw new Error("scan-stale");
-            }
-            if (depth > LIBRARY_LIMITS.maxDepth) {
-              result.truncated = true;
-              return;
-            }
+          // Breadth first, several folders at a time: shallow files are
+          // found first, so if the limit is reached every top-level folder
+          // is still represented.
+          const queue = [{ handle: folder.handle, path: "", depth: 0 }];
+          let lastYield = performance.now();
 
-            let index = 0;
-            for await (const [name, childHandle] of handle.entries()) {
+          async function readFolder(item) {
+            const files = [];
+            const folders = [];
+            for await (const [name, childHandle] of item.handle.entries()) {
               if (folder.scanRevision !== revision) {
                 throw new Error("scan-stale");
               }
-              if (LIBRARY_IGNORED_NAMES.has(name)) continue;
-
-              const nextPath = parentPath ? parentPath + "/" + name : name;
               if (childHandle.kind === "directory") {
-                await walk(childHandle, nextPath, depth + 1);
-              } else {
-                if (name.startsWith(".") && !libraryIsSupportedFile(name))
-                  continue;
-                if (!libraryIsSupportedFile(name)) continue;
-                if (result.entries.length >= LIBRARY_LIMITS.maxFiles) {
-                  result.truncated = true;
-                  break;
+                if (!libraryCore.isIgnoredLibraryFolder(name)) {
+                  folders.push([name, childHandle]);
                 }
-                result.entries.push({
-                  kind: "file",
-                  path: nextPath,
-                });
-                result.fileHandlesByPath.set(nextPath, childHandle);
+              } else if (name === libraryCore.PYTHON_ENVIRONMENT_MARKER) {
+                return; // A Python environment: installed packages only.
+              } else if (libraryIsSupportedFile(name)) {
+                files.push([name, childHandle]);
               }
+            }
+            for (const [name, childHandle] of files) {
+              if (result.entries.length >= LIBRARY_LIMITS.maxFiles) {
+                result.truncated = true;
+                return;
+              }
+              const path = item.path ? item.path + "/" + name : name;
+              result.entries.push({ kind: "file", path: path });
+              result.fileHandlesByPath.set(path, childHandle);
+            }
+            for (const [name, childHandle] of folders) {
+              if (item.depth + 1 > LIBRARY_LIMITS.maxDepth) {
+                result.tooDeep = true;
+                break;
+              }
+              queue.push({
+                handle: childHandle,
+                path: item.path ? item.path + "/" + name : name,
+                depth: item.depth + 1,
+              });
+            }
+          }
 
-              index += 1;
-              if (index % LIBRARY_LIMITS.yieldEvery === 0) {
+          async function scanWorker() {
+            for (;;) {
+              if (folder.scanRevision !== revision) {
+                throw new Error("scan-stale");
+              }
+              if (result.truncated) return;
+              const item = queue.shift();
+              if (!item) {
+                // Another worker may still be reading a folder that will
+                // add more. Wait for it rather than finishing early.
+                if (!active) return;
+                await new Promise(function (resolve) {
+                  waiting.push(resolve);
+                });
+                continue;
+              }
+              active += 1;
+              try {
+                await readFolder(item);
+              } catch (error) {
+                // One unreadable subfolder shouldn't hide the rest.
+                if (item.depth === 0 || (error && error.message === "scan-stale")) {
+                  throw error;
+                }
+              } finally {
+                active -= 1;
+                waiting.splice(0).forEach(function (resolve) {
+                  resolve();
+                });
+              }
+              if (performance.now() - lastYield > 12) {
+                lastYield = performance.now();
                 await yieldToUi();
               }
             }
           }
+          let active = 0;
+          const waiting = [];
 
           try {
-            await walk(folder.handle, "", 0);
+            await Promise.all(
+              Array.from({ length: LIBRARY_LIMITS.scanConcurrency }, scanWorker),
+            );
           } catch (error) {
             if (error && error.message === "scan-stale") {
               return;
@@ -19590,8 +19644,14 @@ Return JSON only.`;
           folder.lastScannedAt = Date.now();
           folder.status = tree.length ? "ready" : "empty";
           folder.note = result.truncated
-            ? "Showing a bounded slice of this folder."
-            : tree.length
+            ? "Showing the first " +
+              result.entries.length.toLocaleString() +
+              " files. Open a smaller folder to see the rest."
+            : result.tooDeep
+              ? "Folders more than " +
+                LIBRARY_LIMITS.maxDepth +
+                " levels deep are skipped."
+              : tree.length
               ? ""
               : "No markdown files found in this folder.";
 
@@ -22637,6 +22697,9 @@ Return JSON only.`;
         function renderLibraryFolderContent(folder) {
           if (folder.status === "ready") {
             return (
+              (folder.note
+                ? '<p class="lib-folder-note">' + escapeHtml(folder.note) + "</p>"
+                : "") +
               '<div class="lib-tree">' +
               renderLibraryTreeNodes(folder.tree, folder.id, 0) +
               "</div>"
@@ -23900,7 +23963,7 @@ Return JSON only.`;
           const seenPaths = new Set();
 
           for (const file of selectedFiles) {
-            if (snapshotFiles.length >= LIBRARY_LIMITS.maxFiles) {
+            if (snapshotFiles.length >= LIBRARY_LIMITS.maxSnapshotFiles) {
               break;
             }
             const relativePath = getImportedLibraryRelativePath(file);
