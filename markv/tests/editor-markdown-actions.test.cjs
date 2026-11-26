@@ -124,3 +124,37 @@ test("image markdown inserts alt text and selects the URL", () => {
   assert.equal(result.value, "![diagram](https://)");
   assert.equal(result.value.slice(result.selectionStart, result.selectionEnd), "https://");
 });
+
+test("pickPastedImage ignores clipboards with text", () => {
+  const img = { kind: "file", type: "image/png", getAsFile: () => ({ name: "image.png" }) };
+  const txt = { kind: "string", type: "text/plain", getAsFile: () => null };
+  assert.equal(actions.pickPastedImage([txt, img]), null);
+  assert.equal(actions.pickPastedImage([img]).name, "image.png");
+  assert.equal(actions.pickPastedImage([{ kind: "file", type: "application/pdf", getAsFile: () => ({}) }]), null);
+});
+
+test("buildImageAssetName timestamps generic clipboard names and slugs real ones", () => {
+  const now = new Date(2026, 10, 26, 14, 32, 5);
+  const n = actions.buildImageAssetName;
+  assert.equal(n("image.png", "image/png", now, new Set()), "image-20261126-143205.png");
+  assert.equal(n("", "image/jpeg", now, new Set()), "image-20261126-143205.jpg");
+  assert.equal(n("My Photo.PNG", "image/png", now, new Set()), "my-photo.png");
+  assert.equal(n("My Photo.PNG", "image/png", now, new Set(["my-photo.png"])), "my-photo-2.png");
+});
+
+test("buildImageInsertEdit inserts on its own line with caret in alt text", () => {
+  const r = apply("one two", actions.buildImageInsertEdit("one two", 3, 3, "assets/a.png"));
+  assert.equal(r.value, "one\n![](assets/a.png)\n two");
+  assert.equal(r.selectionStart, "one\n![".length);
+});
+
+test("buildImageInsertEdit adds no extra breaks at line edges and replaces the selection", () => {
+  const r = apply("a\nsel\nb", actions.buildImageInsertEdit("a\nsel\nb", 2, 5, "assets/x.png"));
+  assert.equal(r.value, "a\n![](assets/x.png)\nb");
+});
+
+test("pickPastedImage accepts browser Copy Image (html without plain text)", () => {
+  const img = { kind: "file", type: "image/png", getAsFile: () => ({ name: "image.png" }) };
+  const html = { kind: "string", type: "text/html", getAsFile: () => null };
+  assert.equal(actions.pickPastedImage([html, img]).name, "image.png");
+});

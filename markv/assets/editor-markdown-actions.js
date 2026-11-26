@@ -301,10 +301,73 @@
     );
   }
 
+  const IMAGE_EXTENSIONS = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/svg+xml": "svg",
+  };
+  const GENERIC_IMAGE_NAME = /^(?:image\.(?:png|jpe?g|gif|webp|svg))?$/i;
+
+  // Clipboards from Word or web pages carry text plus an image preview;
+  // the text is what the person meant to paste.
+  function pickPastedImage(items) {
+    const list = Array.from(items || []);
+    if (list.some(function (item) {
+      return item && item.kind === "string" && item.type === "text/plain";
+    })) {
+      return null;
+    }
+    for (const item of list) {
+      if (item && item.kind === "file" && IMAGE_EXTENSIONS[item.type]) {
+        return item.getAsFile();
+      }
+    }
+    return null;
+  }
+
+  function buildImageAssetName(fileName, mimeType, now, taken) {
+    const name = String(fileName || "");
+    const extension =
+      IMAGE_EXTENSIONS[mimeType] ||
+      (name.match(/\.([a-z0-9]+)$/i) || [, "png"])[1].toLowerCase();
+    let stem;
+    if (GENERIC_IMAGE_NAME.test(name)) {
+      const pad = function (n) { return String(n).padStart(2, "0"); };
+      stem =
+        "image-" + now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) +
+        "-" + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+    } else {
+      stem =
+        name.replace(/\.[^.]*$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "image";
+    }
+    let candidate = stem + "." + extension;
+    for (let index = 2; taken && taken.has(candidate); index += 1) {
+      candidate = stem + "-" + index + "." + extension;
+    }
+    return candidate;
+  }
+
+  function buildImageInsertEdit(value, start, end, linkPath) {
+    const text = String(value || "");
+    const from = Math.max(0, Math.min(start || 0, text.length));
+    const to = Math.max(from, Math.min(end || from, text.length));
+    const before = from > 0 && text.charAt(from - 1) !== "\n" ? "\n" : "";
+    const after = to < text.length && text.charAt(to) !== "\n" ? "\n" : "";
+    const replacement = before + "![](" + linkPath + ")" + after;
+    const caret = from + before.length + 2;
+    return makeEdit(from, to, replacement, caret, caret);
+  }
+
   return {
+    buildImageAssetName: buildImageAssetName,
+    buildImageInsertEdit: buildImageInsertEdit,
     handleEnter: handleEnter,
     handleTab: handleTab,
     insertImage: insertImage,
+    pickPastedImage: pickPastedImage,
     lineBounds: lineBounds,
     toggleCodeBlock: toggleCodeBlock,
     toggleInline: toggleInline,

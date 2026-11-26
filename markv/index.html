@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-JjPdEqnbN6Pw+tofhKUgJiAPqx+aFJXxq0GLfNlO91I=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-wH6jcNmU+0rxpwEgyq2iPTnUrPra26JXMmgaCUqLQ68=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -40,7 +40,7 @@
     <script src="assets/library-core.js?v=20"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=3"></script>
-    <script src="assets/editor-markdown-actions.js?v=2"></script>
+    <script src="assets/editor-markdown-actions.js?v=3"></script>
     <script src="assets/command-palette-core.js?v=2"></script>
     <script src="assets/command-palette-host.js?v=7"></script>
     <script src="assets/command-palette.js?v=6"></script>
@@ -23184,7 +23184,7 @@ Return JSON only.`;
           } else if (!persistentSupported && importSupported) {
             els.librarySupportedNote.hidden = false;
             els.librarySupportedNote.textContent =
-              "This browser imports a folder snapshot rather than keeping a live folder connection.";
+              "This browser imports a folder snapshot rather than keeping a live folder connection, so folder images and pasting images aren't available.";
           } else {
             els.librarySupportedNote.hidden = true;
             els.librarySupportedNote.textContent = "";
@@ -27539,6 +27539,102 @@ Return JSON only.`;
           }
         });
 
+        function isLiveLibraryDocument() {
+          return Boolean(
+            state.libraryCurrentFolderHandle && state.libraryActiveFilePath,
+          );
+        }
+
+        // Writes the image into an assets/ folder beside the open document
+        // and returns the link to insert, or null after telling the person why.
+        async function saveImageIntoLibrary(file) {
+          const folderHandle = state.libraryCurrentFolderHandle;
+          const docPath = state.libraryActiveFilePath;
+          if (!folderHandle || !docPath) return null;
+          let permission = "granted";
+          try {
+            if (typeof folderHandle.queryPermission === "function") {
+              permission = await folderHandle.queryPermission({ mode: "readwrite" });
+            }
+            if (
+              permission !== "granted" &&
+              typeof folderHandle.requestPermission === "function"
+            ) {
+              permission = await folderHandle.requestPermission({ mode: "readwrite" });
+            }
+          } catch (_error) {
+            permission = "denied";
+          }
+          if (permission !== "granted") {
+            setStatus("MarkV needs permission to save images into this folder.", {
+              announce: true,
+            });
+            return null;
+          }
+          try {
+            let dir = folderHandle;
+            const parts = docPath.split("/").slice(0, -1);
+            for (const part of parts) dir = await dir.getDirectoryHandle(part);
+            const assets = await dir.getDirectoryHandle("assets", { create: true });
+            const taken = new Set();
+            for await (const name of assets.keys()) taken.add(name);
+            const name = window.MarkVEditorMarkdownActions.buildImageAssetName(
+              file.name,
+              file.type,
+              new Date(),
+              taken,
+            );
+            const handle = await assets.getFileHandle(name, { create: true });
+            const writable = await handle.createWritable();
+            try {
+              await writable.write(file);
+              await writable.close();
+            } catch (error) {
+              await writable.abort().catch(function () {});
+              throw error;
+            }
+            return "assets/" + name;
+          } catch (error) {
+            console.warn("[images] save failed", error);
+            setStatus("Couldn't save the image into this folder.", { announce: true });
+            return null;
+          }
+        }
+
+        async function insertImageFromFile(file, options) {
+          const link = await saveImageIntoLibrary(file);
+          if (!link) return false;
+          const edit = window.MarkVEditorMarkdownActions.buildImageInsertEdit(
+            els.editor.value,
+            els.editor.selectionStart,
+            els.editor.selectionEnd,
+            link,
+          );
+          applyEditorMarkdownEdit(edit);
+          if (options && options.caretAfter) {
+            const end = edit.start + edit.text.length;
+            els.editor.setSelectionRange(end, end);
+          }
+          return true;
+        }
+
+        els.editor.addEventListener("paste", function (event) {
+          const actions = window.MarkVEditorMarkdownActions;
+          if (!actions || !event.clipboardData) return;
+          const file = actions.pickPastedImage(
+            Array.from(event.clipboardData.items || []),
+          );
+          if (!file) return;
+          event.preventDefault();
+          if (!isLiveLibraryDocument()) {
+            setStatus("Open this document from a folder in Files to paste images.", {
+              announce: true,
+            });
+            return;
+          }
+          insertImageFromFile(file);
+        });
+
         ["click", "keyup", "select"].forEach(function (eventName) {
           els.editor.addEventListener(eventName, syncEditorSelectionState);
         });
@@ -28346,6 +28442,23 @@ Return JSON only.`;
               );
               return;
             }
+          }
+
+          const images = files.filter(function (item) {
+            return /^image\//.test(item.type);
+          });
+          if (images.length && isEditModeActive()) {
+            if (!isLiveLibraryDocument()) {
+              setStatus("Open this document from a folder in Files to add images.", {
+                announce: true,
+              });
+              return;
+            }
+            // ponytail: sequential writes keep asset names unique without locking
+            for (const image of images) {
+              if (!(await insertImageFromFile(image, { caretAfter: true }))) break;
+            }
+            return;
           }
 
           const text = event.dataTransfer
