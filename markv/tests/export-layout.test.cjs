@@ -35,10 +35,10 @@ function extractBlock(source, needle) {
 }
 
 test("export assets are loaded and precached", () => {
-  assert.match(html, /assets\/export-core\.js\?v=2/);
-  assert.match(html, /assets\/export-host\.js\?v=7/);
-  assert.match(sw, /\.\/assets\/export-core\.js\?v=2/);
-  assert.match(sw, /\.\/assets\/export-host\.js\?v=7/);
+  assert.match(html, /assets\/export-core\.js\?v=3/);
+  assert.match(html, /assets\/export-host\.js\?v=8/);
+  assert.match(sw, /\.\/assets\/export-core\.js\?v=3/);
+  assert.match(sw, /\.\/assets\/export-host\.js\?v=8/);
 });
 
 test("toolbar exposes one export popover with direct pdf and markdown actions", () => {
@@ -46,6 +46,8 @@ test("toolbar exposes one export popover with direct pdf and markdown actions", 
   assert.match(html, /id="exportMenu"/);
   assert.match(html, /id="exportPdfBtn"/);
   assert.match(html, /id="exportMarkdownBtn"/);
+  assert.match(html, /id="exportHtmlBtn"/);
+  assert.match(html, /data-proxy="exportHtmlBtn"/);
   assert.match(html, /data-mv-overflow-section="File"/);
 });
 
@@ -101,6 +103,7 @@ test("export host is registered with command palette and disables busy commands"
   assert.match(html, /exportHost: window\.MarkVExportHost/);
   assert.match(commandHost, /id: "command:export-pdf"/);
   assert.match(commandHost, /id: "command:export-markdown"/);
+  assert.match(commandHost, /id: "command:export-html"/);
   assert.match(commandHost, /exportBusy/);
   assert.match(commandHost, /An export is already being prepared/);
 });
@@ -113,4 +116,10 @@ test("mermaid svg export keeps readable internal styling", () => {
   assert.match(html, /\.label text, text, tspan/);
   assert.match(html, /applyReadableMermaidPalette\(svg\)/);
   assert.match(exportHost, /element\.closest\("svg"\)/);
+});
+
+test("exported documents drop hover-only heading anchors", () => {
+  const clone = exportHost.slice(exportHost.indexOf("function cloneDocumentArticle"));
+  const body = clone.slice(0, clone.indexOf("\n  }\n"));
+  assert.match(body, /\.heading-anchor/);
 });

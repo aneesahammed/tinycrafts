@@ -13,7 +13,7 @@
       const v =
         window.localStorage &&
         window.localStorage.getItem(FORMAT_STORAGE_KEY);
-      return v === "md" ? "md" : "pdf";
+      return v === "md" || v === "html" ? v : "pdf";
     } catch (_error) {
       return "pdf";
     }
@@ -107,6 +107,7 @@
       panel: document.getElementById("exportMenu"),
       pdfButton: document.getElementById("exportPdfBtn"),
       markdownButton: document.getElementById("exportMarkdownBtn"),
+      htmlButton: document.getElementById("exportHtmlBtn"),
     };
   }
 
@@ -246,18 +247,10 @@
     });
   }
 
-  function createPrintRoot(env, baseName) {
+  // Copy of the rendered preview without app-only controls or ids.
+  function cloneDocumentArticle(env) {
     const core = getCore();
-    const existing = document.getElementById("markvExportPrintRoot");
-    if (existing) existing.remove();
-
     const source = env.els && env.els.preview;
-    const root = document.createElement("section");
-    root.id = "markvExportPrintRoot";
-    root.className = "export-print-root";
-    root.setAttribute("aria-label", "Exported document");
-    root.dataset.exportFileName = baseName;
-
     const article = document.createElement("article");
     article.className = "markdown-body export-print-document";
     article.innerHTML = source ? source.innerHTML : "";
@@ -265,16 +258,69 @@
       if (element.closest("svg")) return;
       element.removeAttribute("id");
     });
-    article.querySelectorAll(".mermaid-inline-action, [data-welcome-ui], .welcome-underline").forEach(function (element) {
+    article.querySelectorAll(".mermaid-inline-action, [data-welcome-ui], .welcome-underline, .heading-anchor").forEach(function (element) {
       element.remove();
     });
-    root.appendChild(article);
-
     replaceBrokenImages(source, article);
     if (core) core.markTimedOutMermaidBlocks(article);
+    return article;
+  }
+
+  function createPrintRoot(env, baseName) {
+    const existing = document.getElementById("markvExportPrintRoot");
+    if (existing) existing.remove();
+
+    const root = document.createElement("section");
+    root.id = "markvExportPrintRoot";
+    root.className = "export-print-root";
+    root.setAttribute("aria-label", "Exported document");
+    root.dataset.exportFileName = baseName;
+    root.appendChild(cloneDocumentArticle(env));
 
     document.body.appendChild(root);
     return root;
+  }
+
+  // ponytail: @font-face is skipped; relative font URLs break in a standalone
+  // file and the serif fallback stack applies. Inline fonts as data URIs if asked.
+  function collectExportCss() {
+    const core = getCore();
+    const css = [];
+    const links = [];
+    function keep(rules) {
+      const out = [];
+      Array.from(rules || []).forEach(function (rule) {
+        if (rule.type === 1 && core.isExportableSelector(rule.selectorText)) {
+          out.push(rule.cssText);
+        } else if (rule.type === 4) {
+          const inner = keep(rule.cssRules);
+          if (inner.length) {
+            out.push("@media " + rule.conditionText + " {\n" + inner.join("\n") + "\n}");
+          }
+        }
+      });
+      return out;
+    }
+    Array.from(document.styleSheets).forEach(function (sheet) {
+      let rules = null;
+      try {
+        rules = sheet.cssRules;
+      } catch (_error) {
+        rules = null;
+      }
+      if (rules) css.push.apply(css, keep(rules));
+      else if (sheet.href) links.push(sheet.href);
+    });
+    return { css: css.join("\n"), links: links };
+  }
+
+  function readAsDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { reject(reader.error); };
+      reader.readAsDataURL(blob);
+    });
   }
 
   function removePrintRoot() {
@@ -319,11 +365,13 @@
       setElementDisabled(host.elements.caret, disabled);
       setElementDisabled(host.elements.pdfButton, disabled);
       setElementDisabled(host.elements.markdownButton, disabled);
+      setElementDisabled(host.elements.htmlButton, disabled);
       [
         host.elements.button,
         host.elements.caret,
         host.elements.pdfButton,
         host.elements.markdownButton,
+        host.elements.htmlButton,
       ]
         .filter(Boolean)
         .forEach(function (element) {
@@ -335,22 +383,25 @@
       // row inside the menu, and update the tooltip accordingly.
       const fmt = getLastFormat();
       const isMd = fmt === "md";
+      const formatName = isMd ? "Markdown" : fmt === "html" ? "HTML" : "PDF";
       if (host.elements.label) {
-        host.elements.label.textContent = isMd ? "Export MD" : "Export PDF";
+        host.elements.label.textContent =
+          "Export " + (isMd ? "MD" : formatName);
       }
       if (host.elements.pdfButton) {
-        host.elements.pdfButton.classList.toggle("is-active", !isMd);
+        host.elements.pdfButton.classList.toggle("is-active", fmt === "pdf");
       }
       if (host.elements.markdownButton) {
         host.elements.markdownButton.classList.toggle("is-active", isMd);
+      }
+      if (host.elements.htmlButton) {
+        host.elements.htmlButton.classList.toggle("is-active", fmt === "html");
       }
       if (host.elements.button) {
         host.elements.button.title = host.busy
           ? "An export is already being prepared"
           : hasMarkdown(source)
-            ? isMd
-              ? "Export as Markdown"
-              : "Export as PDF"
+            ? "Export as " + formatName
             : "Add markdown content before exporting";
       }
     }
@@ -412,6 +463,64 @@
       hidePanel({ restoreFocus: true });
       setStatus(source, "Markdown export downloaded.", { announce: true });
       return true;
+    }
+
+    async function exportHtml() {
+      const core = getCore();
+      if (!core) return false;
+      if (host.busy) {
+        setStatus(source, "Export is already in progress.", { announce: true });
+        return false;
+      }
+      if (core.isBlankMarkdown(getMarkdown(source))) {
+        setStatus(source, "Add markdown content before exporting.", {
+          announce: true,
+        });
+        return false;
+      }
+      const restore = captureRestoreState(source);
+      const baseName = getBaseName(source);
+      hidePanel({ restoreFocus: true });
+      setBusy(true);
+      setStatus(source, "Preparing HTML export...", { announce: true });
+      try {
+        await preparePreview(source);
+        const article = cloneDocumentArticle(source);
+        await core.inlineBlobImages(
+          article,
+          function (url) {
+            return typeof source.getLibraryImageFile === "function"
+              ? source.getLibraryImageFile(url)
+              : null;
+          },
+          readAsDataUrl,
+        );
+        const styles = collectExportCss();
+        const html = core.buildStandaloneHtml({
+          title: baseName,
+          theme: document.documentElement.dataset.theme || "light",
+          css: styles.css,
+          links: styles.links,
+          bodyHtml: article.innerHTML,
+        });
+        createDownload(
+          core.withExtension(baseName, ".html"),
+          new Blob([html], { type: "text/html;charset=utf-8" }),
+        );
+        setStatus(source, "HTML export downloaded.", { announce: true });
+        return true;
+      } catch (error) {
+        setStatus(
+          source,
+          "HTML export failed: " +
+            (error && error.message ? error.message : String(error)),
+          { announce: true, kind: "error" },
+        );
+        return false;
+      } finally {
+        await restoreState(source, restore);
+        setBusy(false);
+      }
     }
 
     async function exportPdf() {
@@ -508,7 +617,9 @@
       // Main button → directly run the last-used format (no menu).
       if (host.elements.button) {
         host.elements.button.addEventListener("click", function () {
-          if (getLastFormat() === "md") exportMarkdown();
+          const format = getLastFormat();
+          if (format === "md") exportMarkdown();
+          else if (format === "html") exportHtml();
           else exportPdf();
         });
       }
@@ -531,6 +642,13 @@
           setLastFormat("md");
           syncUi();
           exportMarkdown();
+        });
+      }
+      if (host.elements.htmlButton) {
+        host.elements.htmlButton.addEventListener("click", function () {
+          setLastFormat("html");
+          syncUi();
+          exportHtml();
         });
       }
 
@@ -558,6 +676,7 @@
     wireEvents();
 
     return {
+      exportHtml,
       exportMarkdown,
       exportPdf,
       hidePanel,

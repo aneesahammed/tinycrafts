@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-wH6jcNmU+0rxpwEgyq2iPTnUrPra26JXMmgaCUqLQ68=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-faGLAgKMzNU9yc9IhcyEf7BVXZRpyztqYOTW0sFU0Qw=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -42,11 +42,11 @@
     <script src="assets/shortcut-registry.js?v=3"></script>
     <script src="assets/editor-markdown-actions.js?v=3"></script>
     <script src="assets/command-palette-core.js?v=2"></script>
-    <script src="assets/command-palette-host.js?v=7"></script>
+    <script src="assets/command-palette-host.js?v=8"></script>
     <script src="assets/command-palette.js?v=6"></script>
     <script src="assets/reader-palettes.js?v=6"></script>
-    <script src="assets/export-core.js?v=2"></script>
-    <script src="assets/export-host.js?v=7"></script>
+    <script src="assets/export-core.js?v=3"></script>
+    <script src="assets/export-host.js?v=8"></script>
     <script src="assets/csv-sheet.js?v=1"></script>
     <script src="assets/ai-help.js?v=1"></script>
     <script src="assets/pwa.js?v=2"></script>
@@ -8868,6 +8868,10 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" /></svg>
                 <span class="tb-menu__label">Export as PDF</span>
               </button>
+              <button type="button" class="tb-menu__item" role="menuitem" tabindex="-1" data-proxy="exportHtmlBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8.5 8 4.5 12l4 4M15.5 8l4 4-4 4M13.5 6l-3 12" /></svg>
+                <span class="tb-menu__label">Export as HTML</span>
+              </button>
               <button type="button" class="tb-menu__item" role="menuitem" tabindex="-1" data-proxy="exportMarkdownBtn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5.5" width="18" height="13" rx="2.5" /><path d="M7 15V9l2.5 3L12 9v6M17 9v6M15 13l2 2 2-2" /></svg>
                 <span class="tb-menu__label">Export as Markdown</span>
@@ -8992,6 +8996,10 @@
                 <button id="exportPdfBtn" type="button" class="export-option">
                   <span class="export-option__label">PDF</span>
                   <span class="export-option__ext">.pdf</span>
+                </button>
+                <button id="exportHtmlBtn" type="button" class="export-option">
+                  <span class="export-option__label">HTML</span>
+                  <span class="export-option__ext">.html</span>
                 </button>
                 <button
                   id="exportMarkdownBtn"
@@ -17171,6 +17179,7 @@ Return JSON only.`;
           documentReadGeneration: 0,
           handleWriteQueues: new WeakMap(),
           libraryImageUrls: new Map(),
+          libraryImageFiles: new Map(),
           libraryImageFolderId: "",
           lastRenderedContentVersion: -1,
           lastRenderedDocumentToken: "",
@@ -22407,6 +22416,7 @@ Return JSON only.`;
             if (state.libraryActiveFolderId !== folderId) return null;
             const url = URL.createObjectURL(file);
             state.libraryImageUrls.set(key, url);
+            state.libraryImageFiles.set(url, file);
             return url;
           } catch (_error) {
             return null;
@@ -22449,6 +22459,7 @@ Return JSON only.`;
             URL.revokeObjectURL(url);
           });
           state.libraryImageUrls.clear();
+          state.libraryImageFiles.clear();
         }
 
         function readLibraryFileMeta(markdown) {
@@ -29708,6 +29719,9 @@ Return JSON only.`;
 
         if (window.MarkVExportHostFactory) {
           window.MarkVExportHost = window.MarkVExportHostFactory({
+            getLibraryImageFile: function (url) {
+              return state.libraryImageFiles.get(url) || null;
+            },
             state,
             els,
             isEditModeActive,

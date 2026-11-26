@@ -162,8 +162,83 @@
     return pending.length;
   }
 
+  const EXPORTABLE_SELECTOR_PARTS = [
+    ":root",
+    "html",
+    "body",
+    "[data-theme",
+    ".markdown-body",
+    ".hljs",
+    ".katex",
+    ".mermaid",
+  ];
+
+  // Document typography and theme tokens travel; app chrome does not.
+  function isExportableSelector(selectorText) {
+    const text = String(selectorText || "");
+    return EXPORTABLE_SELECTOR_PARTS.some(function (part) {
+      return text.indexOf(part) !== -1;
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function buildStandaloneHtml(input) {
+    const source = input || {};
+    const links = (source.links || [])
+      .map(function (href) {
+        return '<link rel="stylesheet" href="' + escapeHtml(href) + '">';
+      })
+      .join("\n");
+    // "<" as a CSS escape can never close the <style> element early.
+    const css = String(source.css || "").replace(/</g, "\\3c ");
+    return (
+      "<!doctype html>\n" +
+      '<html lang="en" data-theme="' + escapeHtml(source.theme || "light") + '">\n' +
+      "<head>\n" +
+      '<meta charset="utf-8">\n' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
+      "<title>" + escapeHtml(source.title || DEFAULT_BASE_NAME) + "</title>\n" +
+      (links ? links + "\n" : "") +
+      "<style>\n" + css + "\n</style>\n" +
+      "</head>\n" +
+      "<body>\n" +
+      '<main class="markdown-body export-html-document">' +
+      String(source.bodyHtml || "") +
+      "</main>\n" +
+      "</body>\n" +
+      "</html>\n"
+    );
+  }
+
+  // Folder images are blob: URLs that die with the tab, and CSP blocks
+  // fetching them; embed the original file the app already holds instead.
+  async function inlineBlobImages(root, getFile, toDataUrl) {
+    let count = 0;
+    for (const image of Array.from(root.querySelectorAll('img[src^="blob:"]'))) {
+      const file = getFile(image.getAttribute("src"));
+      if (!file) continue;
+      try {
+        image.setAttribute("src", await toDataUrl(file));
+        count += 1;
+      } catch (_error) {
+        /* keep the blob URL; the image shows as missing in the file */
+      }
+    }
+    return count;
+  }
+
   return {
     DEFAULT_BASE_NAME,
+    buildStandaloneHtml,
+    inlineBlobImages,
+    isExportableSelector,
     IMAGE_READY_TIMEOUT_MS,
     MERMAID_READY_TIMEOUT_MS,
     PRINT_DIALOG_FALLBACK_MS,

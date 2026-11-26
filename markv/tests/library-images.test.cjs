@@ -31,6 +31,7 @@ function setup(options) {
         libraryActiveFolderId: "f1",
         libraryImageFolderId: "f1",
         libraryImageUrls: new Map(options.cache || []),
+        libraryImageFiles: new Map((options.cache || []).map(([, url]) => [url, { name: "f" }])),
       },
       libraryKey: (folderId, path) => folderId + "::" + path,
       getLibraryImageUrl: async (folderId, path) => {
@@ -101,4 +102,5 @@ test("hydrate drops cached urls when the folder changes", () => {
   app.hydrateLibraryImages(fakeRoot([]));
   assert.deepEqual(revoked, ["blob:old"]);
   assert.equal(app.state.libraryImageUrls.size, 0);
+  assert.equal(app.state.libraryImageFiles.size, 0);
 });

@@ -116,3 +116,42 @@ test("readiness helpers count pending mermaid and images", () => {
     broken: 1,
   });
 });
+
+test("isExportableSelector keeps document and theme rules only", () => {
+  const ok = exportCore.isExportableSelector;
+  for (const s of [":root", "[data-theme=\"dark\"]", ".markdown-body h2", ".hljs-keyword", ".katex .mfrac", "html", "body"])
+    assert.equal(ok(s), true, s);
+  for (const s of [".toolbar", "#libraryDrawer .row", ".command-palette"]) assert.equal(ok(s), false, s);
+});
+
+test("buildStandaloneHtml neutralises closing tags", () => {
+  const html = exportCore.buildStandaloneHtml({ title: "A </title><script>x</script>", theme: "dark",
+    css: "p{content:'</style><script>'}", links: [], bodyHtml: "<p>hi</p>" });
+  assert.match(html, /^<!doctype html>/i);
+  assert.match(html, /<html lang="en" data-theme="dark">/);
+  assert.equal((html.match(/<\/style>/g) || []).length, 1);
+  assert.doesNotMatch(html, /<script/);
+  assert.match(html, /<main class="markdown-body export-html-document"><p>hi<\/p><\/main>/);
+});
+
+test("buildStandaloneHtml links external stylesheets with escaped hrefs", () => {
+  const html = exportCore.buildStandaloneHtml({ title: "T", theme: "light", css: "",
+    links: ["https://cdn.test/k.css?a=1&b=\"2\""], bodyHtml: "" });
+  assert.match(html, /<link rel="stylesheet" href="https:\/\/cdn\.test\/k\.css\?a=1&amp;b=&quot;2&quot;">/);
+});
+
+test("inlineBlobImages embeds known folder images and leaves unknown ones", async () => {
+  const make = (src) => ({ attrs: { src }, getAttribute(n) { return this.attrs[n]; }, setAttribute(n, v) { this.attrs[n] = v; } });
+  const known = make("blob:http://x/known");
+  const unknown = make("blob:http://x/unknown");
+  const root = { querySelectorAll: (sel) => (sel === 'img[src^="blob:"]' ? [known, unknown] : []) };
+  const files = new Map([["blob:http://x/known", { name: "a.png" }]]);
+  const count = await exportCore.inlineBlobImages(
+    root,
+    (url) => files.get(url) || null,
+    async (file) => "data:image/png;base64," + file.name,
+  );
+  assert.equal(count, 1);
+  assert.equal(known.getAttribute("src"), "data:image/png;base64,a.png");
+  assert.equal(unknown.getAttribute("src"), "blob:http://x/unknown");
+});

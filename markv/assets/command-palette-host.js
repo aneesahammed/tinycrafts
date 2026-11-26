@@ -230,6 +230,8 @@
     const exportHost = env.exportHost || window.MarkVExportHost || null;
     const canExportPdf =
       exportHost && typeof exportHost.exportPdf === "function";
+    const canExportHtml =
+      exportHost && typeof exportHost.exportHtml === "function";
     const canExportMarkdown =
       exportHost && typeof exportHost.exportMarkdown === "function";
     const exportBusy = Boolean(
@@ -492,6 +494,22 @@
             : "Export is unavailable in this build.",
         run: function () {
           return exportHost.exportPdf();
+        },
+      }),
+      createCommand(env, {
+        id: "command:export-html",
+        title: "Export HTML",
+        subtitle: "Download a self-contained web page",
+        keywords: ["export", "html", "web", "page", "download"],
+        defaultRank: 133,
+        disabled: exportDisabled || !canExportHtml,
+        disabledReason: exportBusy
+          ? "An export is already being prepared."
+          : !hasContent(env)
+            ? "There is no markdown to export yet."
+            : "Export is unavailable in this build.",
+        run: function () {
+          return exportHost.exportHtml();
         },
       }),
       createCommand(env, {
