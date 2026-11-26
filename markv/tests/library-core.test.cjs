@@ -1218,3 +1218,15 @@ test("tool folders are skipped, people's hidden folders are kept", () => {
     ["skills/ui-skills/README.md", ".planning/PLAN.md", "tools/notes.md"],
   );
 });
+
+test("the reading serif ships Charter after Iowan, with its licence", () => {
+  const fs = require("node:fs");
+  const html = fs.readFileSync("index.html", "utf8");
+  const stack = html.match(/--font-serif:\s*([^;]+);/)[1];
+  assert.match(stack, /^"Iowan Old Style", "Charis SIL",/);
+  const urls = [...html.matchAll(/url\("(assets\/fonts\/charis-sil\/[^"]+)"\)/g)].map((m) => m[1]);
+  assert.equal(urls.length, 8);
+  for (const url of urls) assert.equal(fs.readFileSync(url).subarray(0, 4).toString(), "wOF2", url);
+  assert.match(fs.readFileSync("assets/fonts/charis-sil/OFL.txt", "utf8"), /SIL OPEN FONT LICENSE/);
+  assert.match(html, /font-src 'self'/);
+});
