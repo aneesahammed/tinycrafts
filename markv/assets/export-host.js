@@ -258,7 +258,7 @@
       if (element.closest("svg")) return;
       element.removeAttribute("id");
     });
-    article.querySelectorAll(".mermaid-inline-action, [data-welcome-ui], .welcome-underline, .heading-anchor").forEach(function (element) {
+    article.querySelectorAll(".mermaid-inline-action, [data-welcome-ui], .welcome-underline, .heading-anchor, .code-chrome").forEach(function (element) {
       element.remove();
     });
     replaceBrokenImages(source, article);

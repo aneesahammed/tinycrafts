@@ -166,3 +166,11 @@ test("typewriterScrollTop centres the caret and clamps", () => {
   assert.equal(t(4900, 800, 5000), 4200);
   assert.equal(t(50, 800, 600), 0);
 });
+
+test("buildImageAssetName never reuses a name that differs only by case", () => {
+  const now = new Date(2026, 10, 26, 14, 32, 5);
+  assert.equal(
+    actions.buildImageAssetName("Diagram.png", "image/png", now, new Set(["Diagram.png"])),
+    "diagram-2.png",
+  );
+});

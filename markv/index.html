@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-XzkoK8g/aJVzu+cfDZgcqNyHn8dgSOgxa0SP1abuw4U=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-yU2q7G8hH2Ka1pI01JfDYPCcSILiZ3GUXRe6G9/rzMU=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -40,14 +40,14 @@
     <script src="assets/library-core.js?v=20"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=5"></script>
-    <script src="assets/editor-markdown-actions.js?v=4"></script>
-    <script src="assets/editor-find.js?v=1"></script>
+    <script src="assets/editor-markdown-actions.js?v=5"></script>
+    <script src="assets/editor-find.js?v=2"></script>
     <script src="assets/command-palette-core.js?v=2"></script>
     <script src="assets/command-palette-host.js?v=10"></script>
     <script src="assets/command-palette.js?v=6"></script>
     <script src="assets/reader-palettes.js?v=6"></script>
     <script src="assets/export-core.js?v=3"></script>
-    <script src="assets/export-host.js?v=8"></script>
+    <script src="assets/export-host.js?v=9"></script>
     <script src="assets/csv-sheet.js?v=1"></script>
     <script src="assets/ai-help.js?v=1"></script>
     <script src="assets/pwa.js?v=2"></script>
@@ -9836,13 +9836,13 @@
           <div id="findBar" class="find-bar" role="search" aria-label="Find and replace" hidden>
             <input id="findInput" class="find-bar__input" type="text" aria-label="Find" placeholder="Find" spellcheck="false" autocomplete="off" />
             <input id="replaceInput" class="find-bar__input" type="text" aria-label="Replace" placeholder="Replace" spellcheck="false" autocomplete="off" />
-            <button id="findCaseBtn" class="find-bar__toggle" type="button" aria-pressed="false" title="Match case">Aa</button>
-            <button id="findRegexBtn" class="find-bar__toggle" type="button" aria-pressed="false" title="Regular expression">.*</button>
+            <button id="findCaseBtn" class="find-bar__toggle" type="button" aria-pressed="false" aria-label="Match case" title="Match case">Aa</button>
+            <button id="findRegexBtn" class="find-bar__toggle" type="button" aria-pressed="false" aria-label="Regular expression" title="Regular expression">.*</button>
             <span id="findCount" class="find-bar__count" aria-live="polite"></span>
             <button id="findPrevBtn" class="find-bar__btn" type="button" aria-label="Previous match" title="Previous (Shift+Enter)">&#8593;</button>
             <button id="findNextBtn" class="find-bar__btn" type="button" aria-label="Next match" title="Next (Enter)">&#8595;</button>
             <button id="replaceOneBtn" class="find-bar__btn" type="button">Replace</button>
-            <button id="replaceAllBtn" class="find-bar__btn" type="button">All</button>
+            <button id="replaceAllBtn" class="find-bar__btn" type="button" aria-label="Replace all" title="Replace all">All</button>
             <button id="findCloseBtn" class="find-bar__btn" type="button" aria-label="Close find" title="Close (Esc)">&#215;</button>
           </div>
           <label id="editorLabel" class="visually-hidden" for="editor"
@@ -27087,8 +27087,9 @@ Return JSON only.`;
               );
               els.preview.dataset.documentLabel =
                 state.currentName || "current document";
-              if (keptMedia) restorePreviewImages(keptMedia.images, fresh);
+              // Hydrate first: restorePreviewImages reuses loaded <img>s by src.
               hydrateLibraryImages(els.preview);
+              if (keptMedia) restorePreviewImages(keptMedia.images, fresh);
               // Before tables are wrapped, while `fresh` is still top level.
               decorateLinks(fresh);
               decorateCodeBlocks(fresh);
@@ -27724,6 +27725,7 @@ Return JSON only.`;
           const docPath = state.libraryActiveFilePath;
           if (!folderHandle || !docPath) return null;
           let permission = "granted";
+          let couldNotAsk = false;
           try {
             if (typeof folderHandle.queryPermission === "function") {
               permission = await folderHandle.queryPermission({ mode: "readwrite" });
@@ -27735,12 +27737,17 @@ Return JSON only.`;
               permission = await folderHandle.requestPermission({ mode: "readwrite" });
             }
           } catch (_error) {
+            // Browsers only prompt during a click or keypress; a drop is neither.
             permission = "denied";
+            couldNotAsk = true;
           }
           if (permission !== "granted") {
-            setStatus("MarkV needs permission to save images into this folder.", {
-              announce: true,
-            });
+            setStatus(
+              couldNotAsk
+                ? "Paste an image once to let MarkV save into this folder; drops work after that."
+                : "MarkV needs permission to save images into this folder.",
+              { announce: true },
+            );
             return null;
           }
           try {
@@ -27774,8 +27781,18 @@ Return JSON only.`;
         }
 
         async function insertImageFromFile(file, options) {
+          const epoch = state.documentEpoch;
+          const docPath = state.libraryActiveFilePath;
           const link = await saveImageIntoLibrary(file);
           if (!link) return false;
+          // A permission prompt or slow write can outlast the document.
+          if (state.documentEpoch !== epoch || state.libraryActiveFilePath !== docPath) {
+            setStatus(
+              "Saved " + link + ", but the document changed before it could be linked.",
+              { announce: true },
+            );
+            return false;
+          }
           const edit = window.MarkVEditorMarkdownActions.buildImageInsertEdit(
             els.editor.value,
             els.editor.selectionStart,

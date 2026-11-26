@@ -36,9 +36,9 @@ function extractBlock(source, needle) {
 
 test("export assets are loaded and precached", () => {
   assert.match(html, /assets\/export-core\.js\?v=3/);
-  assert.match(html, /assets\/export-host\.js\?v=8/);
+  assert.match(html, /assets\/export-host\.js\?v=9/);
   assert.match(sw, /\.\/assets\/export-core\.js\?v=3/);
-  assert.match(sw, /\.\/assets\/export-host\.js\?v=8/);
+  assert.match(sw, /\.\/assets\/export-host\.js\?v=9/);
 });
 
 test("toolbar exposes one export popover with direct pdf and markdown actions", () => {
@@ -122,4 +122,5 @@ test("exported documents drop hover-only heading anchors", () => {
   const clone = exportHost.slice(exportHost.indexOf("function cloneDocumentArticle"));
   const body = clone.slice(0, clone.indexOf("\n  }\n"));
   assert.match(body, /\.heading-anchor/);
+  assert.match(body, /\.code-chrome/);
 });

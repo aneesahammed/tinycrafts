@@ -104,3 +104,82 @@ test("hydrate drops cached urls when the folder changes", () => {
   assert.equal(app.state.libraryImageUrls.size, 0);
   assert.equal(app.state.libraryImageFiles.size, 0);
 });
+
+test("render hydrates folder images before reusing loaded ones", () => {
+  const { html } = require("./helpers/inline-app.cjs");
+  const hydrate = html.indexOf("hydrateLibraryImages(els.preview);");
+  const restore = html.indexOf("if (keptMedia) restorePreviewImages(keptMedia.images, fresh);");
+  assert.ok(hydrate > 0 && restore > 0, "both calls exist");
+  assert.ok(hydrate < restore, "src must be set before restorePreviewImages matches by src");
+});
+
+function insertRuntime(switchDuringSave) {
+  const applied = [];
+  const statuses = [];
+  const app = runtime(
+    {
+      state: { documentEpoch: 1, libraryActiveFilePath: "notes/a.md" },
+      els: { editor: { value: "text", selectionStart: 4, selectionEnd: 4, setSelectionRange() {} } },
+      window: {
+        MarkVEditorMarkdownActions: require("../assets/editor-markdown-actions.js"),
+      },
+      saveImageIntoLibrary: async () => {
+        if (switchDuringSave) {
+          app.state.documentEpoch = 2;
+          app.state.libraryActiveFilePath = "notes/b.md";
+        }
+        return "assets/x.png";
+      },
+      applyEditorMarkdownEdit: (edit) => applied.push(edit),
+      setStatus: (message) => statuses.push(message),
+    },
+    [functionSource("insertImageFromFile")],
+  );
+  return { app, applied, statuses };
+}
+
+test("insertImageFromFile links the image into the document it was saved for", async () => {
+  const { app, applied } = insertRuntime(false);
+  assert.equal(await app.insertImageFromFile({ name: "x.png" }), true);
+  assert.equal(applied.length, 1);
+});
+
+test("insertImageFromFile does not link into a document opened during the save", async () => {
+  const { app, applied, statuses } = insertRuntime(true);
+  assert.equal(await app.insertImageFromFile({ name: "x.png" }), false);
+  assert.equal(applied.length, 0);
+  assert.match(statuses[0], /assets\/x\.png/);
+});
+
+function saveRuntime(requestPermission) {
+  const statuses = [];
+  const app = runtime(
+    {
+      state: {
+        libraryActiveFilePath: "a.md",
+        libraryCurrentFolderHandle: {
+          queryPermission: async () => "prompt",
+          requestPermission,
+        },
+      },
+      setStatus: (message) => statuses.push(message),
+      console: { warn() {} },
+    },
+    [functionSource("saveImageIntoLibrary")],
+  );
+  return { app, statuses };
+}
+
+test("a drop that cannot prompt for folder access says how to grant it", async () => {
+  const { app, statuses } = saveRuntime(async () => {
+    throw new Error("SecurityError: user activation is required");
+  });
+  assert.equal(await app.saveImageIntoLibrary({ name: "x.png", type: "image/png" }), null);
+  assert.match(statuses[0], /[Pp]aste/);
+});
+
+test("a refused folder prompt says permission is needed", async () => {
+  const { app, statuses } = saveRuntime(async () => "denied");
+  assert.equal(await app.saveImageIntoLibrary({ name: "x.png", type: "image/png" }), null);
+  assert.match(statuses[0], /needs permission/);
+});

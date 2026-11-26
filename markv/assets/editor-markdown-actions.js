@@ -343,8 +343,13 @@
         name.replace(/\.[^.]*$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "") || "image";
     }
+    // macOS and Windows file systems ignore case, so "Diagram.png" and
+    // "diagram.png" are the same file; compare case-insensitively.
+    const used = new Set(
+      Array.from(taken || []).map(function (item) { return String(item).toLowerCase(); }),
+    );
     let candidate = stem + "." + extension;
-    for (let index = 2; taken && taken.has(candidate); index += 1) {
+    for (let index = 2; used.has(candidate.toLowerCase()); index += 1) {
       candidate = stem + "-" + index + "." + extension;
     }
     return candidate;

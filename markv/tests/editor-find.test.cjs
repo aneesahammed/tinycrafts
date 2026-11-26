@@ -51,3 +51,19 @@ test("replaceMatch expands regex groups for a single match", () => {
   assert.equal(find.replacementFor(text, m, "(\\w)-(\\d)", "$2$1", { regex: true }), "2b");
   assert.equal(find.replacementFor(text, m, "b-2", "$1", {}), "$1");
 });
+
+test("regex replace keeps lookarounds working", () => {
+  const ahead = find.replaceAllMatches("12px 3px", "(\\d+)(?=px)", "$1rem", { regex: true });
+  assert.equal(ahead.count, 2);
+  assert.equal("12px 3px".slice(0, ahead.start) + ahead.text + "12px 3px".slice(ahead.end), "12rempx 3rempx");
+  const text = "foobar bar";
+  const behind = find.findMatches(text, "(?<=foo)bar", { regex: true }).matches[0];
+  assert.equal(find.replacementFor(text, behind, "(?<=foo)bar", "BAZ", { regex: true }), "BAZ");
+});
+
+test("find bar controls have spoken names", () => {
+  const html = require("node:fs").readFileSync("index.html", "utf8");
+  assert.match(html, /id="findCaseBtn"[^>]*aria-label="Match case"/);
+  assert.match(html, /id="findRegexBtn"[^>]*aria-label="Regular expression"/);
+  assert.match(html, /id="replaceAllBtn"[^>]*aria-label="Replace all"/);
+});

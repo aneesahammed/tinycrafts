@@ -58,14 +58,18 @@
     return 0;
   }
 
-  // ponytail: regex groups expand against the matched slice alone, so
-  // lookbehind/anchors in a replacement pattern see no surrounding text.
+  // Expands $1, $& and friends by re-running the pattern at the match's
+  // own position in the full text, so lookarounds see their context.
   function replacementFor(text, match, query, replacement, options) {
     const value = String(replacement == null ? "" : replacement);
     if (!(options && options.regex)) return value;
     const built = buildRegExp(query, options, false);
     if (!built.re) return value;
-    return String(text).slice(match.start, match.end).replace(built.re, value);
+    const source = String(text);
+    const sticky = new RegExp(built.re.source, built.re.flags + "y");
+    sticky.lastIndex = match.start;
+    const replaced = sticky[Symbol.replace](source, value);
+    return replaced.slice(match.start, replaced.length - (source.length - match.end));
   }
 
   function replaceAllMatches(text, query, replacement, options) {
