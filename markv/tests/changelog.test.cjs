@@ -42,3 +42,12 @@ test("the changelog is linked where people find MarkV", () => {
     "the sub-link is not nested inside another link");
   assert.match(welcome, /href="changelog\/"/, "welcome page closing note");
 });
+
+test("What's new returns to the MarkV that opened it", () => {
+  // One named tab, opened without noopener so it can find its way back.
+  assert.match(app, /id="changelogLink"[\s\S]*?target="markv-whats-new"\s*>/);
+  assert.doesNotMatch(app.match(/id="changelogLink"[\s\S]*?<\/a>/)[0], /noopener/);
+  assert.match(welcome, /href="changelog\/" target="markv-whats-new">/);
+  assert.match(page, /<a class="open-btn" id="openApp" href="\.\.\/">Open MarkV<\/a>/, "works without script");
+  assert.match(page, /window\.opener[\s\S]*?"Back to MarkV"[\s\S]*?window\.close\(\)/);
+});

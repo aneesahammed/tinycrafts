@@ -318,7 +318,7 @@
             <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
           </svg>
         </button>
-        <a class="open-btn" href="../">Open MarkV</a>
+        <a class="open-btn" id="openApp" href="../">Open MarkV</a>
       </div>
     </header>
 
@@ -334,9 +334,94 @@
       <!-- Newest first. Versions were assigned from the commit history;
            tests/changelog.test.cjs keeps them unique and in order. -->
       <ol class="releases">
+        <li class="release" id="v0-19-0">
+          <div class="meta">
+            <a class="ver is-latest" href="#v0-19-0">v0.19.0</a>
+            <time datetime="2026-11-26">26 Nov 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🔤</span>The same page on every computer</h2>
+            <p>
+              Windows, Android and Linux now read in Charter, a sturdy book face built
+              like the Iowan Old Style that Macs and iPhones use. Lines break in the same
+              places, headings get a true bold, and the font is part of MarkV, so it works
+              offline too. Apple devices keep Iowan and download nothing extra.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-18-0">
+          <div class="meta">
+            <a class="ver" href="#v0-18-0">v0.18.0</a>
+            <time datetime="2026-11-26">26 Nov 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">📚</span>Big folders, nothing missing</h2>
+            <p>
+              Opening a large folder, such as a whole projects directory, now shows every
+              note in it. Folders that tools make, like node_modules, .venv and build
+              output, are skipped, while your own hidden folders such as .planning and
+              .claude stay in. Scanning is many times faster, a folder in Chrome or Edge can hold up to
+              10,000 files, and if one ever has more, Files tells you instead of quietly
+              leaving notes out.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-17-0">
+          <div class="meta">
+            <a class="ver" href="#v0-17-0">v0.17.0</a>
+            <time datetime="2026-11-24">24 Nov 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🧰</span>Help when the AI can't connect</h2>
+            <p>
+              When chat, the mindmap or Settings can't reach your AI provider, MarkV now
+              says what happened in plain words and what to do next. It can tell a closed
+              Ollama from one that hasn't allowed MarkV yet, gives you a command to copy
+              that allows this site only, and lets you try again without retyping your
+              question. An empty chat offers a few questions to start with.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-16-0">
+          <div class="meta">
+            <a class="ver" href="#v0-16-0">v0.16.0</a>
+            <time datetime="2026-11-24">24 Nov 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">✒️</span>Easier on the eyes</h2>
+            <p>
+              A careful pass over every size, weight and label. Menus and panels use one
+              small set of text sizes with nothing too small to read, quotes and code
+              comments stand upright, tables sit at a calmer size with numbers that line
+              up, and headings wrap into balanced lines.
+            </p>
+          </div>
+        </li>
+
+        <li class="release" id="v0-15-0">
+          <div class="meta">
+            <a class="ver" href="#v0-15-0">v0.15.0</a>
+            <time datetime="2026-11-24">24 Nov 2026</time>
+          </div>
+          <div>
+            <h2><span class="emoji" aria-hidden="true">🪟</span>Write and read side by side</h2>
+            <p>
+              Split view puts your Markdown and the finished page next to each other,
+              scrolling together, with a divider you can drag. Find it between Read and
+              Edit, or press Cmd+Shift+E. Files now sits beside the page instead of over
+              it, with folder and file icons, the folder path under the title, and one
+              button to open or close every folder. Mermaid arrows written without spaces
+              draw correctly.
+            </p>
+          </div>
+        </li>
+
         <li class="release" id="v0-14-0">
           <div class="meta">
-            <a class="ver is-latest" href="#v0-14-0">v0.14.0</a>
+            <a class="ver" href="#v0-14-0">v0.14.0</a>
             <time datetime="2026-10-30">30 Oct 2026</time>
           </div>
           <div>
@@ -594,6 +679,32 @@
             : rtf.format(Math.round(days / 365.25), "year");
           el.textContent = el.textContent.charAt(0).toUpperCase() + el.textContent.slice(1);
         });
+
+        // Opened from MarkV: going "back" closes this tab, which returns
+        // you to the MarkV you had open, with your document and place intact.
+        // Anywhere else, the links open MarkV as usual.
+        var app = null;
+        try {
+          if (window.opener && !window.opener.closed &&
+              window.opener.location.origin === location.origin &&
+              /\/(index\.html)?$/.test(window.opener.location.pathname)) {
+            app = window.opener;
+          }
+        } catch (_) {}
+        if (app) {
+          var openBtn = document.getElementById("openApp");
+          openBtn.textContent = "Back to MarkV";
+          document.querySelectorAll('a[href="../"]').forEach(function (link) {
+            link.addEventListener("click", function (event) {
+              if (!app || app.closed || event.metaKey || event.ctrlKey || event.shiftKey) return;
+              event.preventDefault();
+              try { app.focus(); } catch (_) {}
+              window.close();
+              // Some browsers won't close a tab; then just go to MarkV.
+              setTimeout(function () { location.href = link.href; }, 150);
+            });
+          });
+        }
 
         // Theme toggle, sharing MarkV's own key and palette rules.
         var P = window.MarkVReaderPalettes;

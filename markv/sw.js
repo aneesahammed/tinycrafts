@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v68";
+const CACHE_VERSION = "v69";
 const SHELL_CACHE = `markv-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `markv-runtime-${CACHE_VERSION}`;
 const NAVIGATION_FALLBACK = "./index.html";
@@ -23,7 +23,7 @@ const SHELL_ASSETS = [
   "./assets/ai-help.js?v=1",
   "./assets/visual-block-menu.js?v=16",
   "./assets/pwa.js?v=2",
-  "./assets/welcome.js?v=6",
+  "./assets/welcome.js?v=7",
   "./assets/welcome.css?v=5",
   "./assets/welcome.md?v=3",
   "./assets/sample-developer.md",

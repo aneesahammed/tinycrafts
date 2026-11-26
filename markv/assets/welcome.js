@@ -248,7 +248,7 @@
         ui("p", "welcome-note",
           "This page steps aside once you open a file. Find it again any time in <kbd>" +
           shortcutLabel() + "</kbd>. " +
-          '<a href="changelog/" target="_blank" rel="noopener">See what’s new in MarkV</a>'),
+          '<a href="changelog/" target="markv-whats-new">See what’s new in MarkV</a>'),
       );
     }
     const endLabel = end && [...end.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
