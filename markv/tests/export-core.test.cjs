@@ -155,3 +155,23 @@ test("inlineBlobImages embeds known folder images and leaves unknown ones", asyn
   assert.equal(known.getAttribute("src"), "data:image/png;base64,a.png");
   assert.equal(unknown.getAttribute("src"), "blob:http://x/unknown");
 });
+
+test("folder images still waiting for their file count as pending, not broken", () => {
+  const img = (attrs, complete, naturalWidth) => ({
+    complete,
+    naturalWidth,
+    getAttribute: (name) => (name in attrs ? attrs[name] : null),
+    hasAttribute: (name) => name in attrs,
+  });
+  const root = {
+    querySelectorAll: () => [
+      img({ "data-library-src": "a.png" }, true, 0),
+      img({ "data-library-src": "b.png", src: "blob:x" }, true, 120),
+      img({ src: "https://x/c.png" }, true, 0),
+    ],
+  };
+  const r = exportCore.getImageReadiness(root);
+  assert.equal(r.pending, 1);
+  assert.equal(r.broken, 1);
+  assert.equal(r.ready, 2);
+});

@@ -118,11 +118,25 @@
       typeof rootNode.querySelectorAll === "function"
         ? Array.from(rootNode.querySelectorAll("img"))
         : [];
+    // A folder image has no src until its file is read; until then it
+    // reports complete with zero width, which is not the same as broken.
+    function awaitingFolderFile(image) {
+      return (
+        typeof image.hasAttribute === "function" &&
+        image.hasAttribute("data-library-src") &&
+        !image.getAttribute("src")
+      );
+    }
     const pending = all.filter(function (image) {
-      return image && image.complete === false;
+      return image && (image.complete === false || awaitingFolderFile(image));
     });
     const broken = all.filter(function (image) {
-      return image && image.complete && image.naturalWidth === 0;
+      return (
+        image &&
+        image.complete &&
+        image.naturalWidth === 0 &&
+        !awaitingFolderFile(image)
+      );
     });
     return {
       total: all.length,

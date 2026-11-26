@@ -34,6 +34,8 @@ function setup(options) {
         libraryImageFiles: new Map((options.cache || []).map(([, url]) => [url, { name: "f" }])),
       },
       libraryKey: (folderId, path) => folderId + "::" + path,
+      getLibraryFolderById: (id) =>
+        id === "f1" ? { id: "f1", name: "Notes", status: options.folderStatus || "ready" } : null,
       getLibraryImageUrl: async (folderId, path) => {
         calls.push(path);
         return options.resolve ? options.resolve(path) : null;
@@ -74,7 +76,7 @@ test("hydrate replaces missing images with a note", async () => {
   app.hydrateLibraryImages(fakeRoot([image]));
   await new Promise((resolve) => setImmediate(resolve));
   assert.ok(image.replacedWith, "expected a replacement note");
-  assert.equal(image.replacedWith.className, "blocked-resource");
+  assert.equal(image.replacedWith.className, "blocked-resource library-image-missing");
   assert.equal(image.replacedWith.textContent, "Image not found: a.png");
 });
 
@@ -165,21 +167,74 @@ function saveRuntime(requestPermission) {
       setStatus: (message) => statuses.push(message),
       console: { warn() {} },
     },
-    [functionSource("saveImageIntoLibrary")],
+    [functionSource("getFolderWriteAccess"), functionSource("saveImageIntoLibrary")],
   );
   return { app, statuses };
 }
 
-test("a drop that cannot prompt for folder access says how to grant it", async () => {
-  const { app, statuses } = saveRuntime(async () => {
-    throw new Error("SecurityError: user activation is required");
-  });
-  assert.equal(await app.saveImageIntoLibrary({ name: "x.png", type: "image/png" }), null);
-  assert.match(statuses[0], /[Pp]aste/);
-});
 
 test("a refused folder prompt says permission is needed", async () => {
   const { app, statuses } = saveRuntime(async () => "denied");
   assert.equal(await app.saveImageIntoLibrary({ name: "x.png", type: "image/png" }), null);
   assert.match(statuses[0], /needs permission/);
+});
+
+test("hydrate asks for folder access instead of saying not found", async () => {
+  const { app } = setup({ resolve: () => null, folderStatus: "needs-permission" });
+  const image = fakeImage({ "data-library-src": "a.png" });
+  app.hydrateLibraryImages(fakeRoot([image]));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(image.replacedWith.textContent, "Allow access to Notes in Files to show a.png.");
+});
+
+test("getFolderWriteAccess reports when the browser needs a click to ask", async () => {
+  const app = runtime({}, [functionSource("getFolderWriteAccess")]);
+  const handle = (query, request) => ({ queryPermission: query, requestPermission: request });
+  assert.equal(await app.getFolderWriteAccess(handle(async () => "granted")), "granted");
+  assert.equal(
+    await app.getFolderWriteAccess(handle(async () => "prompt", async () => "denied")),
+    "denied",
+  );
+  assert.equal(
+    await app.getFolderWriteAccess(
+      handle(async () => "prompt", async () => {
+        throw new Error("SecurityError: user activation is required");
+      }),
+    ),
+    "needs-gesture",
+  );
+});
+
+function dropRuntime(access) {
+  const offered = [];
+  const inserted = [];
+  const statuses = [];
+  const app = runtime(
+    {
+      state: { libraryCurrentFolderHandle: {}, libraryActiveFilePath: "a.md" },
+      getFolderWriteAccess: async () => access,
+      offerImageDropPermission: (files) => offered.push(files.length),
+      insertImageFromFile: async (file) => {
+        inserted.push(file.name);
+        return true;
+      },
+      setStatus: (message) => statuses.push(message),
+    },
+    [functionSource("dropImagesIntoDocument")],
+  );
+  return { app, offered, inserted, statuses };
+}
+
+test("a drop without folder access offers an Allow button instead of failing", async () => {
+  const { app, offered, inserted } = dropRuntime("needs-gesture");
+  await app.dropImagesIntoDocument([{ name: "a.png" }, { name: "b.png" }]);
+  assert.deepEqual(offered, [2]);
+  assert.deepEqual(inserted, []);
+});
+
+test("a drop with folder access saves every image in order", async () => {
+  const { app, offered, inserted } = dropRuntime("granted");
+  await app.dropImagesIntoDocument([{ name: "a.png" }, { name: "b.png" }]);
+  assert.deepEqual(offered, []);
+  assert.deepEqual(inserted, ["a.png", "b.png"]);
 });

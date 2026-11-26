@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-yU2q7G8hH2Ka1pI01JfDYPCcSILiZ3GUXRe6G9/rzMU=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-VyC2dfPoRpS9Jp1Zjhb7VkDi/FA6i5pbI5lcurlt5eU=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -46,7 +46,7 @@
     <script src="assets/command-palette-host.js?v=10"></script>
     <script src="assets/command-palette.js?v=6"></script>
     <script src="assets/reader-palettes.js?v=6"></script>
-    <script src="assets/export-core.js?v=3"></script>
+    <script src="assets/export-core.js?v=4"></script>
     <script src="assets/export-host.js?v=9"></script>
     <script src="assets/csv-sheet.js?v=1"></script>
     <script src="assets/ai-help.js?v=1"></script>
@@ -8253,6 +8253,52 @@
         }
       }
 
+      /* Asks once for folder access after a drop; gone otherwise. */
+      .image-allow {
+        position: fixed;
+        left: calc(50% + var(--lib-inset, 0px) / 2);
+        bottom: max(64px, calc(env(safe-area-inset-bottom) + 56px));
+        translate: -50% 0;
+        z-index: 20;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        max-width: calc(100vw - 32px);
+        padding: 8px 8px 8px 14px;
+        border: 1px solid var(--border-default);
+        border-radius: 12px;
+        background: var(--bg-raised);
+        box-shadow: var(--shadow-md);
+        font: 400 13px/1.4 var(--font-sans);
+        color: var(--fg-default);
+      }
+      .image-allow[hidden] {
+        display: none;
+      }
+      .image-allow__btn {
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid var(--border-default);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--fg-default);
+        font: 500 13px/1 var(--font-sans);
+        cursor: pointer;
+      }
+      .image-allow__btn:hover {
+        background: var(--bg-subtle);
+      }
+      .image-allow__btn--primary {
+        border-color: var(--accent-fg);
+        color: var(--accent-fg);
+      }
+      .image-allow__btn:focus-visible {
+        outline: 2px solid var(--accent-fg);
+        outline-offset: 1px;
+      }
+
       /* Find bar: on demand in Edit and Split only, gone otherwise. */
       .editor-pane {
         position: relative;
@@ -9858,6 +9904,11 @@ Drop a .md file anywhere on the page, or open one from Files."
           ></textarea>
           <span id="wordCount" class="word-count" hidden></span>
           <span id="focusHint" class="focus-hint" aria-hidden="true">Esc to leave focus</span>
+          <div id="imageAllowPrompt" class="image-allow" role="group" aria-labelledby="imageAllowText" hidden>
+            <span id="imageAllowText" class="image-allow__text" aria-live="polite"></span>
+            <button id="imageAllowBtn" class="image-allow__btn image-allow__btn--primary" type="button">Allow</button>
+            <button id="imageAllowCancelBtn" class="image-allow__btn" type="button">Not now</button>
+          </div>
         </section>
 
         <div
@@ -19185,10 +19236,12 @@ Return JSON only.`;
               hasSessionDraft: false,
               sourceMode: "editor",
               untitledDraftId: "",
+              libraryLink: null,
             };
           }
           try {
             const parsed = JSON.parse(raw);
+            const link = parsed && parsed.libraryLink;
             return {
               hasSessionDraft: Boolean(parsed && parsed.hasSessionDraft),
               sourceMode:
@@ -19199,12 +19252,21 @@ Return JSON only.`;
                 parsed && typeof parsed.untitledDraftId === "string"
                   ? parsed.untitledDraftId
                   : "",
+              libraryLink:
+                link &&
+                typeof link.folderId === "string" &&
+                typeof link.path === "string" &&
+                link.folderId &&
+                link.path
+                  ? { folderId: link.folderId, path: link.path }
+                  : null,
             };
           } catch (_error) {
             return {
               hasSessionDraft: false,
               sourceMode: "editor",
               untitledDraftId: "",
+              libraryLink: null,
             };
           }
         }
@@ -19217,6 +19279,17 @@ Return JSON only.`;
               hasSessionDraft: Boolean(state.hasSessionDraft),
               sourceMode: state.sourceMode,
               untitledDraftId: state.untitledDraftId || "",
+              // Unsaved edits to a folder file reopen as that file, so its
+              // images and Save still point at the folder after a reload.
+              libraryLink:
+                isLibraryDocument() &&
+                state.libraryActiveFolderId &&
+                state.libraryActiveFilePath
+                  ? {
+                      folderId: state.libraryActiveFolderId,
+                      path: state.libraryActiveFilePath,
+                    }
+                  : null,
             }),
           );
         }
@@ -19905,6 +19978,20 @@ Return JSON only.`;
             if (state.sourceMode === "library") {
               state.sourceMode = "editor";
               updateUiState();
+            }
+          } else if (
+            state.libraryActiveFolderId === folder.id &&
+            state.libraryActiveFilePath
+          ) {
+            // Every access grant ends here: give a restored draft back its
+            // file, and retry images that could not be read before.
+            const node = findLibraryFileNode(tree, state.libraryActiveFilePath);
+            if (!state.libraryCurrentFileHandle && node && node.handle) {
+              state.libraryCurrentFileHandle = node.handle;
+              updateUiState();
+            }
+            if (els.preview.querySelector(".library-image-missing")) {
+              render("force");
             }
           }
 
@@ -22607,9 +22694,17 @@ Return JSON only.`;
                 image.setAttribute("src", url);
                 return;
               }
+              const folder = getLibraryFolderById(folderId);
               const note = document.createElement("span");
-              note.className = "blocked-resource";
-              note.textContent = "Image not found: " + path;
+              note.className = "blocked-resource library-image-missing";
+              note.textContent =
+                folder && folder.status === "needs-permission"
+                  ? "Allow access to " +
+                    (folder.displayLabel || folder.name) +
+                    " in Files to show " +
+                    path +
+                    "."
+                  : "Image not found: " + path;
               image.replaceWith(note);
             });
           });
@@ -24449,6 +24544,25 @@ Return JSON only.`;
           }
         }
 
+        // Re-links a restored draft to the folder file it was edited from.
+        // Without the file node (folder not yet readable) it still keeps the
+        // folder, so images resolve once access is granted.
+        function reattachLibraryDraft(link) {
+          if (!link || !state.hasSessionDraft) return false;
+          const folder = getLibraryFolderById(link.folderId);
+          if (!folder || !folder.handle) return false;
+          const node = findLibraryFileNode(folder.tree, link.path);
+          state.libraryActiveFolderId = folder.id;
+          state.libraryActiveFilePath = link.path;
+          state.libraryCurrentFolderHandle = folder.handle;
+          state.libraryCurrentFileHandle = node && node.handle ? node.handle : null;
+          state.sourceMode = "editor";
+          updateUiState();
+          renderLibraryDrawer();
+          render("force");
+          return true;
+        }
+
         async function restoreLibraryFromStorage(sessionMeta) {
           renderLibraryDrawer();
           if (!canUseLibraryStorage()) return;
@@ -24496,6 +24610,8 @@ Return JSON only.`;
               meta.lastActiveFile.path,
               { quiet: true, userInitiated: false },
             );
+          } else if (sessionMeta && sessionMeta.libraryLink) {
+            reattachLibraryDraft(sessionMeta.libraryLink);
           }
         }
 
@@ -27718,36 +27834,37 @@ Return JSON only.`;
           );
         }
 
-        // Writes the image into an assets/ folder beside the open document
-        // and returns the link to insert, or null after telling the person why.
-        async function saveImageIntoLibrary(file) {
-          const folderHandle = state.libraryCurrentFolderHandle;
-          const docPath = state.libraryActiveFilePath;
-          if (!folderHandle || !docPath) return null;
-          let permission = "granted";
-          let couldNotAsk = false;
+        // "granted", "denied", or "needs-gesture" when the browser refused to
+        // show its prompt because no click or keypress is in progress (drops).
+        async function getFolderWriteAccess(folderHandle) {
+          if (!folderHandle) return "denied";
           try {
-            if (typeof folderHandle.queryPermission === "function") {
-              permission = await folderHandle.queryPermission({ mode: "readwrite" });
-            }
+            let permission =
+              typeof folderHandle.queryPermission === "function"
+                ? await folderHandle.queryPermission({ mode: "readwrite" })
+                : "granted";
             if (
               permission !== "granted" &&
               typeof folderHandle.requestPermission === "function"
             ) {
               permission = await folderHandle.requestPermission({ mode: "readwrite" });
             }
+            return permission === "granted" ? "granted" : "denied";
           } catch (_error) {
-            // Browsers only prompt during a click or keypress; a drop is neither.
-            permission = "denied";
-            couldNotAsk = true;
+            return "needs-gesture";
           }
-          if (permission !== "granted") {
-            setStatus(
-              couldNotAsk
-                ? "Paste an image once to let MarkV save into this folder; drops work after that."
-                : "MarkV needs permission to save images into this folder.",
-              { announce: true },
-            );
+        }
+
+        // Writes the image into an assets/ folder beside the open document
+        // and returns the link to insert, or null after telling the person why.
+        async function saveImageIntoLibrary(file) {
+          const folderHandle = state.libraryCurrentFolderHandle;
+          const docPath = state.libraryActiveFilePath;
+          if (!folderHandle || !docPath) return null;
+          if ((await getFolderWriteAccess(folderHandle)) !== "granted") {
+            setStatus("MarkV needs permission to save images into this folder.", {
+              announce: true,
+            });
             return null;
           }
           try {
@@ -27806,6 +27923,89 @@ Return JSON only.`;
           }
           return true;
         }
+
+        async function dropImagesIntoDocument(images) {
+          const access = await getFolderWriteAccess(state.libraryCurrentFolderHandle);
+          if (access === "needs-gesture") {
+            offerImageDropPermission(images);
+            return;
+          }
+          // ponytail: sequential writes keep asset names unique without locking
+          for (const image of images) {
+            if (!(await insertImageFromFile(image, { caretAfter: true }))) break;
+          }
+        }
+
+        // A drop can't open the browser's permission prompt, but a click can:
+        // hold the dropped images and ask once with an Allow button.
+        let pendingImageDrop = null;
+
+        function hideImageDropPermission() {
+          pendingImageDrop = null;
+          const prompt = document.getElementById("imageAllowPrompt");
+          if (prompt) prompt.hidden = true;
+        }
+
+        function offerImageDropPermission(files) {
+          const prompt = document.getElementById("imageAllowPrompt");
+          if (!prompt) return;
+          pendingImageDrop = {
+            files: files.slice(),
+            epoch: state.documentEpoch,
+            docPath: state.libraryActiveFilePath,
+          };
+          const folder = getLibraryFolderById(state.libraryActiveFolderId);
+          const count = files.length;
+          document.getElementById("imageAllowText").textContent =
+            "Save " +
+            (count === 1 ? "this image" : count + " images") +
+            " into " +
+            (folder ? folder.displayLabel || folder.name : "this folder") +
+            "?";
+          prompt.hidden = false;
+          document.getElementById("imageAllowBtn").focus();
+        }
+
+        (function wireImageDropPermission() {
+          const allow = document.getElementById("imageAllowBtn");
+          const cancel = document.getElementById("imageAllowCancelBtn");
+          if (!allow || !cancel) return;
+          allow.addEventListener("click", async function () {
+            const pending = pendingImageDrop;
+            hideImageDropPermission();
+            if (!pending) return;
+            // The click is the gesture the browser needs to show its prompt.
+            const access = await getFolderWriteAccess(state.libraryCurrentFolderHandle);
+            if (access !== "granted") {
+              setStatus("MarkV needs permission to save images into this folder.", {
+                announce: true,
+              });
+              return;
+            }
+            if (
+              state.documentEpoch !== pending.epoch ||
+              state.libraryActiveFilePath !== pending.docPath
+            ) {
+              setStatus("The document changed, so the images were not added.", {
+                announce: true,
+              });
+              return;
+            }
+            els.editor.focus();
+            await dropImagesIntoDocument(pending.files);
+          });
+          cancel.addEventListener("click", function () {
+            hideImageDropPermission();
+            els.editor.focus();
+          });
+          document.getElementById("imageAllowPrompt").addEventListener("keydown", function (event) {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            event.stopPropagation();
+            hideImageDropPermission();
+            els.editor.focus();
+          });
+        })();
 
         els.editor.addEventListener("paste", function (event) {
           const actions = window.MarkVEditorMarkdownActions;
@@ -28888,10 +29088,7 @@ Return JSON only.`;
               });
               return;
             }
-            // ponytail: sequential writes keep asset names unique without locking
-            for (const image of images) {
-              if (!(await insertImageFromFile(image, { caretAfter: true }))) break;
-            }
+            await dropImagesIntoDocument(images);
             return;
           }
 
@@ -29061,6 +29258,7 @@ Return JSON only.`;
               hasSessionDraft:
                 Boolean(sessionMeta.hasSessionDraft) ||
                 sessionMeta.sourceMode !== "library",
+              libraryLink: sessionMeta.libraryLink,
             });
           } else {
             setEditorMarkdown("");
