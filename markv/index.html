@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-KqgHhgfVMOhJ4MQkIuKMFVZ73inDYb+3klpBeeSvOOA=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-XzkoK8g/aJVzu+cfDZgcqNyHn8dgSOgxa0SP1abuw4U=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -39,11 +39,11 @@
     <script src="assets/analytics.js"></script>
     <script src="assets/library-core.js?v=20"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
-    <script src="assets/shortcut-registry.js?v=4"></script>
-    <script src="assets/editor-markdown-actions.js?v=3"></script>
+    <script src="assets/shortcut-registry.js?v=5"></script>
+    <script src="assets/editor-markdown-actions.js?v=4"></script>
     <script src="assets/editor-find.js?v=1"></script>
     <script src="assets/command-palette-core.js?v=2"></script>
-    <script src="assets/command-palette-host.js?v=9"></script>
+    <script src="assets/command-palette-host.js?v=10"></script>
     <script src="assets/command-palette.js?v=6"></script>
     <script src="assets/reader-palettes.js?v=6"></script>
     <script src="assets/export-core.js?v=3"></script>
@@ -8196,6 +8196,63 @@
       }
 
       /* Writing wants a live count: it takes the reader dock's slot. */
+      /* Focus writing: only the page and the caret line, centred. */
+      body.focus-writing {
+        --toolbar-h: 0px;
+      }
+      body.focus-writing .toolbar,
+      body.focus-writing #libraryDrawer,
+      body.focus-writing .lib-overlay,
+      body.focus-writing #chatFab,
+      body.focus-writing .split-handle {
+        display: none !important;
+      }
+      body.focus-writing #main {
+        --lib-inset: 0px;
+        margin-left: 0;
+      }
+      body.focus-writing #editor {
+        padding: 18vh max(24px, calc((100% - 70ch) / 2)) 45vh;
+      }
+      body.focus-writing .editor-pane .word-count {
+        opacity: 0;
+        pointer-events: auto;
+        transition: opacity var(--motion-small) var(--ease-calm);
+      }
+      body.focus-writing .editor-pane .word-count:hover {
+        opacity: 1;
+      }
+      .focus-hint {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        translate: -50% 0;
+        padding: 5px 12px;
+        border: 1px solid var(--border-default);
+        border-radius: 999px;
+        background: var(--bg-raised);
+        font: 400 12px/1.4 var(--font-sans);
+        color: var(--fg-muted);
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+        transition:
+          opacity var(--motion-medium) var(--ease-calm),
+          visibility 0s linear var(--motion-medium);
+      }
+      body.focus-writing .focus-hint.is-visible {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity var(--motion-small) var(--ease-calm);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .focus-hint,
+        body.focus-writing .focus-hint.is-visible,
+        body.focus-writing .editor-pane .word-count {
+          transition: none;
+        }
+      }
+
       /* Find bar: on demand in Edit and Split only, gone otherwise. */
       .editor-pane {
         position: relative;
@@ -9800,6 +9857,7 @@
 Drop a .md file anywhere on the page, or open one from Files."
           ></textarea>
           <span id="wordCount" class="word-count" hidden></span>
+          <span id="focusHint" class="focus-hint" aria-hidden="true">Esc to leave focus</span>
         </section>
 
         <div
@@ -27749,6 +27807,56 @@ Return JSON only.`;
           insertImageFromFile(file);
         });
 
+        // Focus writing: Edit with the chrome hidden and the caret line held
+        // near the middle of the screen (typewriter scrolling).
+        let focusHintTimer = 0;
+
+        function isFocusWriting() {
+          return document.body.classList.contains("focus-writing");
+        }
+
+        function keepCaretSteady() {
+          if (!isFocusWriting()) return;
+          const actions = window.MarkVEditorMarkdownActions;
+          if (!actions) return;
+          const caretTop = measureTextareaCaretTop(els.editor, els.editor.selectionStart);
+          els.editor.scrollTop = actions.typewriterScrollTop(
+            caretTop,
+            els.editor.clientHeight,
+            els.editor.scrollHeight,
+          );
+        }
+
+        function setFocusWriting(on) {
+          if (Boolean(on) === isFocusWriting()) return;
+          const hint = document.getElementById("focusHint");
+          window.clearTimeout(focusHintTimer);
+          if (!on) {
+            document.body.classList.remove("focus-writing");
+            if (hint) hint.classList.remove("is-visible");
+            return;
+          }
+          if (getMode() !== "edit") setMode("edit");
+          document.body.classList.add("focus-writing");
+          els.editor.focus();
+          keepCaretSteady();
+          if (hint) {
+            hint.classList.add("is-visible");
+            focusHintTimer = window.setTimeout(function () {
+              hint.classList.remove("is-visible");
+            }, 2400);
+          }
+          setStatus("Focus writing. Press Escape to leave.", { announce: true });
+        }
+        window.__toggleFocusWriting = function () {
+          setFocusWriting(!isFocusWriting());
+        };
+
+        els.editor.addEventListener("input", keepCaretSteady);
+        els.editor.addEventListener("keyup", function (event) {
+          if (/^(Arrow|Page|Home|End)/.test(event.key)) keepCaretSteady();
+        });
+
         // Find and replace: an on-demand bar over the editor (Edit, Split).
         const findState = { matches: [], index: -1, error: null, note: "" };
 
@@ -29582,6 +29690,7 @@ Return JSON only.`;
 
         function setMode(mode) {
           if (mode === "preview") closeFindBar(false);
+          if (mode !== "edit") setFocusWriting(false);
           const previous = getMode();
           const wasEdit = previous !== "preview";
           if (mode === "split" && !splitQuery.matches) mode = "edit";
@@ -29983,6 +30092,12 @@ Return JSON only.`;
             return;
           }
 
+          if (e.key === "Escape" && isFocusWriting()) {
+            e.preventDefault();
+            setFocusWriting(false);
+            return;
+          }
+
           if (
             (e.metaKey || e.ctrlKey) &&
             e.shiftKey &&
@@ -29995,6 +30110,12 @@ Return JSON only.`;
               e.preventDefault();
               addHighlightFromSelection();
             }
+            return;
+          }
+
+          if (shortcutMatches(e, "editor.focus")) {
+            e.preventDefault();
+            setFocusWriting(!isFocusWriting());
             return;
           }
 

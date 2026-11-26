@@ -69,6 +69,12 @@
     "editor.image": {
       label: "Image markdown",
     },
+    "editor.focus": {
+      label: "Focus writing",
+      key: "enter",
+      mod: true,
+      shift: true,
+    },
     "editor.find": {
       label: "Find and replace",
       key: "f",

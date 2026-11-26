@@ -158,3 +158,11 @@ test("pickPastedImage accepts browser Copy Image (html without plain text)", () 
   const html = { kind: "string", type: "text/html", getAsFile: () => null };
   assert.equal(actions.pickPastedImage([html, img]).name, "image.png");
 });
+
+test("typewriterScrollTop centres the caret and clamps", () => {
+  const t = actions.typewriterScrollTop;
+  assert.equal(t(1000, 800, 5000), 1000 - 360);
+  assert.equal(t(100, 800, 5000), 0);
+  assert.equal(t(4900, 800, 5000), 4200);
+  assert.equal(t(50, 800, 600), 0);
+});

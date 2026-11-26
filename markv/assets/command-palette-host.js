@@ -543,6 +543,18 @@
         },
       }),
       createCommand(env, {
+        id: "command:focus-writing",
+        title: "Focus writing",
+        subtitle: "Hide everything but the page",
+        keywords: ["focus", "typewriter", "zen", "distraction", "write"],
+        defaultRank: 137,
+        disabled: typeof window.__toggleFocusWriting !== "function",
+        disabledReason: "Focus writing is unavailable in this build.",
+        run: function () {
+          window.__toggleFocusWriting();
+        },
+      }),
+      createCommand(env, {
         id: "command:ai-settings",
         title: "AI settings",
         subtitle: "Configure Ollama or Groq",

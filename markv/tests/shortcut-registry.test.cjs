@@ -89,3 +89,9 @@ test("no two shortcuts share the same key combination", () => {
     seen.set(combo, s.id);
   }
 });
+
+test("focus writing uses Mod+Shift+Enter", () => {
+  const registry = require("../assets/shortcut-registry.js");
+  assert.equal(registry.matches({ key: "Enter", metaKey: true, shiftKey: true }, "editor.focus"), true);
+  assert.equal(registry.matches({ key: "Enter", metaKey: true }, "editor.focus"), false);
+});

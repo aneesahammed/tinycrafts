@@ -361,7 +361,15 @@
     return makeEdit(from, to, replacement, caret, caret);
   }
 
+  // Scroll position that keeps the caret line at `anchor` of the viewport.
+  function typewriterScrollTop(caretTop, clientHeight, scrollHeight, anchor) {
+    const ratio = typeof anchor === "number" ? anchor : 0.45;
+    const max = Math.max(0, scrollHeight - clientHeight);
+    return Math.min(max, Math.max(0, Math.round(caretTop - clientHeight * ratio)));
+  }
+
   return {
+    typewriterScrollTop: typewriterScrollTop,
     buildImageAssetName: buildImageAssetName,
     buildImageInsertEdit: buildImageInsertEdit,
     handleEnter: handleEnter,
