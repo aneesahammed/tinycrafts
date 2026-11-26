@@ -1230,3 +1230,21 @@ test("the reading serif ships Charter after Iowan, with its licence", () => {
   assert.match(fs.readFileSync("assets/fonts/charis-sil/OFL.txt", "utf8"), /SIL OPEN FONT LICENSE/);
   assert.match(html, /font-src 'self'/);
 });
+
+test("resolveLibraryRelativePath joins against the document folder", () => {
+  const r = core.resolveLibraryRelativePath;
+  assert.equal(r("notes/day.md", "img/a.png"), "notes/img/a.png");
+  assert.equal(r("notes/day.md", "./a.png"), "notes/a.png");
+  assert.equal(r("notes/day.md", "../shared/b.png"), "shared/b.png");
+  assert.equal(r("day.md", "my%20pic.png"), "my pic.png");
+  assert.equal(r("notes/day.md", "a.png?v=2#x"), "notes/a.png");
+  assert.equal(r("notes/day.md", "/root.png"), "root.png");
+});
+
+test("resolveLibraryRelativePath rejects remote and escaping paths", () => {
+  const r = core.resolveLibraryRelativePath;
+  for (const href of ["https://x.test/a.png", "//x.test/a.png", "data:image/png;base64,AA",
+    "blob:abc", "C:\\a.png", "../a.png", "notes/../../a.png", "%2e%2e/a.png", "", "#frag"]) {
+    assert.equal(r("day.md", href), null, href);
+  }
+});

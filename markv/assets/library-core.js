@@ -2134,8 +2134,36 @@
     };
   }
 
+  // Maps a markdown href to a folder-root-relative path, or null when it
+  // is remote, a fragment, or would climb above the opened folder.
+  function resolveLibraryRelativePath(docPath, href) {
+    let raw = String(href || "").trim();
+    if (!raw || raw.startsWith("#") || raw.startsWith("//")) return null;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return null;
+    raw = raw.replace(/[?#].*$/, "");
+    try {
+      raw = decodeURIComponent(raw);
+    } catch (_error) {
+      return null;
+    }
+    raw = raw.replace(/\\/g, "/");
+    const base = raw.startsWith("/") ? "" : getLibraryPathDir(docPath);
+    const parts = [];
+    for (const part of (base + "/" + raw).split("/")) {
+      if (!part || part === ".") continue;
+      if (part === "..") {
+        if (!parts.length) return null;
+        parts.pop();
+      } else {
+        parts.push(part);
+      }
+    }
+    return parts.length ? parts.join("/") : null;
+  }
+
   return {
     SUPPORTED_EXTENSIONS: SUPPORTED_EXTENSIONS.slice(),
+    resolveLibraryRelativePath,
     SHARE_FRAGMENT_PREFIX,
     SHARE_SHORT_FRAGMENT_PREFIX,
     compareLibraryNames,

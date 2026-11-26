@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-QjgbxhdK9LcyzaEvxhMNui6B7ch5Zr83jkx/PZ6pmuM=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
+      content="default-src 'self'; script-src 'self' https://gc.zgo.at https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'sha256-64oX8xPjx/mkjQI4zhfOiMQqVvAeI8K9Gkmdt0eVcBA=' 'sha256-p4uUv+kujfJG7TrNl2/wjrWrDiuIENDML8qDEeuxfuM=' 'sha256-JjPdEqnbN6Pw+tofhKUgJiAPqx+aFJXxq0GLfNlO91I=' 'sha256-SutZK/Ft89wejkXDP5zlk2RAICIzYvHcl/E2gq1vrNE=' 'sha256-O3UCU//BFCpy2L1EZWZkOr/F5H941ARAyovxPjE+M74=' 'sha256-QnfR19Ecru0JomHBZ2tkLc7FA6sh9jGVLuHAGIIA+h8=' 'sha256-lHZB5jp1zqqQIt+dZXxT1xCAHbJhNEGNx36zowvQyWU='; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' blob: data: https://markv.goatcounter.com https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; media-src 'self' blob: data: https://github.com https://raw.githubusercontent.com https://user-images.githubusercontent.com https://private-user-images.githubusercontent.com https://media.githubusercontent.com https://avatars.githubusercontent.com; font-src 'self' https://cdn.jsdelivr.net data:; connect-src 'self' https://markv.goatcounter.com https://api.groq.com https://openrouter.ai http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; manifest-src 'self'"
     />
     <meta
       name="theme-color"
@@ -37,7 +37,7 @@
     <link rel="stylesheet" href="assets/welcome.css?v=5" />
 
     <script src="assets/analytics.js"></script>
-    <script src="assets/library-core.js?v=19"></script>
+    <script src="assets/library-core.js?v=20"></script>
     <script src="assets/visual-blocks.js?v=16"></script>
     <script src="assets/shortcut-registry.js?v=3"></script>
     <script src="assets/editor-markdown-actions.js?v=2"></script>
@@ -17170,6 +17170,8 @@ Return JSON only.`;
           documentEpoch: 0,
           documentReadGeneration: 0,
           handleWriteQueues: new WeakMap(),
+          libraryImageUrls: new Map(),
+          libraryImageFolderId: "",
           lastRenderedContentVersion: -1,
           lastRenderedDocumentToken: "",
           renderTimer: null,
@@ -21744,6 +21746,18 @@ Return JSON only.`;
         };
 
         renderer.image = function (href, title, text) {
+          const libraryPath = getLibraryImagePath(href);
+          if (libraryPath) {
+            // Filled in after render by hydrateLibraryImages.
+            let local =
+              '<img data-library-src="' +
+              escapeHtml(libraryPath) +
+              '" alt="' +
+              escapeHtml(text || "") +
+              '"';
+            if (title) local += ' title="' + escapeHtml(title) + '"';
+            return local + ' loading="lazy" decoding="async">';
+          }
           const media = resolveMarkdownMedia(href);
           if (!media) {
             return (
@@ -22360,6 +22374,81 @@ Return JSON only.`;
 
         function libraryKey(folderId, path) {
           return folderId + "\0" + path;
+        }
+
+        // Relative image in a live folder document -> folder-root path.
+        function getLibraryImagePath(href) {
+          if (!state.libraryActiveFolderId || !state.libraryCurrentFolderHandle) {
+            return null;
+          }
+          const core = window.MarkVLibraryCore;
+          const path =
+            core && typeof core.resolveLibraryRelativePath === "function"
+              ? core.resolveLibraryRelativePath(state.libraryActiveFilePath, href)
+              : null;
+          return path && IMAGE_MEDIA_EXTENSION_PATTERN.test(path) ? path : null;
+        }
+
+        // ponytail: cache lives per active folder; add LRU if huge image folders show memory pressure
+        async function getLibraryImageUrl(folderId, path) {
+          const key = libraryKey(folderId, path);
+          const cached = state.libraryImageUrls.get(key);
+          if (cached) return cached;
+          const folder = getLibraryFolderById(folderId);
+          if (!folder || !folder.handle) return null;
+          try {
+            const parts = path.split("/");
+            let dir = folder.handle;
+            for (let index = 0; index < parts.length - 1; index += 1) {
+              dir = await dir.getDirectoryHandle(parts[index]);
+            }
+            const fileHandle = await dir.getFileHandle(parts[parts.length - 1]);
+            const file = await fileHandle.getFile();
+            if (state.libraryActiveFolderId !== folderId) return null;
+            const url = URL.createObjectURL(file);
+            state.libraryImageUrls.set(key, url);
+            return url;
+          } catch (_error) {
+            return null;
+          }
+        }
+
+        function hydrateLibraryImages(rootEl) {
+          const folderId = state.libraryActiveFolderId;
+          // One place notices every folder switch, so blob URLs never leak.
+          if (state.libraryImageFolderId !== folderId) {
+            revokeLibraryImageUrls();
+            state.libraryImageFolderId = folderId;
+          }
+          if (!rootEl || !folderId) return;
+          rootEl.querySelectorAll("img[data-library-src]").forEach(function (image) {
+            if (image.hasAttribute("src")) return;
+            const path = image.getAttribute("data-library-src");
+            // Synchronous on a cache hit so re-rendered blocks never flash.
+            const cached = state.libraryImageUrls.get(libraryKey(folderId, path));
+            if (cached) {
+              image.setAttribute("src", cached);
+              return;
+            }
+            getLibraryImageUrl(folderId, path).then(function (url) {
+              if (state.libraryActiveFolderId !== folderId) return;
+              if (url) {
+                image.setAttribute("src", url);
+                return;
+              }
+              const note = document.createElement("span");
+              note.className = "blocked-resource";
+              note.textContent = "Image not found: " + path;
+              image.replaceWith(note);
+            });
+          });
+        }
+
+        function revokeLibraryImageUrls() {
+          state.libraryImageUrls.forEach(function (url) {
+            URL.revokeObjectURL(url);
+          });
+          state.libraryImageUrls.clear();
         }
 
         function readLibraryFileMeta(markdown) {
@@ -26827,6 +26916,7 @@ Return JSON only.`;
               els.preview.dataset.documentLabel =
                 state.currentName || "current document";
               if (keptMedia) restorePreviewImages(keptMedia.images, fresh);
+              hydrateLibraryImages(els.preview);
               // Before tables are wrapped, while `fresh` is still top level.
               decorateLinks(fresh);
               decorateCodeBlocks(fresh);
